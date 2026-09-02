@@ -115,8 +115,16 @@ jobs:
             echo "Pulling latest code..."
             git pull --ff-only origin main
 
+            echo "Server resource snapshot..."
+            free -h || true
+            df -h / || true
+            docker system df || true
+
             echo "Building production containers..."
-            docker compose build app
+            if ! COMPOSE_BAKE=false docker compose build app; then
+              echo "Compose Bake build failed; retrying with the classic Docker builder..."
+              DOCKER_BUILDKIT=0 COMPOSE_BAKE=false docker compose build app
+            fi
 
             echo "Starting application..."
             docker compose up -d
