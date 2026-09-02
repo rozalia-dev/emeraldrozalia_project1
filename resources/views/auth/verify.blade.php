@@ -1,0 +1,1 @@
+@extends('layouts.site') @section('content')<section class="auth-page"><div class="auth-card"><h1>Verify Your Email</h1><p>Use the verification link sent to your email. You can request another below.</p><form method="post" action="{{route('verification.send')}}">@csrf<button class="btn">RESEND VERIFICATION EMAIL</button></form></div></section>@endsection

@@ -1,0 +1,3 @@
+<?php
+namespace App\Services; use App\Models\{Company,Currency,ExchangeRate};
+class TenantContext { public function company(): ?Company { $id=session('company_id'); return $id?Company::find($id):Company::where('active',true)->first(); } public function locale(): string { return session('locale',$this->company()?->default_locale ?? config('app.locale')); } public function currency(): string { return session('currency',$this->company()?->base_currency ?? 'EUR'); } public function convert(float $amount,string $from='EUR',?string $to=null): float { $to??=$this->currency(); if($from===$to)return $amount; $r=ExchangeRate::where('base_currency',$from)->where('quote_currency',$to)->latest('rate_date')->value('rate'); return $r?round($amount*(float)$r,2):$amount; } }

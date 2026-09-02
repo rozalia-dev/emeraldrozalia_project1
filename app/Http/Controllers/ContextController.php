@@ -1,0 +1,3 @@
+<?php
+namespace App\Http\Controllers; use Illuminate\Http\Request; use App\Models\{Company,Language,Currency};
+class ContextController extends Controller { public function company(Request $r){$id=$r->validate(['company_id'=>'required|exists:companies,id'])['company_id']; if(auth()->check() && !auth()->user()->is_admin && !auth()->user()->companies()->whereKey($id)->exists())abort(403); session(['company_id'=>(int)$id]); return back();} public function locale(Request $r){$v=$r->validate(['locale'=>'required|exists:languages,locale'])['locale'];session(['locale'=>$v]);return back();} public function currency(Request $r){$v=$r->validate(['currency'=>'required|exists:currencies,code'])['currency'];session(['currency'=>$v]);return back();} }

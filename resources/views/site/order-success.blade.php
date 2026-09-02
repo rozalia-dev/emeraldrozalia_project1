@@ -1,0 +1,1 @@
+@extends('layouts.site') @section('content')<section class="page-hero"><span class="eyebrow">ORDER RECEIVED</span><h1>Thank You</h1><p>Your order <strong>{{$order->number}}</strong> has been created.</p><div class="actions"><a class="btn" href="/account/orders">VIEW MY ORDERS</a><a class="btn ghost" href="/shop">CONTINUE SHOPPING</a></div></section>@endsection

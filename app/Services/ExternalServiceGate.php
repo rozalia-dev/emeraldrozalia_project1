@@ -1,0 +1,4 @@
+<?php
+namespace App\Services;
+use RuntimeException;
+final class ExternalServiceGate { public function status(string $service):array{$config=config("external.$service");abort_unless(is_array($config),404);$enabled=(bool)($config['enabled']??false);$credentials=collect($config)->except('enabled')->filter(fn($value,$key)=>$key==='provider'||filled($value));return ['service'=>$service,'enabled'=>$enabled,'configured'=>$credentials->count()>=2,'live'=>$enabled&&$credentials->count()>=2];} public function requireLive(string $service):void{$status=$this->status($service);if(!$status['live'])throw new RuntimeException("$service is disabled until after the core site is deployed, verified and live.");} public function all():array{return collect(array_keys(config('external')))->mapWithKeys(fn($service)=>[$service=>$this->status($service)])->all();} }

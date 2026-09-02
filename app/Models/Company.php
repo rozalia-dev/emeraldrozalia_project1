@@ -1,0 +1,3 @@
+<?php
+namespace App\Models; use Illuminate\Database\Eloquent\Model;
+class Company extends Model { protected $guarded=[]; protected $casts=['settings'=>'array','active'=>'boolean']; public function users(){return $this->belongsToMany(User::class)->withPivot(['role','is_default']);} public function languages(){return $this->belongsToMany(Language::class,'company_languages','company_id','locale','id','locale')->withPivot('is_default');} public function currencies(){return $this->belongsToMany(Currency::class,'company_currencies','company_id','currency_code','id','code')->withPivot(['is_base','enabled_storefront']);} }

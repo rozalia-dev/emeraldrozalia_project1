@@ -1,3 +1,72 @@
 # Emerald Rozalia Project 1
 
-Initialising server-ready Laravel package.
+Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Limited. The repository is deployable with PostgreSQL 17 and contains no Production, Finance, Payroll, HR or POS module.
+
+## Delivered scope
+
+- Pixel-oriented responsive storefront, supplied wordmark and product badge assets
+- Catalogue, categories, variants, search, cart, wishlist, reviews, discounts and inventory movements
+- Customer registration, verification, profile, addresses, checkout, orders, invoices, rewards and returns
+- Six isolated order masters: online, corporate, bulk, franchise, franchise retail and buyer
+- Franchise applications, retail-store onboarding data and milestone schema
+- Communication Centre persistence for web enquiries, messages, assignments and follow-ups
+- Page Manager with drafts, review, scheduling, publishing, duplication, revision snapshots, archive, trash and restore
+- Product image/video/360/try-on media schema and browser-side try-on preview
+- Users, roles, permissions, audit log, reports, settings, integrations, automation, backups and maintenance surfaces
+- Company, language and currency context
+- CSV/XLSX bulk product import
+
+External payment/webhook, WhatsApp, email delivery, shipping, social, hosted 360° and hosted try-on connections are disabled by default. Enable each only after core live-site verification.
+
+## Requirements
+
+- PHP 8.3–8.5 with `pdo_pgsql`, intl, zip, bcmath and GD
+- Composer 2
+- PostgreSQL 15+ (Docker uses 17)
+- Nginx or Apache with document root set to `public/`
+
+## Docker deployment
+
+```bash
+cp .env.example .env
+# Set database and unique ADMIN_* secrets.
+docker compose up -d --build
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed --force
+docker compose exec app php artisan storage:link
+docker compose exec app php artisan optimize
+```
+
+## Linux/cPanel deployment
+
+```bash
+cp .env.example .env
+composer install --no-dev --prefer-dist --optimize-autoloader
+php artisan key:generate
+php artisan migrate --seed --force
+php artisan storage:link
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Set the web root to `/path/to/project/public`. Make `storage/` and `bootstrap/cache/` writable by the PHP user. Run `php artisan queue:work --sleep=3 --tries=3 --max-time=3600` under Supervisor and schedule `php artisan schedule:run` every minute. Templates are included in `deploy/`.
+
+Before seeding, replace `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Back up PostgreSQL and `storage/app/public`; test recovery before launch. Use HTTPS, `APP_DEBUG=false`, secure cookies and a strong generated `APP_KEY`.
+
+## External-service go-live rule
+
+Every `*_LIVE_ENABLED` variable remains `false` for deployment and initial launch. After the core storefront, checkout, admin and database backups pass acceptance checks, enter one provider's credentials, test its health/webhook in staging, enable only that service, deploy and monitor. Never commit `.env`.
+
+## Verification
+
+```bash
+composer validate --strict
+php artisan migrate:fresh --seed --force
+php artisan route:list
+php artisan test
+```
+
+CI executes the install, PostgreSQL migration/seed and tests on every push. See `docs/IMPLEMENTATION-MATRIX.md` and `docs/DEPLOYMENT-RUNBOOK.md` for specification traceability and deployment/rollback.
+
+Official footer contact values are loaded from the live server's `BRAND_*` environment variables and are never committed.
