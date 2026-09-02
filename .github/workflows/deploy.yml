@@ -66,7 +66,12 @@ jobs:
       - name: Prepare Laravel runtime directories
         run: |
           mkdir -p bootstrap/cache
-          chmod -R ug+rw bootstrap/cache
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/testing
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          chmod -R ug+rw bootstrap storage
 
       - name: Validate Composer configuration
         run: composer validate --strict
