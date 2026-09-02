@@ -3,10 +3,21 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 return new class extends Migration { public function up():void{
 if(DB::getDriverName()==='pgsql')DB::statement('CREATE EXTENSION IF NOT EXISTS pgcrypto');
-foreach(['users','categories','products','orders','order_items','inquiries','stores','product_variants','addresses','wishlists','reviews','returns','reward_transactions','inventory_movements','payment_transactions','shipping_methods','discounts','admin_records'] as $table)Schema::table($table,fn(Blueprint $t)=>$t->uuid('public_uuid')->default(DB::raw(DB::getDriverName()==='pgsql'?'gen_random_uuid()':'UUID()'))->unique());
-Schema::table('content_pages',function(Blueprint $t){$t->uuid('uuid')->unique();$t->string('locale',10)->default('en')->index();$t->string('template')->default('standard');$t->boolean('navigation_visible')->default(false);$t->timestampTz('scheduled_for')->nullable()->index();$t->timestampTz('published_at')->nullable()->index();$t->timestampTz('archived_at')->nullable();$t->softDeletesTz();});
+foreach(['users','categories','products','orders','order_items','inquiries','stores','product_variants','addresses','wishlists','reviews','returns','reward_transactions','inventory_movements','payment_transactions','shipping_methods','discounts','admin_records'] as $table){
+    Schema::table($table,fn(Blueprint $t)=>$t->uuid('public_uuid')->nullable()->unique());
+    DB::table($table)->select('id')->orderBy('id')->chunkById(500,function($rows)use($table){
+        foreach($rows as $row)DB::table($table)->where('id',$row->id)->update(['public_uuid'=>(string)Str::uuid()]);
+    });
+    Schema::table($table,fn(Blueprint $t)=>$t->uuid('public_uuid')->nullable(false)->change());
+}
+Schema::table('content_pages',function(Blueprint $t){$t->uuid('uuid')->nullable()->unique();$t->string('locale',10)->default('en')->index();$t->string('template')->default('standard');$t->boolean('navigation_visible')->default(false);$t->timestampTz('scheduled_for')->nullable()->index();$t->timestampTz('published_at')->nullable()->index();$t->timestampTz('archived_at')->nullable();$t->softDeletesTz();});
+DB::table('content_pages')->select('id')->orderBy('id')->chunkById(500,function($rows){
+    foreach($rows as $row)DB::table('content_pages')->where('id',$row->id)->update(['uuid'=>(string)Str::uuid()]);
+});
+Schema::table('content_pages',fn(Blueprint $t)=>$t->uuid('uuid')->nullable(false)->change());
 Schema::create('page_templates',function(Blueprint $t){$t->id();$t->uuid('uuid')->unique();$t->string('name');$t->string('slug')->unique();$t->jsonb('schema');$t->boolean('active')->default(true);$t->timestampsTz();});
 Schema::create('page_sections',function(Blueprint $t){$t->id();$t->uuid('uuid')->unique();$t->foreignId('content_page_id')->constrained()->cascadeOnDelete();$t->string('type');$t->string('label')->nullable();$t->unsignedInteger('sort_order')->default(0);$t->jsonb('settings');$t->boolean('visible')->default(true);$t->timestampsTz();$t->index(['content_page_id','sort_order']);});
 Schema::create('page_revisions',function(Blueprint $t){$t->id();$t->uuid('uuid')->unique();$t->foreignId('content_page_id')->constrained()->cascadeOnDelete();$t->foreignId('user_id')->nullable()->constrained()->nullOnDelete();$t->unsignedInteger('version');$t->jsonb('snapshot');$t->string('reason')->nullable();$t->timestampsTz();$t->unique(['content_page_id','version']);});
