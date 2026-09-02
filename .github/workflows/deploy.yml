@@ -1,13 +1,97 @@
-name: Deploy production
+name: Validate and deploy production
 
 on:
   push:
     branches:
       - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: emerald-rozalia-production
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  validate:
+    name: PostgreSQL validation
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: emerald_test
+          POSTGRES_USER: emerald
+          POSTGRES_PASSWORD: emerald
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U emerald -d emerald_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:VGhpcy1pcy1hLXRlc3Qta2V5LWZvci1DSTAwMDAwMDA=
+      APP_URL: http://localhost
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: emerald_test
+      DB_USERNAME: emerald
+      DB_PASSWORD: emerald
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: log
+      ADMIN_NAME: CI Administrator
+      ADMIN_EMAIL: ci-admin@example.test
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql,intl,zip,bcmath,gd
+          coverage: none
+
+      - name: Prepare Laravel runtime directories
+        run: |
+          mkdir -p bootstrap/cache
+          chmod -R ug+rw bootstrap/cache
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate ephemeral seeder password
+        run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
+      - name: Run PostgreSQL migrations and seeders
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Verify route registration
+        run: php artisan route:list
+
+      - name: Run application tests
+        run: php artisan test
+
+  deploy:
+    name: Deploy to Hetzner
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: production
 
     steps:
@@ -32,17 +116,29 @@ jobs:
             echo "Starting application..."
             docker compose up -d
 
+            echo "Waiting for PostgreSQL..."
+            for attempt in $(seq 1 30); do
+              if docker compose exec -T db pg_isready -U emerald_rozalia -d emerald_rozalia >/dev/null 2>&1; then
+                break
+              fi
+              if [ "$attempt" -eq 30 ]; then
+                echo "PostgreSQL did not become ready." >&2
+                exit 1
+              fi
+              sleep 2
+            done
+
             echo "Running migrations..."
             docker compose exec -T app php artisan migrate --force
 
             echo "Creating storage link..."
-            docker compose exec -T app php artisan storage:link
+            docker compose exec -T app php artisan storage:link || test -L public/storage
 
             echo "Clearing and rebuilding Laravel caches..."
             docker compose exec -T app php artisan optimize:clear
             docker compose exec -T app php artisan optimize
 
             echo "Checking application..."
-            curl --fail --silent --show-error https://emeraldrozalia.com/up
+            curl --fail --retry 10 --retry-all-errors --silent --show-error https://emeraldrozalia.com/up
 
             echo "Deployment successful."
