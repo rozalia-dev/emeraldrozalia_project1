@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Emerald Rozalia')</title>
     <meta name="description" content="Emerald Rozalia — Irish made hats and caps, proudly manufacturing in Limerick, Ireland.">
-    <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="/css/app.css?v=20260903-home-reference">
 </head>
 <body class="site-body @yield('body-class')">
 <div class="topline">
