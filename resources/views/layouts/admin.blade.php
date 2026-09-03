@@ -12,18 +12,25 @@
         [
             'label'=>'WEBSITE & PRODUCTS',
             'items'=>[
-                ['slug'=>'products','label'=>'Products','icon'=>'package','active'=>'admin/resource/products*'],
-                ['slug'=>'product-manager','label'=>'Product Manager','icon'=>'settings','active'=>'admin/resource/product-manager*'],
-                ['slug'=>'add-product','label'=>'Add Product','icon'=>'plus','active'=>'admin/resource/add-product*'],
-                ['route'=>'admin.bulk-upload','label'=>'Bulk Product Upload','icon'=>'upload','active'=>'admin/bulk-product-upload*'],
-                ['route'=>'admin.media.index','label'=>'Product Media Manager','icon'=>'camera','active'=>'admin/resource/media-manager*'],
-                ['slug'=>'images','label'=>'Images','icon'=>'camera','active'=>'admin/resource/images*'],
-                ['slug'=>'videos','label'=>'Videos','icon'=>'file-text','active'=>'admin/resource/videos*'],
-                ['slug'=>'360-product-view','label'=>'360° Product View','icon'=>'refresh','active'=>'admin/resource/360-product-view*'],
-                ['slug'=>'virtual-try-on','label'=>'Virtual Try-On','icon'=>'heart','active'=>'admin/resource/virtual-try-on*'],
-                ['slug'=>'categories','label'=>'Categories','icon'=>'package','active'=>'admin/resource/categories*'],
-                ['slug'=>'collections','label'=>'Collections','icon'=>'clover','active'=>'admin/resource/collections*'],
-                ['slug'=>'variants','label'=>'Variants','icon'=>'users','active'=>'admin/resource/variants*'],
+                [
+                    'slug'=>'products',
+                    'label'=>'Products',
+                    'icon'=>'package',
+                    'active'=>'admin/resource/products*',
+                    'children'=>[
+                        ['slug'=>'product-manager','label'=>'Product Manager','icon'=>'settings','active'=>'admin/resource/product-manager*'],
+                        ['slug'=>'add-product','label'=>'Add Product','icon'=>'plus','active'=>'admin/resource/add-product*'],
+                        ['route'=>'admin.bulk-upload','label'=>'Bulk Product Upload','icon'=>'upload','active'=>'admin/bulk-product-upload*'],
+                        ['route'=>'admin.media.index','label'=>'Product Media Manager','icon'=>'camera','active'=>'admin/resource/media-manager*'],
+                        ['slug'=>'images','label'=>'Images','icon'=>'camera','active'=>'admin/resource/images*'],
+                        ['slug'=>'videos','label'=>'Videos','icon'=>'file-text','active'=>'admin/resource/videos*'],
+                        ['slug'=>'360-product-view','label'=>'360° Product View','icon'=>'refresh','active'=>'admin/resource/360-product-view*'],
+                        ['slug'=>'virtual-try-on','label'=>'Virtual Try-On','icon'=>'heart','active'=>'admin/resource/virtual-try-on*'],
+                        ['slug'=>'categories','label'=>'Categories','icon'=>'package','active'=>'admin/resource/categories*'],
+                        ['slug'=>'collections','label'=>'Collections','icon'=>'clover','active'=>'admin/resource/collections*'],
+                        ['slug'=>'variants','label'=>'Variants','icon'=>'users','active'=>'admin/resource/variants*'],
+                    ],
+                ],
                 ['slug'=>'banners-sliders','label'=>'Banners & Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
                 ['route'=>'admin.pages','label'=>'Page Manager','icon'=>'file-text','active'=>'admin/pages*'],
                 ['slug'=>'seo-content','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/resource/seo-content*'],
@@ -95,7 +102,18 @@
             <summary><span>{{$group['label']}}</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
                 @foreach($group['items'] as $item)
-                    <a class="{{request()->is($item['active'])?'active':''}}" href="{{$href($item)}}"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></a>
+                    @if(isset($item['children']))
+                        <details class="admin-nav-subgroup" open>
+                            <summary class="{{request()->is($item['active'])?'active':''}}"><span class="admin-nav-parent-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
+                            <div class="admin-nav-subitems">
+                                @foreach($item['children'] as $child)
+                                    <a class="{{request()->is($child['active'])?'active':''}}" href="{{$href($child)}}"><x-icon name="{{$child['icon']}}" size="14" /><span>{{$child['label']}}</span></a>
+                                @endforeach
+                            </div>
+                        </details>
+                    @else
+                        <a class="{{request()->is($item['active'])?'active':''}}" href="{{$href($item)}}"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></a>
+                    @endif
                 @endforeach
             </div>
         </details>
