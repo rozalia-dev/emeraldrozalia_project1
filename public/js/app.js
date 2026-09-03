@@ -83,3 +83,43 @@ if(bulkUpload){
     bulkUpload.querySelector('[data-bu-back]')?.addEventListener('click',()=>bulkUpload.scrollIntoView({behavior:'smooth',block:'start'}));
     form?.addEventListener('submit',()=>{if(fileState&&!input?.files?.length){fileState.textContent='Choose a file before importing';fileState.classList.remove('is-success')}});
 }
+
+const mediaManager=document.querySelector('[data-media-manager]');
+if(mediaManager){
+    const cards=[...mediaManager.querySelectorAll('[data-mm-card]')],tabs=[...mediaManager.querySelectorAll('[data-mm-tab]')],search=mediaManager.querySelector('[data-mm-search]'),empty=mediaManager.querySelector('[data-mm-filter-empty]'),visibleCount=mediaManager.querySelector('[data-mm-visible-count]'),editor=mediaManager.querySelector('[data-mm-editor]'),fileInput=mediaManager.querySelector('[data-mm-file-input]'),dropzone=mediaManager.querySelector('[data-mm-dropzone]'),fileName=mediaManager.querySelector('[data-mm-file-name]');
+    let activeTab='all';
+    const selectEditor=(trigger)=>{
+        if(!editor||!trigger)return;
+        const id=trigger.dataset.mediaId;
+        const source=trigger.dataset.mediaUpdateUrl?trigger:mediaManager.querySelector(`[data-mm-select-media][data-media-id="${id}"][data-media-update-url]`);
+        if(!source)return;
+        editor.action=source.dataset.mediaUpdateUrl;
+        const type=editor.querySelector('[data-mm-editor-type]'),order=editor.querySelector('[data-mm-editor-order]'),active=editor.querySelector('[data-mm-editor-active]'),alt=editor.querySelector('[data-mm-editor-alt]');
+        if(type)type.value=source.dataset.mediaType||'image';
+        if(order)order.value=source.dataset.mediaOrder||'0';
+        if(active)active.value=source.dataset.mediaActive||'0';
+        if(alt)alt.value=source.dataset.mediaAlt||'';
+        cards.forEach((card)=>card.classList.toggle('is-selected',card.querySelector(`[data-media-id="${id}"]`)!==null));
+        editor.closest('.mm-tool-card')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+        alt?.focus();
+    };
+    const filterCards=()=>{
+        const term=(search?.value||'').trim().toLowerCase();
+        let visible=0;
+        cards.forEach((card)=>{const matchesTab=activeTab==='all'||card.dataset.mmType===activeTab;const matchesSearch=!term||(card.dataset.mmSearch||'').includes(term);const matches=matchesTab&&matchesSearch;card.hidden=!matches;if(matches)visible++});
+        if(visibleCount)visibleCount.textContent=`(${visible})`;
+        if(empty)empty.hidden=!cards.length||visible>0;
+    };
+    tabs.forEach((tab)=>tab.addEventListener('click',()=>{activeTab=tab.dataset.mmTab||'all';tabs.forEach((item)=>{const active=item===tab;item.classList.toggle('is-active',active);item.setAttribute('aria-selected',String(active))});filterCards()}));
+    search?.addEventListener('input',filterCards);
+    mediaManager.querySelectorAll('[data-mm-view]').forEach((button)=>button.addEventListener('click',()=>{const list=button.dataset.mmView==='list';mediaManager.classList.toggle('mm-list-view',list);mediaManager.querySelectorAll('[data-mm-view]').forEach((item)=>item.classList.toggle('is-active',item===button))}));
+    mediaManager.querySelectorAll('[data-mm-select-media]').forEach((button)=>button.addEventListener('click',()=>selectEditor(button)));
+    mediaManager.querySelector('[data-mm-action="select-first"]')?.addEventListener('click',()=>selectEditor(mediaManager.querySelector('[data-mm-card]:not([hidden]) [data-media-update-url]')));
+    mediaManager.querySelector('[data-mm-show-filters]')?.addEventListener('click',()=>mediaManager.querySelector('.mm-filter-bar')?.scrollIntoView({behavior:'smooth',block:'nearest'}));
+    const setSelectedFile=(file)=>{if(!file)return;try{const transfer=new DataTransfer();transfer.items.add(file);if(fileInput)fileInput.files=transfer.files}catch(error){}if(fileName)fileName.textContent=file.name;if(dropzone)dropzone.classList.remove('is-dragging')};
+    fileInput?.addEventListener('change',()=>setSelectedFile(fileInput.files?.[0]));
+    ['dragenter','dragover'].forEach((eventName)=>dropzone?.addEventListener(eventName,(event)=>{event.preventDefault();dropzone.classList.add('is-dragging')}));
+    ['dragleave','drop'].forEach((eventName)=>dropzone?.addEventListener(eventName,(event)=>{event.preventDefault();dropzone.classList.remove('is-dragging')}));
+    dropzone?.addEventListener('drop',(event)=>setSelectedFile(event.dataTransfer?.files?.[0]));
+    filterCards();
+}

@@ -10,14 +10,44 @@ use Illuminate\Validation\Rule;
 
 class MediaManagerController extends Controller
 {
-    private const TYPES = ['image','video','spin_360','try_on'];
+    private const TYPES = ['image','video','spin_360','try_on','document'];
 
     public function index(Request $request)
     {
         $products = Product::where('is_active',true)->withCount('media')->orderBy('name')->get();
         $selected = $products->firstWhere('id',(int) $request->input('product_id')) ?: $products->first();
-        $media = $selected ? ProductMedia::where('product_id',$selected->id)->orderBy('sort_order')->orderBy('id')->get() : collect();
-        return view('admin.media-manager.index',compact('products','selected','media'));
+        $mediaType = $request->string('media_type')->toString();
+        $mediaStatus = $request->string('media_status')->toString();
+        $mediaSort = $request->string('media_sort')->toString() ?: 'newest';
+        $mediaQuery = $selected
+            ? ProductMedia::where('product_id',$selected->id)
+            : ProductMedia::query()->whereKey(0);
+
+        if (in_array($mediaType, self::TYPES, true)) {
+            $mediaQuery->where('type',$mediaType);
+        }
+
+        if ($mediaStatus === 'active') {
+            $mediaQuery->where('active',true);
+        } elseif ($mediaStatus === 'inactive') {
+            $mediaQuery->where('active',false);
+        }
+
+        $media = match ($mediaSort) {
+            'oldest' => $mediaQuery->orderBy('created_at')->orderBy('id')->get(),
+            'order' => $mediaQuery->orderBy('sort_order')->orderBy('id')->get(),
+            default => $mediaQuery->orderByDesc('created_at')->orderBy('id')->get(),
+        };
+
+        if ($mediaStatus === 'archived') {
+            $media = $media->filter(fn (ProductMedia $item): bool => data_get($item->metadata,'status') === 'archived')->values();
+        }
+
+        if ($mediaType === 'document') {
+            $media = $media->where('type','document')->values();
+        }
+
+        return view('admin.media-manager.index',compact('products','selected','media','mediaType','mediaStatus','mediaSort'));
     }
 
     public function store(Request $request)
@@ -27,7 +57,7 @@ class MediaManagerController extends Controller
             'type'=>['required',Rule::in(self::TYPES)],
             'disk'=>['required',Rule::in(['public','local'])],
             'path'=>'nullable|string|max:255',
-            'file'=>'nullable|file|max:102400|mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,application/pdf',
+            'file'=>'nullable|file|max:102400|mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime,model/gltf-binary,model/gltf+json,application/pdf',
             'alt_text'=>'nullable|string|max:255',
             'sort_order'=>'nullable|integer|min:0|max:10000',
             'active'=>'nullable|boolean',
