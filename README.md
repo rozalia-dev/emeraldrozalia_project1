@@ -24,6 +24,8 @@ Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Lim
 - Company, language and currency context
 - CSV/XLSX bulk product import
 
+Bulk Product Upload accepts files up to 20 MB. The production PHP-FPM upload settings are defined in `deploy/php/uploads.ini` and are installed by the Docker image.
+
 External payment/webhook, WhatsApp, email delivery, shipping, social, hosted 360° and hosted try-on connections are disabled by default. Enable each only after core live-site verification.
 
 ## Requirements
