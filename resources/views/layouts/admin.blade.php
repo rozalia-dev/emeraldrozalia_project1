@@ -103,7 +103,8 @@
             <div class="admin-nav-items">
                 @foreach($group['items'] as $item)
                     @if(isset($item['children']))
-                        <details class="admin-nav-subgroup">
+                        @php $subgroupOpen=request()->is($item['active']) || collect($item['children'])->contains(fn($child)=>isset($child['active']) && request()->is($child['active'])); @endphp
+                        <details class="admin-nav-subgroup" @if($subgroupOpen) open @endif>
                             <summary class="{{request()->is($item['active'])?'active':''}}"><span class="admin-nav-parent-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
                             <div class="admin-nav-subitems">
                                 @foreach($item['children'] as $child)
