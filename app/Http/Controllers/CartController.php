@@ -1,7 +1,55 @@
 <?php
 namespace App\Http\Controllers;
-use App\Models\{Customer,Product};
-use App\Services\OrderService;
+
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Services\CartService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-class CartController extends Controller { public function show(Request $r){return view('storefront.cart',['cart'=>collect($r->session()->get('cart',[]))]);} public function add(Request $r,Product $product){abort_unless($product->active&&$product->status->value==='published',404);$data=$r->validate(['variant_id'=>['required','uuid','exists:product_variants,id'],'quantity'=>['required','integer','min:1','max:100']]);$variant=$product->variants()->whereKey($data['variant_id'])->where('active',true)->firstOrFail();abort_if($variant->stock_quantity<$data['quantity'],422,'Requested quantity is unavailable.');$cart=$r->session()->get('cart',[]);$key=$variant->id;$quantity=min(($cart[$key]['quantity']??0)+$data['quantity'],$variant->stock_quantity);$unit=$variant->price_minor??$product->price_minor;$cart[$key]=['product_id'=>$product->id,'variant_id'=>$variant->id,'name'=>$product->name,'sku'=>$variant->sku,'attributes'=>$variant->attributes,'quantity'=>$quantity,'unit_price_minor'=>$unit,'total_minor'=>$unit*$quantity];$r->session()->put('cart',$cart);return redirect()->route('cart.show')->with('success','Product added to cart.');} public function remove(Request $r,string $variant){$cart=$r->session()->get('cart',[]);unset($cart[$variant]);$r->session()->put('cart',$cart);return back();} public function checkout(Request $r,OrderService $orders){$data=$r->validate(['name'=>['required','string','max:120'],'email'=>['required','email','max:190'],'phone'=>['required','string','max:30'],'address'=>['required','string','max:500'],'consent'=>['accepted']]);$cart=collect($r->session()->get('cart',[]));abort_if($cart->isEmpty(),422,'Your cart is empty.');$order=DB::transaction(function()use($data,$cart,$orders,$r){$customer=Customer::firstOrCreate(['email'=>$data['email']],['name'=>$data['name'],'phone'=>$data['phone'],'addresses'=>[['label'=>'checkout','address'=>$data['address']]],'consent_at'=>now()]);$subtotal=$cart->sum('total_minor');$order=$orders->create(['customer_id'=>$customer->id,'type'=>'online','currency'=>'EUR','totals'=>['subtotal_minor'=>$subtotal,'tax_minor'=>0,'shipping_minor'=>0,'discount_minor'=>0,'total_minor'=>$subtotal]],'web-'.$r->session()->getId().'-'.$subtotal);if($order->items()->doesntExist())$order->items()->createMany($cart->map(fn($item)=>['product_variant_id'=>$item['variant_id'],'name'=>$item['name'],'sku'=>$item['sku'],'quantity'=>$item['quantity'],'unit_price_minor'=>$item['unit_price_minor'],'total_minor'=>$item['total_minor'],'snapshot'=>$item])->all());return $order;});$r->session()->forget('cart');return redirect()->route('cart.confirmation',$order);} public function confirmation(\App\Models\Order $order){return view('storefront.order-confirmation',compact('order'));} }
+
+class CartController extends Controller
+{
+    public function index(CartService $cart)
+    {
+        return view('site.cart', ['items'=>$cart->items(), 'subtotal'=>$cart->subtotal()]);
+    }
+
+    public function add(Request $request, Product $product, CartService $cart)
+    {
+        abort_unless($product->is_active, 404);
+        $data=$request->validate([
+            'variant_id'=>'nullable|integer|exists:product_variants,id',
+            'quantity'=>'required|integer|min:1|max:50',
+            'colour'=>'nullable|string|max:80',
+            'size'=>'nullable|string|max:80',
+        ]);
+        $variant=null;
+        if (!empty($data['variant_id'])) {
+            $variant=$product->variants()->whereKey($data['variant_id'])->where('is_active',true)->firstOrFail();
+        }
+        $available=$variant?->stock ?? $product->stock;
+        abort_if($available < $data['quantity'], 422, 'Requested quantity is unavailable.');
+        $options=array_filter(['colour'=>$data['colour']??null,'size'=>$data['size']??null]);
+        $cart->add($product,$data['quantity'],$variant,$options);
+        return redirect()->route('cart')->with('success','Product added to cart.');
+    }
+
+    public function update(Request $request, string $key, CartService $cart)
+    {
+        $data=$request->validate(['quantity'=>'required|integer|min:0|max:50']);
+        if ($data['quantity']>0) {
+            $item=$cart->items()[$key]??null;
+            if ($item) {
+                $available=$item['variant_id']?ProductVariant::find($item['variant_id'])?->stock:Product::find($item['product_id'])?->stock;
+                abort_if($available!==null && $data['quantity']>$available,422,'Requested quantity is unavailable.');
+            }
+        }
+        $cart->update($key,$data['quantity']);
+        return redirect()->route('cart')->with('success','Cart updated.');
+    }
+
+    public function remove(string $key, CartService $cart)
+    {
+        $cart->remove($key);
+        return redirect()->route('cart')->with('success','Item removed from cart.');
+    }
+}

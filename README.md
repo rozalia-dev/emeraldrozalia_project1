@@ -1,5 +1,9 @@
 # Emerald Rozalia Project 1
 
+## Current implementation status
+
+The repository is an active foundation, not a completed pixel-accurate release. The local Herd/MySQL baseline is booting and has passed migration/seed re-run verification, the UUID/domain migration is portable and seeded locally, local HTTP session cookies now support CSRF/login, cart, tenant isolation and foundation smoke routes are tested, deployment credentials/health ordering are aligned for PostgreSQL Docker, and the shared public visual foundation (header/footer/tokens), cPanel shell/dashboard, dedicated homepage/catalogue structure, variant-aware product detail, product media manager, 360° viewer contract, local-only Try-On studio and dedicated informational screens are in progress. The approved guide still contains unimplemented or unverified public and cPanel screens; completion requires the ordered tasks and screenshot evidence described in `docs/AGENTS.md`.
+
 Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Limited. The repository is deployable with PostgreSQL 17 and contains no Production, Finance, Payroll, HR or POS module.
 
 ## Delivered scope
@@ -7,7 +11,11 @@ Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Lim
 - Pixel-oriented responsive storefront, supplied wordmark and product badge assets
 - Catalogue, categories, variants, search, cart, wishlist, reviews, discounts and inventory movements
 - Customer registration, verification, profile, addresses, checkout, orders, invoices, rewards and returns
-- Six isolated order masters: online, corporate, bulk, franchise, franchise retail and buyer
+- P4.1 customer auth/dashboard contract: rate-limited auth routes, session rotation, non-enumerating reset request, verification state and owner-authorized account resources (see docs/AUTH-CUSTOMER-EVIDENCE.md)
+- P4.2 cart/checkout contract: saved/manual addresses, active shipping, validated discounts, provider-neutral payment choices, atomic totals and confirmation (see docs/CHECKOUT-CART-EVIDENCE.md)
+- P4.3 money/inventory contract: EUR decimal precision, round-half-up totals, locked stock rechecks, exact decrements and sale movements (see docs/MONEY-INVENTORY-EVIDENCE.md)
+- P4.4 order/ledger contract: owner-protected invoices, payment history, return eligibility/deduplication, provider-neutral payment transitions and audit records (see docs/ORDER-LEDGER-EVIDENCE.md)
+- P4.5 six isolated order masters: type-filtered queues for online, corporate, bulk, franchise, franchise retail and buyer with metrics, detail, invoice, lifecycle and return/payment visibility (see docs/ORDER-MASTERS-EVIDENCE.md)
 - Franchise applications, retail-store onboarding data and milestone schema
 - Communication Centre persistence for web enquiries, messages, assignments and follow-ups
 - Page Manager with drafts, review, scheduling, publishing, duplication, revision snapshots, archive, trash and restore

@@ -1,0 +1,8 @@
+@extends('layouts.site')
+@section('title','How We Work — Emerald Rozalia')
+@section('content')
+<section class="factory-hero"><div><p class="eyebrow">IRISH MADE · LIMERICK, IRELAND</p><h1>HOW WE <em>WORK</em></h1><p class="factory-tagline">Crafted with skill. Built on tradition. Delivered worldwide.</p><p>From concept to completion, every Emerald Rozalia hat and cap is made in our Limerick factory with precision, passion and pride.</p></div><div class="factory-source-placeholder" role="img" aria-label="Factory photography pending approved source archive">APPROVED FACTORY IMAGE PENDING</div></section>
+<section class="factory-values"><div><b>EXPERT TEAM</b><span>Skilled &amp; dedicated</span></div><div><b>QUALITY CONTROL</b><span>Every step</span></div><div><b>SUSTAINABLE</b><span>Responsible made</span></div><div><b>BUILT TO LAST</b><span>Timeless craft</span></div></section>
+<section class="factory-process"><div class="catalog-section-heading"><span></span><h2>FROM CONCEPT TO CREATION</h2><span></span></div><div class="process-grid">@foreach(['Design & Development','Pattern Making & Cutting','Shaping & Steaming','Embroidery & Details','Sewing & Assembly','Quality Inspection','Finishing & Steam','Packing & Labelling','Ready to Deliver'] as $i=>$step)<article><span>{{ $i+1 }}</span><h3>{{ $step }}</h3><div class="factory-step-placeholder">IMAGE PENDING</div><p>Managed with precision, quality control and traceability in our Limerick manufacturing workflow.</p></article>@endforeach</div></section>
+<section class="factory-visit"><h2>WELCOME TO VISIT OUR FACTORY</h2><p>Partners, clients and friends are welcome to arrange a factory visit in Limerick.</p><a class="btn" href="/contact">BOOK A FACTORY VISIT &rarr;</a></section>
+@endsection

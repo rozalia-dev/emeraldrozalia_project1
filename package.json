@@ -1,0 +1,11 @@
+{
+  "name": "emerald-rozalia-visual-tests",
+  "private": true,
+  "scripts": {
+    "visual:test": "playwright test tests/visual",
+    "visual:update": "playwright test tests/visual --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

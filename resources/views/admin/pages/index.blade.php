@@ -1,1 +1,64 @@
-@extends('layouts.admin') @section('title','Page Manager') @section('content')<div class="admin-title"><div><small>WEBSITE & PRODUCTS</small><h1>Page Manager</h1><p>Draft, schedule, publish, duplicate, archive, trash, restore, multilingual SEO and revision-controlled pages.</p></div></div><section class="panel"><h2>Add New Page</h2><form method="post" action="{{route('admin.pages.store')}}" class="module-toolbar">@csrf<input name="title" placeholder="Page title" required><input name="slug" placeholder="page-slug" required><input name="locale" value="en" maxlength="10" required><input name="template" value="standard" required><select name="status"><option>draft</option><option>review</option><option>scheduled</option><option>published</option></select><input type="datetime-local" name="scheduled_for"><input name="meta_title" placeholder="SEO title"><input name="meta_description" placeholder="SEO description"><textarea name="intro" placeholder="Introduction"></textarea><textarea name="body" placeholder="Page content / builder source"></textarea><label><input type="checkbox" name="navigation_visible" value="1"> Show in navigation</label><button class="btn">CREATE PAGE</button></form></section><section class="panel"><form class="module-toolbar"><input name="q" value="{{request('q')}}" placeholder="Search pages"><select name="status"><option value="">All</option>@foreach(['draft','review','scheduled','published','unpublished','archived','trash'] as $s)<option @selected(request('status')===$s)>{{$s}}</option>@endforeach</select><button>Filter</button></form><div class="table-wrap"><table class="data-table"><thead><tr><th>Title</th><th>Locale</th><th>Status</th><th>Schedule / Published</th><th>Revisions</th><th>Actions</th></tr></thead><tbody>@foreach($pages as $page)<tr><td><strong>{{$page->title}}</strong><br><small>/{{$page->slug}} · {{$page->template}} · UUID {{$page->uuid}}</small></td><td>{{$page->locale}}</td><td>{{$page->trashed()?'trash':$page->status}}</td><td>{{$page->scheduled_for?->format('d M Y H:i')??$page->published_at?->format('d M Y H:i')??'—'}}</td><td>{{$page->revisions()->count()}}</td><td>@if($page->trashed())<form method="post" action="{{route('admin.pages.restore',$page->id)}}">@csrf<button>Restore</button></form><form method="post" action="{{route('admin.pages.destroy',$page->id)}}">@csrf @method('delete')<button>Delete forever</button></form>@else @foreach(['duplicate','publish','unpublish','archive','trash'] as $action)<form method="post" action="{{route('admin.pages.action',[$page,$action])}}">@csrf<button>{{str($action)->headline()}}</button></form>@endforeach@endif</td></tr>@endforeach</tbody></table></div>{{$pages->links()}}</section>@endsection
+@extends('layouts.admin')
+@section('title','Page Manager')
+@section('content')
+<div class="admin-title"><div><small>WEBSITE &amp; PRODUCTS</small><h1>Page Manager</h1><p>Draft, schedule, publish, duplicate, archive, trash, restore, multilingual SEO and revision-controlled pages.</p></div></div>
+
+<section class="panel">
+    <h2>Add New Page</h2>
+    <form method="post" action="{{ route('admin.pages.store') }}" class="module-toolbar">
+        @csrf
+        <input name="title" placeholder="Page title" required>
+        <input name="slug" placeholder="page-slug" required>
+        <input name="locale" value="en" maxlength="10" required>
+        <input name="template" value="standard" required>
+        <select name="status"><option>draft</option><option>review</option><option>scheduled</option><option>published</option></select>
+        <input type="datetime-local" name="scheduled_for">
+        <input name="meta_title" placeholder="SEO title">
+        <input name="meta_description" placeholder="SEO description">
+        <textarea name="intro" placeholder="Introduction"></textarea>
+        <textarea name="body" placeholder="Page content / builder source"></textarea>
+        <label><input type="checkbox" name="navigation_visible" value="1"> Show in navigation</label>
+        <button class="btn">CREATE PAGE</button>
+    </form>
+</section>
+
+<section class="panel">
+    <form class="module-toolbar">
+        <input name="q" value="{{ request('q') }}" placeholder="Search pages">
+        <select name="status">
+            <option value="">All</option>
+            @foreach(['draft','review','scheduled','published','unpublished','archived','trash'] as $s)
+                <option value="{{ $s }}" @selected(request('status') === $s)>{{ $s }}</option>
+            @endforeach
+        </select>
+        <button>Filter</button>
+    </form>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Title</th><th>Locale</th><th>Status</th><th>Schedule / Published</th><th>Revisions</th><th>Actions</th></tr></thead>
+            <tbody>
+            @foreach($pages as $page)
+                <tr>
+                    <td><strong>{{ $page->title }}</strong><br><small>/{{ $page->slug }} · {{ $page->template }} · UUID {{ $page->uuid }}</small></td>
+                    <td>{{ $page->locale }}</td>
+                    <td>{{ $page->trashed() ? 'trash' : $page->status }}</td>
+                    <td>{{ $page->scheduled_for?->format('d M Y H:i') ?? $page->published_at?->format('d M Y H:i') ?? '—' }}</td>
+                    <td>{{ $page->revisions()->count() }}</td>
+                    <td class="table-actions">
+                        @if($page->trashed())
+                            <form method="post" action="{{ route('admin.pages.restore',$page->id) }}">@csrf<button>Restore</button></form>
+                            <form method="post" action="{{ route('admin.pages.destroy',$page->id) }}">@csrf @method('delete')<button>Delete forever</button></form>
+                        @else
+                            @foreach(['duplicate','publish','unpublish','archive','trash'] as $action)
+                                <form method="post" action="{{ route('admin.pages.action',[$page,$action]) }}">@csrf<button>{{ str($action)->headline() }}</button></form>
+                            @endforeach
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    {{ $pages->links() }}
+</section>
+@endsection

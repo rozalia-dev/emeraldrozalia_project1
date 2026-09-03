@@ -1,1 +1,1 @@
-<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class AdminRecord extends Model {protected $guarded=[]; protected $casts=['data'=>'array','record_date'=>'date'];}
+<?php namespace App\Models; use App\Models\Concerns\BelongsToTenant; use Illuminate\Database\Eloquent\Model; class AdminRecord extends Model {use BelongsToTenant; protected $guarded=[]; protected $casts=['data'=>'array','record_date'=>'date'];}

@@ -1,6 +1,6 @@
 # Deployment and rollback runbook
 
-1. Provision PostgreSQL, create a least-privilege database user, configure DNS and TLS, and point the site root to `public/`.
+1. Provision PostgreSQL, create the `emerald_rozalia` least-privilege database user (matching `docker-compose.yml` and `.env.example`), configure DNS and TLS, and point the site root to `public/`.
 2. Upload/release the repository, copy `.env.example` to `.env`, replace every example secret, keep all external live toggles false, and run the README install commands.
 3. Confirm `/up`, homepage, product, registration, cart, checkout, six order masters, Page Manager, Communication Centre and backup destination.
 4. Start the queue worker and scheduler, then place the site live. Verify logs, error rate, database connections and a restore drill.
