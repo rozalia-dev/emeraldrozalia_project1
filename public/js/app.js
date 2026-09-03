@@ -123,3 +123,44 @@ if(mediaManager){
     dropzone?.addEventListener('drop',(event)=>setSelectedFile(event.dataTransfer?.files?.[0]));
     filterCards();
 }
+
+const imageManager=document.querySelector('[data-image-manager]');
+if(imageManager){
+    const rows=[...imageManager.querySelectorAll('[data-im-card]')],selectAll=imageManager.querySelector('[data-im-select-all]'),selectionCount=imageManager.querySelector('[data-im-selection-count]'),bulkForm=imageManager.querySelector('[data-im-bulk-form]'),editor=imageManager.querySelector('[data-im-editor]'),previewFrame=imageManager.querySelector('[data-im-preview-frame]'),previewName=imageManager.querySelector('[data-im-preview-name]'),previewMeta=imageManager.querySelector('[data-im-preview-meta]'),uploadDrawer=imageManager.querySelector('[data-im-upload-drawer]'),fileInput=imageManager.querySelector('[data-im-file-input]'),fileName=imageManager.querySelector('[data-im-file-name]');
+    const selectedRows=()=>rows.filter((row)=>row.querySelector('[data-im-select]')?.checked);
+    const updateSelection=()=>{const selected=selectedRows();if(selectionCount)selectionCount.textContent=selected.length+' selected';if(selectAll)selectAll.checked=!!rows.length&&selected.length===rows.length};
+    const selectImage=(row)=>{
+        if(!row||!editor)return;
+        rows.forEach((item)=>item.classList.toggle('is-selected',item===row));
+        editor.action=row.dataset.imUpdateUrl||editor.action;
+        const role=editor.querySelector('[data-im-editor-role]'),order=editor.querySelector('[data-im-editor-order]'),active=editor.querySelector('[data-im-editor-active]'),alt=editor.querySelector('[data-im-editor-alt]');
+        if(role)role.value=row.dataset.imRole||'additional';
+        if(order)order.value=row.dataset.imOrder||'0';
+        if(active)active.value=row.dataset.imActive||'0';
+        if(alt)alt.value=row.dataset.imAlt||'';
+        if(previewName)previewName.textContent=row.dataset.imName||'Selected image';
+        if(previewMeta)previewMeta.textContent=(row.dataset.imDimensions||'Resolution pending')+' · '+(row.dataset.imSize||'Size pending');
+        if(previewFrame){
+            const oldImage=previewFrame.querySelector('[data-im-preview-image]'),empty=previewFrame.querySelector('[data-im-preview-empty]');
+            if(row.dataset.imUrl){
+                if(oldImage){oldImage.src=row.dataset.imUrl;oldImage.alt=row.dataset.imAlt||row.dataset.imName||'Selected image';oldImage.hidden=false}
+                else{const image=document.createElement('img');image.src=row.dataset.imUrl;image.alt=row.dataset.imAlt||row.dataset.imName||'Selected image';image.dataset.imPreviewImage='';previewFrame.replaceChildren(image)}
+                if(empty)empty.hidden=true;
+            }else if(oldImage){oldImage.hidden=true}
+        }
+        editor.closest('.im-tool-card')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+        alt?.focus();
+    };
+    rows.forEach((row)=>{row.querySelector('[data-im-select]')?.addEventListener('change',updateSelection);row.querySelectorAll('[data-im-select-image]').forEach((button)=>button.addEventListener('click',()=>selectImage(row)))});
+    selectAll?.addEventListener('change',()=>{rows.forEach((row)=>{const checkbox=row.querySelector('[data-im-select]');if(checkbox)checkbox.checked=selectAll.checked});updateSelection()});
+    bulkForm?.addEventListener('submit',(event)=>{const selected=selectedRows();if(!selected.length){event.preventDefault();if(selectionCount)selectionCount.textContent='Select at least one image';return}bulkForm.querySelectorAll('[data-im-bulk-id]').forEach((input)=>input.remove());selected.forEach((row)=>{const input=document.createElement('input');input.type='hidden';input.name='media_ids[]';input.value=row.dataset.imId;input.dataset.imBulkId='';bulkForm.appendChild(input)})});
+    imageManager.querySelector('[data-im-select-first]')?.addEventListener('click',()=>selectImage(rows[0]));
+    const setUploadOpen=(open)=>{if(!uploadDrawer)return;uploadDrawer.hidden=!open;imageManager.querySelectorAll('[data-im-open-upload]').forEach((button)=>button.setAttribute('aria-expanded',String(open)));if(open)uploadDrawer.querySelector('select')?.focus()};
+    imageManager.querySelectorAll('[data-im-open-upload]').forEach((button)=>button.addEventListener('click',()=>setUploadOpen(true)));
+    imageManager.querySelector('[data-im-close-upload]')?.addEventListener('click',()=>setUploadOpen(false));
+    fileInput?.addEventListener('change',()=>{const files=[...fileInput.files||[]];if(fileName)fileName.textContent=files.length?files.length+' file'+(files.length===1?'':'s')+' selected':'No files selected'});
+    imageManager.querySelector('[data-im-optimize]')?.addEventListener('click',(event)=>{const button=event.currentTarget;const original=button.textContent;button.textContent='Optimization policy enabled';setTimeout(()=>{button.textContent=original},1800)});
+    imageManager.querySelector('[data-im-settings]')?.addEventListener('click',(event)=>{const button=event.currentTarget;const original=button.textContent;button.textContent='Settings policy is active';setTimeout(()=>{button.textContent=original},1800)});
+    if(editor&&!rows.length)editor.querySelector('[data-im-editor-alt]')?.setAttribute('disabled','disabled');
+    updateSelection();
+}

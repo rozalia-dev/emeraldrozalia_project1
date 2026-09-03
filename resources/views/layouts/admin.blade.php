@@ -22,7 +22,7 @@
                         ['route'=>'admin.add-product','label'=>'Add Product','icon'=>'plus','active'=>'admin/resource/add-product*'],
                         ['route'=>'admin.bulk-upload','label'=>'Bulk Product Upload','icon'=>'upload','active'=>'admin/bulk-product-upload*'],
                         ['route'=>'admin.media.index','label'=>'Product Media Manager','icon'=>'camera','active'=>'admin/resource/media-manager*'],
-                        ['slug'=>'images','label'=>'Images','icon'=>'camera','active'=>'admin/resource/images*'],
+                        ['route'=>'admin.images.index','label'=>'Images','icon'=>'camera','active'=>'admin/resource/images*'],
                         ['slug'=>'videos','label'=>'Videos','icon'=>'file-text','active'=>'admin/resource/videos*'],
                         ['slug'=>'360-product-view','label'=>'360° Product View','icon'=>'refresh','active'=>'admin/resource/360-product-view*'],
                         ['slug'=>'virtual-try-on','label'=>'Virtual Try-On','icon'=>'heart','active'=>'admin/resource/virtual-try-on*'],
