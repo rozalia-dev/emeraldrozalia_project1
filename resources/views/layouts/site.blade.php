@@ -7,7 +7,7 @@
     <meta name="description" content="Emerald Rozalia — Irish made hats and caps, proudly manufacturing in Limerick, Ireland.">
     <link rel="stylesheet" href="/css/app.css">
 </head>
-<body class="site-body">
+<body class="site-body @yield('body-class')">
 <div class="topline">
     <span>✿ &nbsp; Proudly Manufacturing in Limerick, Ireland</span>
     <strong>Irish Made. Limerick Born. <em>Worn Everywhere.</em></strong>
@@ -25,7 +25,9 @@
     </div>
 </div>
 <header class="site-header">
-    <a href="/" class="brand"><img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia Limited"></a>
+    <a href="/" class="brand">
+        @if(request()->routeIs('home'))<span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span>@else<img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia Limited">@endif
+    </a>
     <button class="nav-toggle" data-nav-toggle aria-label="Open menu">☰</button>
     <nav data-nav><a href="/">HOME</a><a href="/shop">SHOP</a><a href="/collections">COLLECTIONS</a><a href="/new-arrivals">NEW ARRIVALS</a><a href="/corporate-orders">CORPORATE ORDER</a><a href="/bulk-orders">BULK ORDER</a><a href="/franchise">FRANCHISE APPLY</a><a href="/careers">HIRING APPLY</a></nav>
     <div class="utilities"><a href="/shop" aria-label="Search">⌕</a><a href="/account" aria-label="Account">♙</a><a href="/cart" aria-label="Cart">♧ <small>{{count(session('cart',[]))?'('.array_sum(array_column(session('cart',[]),'quantity')).')':''}}</small></a></div>
@@ -34,7 +36,7 @@
 @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif
 <main>@yield('content')</main>
 <footer class="site-footer">
-    <div class="footer-brand"><img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia"><p>Proudly manufacturing<br>hats and caps in Limerick, Ireland.</p><div class="socials">f &nbsp; ◎ &nbsp; ♪ &nbsp; in &nbsp; ▶</div></div>
+    <div class="footer-brand">@if(request()->routeIs('home'))<span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span>@else<img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia">@endif<p>Proudly manufacturing<br>hats and caps in Limerick, Ireland.</p><div class="socials">f &nbsp; ◎ &nbsp; ♪ &nbsp; in &nbsp; ▶</div></div>
     <div><h4>SHOP</h4><a href="/shop">All Products</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/category/snapbacks">Snapbacks</a><a href="/irish-traditional">Flat Caps</a></div>
     <div><h4>COLLECTIONS</h4><a href="/irish-traditional">Irish Traditional</a><a href="/irish-heritage">Irish Heritage</a><a href="/new-arrivals">New Arrivals</a><a href="/collections">Premium Collection</a></div>
     <div><h4>CUSTOMER CARE</h4><a href="/factory">Size Guide</a><a href="/factory">Shipping & Delivery</a><a href="/factory">Returns & Refunds</a><a href="/contact">Contact Us</a></div>

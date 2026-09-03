@@ -7,6 +7,12 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 Route::get('/',[SiteController::class,'home'])->name('home');
+Route::get('/visual-assets/home-page-reference.png', function () {
+    $path = base_path('docs/new project image/home page 1.png');
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, ['Cache-Control' => 'public, max-age=31536000']);
+})->name('home.reference');
 Route::get('/shop',[SiteController::class,'shop'])->name('shop');
 Route::get('/collections',[SiteController::class,'collections'])->name('collections');
 Route::get('/new-arrivals',[SiteController::class,'newArrivals'])->name('new.arrivals');
