@@ -6,6 +6,7 @@ Verified behavior:
 
 - unauthenticated `/admin` requests redirect to `/login`
 - grouped sidebar navigation preserves the approved Project 1 boundary
+- the dashboard sidebar uses five reference-matched expandable groups, each with its full submenu, plus Reports, Users & Roles, and Settings utility links
 - active navigation states are derived from the current route
 - mobile navigation uses the responsive toggle in `public/js/app.js`
 - the shell compiles through Laravel's Blade view cache
