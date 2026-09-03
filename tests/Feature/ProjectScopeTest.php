@@ -2,7 +2,9 @@
 namespace Tests\Feature;
 use App\Models\{Address,AuditLog,Category,Company,Discount,InventoryMovement,Order,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,ShippingMethod,User};
 use App\Providers\AppServiceProvider;
+use App\Services\BulkProductImporter;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\{Event,Hash,Notification,Route,URL};
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -164,6 +166,22 @@ class ProjectScopeTest extends TestCase {
     public function test_admin_has_all_six_order_masters():void {$admin=User::factory()->create(['is_admin'=>true]);foreach(['online','corporate','bulk','franchise','franchise_retail','buyer'] as $type)$this->actingAs($admin)->get('/admin/orders/'.$type)->assertOk();}
     public function test_invalid_order_master_is_not_routable():void {$admin=User::factory()->create(['is_admin'=>true]);$this->actingAs($admin)->get('/admin/orders/invalid')->assertNotFound();}
     public function test_page_manager_renders_for_admin():void {$admin=User::factory()->create(['is_admin'=>true]);$this->actingAs($admin)->get('/admin/pages')->assertOk()->assertSee('Page Manager');}
+    public function test_bulk_upload_page_renders_for_admin():void {$admin=User::factory()->create(['is_admin'=>true]);$this->actingAs($admin)->get('/admin/bulk-product-upload')->assertOk()->assertSee(['Bulk Product Upload','Upload CSV / XLSX'],false);}
+    public function test_malformed_bulk_csv_returns_row_error_instead_of_http_500():void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'emerald-bulk-');
+        file_put_contents($path, "Product Name,SKU,Price\nEmerald Cap,ER-TEST-001\n");
+
+        try {
+            $result = app(BulkProductImporter::class)->import($path, 'csv');
+
+            $this->assertSame(2, $result['errors'][0]['row']);
+            $this->assertSame('Expected 3 columns but found 2.', $result['errors'][0]['message']);
+        } finally {
+            @unlink($path);
+        }
+    }
+    public function test_unreadable_bulk_spreadsheet_redirects_instead_of_http_500():void {$admin=User::factory()->create(['is_admin'=>true]);$file=UploadedFile::fake()->create('broken.xlsx',1,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');$this->actingAs($admin)->post('/admin/bulk-product-upload',['file'=>$file])->assertRedirect()->assertSessionHasErrors('file');}
     public function test_excluded_modules_are_not_routable():void {$admin=User::factory()->create(['is_admin'=>true]);foreach(['production','finance','payroll','pos','hr'] as $module)$this->actingAs($admin)->get('/admin/resource/'.$module)->assertNotFound();}
     public function test_cart_add_update_remove_contract_is_consistent():void {$product=Product::create(['name'=>'Test Cap','slug'=>'test-cap','sku'=>'TEST-001','price'=>34.99,'stock'=>10,'is_active'=>true]);$this->post('/cart/'.$product->id,['quantity'=>2])->assertRedirect('/cart')->assertSessionHas('cart');$key=array_key_first($this->app['session']->get('cart'));$this->patch('/cart/'.$key,['quantity'=>3])->assertRedirect('/cart');$this->assertSame(3,$this->app['session']->get('cart')[$key]['quantity']);$this->delete('/cart/'.$key)->assertRedirect('/cart');$this->assertEmpty($this->app['session']->get('cart',[]));}
     public function test_tenant_scope_can_isolate_company_records():void {$first=Company::create(['name'=>'Company One','code'=>'C1']);$second=Company::create(['name'=>'Company Two','code'=>'C2']);Category::create(['company_id'=>$first->id,'name'=>'One','slug'=>'one']);Category::create(['company_id'=>$second->id,'name'=>'Two','slug'=>'two']);$this->assertSame(['one'],Category::forCompany($first->id)->pluck('slug')->all());$this->assertSame(['two'],Category::forCompany($second->id)->pluck('slug')->all());}
