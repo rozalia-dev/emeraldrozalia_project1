@@ -51,9 +51,9 @@
             <hr>
             <p class="summary-total"><span>Subtotal</span><strong>€{{ number_format($subtotal, 2) }}</strong></p>
             @if($items)
-                <a class="btn" href="{{ route('checkout') }}">PROCEED TO CHECKOUT <span aria-hidden="true">→</span></a>
+                <a class="btn" href="{{ route('checkout') }}">PROCEED TO CHECKOUT <x-icon name="arrow-right" /></a>
             @endif
-            <a class="cart-continue" href="{{ route('shop') }}">← Continue shopping</a>
+            <a class="cart-continue" href="{{ route('shop') }}"><x-icon name="arrow-left" /> Continue shopping</a>
         </aside>
     </section>
 @endsection

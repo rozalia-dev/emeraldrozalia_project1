@@ -16,13 +16,14 @@
         .totals{max-width:330px;margin:20px 0 0 auto}.totals p{display:flex;justify-content:space-between;margin:7px 0;font-size:12px}.totals p:last-child{padding-top:11px;border-top:2px solid #0b3a27;font-size:17px;font-weight:700}
         .invoice-actions{display:flex;gap:10px;margin-top:30px}.invoice-actions button,.invoice-actions a{padding:11px 16px;border:1px solid #0b3a27;background:#0b3a27;color:#fff;text-decoration:none;cursor:pointer;font-size:11px}.invoice-actions a{background:#fff;color:#0b3a27}
         footer{margin-top:38px;padding-top:15px;border-top:1px solid #dce4dc;color:#66746a;font-size:10px}
+        .home-brand-crop{display:block;width:230px;height:65px;background-image:url('/assets/brand/home-page-reference.png?v=20260903');background-repeat:no-repeat;background-size:864px auto;background-position:-9px -30px}
         @media print{body{padding:0} .invoice-actions{display:none}}
         @media(max-width:600px){body{padding:18px}.meta{grid-template-columns:1fr}header{flex-direction:column}.brand-copy{text-align:left}.table-wrap{overflow:auto}table{min-width:600px}}
     </style>
 </head>
 <body>
     <header>
-        <img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia Limited">
+        <span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span>
         <div class="brand-copy"><strong>ORDER INVOICE</strong><br>Order {{ $order->number }}<br>{{ $order->created_at?->format('d M Y') }}</div>
     </header>
 

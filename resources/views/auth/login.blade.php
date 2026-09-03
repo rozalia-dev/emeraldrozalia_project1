@@ -14,7 +14,7 @@
 
         <article class="auth-card auth-panel">
             <div class="auth-heading">
-                <span class="auth-icon" aria-hidden="true">◯</span>
+                <span class="auth-icon" aria-hidden="true"><x-icon name="user" size="25" /></span>
                 <div>
                     <h2>Login</h2>
                     <p>Welcome back. Please login to your account.</p>
@@ -31,7 +31,7 @@
                     <label class="checkbox-label"><input type="checkbox" name="remember" value="1" @checked(old('remember'))> <span>Remember me</span></label>
                     <a href="{{ route('password.request') }}">Forgot Password?</a>
                 </div>
-                <button class="btn auth-submit" type="submit">LOGIN <span aria-hidden="true">→</span></button>
+                <button class="btn auth-submit" type="submit">LOGIN <x-icon name="arrow-right" /></button>
             </form>
 
             <div class="auth-trust">
@@ -42,7 +42,7 @@
 
         <article class="auth-card auth-panel">
             <div class="auth-heading">
-                <span class="auth-icon" aria-hidden="true">◯+</span>
+                <span class="auth-icon" aria-hidden="true"><x-icon name="users" size="25" /></span>
                 <div>
                     <h2>Register</h2>
                     <p>Create an account and enjoy these benefits.</p>
@@ -50,9 +50,9 @@
             </div>
 
             <ul class="auth-benefit-list">
-                <li><strong>Faster Checkout</strong><span>Save your details for a quicker checkout.</span></li>
-                <li><strong>Track Orders</strong><span>Easily track and manage your orders.</span></li>
-                <li><strong>Exclusive Rewards</strong><span>Get access to special offers and new arrivals.</span></li>
+                <li><x-icon name="check" size="14" /><strong>Faster Checkout</strong><span>Save your details for a quicker checkout.</span></li>
+                <li><x-icon name="check" size="14" /><strong>Track Orders</strong><span>Easily track and manage your orders.</span></li>
+                <li><x-icon name="check" size="14" /><strong>Exclusive Rewards</strong><span>Get access to special offers and new arrivals.</span></li>
             </ul>
 
             <form method="post" action="{{ route('register') }}">
@@ -68,7 +68,7 @@
                 <label for="register-password-confirmation">Confirm Password</label>
                 <input id="register-password-confirmation" type="password" name="password_confirmation" placeholder="Confirm your password" autocomplete="new-password" required>
                 <label class="checkbox-label"><input type="checkbox" required> <span>I agree to the Terms &amp; Conditions and Privacy Policy.</span></label>
-                <button class="btn auth-submit" type="submit">REGISTER <span aria-hidden="true">→</span></button>
+                <button class="btn auth-submit" type="submit">REGISTER <x-icon name="arrow-right" /></button>
             </form>
         </article>
     </section>

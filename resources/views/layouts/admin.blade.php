@@ -20,22 +20,22 @@
     $href=function(string $slug)use($orderTypes){return isset($orderTypes[$slug])?route('admin.order-master',$orderTypes[$slug]):($slug==='page-manager'?route('admin.pages'):($slug==='integrations'?route('admin.integration-status'):route('admin.resource',$slug)));};
 @endphp
 <aside class="admin-sidebar">
-    <a href="{{route('admin.dashboard')}}" class="admin-logo"><img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia Limited"></a>
+    <a href="{{route('admin.dashboard')}}" class="admin-logo"><span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span></a>
     <small>PROJECT 1 CONTROL PANEL</small>
-    <a class="admin-nav-home {{request()->routeIs('admin.dashboard')?'active':''}}" href="{{route('admin.dashboard')}}">⌂ &nbsp; Dashboard</a>
+    <a class="admin-nav-home {{request()->routeIs('admin.dashboard')?'active':''}}" href="{{route('admin.dashboard')}}"><x-icon name="home" /> Dashboard</a>
     @foreach($groups as $label=>$items)
         <div class="admin-nav-group"><span>{{$label}}</span>
         @foreach($items as $slug=>$item)<a class="{{request()->is('admin/resource/'.$slug)||request()->is('admin/orders/*')&&isset($orderTypes[$slug])||($slug==='page-manager'&&request()->routeIs('admin.pages'))?'active':''}}" href="{{$href($slug)}}">{{$item}}</a>@endforeach
         </div>
     @endforeach
-    <a class="admin-nav-home" href="{{route('admin.bulk-upload')}}">⇧ &nbsp; Bulk Product Upload</a>
+    <a class="admin-nav-home" href="{{route('admin.bulk-upload')}}"><x-icon name="upload" /> Bulk Product Upload</a>
 </aside>
 <div class="admin-shell">
     <header class="admin-top">
-        <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" data-admin-nav-toggle>☰</button>
+        <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
         <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
-        <label class="admin-search"><span>⌕</span><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
-        <div class="admin-actions"><span aria-label="Notifications">♧</span><span aria-label="Messages">◌</span><span aria-label="Help">?</span><span class="admin-user">● &nbsp; {{auth()->user()->name ?? 'Admin User'}}⌄</span></div>
+        <label class="admin-search"><x-icon name="search" /><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
+        <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /> {{auth()->user()->name ?? 'Admin User'}}</span></div>
     </header>
     <main class="admin-main">
         @if(session('success'))<div class="flash success">{{session('success')}}</div>@endif

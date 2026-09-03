@@ -69,7 +69,7 @@
                 <label for="checkout-notes">Order notes <span>(optional)</span><textarea id="checkout-notes" name="notes" placeholder="Anything we should know?">{{ old('notes') }}</textarea></label>
             </div>
 
-            <button class="btn checkout-submit" type="submit">PLACE ORDER <span aria-hidden="true">→</span></button>
+            <button class="btn checkout-submit" type="submit">PLACE ORDER <x-icon name="arrow-right" /></button>
         </form>
 
         <aside class="summary-card checkout-summary">
