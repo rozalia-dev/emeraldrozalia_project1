@@ -1,9 +1,10 @@
 <?php
 namespace Tests\Feature;
 use App\Models\{Address,AuditLog,Category,Company,Discount,InventoryMovement,Order,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,ShippingMethod,User};
+use App\Providers\AppServiceProvider;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\{Event,Hash,Notification,Route};
+use Illuminate\Support\Facades\{Event,Hash,Notification,Route,URL};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 class ProjectScopeTest extends TestCase {
@@ -19,6 +20,7 @@ class ProjectScopeTest extends TestCase {
     public function test_informational_category_and_factory_pages_are_dedicated():void {$this->get('/irish-traditional')->assertOk()->assertSee(['IRISH TRADITIONAL','FLAT CAPS','APPLY FILTERS'],false);$this->get('/irish-heritage')->assertOk()->assertSee(['IRISH HERITAGE','HATS','APPLY FILTERS'],false);$this->get('/factory')->assertOk()->assertSee(['HOW WE','FROM CONCEPT TO CREATION','WELCOME TO VISIT OUR FACTORY'],false);}
     public function test_business_and_company_pages_are_dedicated():void {$this->get('/corporate-orders')->assertOk()->assertSee(['CORPORATE ORDERS','HOW IT WORKS','REQUEST A QUOTE'],false);$this->get('/bulk-orders')->assertOk()->assertSee(['BULK ORDER SOLUTIONS','REQUEST A BULK QUOTE'],false);$this->get('/franchise')->assertOk()->assertSee(['FRANCHISE WITH','WHY PARTNER WITH US?','SUBMIT ENQUIRY'],false);$this->get('/careers')->assertOk()->assertSee(['BUILD YOUR CAREER','CURRENT OPEN POSITIONS','SUBMIT APPLICATION'],false);$this->get('/global-network')->assertOk()->assertSee(['OUR GLOBAL','A GLOBAL PRESENCE','LIMERICK, IRELAND'],false);$this->get('/contact')->assertOk()->assertSee(['WE\'RE HERE','SEND US A MESSAGE','FREQUENTLY ASKED QUESTIONS'],false);}
     public function test_authenticated_boundaries_redirect_guests():void {$this->get('/account')->assertRedirect('/login');$this->get('/checkout')->assertRedirect('/login');$this->get('/admin')->assertRedirect('/login');}
+    public function test_secure_url_setting_protects_every_form_target():void {$previous=(bool)config('app.force_https');config(['app.force_https'=>true]);(new AppServiceProvider($this->app))->boot();try{$this->get('/login')->assertOk()->assertSee(['action="https://localhost/login"','action="https://localhost/register"','href="https://localhost/forgot-password"'],false);}finally{URL::forceScheme(null);config(['app.force_https'=>$previous]);}}
     public function test_admin_navigation_nests_product_operations_under_products():void {$admin=User::factory()->create(['is_admin'=>true]);$response=$this->actingAs($admin)->get('/admin');$response->assertOk()->assertSee(['Products','Product Manager','Add Product','Bulk Product Upload','Product Media Manager','Images','Videos','360° Product View','Virtual Try-On','Categories','Collections','Variants','Pages'],false);$content=$response->getContent();$this->assertSame(1,substr_count($content,'class="admin-nav-subgroup"'));$this->assertSame(0,substr_count($content,'class="admin-nav-subgroup" open'));$this->assertSame(1,substr_count($content,'class="admin-nav-subitems"'));$this->assertLessThan(strpos($content,'Product Manager'),strpos($content,'class="admin-nav-subgroup"'));}
     public function test_customer_auth_lifecycle_email_state_and_rate_limits():void {
         Event::fake([Registered::class]);
