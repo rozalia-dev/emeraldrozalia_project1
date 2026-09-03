@@ -93,7 +93,7 @@
     ];
     $href=function(array $item){return isset($item['order'])?route('admin.order-master',$item['order']):(isset($item['route'])?route($item['route']):route('admin.resource',$item['slug']));};
 @endphp
-<aside class="admin-sidebar">
+<aside id="admin-sidebar" class="admin-sidebar">
     <a href="{{route('admin.dashboard')}}" class="admin-logo"><span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span></a>
     <small>PROJECT 1 CONTROL PANEL</small>
     <a class="admin-nav-home {{request()->routeIs('admin.dashboard')?'active':''}}" href="{{route('admin.dashboard')}}"><x-icon name="home" /> Dashboard</a>
@@ -126,10 +126,10 @@
 </aside>
 <div class="admin-shell">
     <header class="admin-top">
-        <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
+        <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
         <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
         <label class="admin-search"><x-icon name="search" /><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
-        <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /> {{auth()->user()->name ?? 'Admin User'}}</span></div>
+        <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
     </header>
     <main class="admin-main">
         @if(session('success'))<div class="flash success">{{session('success')}}</div>@endif

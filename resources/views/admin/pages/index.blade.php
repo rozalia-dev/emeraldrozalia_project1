@@ -5,7 +5,7 @@
 
 <section class="panel">
     <h2>Add New Page</h2>
-    <form method="post" action="{{ route('admin.pages.store') }}" class="module-toolbar">
+    <form method="post" action="{{ route('admin.pages.store') }}" class="module-toolbar page-create-form">
         @csrf
         <input name="title" placeholder="Page title" required>
         <input name="slug" placeholder="page-slug" required>
@@ -23,7 +23,7 @@
 </section>
 
 <section class="panel">
-    <form class="module-toolbar">
+    <form class="module-toolbar page-filter-form">
         <input name="q" value="{{ request('q') }}" placeholder="Search pages">
         <select name="status">
             <option value="">All</option>
