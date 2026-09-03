@@ -1,1 +1,20 @@
-@extends('layouts.admin') @section('title',Str::headline($module)) @section('content')<div class="admin-title"><div><p class="eyebrow">ADMIN MODULE</p><h1>{{Str::headline($module)}}</h1></div><button class="btn"><x-icon name="plus" size="14" /> NEW RECORD</button></div><section class="panel"><div class="module-toolbar"><input placeholder="Search records"><select><option>All statuses</option><option>Active</option><option>Pending</option><option>Completed</option></select><button>Export</button></div><table class="data-table"><thead><tr><th>Reference</th><th>Title</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody>@forelse($records as $r)<tr><td>{{$r->reference}}</td><td>{{$r->title}}</td><td>{{$r->status}}</td><td>{{$r->created_at?->format('d M Y')}}</td><td>Edit</td></tr>@empty<tr><td colspan="5">No records yet. This module is ready for live data.</td></tr>@endforelse</tbody></table></section>@endsection
+@extends('layouts.admin')
+@section('title', Str::headline($module))
+@section('content')
+<div class="admin-title"><div><p class="eyebrow">ADMIN MODULE</p><h1>{{ Str::headline($module) }}</h1></div><button class="btn"><x-icon name="plus" size="14" /> NEW RECORD</button></div>
+<section class="panel">
+    <div class="module-toolbar module-filter-toolbar"><input placeholder="Search records"><select><option>All statuses</option><option>Active</option><option>Pending</option><option>Completed</option></select><button>Export</button></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Reference</th><th>Title</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+            <tbody>
+            @forelse($records as $r)
+                <tr><td>{{ $r->reference }}</td><td>{{ $r->title }}</td><td>{{ $r->status }}</td><td>{{ $r->created_at?->format('d M Y') }}</td><td>Edit</td></tr>
+            @empty
+                <tr><td colspan="5">No records yet. This module is ready for live data.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</section>
+@endsection

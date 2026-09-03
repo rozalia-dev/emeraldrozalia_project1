@@ -1,5 +1,9 @@
 document.querySelector('[data-nav-toggle]')?.addEventListener('click',()=>document.querySelector('[data-nav]')?.classList.toggle('open'));
-document.querySelector('[data-admin-nav-toggle]')?.addEventListener('click',()=>document.querySelector('.admin-sidebar')?.classList.toggle('open'));
+const adminNavToggle=document.querySelector('[data-admin-nav-toggle]'),adminSidebar=document.querySelector('.admin-sidebar');
+if(adminNavToggle&&adminSidebar){
+    adminNavToggle.addEventListener('click',()=>{const open=adminSidebar.classList.toggle('open');adminNavToggle.setAttribute('aria-expanded',String(open))});
+    adminSidebar.querySelectorAll('a').forEach((link)=>link.addEventListener('click',()=>{adminSidebar.classList.remove('open');adminNavToggle.setAttribute('aria-expanded','false')}));
+}
 
 const spin=document.querySelector('[data-spin-viewer]');
 if(spin){
