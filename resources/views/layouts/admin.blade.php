@@ -32,7 +32,7 @@
                     ],
                 ],
                 ['slug'=>'banners-sliders','label'=>'Banners & Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
-                ['route'=>'admin.pages','label'=>'Page Manager','icon'=>'file-text','active'=>'admin/pages*'],
+                ['route'=>'admin.pages','label'=>'Pages','icon'=>'file-text','active'=>'admin/pages*'],
                 ['slug'=>'seo-content','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/resource/seo-content*'],
                 ['slug'=>'reviews-ratings','label'=>'Reviews & Ratings','icon'=>'star','active'=>'admin/resource/reviews-ratings*'],
             ],
