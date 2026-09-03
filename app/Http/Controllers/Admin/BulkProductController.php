@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\BulkProductImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -19,8 +20,8 @@ class BulkProductController extends Controller
     public function store(Request $request, BulkProductImporter $importer): RedirectResponse
     {
         $data = $request->validate(
-            ['file' => ['bail', 'required', 'file', 'mimes:csv,xlsx,xls', 'max:20480']],
-            ['file.uploaded' => 'The file could not be uploaded. Keep it under 20 MB and use CSV, XLS, or XLSX.']
+            ['file' => ['bail', 'required', 'file', 'mimes:csv,xlsx,xls', 'max:25600']],
+            ['file.uploaded' => 'The file could not be uploaded. Keep it under 25 MB and use CSV, XLS, or XLSX.']
         );
 
         $path = $data['file']->getRealPath();
@@ -43,6 +44,9 @@ class BulkProductController extends Controller
                 ]);
         }
 
-        return back()->with('result', $result);
+        return back()
+            ->with('result', $result)
+            ->with('bulk_file', $data['file']->getClientOriginalName())
+            ->with('bulk_upload_id', (string) Str::uuid());
     }
 }
