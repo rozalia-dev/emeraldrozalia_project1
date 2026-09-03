@@ -29,7 +29,8 @@ class ProjectScopeTest extends TestCase {
         $image=ProductMedia::query()->firstOrFail();
         $this->assertSame('image',$image->type);
         $this->assertSame('primary',$image->metadata['image_role']);
-        $this->actingAs($admin)->get(route('admin.images.index',['product_id'=>$product->id,'tab'=>'primary']))->assertOk()->assertSee(['Image Cap','front.jpg','Emerald Rozalia cap'],false);
+        $imageName=basename($image->path);
+        $this->actingAs($admin)->get(route('admin.images.index',['product_id'=>$product->id,'tab'=>'primary']))->assertOk()->assertSee(['Image Cap',$imageName,'Emerald Rozalia cap'],false);
         $this->actingAs($admin)->patch(route('admin.images.update',$image),['image_role'=>'additional','alt_text'=>'Updated cap image','sort_order'=>3,'active'=>1])->assertRedirect();
         $this->assertSame('additional',$image->fresh()->metadata['image_role']);
     }
