@@ -295,3 +295,24 @@
     .site-body .nav-toggle{display:block}
     .site-body .footer-brand .home-brand-crop{width:181px;height:63px}
 }
+
+/* cPanel navigation follows the five-section dashboard reference. */
+.admin-sidebar{width:208px;padding:16px 10px}
+.admin-shell{margin-left:208px}
+.admin-nav-group{padding:10px 0 4px}
+.admin-nav-group summary{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;padding:4px 9px 6px;color:#79b43b;font-size:10px;font-weight:700;letter-spacing:.04em}
+.admin-nav-group summary::-webkit-details-marker{display:none}
+.admin-nav-group summary::marker{content:""}
+.admin-group-chevron{transition:transform .18s ease}
+.admin-nav-group[open] .admin-group-chevron{transform:rotate(90deg)}
+.admin-nav-group:not([open]) .admin-group-chevron{transform:rotate(0)}
+.admin-nav-items{display:grid;gap:1px}
+.admin-nav-items a{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:4px;color:#d9e7dd;font-size:11px;line-height:1.2}
+.admin-nav-items a:hover,.admin-nav-items a.active{background:#0d6b35;color:#fff}
+.admin-nav-items a .ui-icon{flex:0 0 14px;color:currentColor}
+.admin-nav-utility{margin-top:7px;border-top:1px solid rgba(210,230,216,.18);padding-top:5px}
+.admin-nav-utility .admin-nav-home{display:flex;align-items:center;gap:7px;padding:7px 8px;color:#d9e7dd;font-size:11px}
+.admin-nav-utility .admin-nav-home:hover{background:#1a4b28;color:#fff}
+@media(max-width:1100px){.admin-sidebar{width:208px}.admin-shell{margin-left:208px}}
+@media(max-width:980px){.admin-sidebar{width:208px}.admin-shell{margin-left:0}}
+@media(max-width:700px){.admin-sidebar{position:static;width:100%;max-height:420px;transform:none;padding:16px 12px}.admin-shell{margin-left:0}}

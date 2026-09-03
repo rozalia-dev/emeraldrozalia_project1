@@ -5,7 +5,15 @@ use App\Models\AdminRecord;
 use App\Services\AuditTrail;
 use Illuminate\Http\Request;
 class ResourceController extends Controller {
-    public array $modules=['website-products','online-sales','customers','franchise-management','communication-center','reports','users-roles','integrations','settings','audit-logs','automation','backup-recovery','system-maintenance','returns-refunds','media-manager','collections','discounts-coupons','reviews-testimonials','shipping-delivery'];
+    public array $modules=[
+        'website-products','products','product-manager','add-product','online-sales','customers','cart-checkout','payments',
+        'franchise-management','communication-center','reports','users-roles','integrations','settings','audit-logs','automation',
+        'backup-recovery','system-maintenance','returns-refunds','media-manager','images','videos','360-product-view','virtual-try-on',
+        'categories','collections','variants','banners-sliders','seo-content','reviews-testimonials','reviews-ratings','shipping-delivery',
+        'discounts-coupons','sales-reports','franchise-dashboard','franchise-applications','franchise-territories','franchise-agreements',
+        'franchisees','franchise-retail-stores','training-documents','marketing-assets','performance-targets','renewals','inbox','chat-24-7',
+        'whatsapp','email','email-templates','approval-center','action-follow-ups','alerts-notifications','communication-reports','communication-history',
+    ];
     private function valid(string $module):void { abort_unless(in_array($module,$this->modules,true),404); }
     private function data(Request $r):array { return $r->validate(['title'=>'required|max:180','reference'=>'nullable|max:100','status'=>'required|max:50','amount'=>'nullable|numeric','record_date'=>'nullable|date','notes'=>'nullable|max:3000']); }
     public function index(string $module){$this->valid($module);$records=AdminRecord::where('module',$module)->latest()->paginate(25);return view('admin.resources.index',compact('module','records'));}
