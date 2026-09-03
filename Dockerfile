@@ -7,6 +7,7 @@ RUN apk add --no-cache git curl unzip icu-dev libzip-dev oniguruma-dev libpng-de
  && apk del $PHPIZE_DEPS
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY deploy/php/uploads.ini /usr/local/etc/php/conf.d/99-uploads.ini
 
 WORKDIR /var/www/html
 
