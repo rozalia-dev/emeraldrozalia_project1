@@ -19,7 +19,7 @@
                     'active'=>'admin/resource/products*',
                     'children'=>[
                         ['slug'=>'product-manager','label'=>'Product Manager','icon'=>'settings','active'=>'admin/resource/product-manager*'],
-                        ['slug'=>'add-product','label'=>'Add Product','icon'=>'plus','active'=>'admin/resource/add-product*'],
+                        ['route'=>'admin.add-product','label'=>'Add Product','icon'=>'plus','active'=>'admin/resource/add-product*'],
                         ['route'=>'admin.bulk-upload','label'=>'Bulk Product Upload','icon'=>'upload','active'=>'admin/bulk-product-upload*'],
                         ['route'=>'admin.media.index','label'=>'Product Media Manager','icon'=>'camera','active'=>'admin/resource/media-manager*'],
                         ['slug'=>'images','label'=>'Images','icon'=>'camera','active'=>'admin/resource/images*'],
