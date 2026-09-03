@@ -1,0 +1,51 @@
+@props([
+    'name' => 'circle',
+    'size' => 18,
+    'label' => null,
+])
+
+@php
+    $paths = [
+        'arrow-left' => '<path d="M19 12H5m7 7-7-7 7-7"/>',
+        'arrow-right' => '<path d="M5 12h14m-7-7 7 7-7 7"/>',
+        'bell' => '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+        'briefcase' => '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-13 5h18m-9-2v4"/>',
+        'camera' => '<path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3"/>',
+        'check' => '<path d="m5 12 4 4L19 6"/>',
+        'chevron-right' => '<path d="m9 18 6-6-6-6"/>',
+        'circle' => '<circle cx="12" cy="12" r="8"/>',
+        'clover' => '<path d="M12 21c0-4.5 1.5-7.5 5-9.5C14 10 12 7.5 12 3c-3.5 2-4.5 4.5-2.5 7.5C6.5 9 3 10 3 13c0 3 3.5 4.5 6.5 2.5C9 18.5 10 20 12 21Z"/>',
+        'credit-card' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
+        'file-text' => '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4M9 13h6m-6 4h6"/>',
+        'facebook' => '<path d="M14 8h3V4h-3a5 5 0 0 0-5 5v3H6v4h3v4h4v-4h3l1-4h-4V9a1 1 0 0 1 1-1Z"/>',
+        'globe' => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+        'heart' => '<path d="M20.8 8.8c0 5.5-8.8 10.2-8.8 10.2S3.2 14.3 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/>',
+        'help' => '<circle cx="12" cy="12" r="9"/><path d="M9.7 9a2.4 2.4 0 1 1 3.8 1.9c-1 .7-1.5 1.1-1.5 2.6M12 17h.01"/>',
+        'home' => '<path d="m3 11 9-8 9 8v9H3z"/><path d="M9 20v-6h6v6"/>',
+        'instagram' => '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".7" fill="currentColor" stroke="none"/>',
+        'linkedin' => '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M8 10v6m0-9v.01M12 16v-3a3 3 0 0 1 6 0v3m-6-4h3"/>',
+        'log-out' => '<path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 16l4-4-4-4m4 4H8"/>',
+        'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+        'menu' => '<path d="M4 6h16M4 12h16M4 18h16"/>',
+        'message' => '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8m-8 3h5"/>',
+        'music' => '<path d="M9 18V5l10-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm10-2a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z"/>',
+        'package' => '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
+        'pencil' => '<path d="m4 16-.8 4.8L8 20l11.5-11.5a2.1 2.1 0 0 0-3-3zM14.5 6.5l3 3"/>',
+        'plus' => '<path d="M12 5v14M5 12h14"/>',
+        'refresh' => '<path d="M20 11a8 8 0 0 0-14.7-4L3 10m0-4v4h4M4 13a8 8 0 0 0 14.7 4L21 14m0 4v-4h-4"/>',
+        'search' => '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+        'settings' => '<path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/>',
+        'shopping-bag' => '<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/>',
+        'star' => '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/>',
+        'clock' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        'truck' => '<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>',
+        'upload' => '<path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4h16v-4"/>',
+        'user' => '<circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/>',
+        'users' => '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 5.8M17 14a5 5 0 0 1 4 5"/>',
+        'youtube' => '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none"/>',
+    ];
+@endphp
+
+<svg {{ $attributes->class(['ui-icon' => true]) }} width="{{ $size }}" height="{{ $size }}" style="--icon-size: {{ (int) $size }}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" @if($label) role="img" aria-label="{{ $label }}" @else aria-hidden="true" @endif>
+    {!! $paths[$name] ?? $paths['circle'] !!}
+</svg>

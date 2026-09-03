@@ -5,7 +5,7 @@
 @section('content')
     <div class="page-head">
         <div><small>ORDER MANAGEMENT · {{ strtoupper($type) }}</small><h1>{{ $label }}</h1><p>Isolated workflow, lifecycle and ledger view for this order type.</p></div>
-        <a class="btn" href="{{ route('admin.dashboard') }}">← Dashboard</a>
+        <a class="btn" href="{{ route('admin.dashboard') }}"><x-icon name="arrow-left" /> Dashboard</a>
     </div>
 
     <div class="order-master-metrics">

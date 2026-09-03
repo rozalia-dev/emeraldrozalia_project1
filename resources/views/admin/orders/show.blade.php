@@ -5,7 +5,7 @@
 @section('content')
     <div class="page-head">
         <div><small>{{ strtoupper($label) }} · ORDER DETAIL</small><h1>{{ $order->number }}</h1><p>Customer-owned data, fulfilment state and payment/return history.</p></div>
-        <a class="btn" href="{{ route('admin.order-master', $type) }}">← Back to {{ $label }}</a>
+        <a class="btn" href="{{ route('admin.order-master', $type) }}"><x-icon name="arrow-left" /> Back to {{ $label }}</a>
     </div>
 
     <div class="order-detail-layout">
@@ -47,7 +47,7 @@
                     <label>Payment status<select name="payment_status">@foreach(['unpaid','pending','pay_on_delivery','paid','failed','refunded'] as $status)<option value="{{ $status }}" @selected($order->payment_status === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
                     <button class="btn" type="submit">SAVE LIFECYCLE STATE</button>
                 </form>
-                <a class="admin-document-link" href="{{ route('admin.order-master.invoice', [$type, $order]) }}">PRINT ADMIN INVOICE →</a>
+                <a class="admin-document-link" href="{{ route('admin.order-master.invoice', [$type, $order]) }}">PRINT ADMIN INVOICE <x-icon name="arrow-right" /></a>
             </section>
 
             <section class="admin-card order-customer-card">
