@@ -15,7 +15,7 @@ The homepage visual pass now includes the hero campaign, collection imagery, her
 
 ## Shared shell alignment
 
-The homepage and every public route now render the same `layouts.site` shell. Header height, brand slot, navigation gap, utility icon sizing, footer columns and mobile menu breakpoints are shared tokens; the active navigation item is route-aware instead of being homepage-only. The cPanel uses the same centralized `<x-icon>` SVG component for navigation and utility actions. The public templates contain no Unicode/emoji icon glyphs; arrows, account, cart, social, upload, media and status affordances are SVG paths from `resources/views/components/icon.blade.php`.
+The homepage and every public route now render the same `layouts.site` shell. Header height, brand slot, navigation gap, utility icon sizing, footer columns and mobile menu breakpoints are shared tokens; the active navigation item is route-aware, including the shared `CONTACT US` link. The cPanel uses the same centralized `<x-icon>` SVG component for navigation and utility actions. The public templates contain no Unicode/emoji icon glyphs; arrows, account, cart, social, upload, media and status affordances are SVG paths from `resources/views/components/icon.blade.php`.
 
 The supplied standalone wordmark files in the repository are currently CRC-invalid. Until a valid standalone copy of the approved logo is supplied, the shell uses the approved homepage reference asset for the visible brand slot and does not render the broken files. This is an asset-integrity gap, not a pixel-approval claim.
 

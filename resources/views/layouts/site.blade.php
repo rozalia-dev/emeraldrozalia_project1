@@ -38,6 +38,7 @@
         <a class="{{ request()->routeIs('bulk.orders') ? 'is-active' : '' }}" href="/bulk-orders" @if(request()->routeIs('bulk.orders')) aria-current="page" @endif>BULK ORDER</a>
         <a class="{{ request()->routeIs('franchise') ? 'is-active' : '' }}" href="/franchise" @if(request()->routeIs('franchise')) aria-current="page" @endif>FRANCHISE APPLY</a>
         <a class="{{ request()->routeIs('careers') ? 'is-active' : '' }}" href="/careers" @if(request()->routeIs('careers')) aria-current="page" @endif>HIRING APPLY</a>
+        <a class="{{ request()->routeIs('contact') ? 'is-active' : '' }}" href="/contact" @if(request()->routeIs('contact')) aria-current="page" @endif>CONTACT US</a>
     </nav>
     <div class="utilities"><a href="/shop" aria-label="Search"><x-icon name="search" /></a><a href="/account" aria-label="Account"><x-icon name="user" /></a><a href="/cart" aria-label="Cart"><x-icon name="shopping-bag" /><small>{{count(session('cart',[]))?'('.array_sum(array_column(session('cart',[]),'quantity')).')':''}}</small></a></div>
 </header>
