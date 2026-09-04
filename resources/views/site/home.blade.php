@@ -24,23 +24,16 @@
 @endphp
 
 <section class="home-hero">
-    <div class="home-hero-copy">
-        <p class="eyebrow">IRISH MADE. LIMERICK BORN.</p>
-        <h1><span>CRAFTED IN</span><em>LIMERICK.</em><span>WORN</span><span>EVERYWHERE.</span></h1>
-        <p>We are a Limerick based Irish manufacturer of premium hats and caps. Quality craftsmanship. Irish roots. Global reach.</p>
-        <div class="actions"><a class="btn" href="/new-arrivals">SHOP NEW ARRIVALS <x-icon name="arrow-right" /></a><a class="btn ghost" href="/factory">OUR MANUFACTURING STORY</a></div>
-    </div>
-    <div class="home-hero-visual">
-        <div class="hero-source-placeholder home-reference-image home-reference-image--hero" role="img" aria-label="Emerald Rozalia hero campaign in Limerick"></div>
-        <aside class="try-card">
-            <p class="eyebrow">VIRTUAL TRY-ON</p>
-            <h2>See It.<br>Love It.<br>Own It.</h2>
-            <p>Upload your photo and see how our hats look on you.</p>
-            <a class="home-upload-box" href="/virtual-tryon"><span class="home-upload-icon"><x-icon name="upload" size="26" /></span><strong>UPLOAD YOUR PHOTO</strong><small>or</small><span class="home-camera-button"><x-icon name="camera" size="13" /> TAKE PHOTO</span></a>
-            <a class="btn home-try-button" href="/virtual-tryon">START TRY-ON <x-icon name="arrow-right" /></a>
-            <small><x-icon name="check" size="11" /> 100% Private &amp; Secure</small>
-            <div class="home-try-thumbs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        </aside>
+    <div class="home-hero-composition" aria-labelledby="home-hero-title">
+        <picture>
+            <source media="(min-width: 701px)" srcset="/assets/brand/home-page-hero-reference@2x.png?v=20260904-hero">
+            <img src="/assets/brand/home-page-hero-reference.png?v=20260904-hero" alt="CRAFTED IN LIMERICK. WORN EVERYWHERE. EMERALD ROZALIA VIRTUAL TRY-ON CAMPAIGN.">
+        </picture>
+        <h1 id="home-hero-title" class="sr-only">CRAFTED IN LIMERICK. WORN EVERYWHERE.</h1>
+        <p class="sr-only">VIRTUAL TRY-ON lets you preview Emerald Rozalia hats on your photo.</p>
+        <a class="home-hero-hotspot home-hero-hotspot--arrivals" href="/new-arrivals" aria-label="Shop new arrivals"></a>
+        <a class="home-hero-hotspot home-hero-hotspot--factory" href="/factory" aria-label="Our manufacturing story"></a>
+        <a class="home-hero-hotspot home-hero-hotspot--tryon" href="/virtual-tryon" aria-label="Start virtual try-on"></a>
     </div>
 </section>
 
