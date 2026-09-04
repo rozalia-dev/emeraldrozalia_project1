@@ -31,6 +31,28 @@
 @media(max-width:1100px){.business-hero,.franchise-hero,.careers-hero,.network-hero,.contact-hero{grid-template-columns:1fr}.business-values,.contact-options,.network-principles{grid-template-columns:repeat(2,1fr)}.business-values>div:nth-child(2n),.contact-options>div:nth-child(2n),.network-principles>div:nth-child(2n){border-right:0}.business-layout,.franchise-advantage,.careers-layout,.contact-layout{grid-template-columns:1fr}.careers-values{grid-template-columns:repeat(3,1fr)}.offer-grid{grid-template-columns:repeat(2,1fr)}.why-grid{grid-template-columns:repeat(2,1fr)}.why-grid article:nth-child(3n){border-right:1px solid #c9cec5}.why-grid article:nth-child(2n){border-right:0}.faq-panel>div{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.business-hero,.franchise-hero,.careers-hero,.network-hero,.contact-hero{padding:30px 20px}.business-hero h1,.franchise-hero h1,.careers-hero h1,.network-hero h1,.contact-hero h1{font-size:45px}.business-values,.contact-options,.network-principles{margin-left:16px;margin-right:16px;grid-template-columns:1fr 1fr}.business-values>div:nth-child(odd),.contact-options>div:nth-child(odd),.network-principles>div:nth-child(odd){border-right:1px solid #2e4b31}.business-values>div:nth-child(even),.contact-options>div:nth-child(even),.network-principles>div:nth-child(even){border-right:0}.business-layout,.franchise-advantage,.careers-layout,.contact-layout{margin-left:16px;margin-right:16px}.business-process{grid-template-columns:1fr}.offer-grid,.why-grid,.faq-panel>div{grid-template-columns:1fr}.careers-values{grid-template-columns:1fr 1fr}.factory-process .process-grid{grid-template-columns:1fr}.network-actions{grid-template-columns:1fr;margin-left:16px;margin-right:16px}.faq-panel{margin-left:16px;margin-right:16px}.job-row{align-items:flex-start;flex-direction:column}.job-row .btn{align-self:flex-start}}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Approved How We Work reference composition. The supplied artwork already
+   contains the page-specific brand header, process photography and contact
+   strip, so it is rendered once as a responsive canvas instead of being
+   layered with the shared navigation shell. */
+.factory-reference-body{min-width:320px;background:#020b08;color:#f4f5ee}
+.factory-reference-body main{width:100%;margin:0;padding:0}
+.factory-reference{width:100%;overflow:hidden;background:#020b08}
+.factory-reference-canvas{position:relative;width:100%;margin:0 auto;line-height:0}
+.factory-reference-canvas>img{display:block;width:100%;height:auto;max-width:none}
+.factory-reference-hotspot{position:absolute;z-index:2;display:block;border-radius:4px}
+.factory-reference-hotspot:focus-visible{outline:2px solid #d6a634;outline-offset:3px}
+.factory-reference-hotspot--home{left:0;top:0;width:30%;height:6.4%}
+.factory-reference-hotspot--visit{left:3.6%;top:91.7%;width:22.5%;height:4.2%}
+.factory-reference-hotspot--email{left:50%;top:96.3%;width:19%;height:3.7%}
+.factory-reference-hotspot--website{right:1.8%;top:96.3%;width:24%;height:3.7%}
+@media(max-width:700px){
+    .factory-reference-hotspot--home{width:32%;height:7%}
+    .factory-reference-hotspot--visit{left:3.6%;top:91.4%;width:25%;height:4.8%}
+    .factory-reference-hotspot--email{left:48%;top:96%;width:23%;height:4%}
+    .factory-reference-hotspot--website{right:1%;top:96%;width:28%;height:4%}
+}
 .auth-hero{position:relative;overflow:hidden;padding:54px 10vw 48px;background:linear-gradient(100deg,#03110c,#0a3020);border-bottom:1px solid #43602d}
 .auth-hero:after{content:none}
 .auth-hero h1{position:relative;margin:12px 0 8px;font-family:Georgia,serif;font-size:clamp(44px,5vw,68px);line-height:1;color:#f2f4ee;z-index:1}
