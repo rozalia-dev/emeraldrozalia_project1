@@ -185,8 +185,10 @@ if(contactScheduler){
         }
     };
     const contactInvalidateAppliedMeeting=()=>{
-        if(contactDateInput)contactDateInput.value='';
-        if(contactTimeInput)contactTimeInput.value='';
+        const dateInput=contactForm?.querySelector('[data-schedule-date-input]');
+        const timeInput=contactForm?.querySelector('[data-schedule-time-input]');
+        if(dateInput)dateInput.value='';
+        if(timeInput)timeInput.value='';
         if(contactFormSummary){contactFormSummary.hidden=true;contactFormSummary.textContent=''}
     };
     const contactBindDates=()=>contactDays?.querySelectorAll('[data-schedule-date]').forEach((button)=>button.addEventListener('click',()=>{
@@ -223,8 +225,10 @@ if(contactScheduler){
         if(!contactSelectedDate||!contactSelectedTime){
             contactSummary.textContent='Choose both a date and time before scheduling your meeting.';contactSummary.dataset.state='error';return;
         }
-        if(contactDateInput)contactDateInput.value=contactSelectedDate;
-        if(contactTimeInput)contactTimeInput.value=contactSelectedTime;
+        const dateInput=contactForm?.querySelector('[data-schedule-date-input]');
+        const timeInput=contactForm?.querySelector('[data-schedule-time-input]');
+        if(dateInput)dateInput.value=contactSelectedDate;
+        if(timeInput)timeInput.value=contactSelectedTime;
         if(contactFormSummary){contactFormSummary.hidden=false;contactFormSummary.textContent=`Meeting requested for ${contactDateLabel(contactSelectedDate)} at ${contactSelectedTime} (Irish Time).`}
         contactSummary.textContent='Meeting time added to your message. Complete the form to send your request.';contactSummary.dataset.state='selected';
         contactForm?.scrollIntoView({behavior:'smooth',block:'start'});contactForm?.querySelector('[name="name"]')?.focus();
