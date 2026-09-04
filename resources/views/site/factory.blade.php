@@ -10,7 +10,7 @@
         <a class="factory-reference-hotspot factory-reference-hotspot--website" href="https://emeraldrozalia.ie" aria-label="Visit emeraldrozalia.ie"></a>
     </div>
     <div class="factory-reference-screen-reader sr-only">
-        <h1 id="factory-reference-title">How We Work</h1>
+        <h1 id="factory-reference-title">HOW WE WORK</h1>
         <p>Precision. Passion. Tradition. Every Emerald Rozalia hat and cap is crafted in our Limerick factory.</p>
         <nav aria-label="Emerald Rozalia navigation">
             <a href="/">Home</a>
@@ -23,7 +23,7 @@
             <a href="/careers">Hiring Apply</a>
             <a href="/contact">Contact Us</a>
         </nav>
-        <h2>From Concept to Creation</h2>
+        <h2>FROM CONCEPT TO CREATION</h2>
         <ol>
             <li>Design &amp; Development</li>
             <li>Pattern Making &amp; Cutting</li>
@@ -35,7 +35,7 @@
             <li>Packing &amp; Labelling</li>
             <li>Ready to Deliver</li>
         </ol>
-        <h2>Welcome to Visit Our Factory</h2>
+        <h2>WELCOME TO VISIT OUR FACTORY</h2>
         <p>Partners, clients and friends are welcome to arrange a factory visit in Limerick.</p>
     </div>
 </section>
