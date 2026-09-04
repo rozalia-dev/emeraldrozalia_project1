@@ -184,8 +184,14 @@ if(contactScheduler){
             delete contactSummary.dataset.state;
         }
     };
+    const contactInvalidateAppliedMeeting=()=>{
+        if(contactDateInput)contactDateInput.value='';
+        if(contactTimeInput)contactTimeInput.value='';
+        if(contactFormSummary){contactFormSummary.hidden=true;contactFormSummary.textContent=''}
+    };
     const contactBindDates=()=>contactDays?.querySelectorAll('[data-schedule-date]').forEach((button)=>button.addEventListener('click',()=>{
         contactSelectedDate=button.dataset.scheduleDate||'';
+        contactInvalidateAppliedMeeting();
         contactDays.querySelectorAll('[data-schedule-date]').forEach((item)=>{const selected=item===button;item.classList.toggle('is-selected',selected);item.setAttribute('aria-pressed',String(selected))});
         contactRenderSummary();
     }));
@@ -199,7 +205,7 @@ if(contactScheduler){
         for(let day=1;day<=daysInMonth;day++){
             const date=new Date(year,month,day,12,0,0),key=contactKey(date),button=document.createElement('button');
             button.type='button';button.className='contact-date-button';button.dataset.scheduleDate=key;button.textContent=String(day);button.setAttribute('aria-label',new Intl.DateTimeFormat(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date));button.setAttribute('aria-pressed',String(key===contactSelectedDate));
-            if(key<contactTodayValue)button.disabled=true;
+            if(key<contactTodayValue||date.getDay()===0||date.getDay()===6)button.disabled=true;
             if(key===contactSelectedDate)button.classList.add('is-selected');
             contactDays.appendChild(button);
         }
@@ -209,6 +215,7 @@ if(contactScheduler){
     contactNext?.addEventListener('click',()=>{contactCursor.setMonth(contactCursor.getMonth()+1);contactRenderCalendar()});
     contactScheduler.querySelectorAll('[data-schedule-time]').forEach((button)=>button.addEventListener('click',()=>{
         contactSelectedTime=button.dataset.scheduleTime||'';
+        contactInvalidateAppliedMeeting();
         contactScheduler.querySelectorAll('[data-schedule-time]').forEach((item)=>item.setAttribute('aria-pressed',String(item===button)));
         contactRenderSummary();
     }));
