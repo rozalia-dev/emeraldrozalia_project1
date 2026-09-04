@@ -44,7 +44,11 @@
 .factory-reference-hotspot{position:absolute;z-index:2;display:block;border-radius:4px}
 .factory-reference-hotspot:focus-visible{outline:2px solid #d6a634;outline-offset:3px}
 .factory-reference-hotspot--home{left:0;top:0;width:30%;height:6.4%}
+.factory-reference-hotspot--made{left:30.5%;top:0;width:18%;height:6.4%}
+.factory-reference-hotspot--quality{left:49%;top:0;width:21%;height:6.4%}
+.factory-reference-hotspot--delivery{left:71%;top:0;width:29%;height:6.4%}
 .factory-reference-hotspot--visit{left:3.6%;top:91.7%;width:22.5%;height:4.2%}
+.factory-reference-hotspot--factory{left:30%;top:96.3%;width:18%;height:3.7%}
 .factory-reference-hotspot--email{left:50%;top:96.3%;width:19%;height:3.7%}
 .factory-reference-hotspot--website{right:1.8%;top:96.3%;width:24%;height:3.7%}
 @media(max-width:700px){

@@ -5,7 +5,11 @@
     <div class="factory-reference-canvas">
         <img src="{{ asset('assets/brand/how-we-work-reference.png') }}?v=20260904" width="1024" height="1536" alt="Emerald Rozalia How We Work: Irish-made Limerick manufacturing, nine craft stages, factory visit and contact details." fetchpriority="high" decoding="async">
         <a class="factory-reference-hotspot factory-reference-hotspot--home" href="/" aria-label="Emerald Rozalia home"></a>
+        <a class="factory-reference-hotspot factory-reference-hotspot--made" href="/factory" aria-label="Irish made in Limerick"></a>
+        <a class="factory-reference-hotspot factory-reference-hotspot--quality" href="/factory" aria-label="Premium quality craftsmanship"></a>
+        <a class="factory-reference-hotspot factory-reference-hotspot--delivery" href="/global-network" aria-label="Worldwide delivery"></a>
         <a class="factory-reference-hotspot factory-reference-hotspot--visit" href="/contact" aria-label="Book a factory visit"></a>
+        <a class="factory-reference-hotspot factory-reference-hotspot--factory" href="/contact" aria-label="Contact our factory"></a>
         <a class="factory-reference-hotspot factory-reference-hotspot--email" href="mailto:urmos@rozalia.ie" aria-label="Email Emerald Rozalia"></a>
         <a class="factory-reference-hotspot factory-reference-hotspot--website" href="https://emeraldrozalia.ie" aria-label="Visit emeraldrozalia.ie"></a>
     </div>
