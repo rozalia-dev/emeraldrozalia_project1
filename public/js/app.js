@@ -164,3 +164,63 @@ if(imageManager){
     if(editor&&!rows.length)editor.querySelector('[data-im-editor-alt]')?.setAttribute('disabled','disabled');
     updateSelection();
 }
+
+const contactScheduler=document.querySelector('[data-contact-scheduler]');
+if(contactScheduler){
+    const contactDays=contactScheduler.querySelector('[data-schedule-days]'),contactMonthLabel=contactScheduler.querySelector('[data-schedule-month-label]'),contactPrev=contactScheduler.querySelector('[data-schedule-prev]'),contactNext=contactScheduler.querySelector('[data-schedule-next]'),contactSummary=contactScheduler.querySelector('[data-schedule-summary]'),contactApply=contactScheduler.querySelector('[data-schedule-apply]'),contactForm=document.querySelector('#contact-form'),contactDateInput=contactForm?.querySelector('[data-schedule-date-input]'),contactTimeInput=contactForm?.querySelector('[data-schedule-time-input]'),contactFormSummary=contactForm?.querySelector('[data-schedule-form-summary]');
+    const contactMonthValue=contactScheduler.dataset.contactMonth||new Date().toISOString().slice(0,7),contactTodayValue=contactScheduler.dataset.contactToday||new Date().toISOString().slice(0,10);
+    const [contactYear,contactMonth]=contactMonthValue.split('-').map(Number),contactStart=new Date(contactYear,contactMonth-1,1,12,0,0);
+    let contactCursor=new Date(contactStart),contactSelectedDate='',contactSelectedTime='';
+    const contactPad=(value)=>String(value).padStart(2,'0');
+    const contactKey=(date)=>`${date.getFullYear()}-${contactPad(date.getMonth()+1)}-${contactPad(date.getDate())}`;
+    const contactMonthKey=(date)=>`${date.getFullYear()}-${contactPad(date.getMonth()+1)}`;
+    const contactDateLabel=(value)=>new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00`));
+    const contactRenderSummary=()=>{
+        if(contactSelectedDate&&contactSelectedTime){
+            contactSummary.textContent=`Selected: ${contactDateLabel(contactSelectedDate)} at ${contactSelectedTime} (Irish Time).`;
+            contactSummary.dataset.state='selected';
+        }else{
+            contactSummary.textContent='Choose a date and time, then add it to your message.';
+            delete contactSummary.dataset.state;
+        }
+    };
+    const contactBindDates=()=>contactDays?.querySelectorAll('[data-schedule-date]').forEach((button)=>button.addEventListener('click',()=>{
+        contactSelectedDate=button.dataset.scheduleDate||'';
+        contactDays.querySelectorAll('[data-schedule-date]').forEach((item)=>{const selected=item===button;item.classList.toggle('is-selected',selected);item.setAttribute('aria-pressed',String(selected))});
+        contactRenderSummary();
+    }));
+    const contactRenderCalendar=()=>{
+        if(!contactDays)return;
+        const year=contactCursor.getFullYear(),month=contactCursor.getMonth(),daysInMonth=new Date(year,month+1,0).getDate(),leadingDays=(new Date(year,month,1).getDay()+6)%7;
+        if(contactMonthLabel)contactMonthLabel.textContent=new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(contactCursor);
+        if(contactPrev)contactPrev.disabled=contactMonthKey(contactCursor)<=contactMonthValue;
+        contactDays.replaceChildren();
+        for(let index=0;index<leadingDays;index++){const spacer=document.createElement('span');spacer.className='contact-date-spacer';spacer.setAttribute('aria-hidden','true');contactDays.appendChild(spacer)}
+        for(let day=1;day<=daysInMonth;day++){
+            const date=new Date(year,month,day,12,0,0),key=contactKey(date),button=document.createElement('button');
+            button.type='button';button.className='contact-date-button';button.dataset.scheduleDate=key;button.textContent=String(day);button.setAttribute('aria-label',new Intl.DateTimeFormat(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date));button.setAttribute('aria-pressed',String(key===contactSelectedDate));
+            if(key<contactTodayValue)button.disabled=true;
+            if(key===contactSelectedDate)button.classList.add('is-selected');
+            contactDays.appendChild(button);
+        }
+        contactBindDates();
+    };
+    contactPrev?.addEventListener('click',()=>{if(contactPrev.disabled)return;contactCursor.setMonth(contactCursor.getMonth()-1);contactRenderCalendar()});
+    contactNext?.addEventListener('click',()=>{contactCursor.setMonth(contactCursor.getMonth()+1);contactRenderCalendar()});
+    contactScheduler.querySelectorAll('[data-schedule-time]').forEach((button)=>button.addEventListener('click',()=>{
+        contactSelectedTime=button.dataset.scheduleTime||'';
+        contactScheduler.querySelectorAll('[data-schedule-time]').forEach((item)=>item.setAttribute('aria-pressed',String(item===button)));
+        contactRenderSummary();
+    }));
+    contactApply?.addEventListener('click',()=>{
+        if(!contactSelectedDate||!contactSelectedTime){
+            contactSummary.textContent='Choose both a date and time before scheduling your meeting.';contactSummary.dataset.state='error';return;
+        }
+        if(contactDateInput)contactDateInput.value=contactSelectedDate;
+        if(contactTimeInput)contactTimeInput.value=contactSelectedTime;
+        if(contactFormSummary){contactFormSummary.hidden=false;contactFormSummary.textContent=`Meeting requested for ${contactDateLabel(contactSelectedDate)} at ${contactSelectedTime} (Irish Time).`}
+        contactSummary.textContent='Meeting time added to your message. Complete the form to send your request.';contactSummary.dataset.state='selected';
+        contactForm?.scrollIntoView({behavior:'smooth',block:'start'});contactForm?.querySelector('[name="name"]')?.focus();
+    });
+    contactRenderCalendar();contactRenderSummary();
+}
