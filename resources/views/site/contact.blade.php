@@ -61,29 +61,29 @@
                 <div class="contact-form-fields">
                     <div class="contact-field">
                         <label for="contact-name">Full Name <span aria-hidden="true">*</span></label>
-                        <input id="contact-name" name="name" placeholder="Full Name" autocomplete="name" required>
+                        <input id="contact-name" name="name" value="{{ old('name') }}" placeholder="Full Name" autocomplete="name" required @error('name') aria-invalid="true" @enderror>
                     </div>
                     <div class="contact-field">
                         <label for="contact-email">Email Address <span aria-hidden="true">*</span></label>
-                        <input id="contact-email" name="email" type="email" placeholder="Email Address" autocomplete="email" required>
+                        <input id="contact-email" name="email" type="email" value="{{ old('email') }}" placeholder="Email Address" autocomplete="email" required @error('email') aria-invalid="true" @enderror>
                     </div>
                     <div class="contact-field">
                         <label for="contact-phone">Phone Number</label>
-                        <input id="contact-phone" name="phone" placeholder="Phone Number" autocomplete="tel">
+                        <input id="contact-phone" name="phone" value="{{ old('phone') }}" placeholder="Phone Number" autocomplete="tel">
                     </div>
                     <div class="contact-field">
-                        <label for="contact-subject">Subject</label>
-                        <select id="contact-subject" name="subject">
+                        <label for="contact-subject">Subject <span aria-hidden="true">*</span></label>
+                        <select id="contact-subject" name="subject" required @error('subject') aria-invalid="true" @enderror>
                             <option value="">Subject</option>
-                            <option value="Order support">Order support</option>
-                            <option value="Product question">Product question</option>
-                            <option value="Wholesale or corporate enquiry">Wholesale or corporate enquiry</option>
-                            <option value="Factory visit">Factory visit</option>
+                            <option value="Order support" @selected(old('subject')==='Order support')>Order support</option>
+                            <option value="Product question" @selected(old('subject')==='Product question')>Product question</option>
+                            <option value="Wholesale or corporate enquiry" @selected(old('subject')==='Wholesale or corporate enquiry')>Wholesale or corporate enquiry</option>
+                            <option value="Factory visit" @selected(old('subject')==='Factory visit')>Factory visit</option>
                         </select>
                     </div>
                     <div class="contact-field contact-field-wide">
                         <label for="contact-message">Your Message <span aria-hidden="true">*</span></label>
-                        <textarea id="contact-message" name="message" placeholder="Your Message" rows="6" required></textarea>
+                        <textarea id="contact-message" name="message" placeholder="Your Message" rows="6" required @error('message') aria-invalid="true" @enderror>{{ old('message') }}</textarea>
                     </div>
                 </div>
                 <label class="contact-consent"><input type="checkbox" name="consent" value="1" required> <span>I agree to the <a href="/factory#privacy-policy">Privacy Policy</a> and <a href="/factory#terms">Terms &amp; Conditions</a>.</span></label>
@@ -114,7 +114,7 @@
                     @for($blank = 0; $blank < $contactLeadingDays; $blank++)<span class="contact-date-spacer" aria-hidden="true"></span>@endfor
                     @for($day = 1; $day <= $contactMonth->daysInMonth; $day++)
                         @php($date = $contactMonth->copy()->day($day))
-                        <button type="button" class="contact-date-button" data-schedule-date="{{ $date->format('Y-m-d') }}" @disabled($date->lt($contactToday)) aria-label="{{ $date->format('l j F Y') }}">{{ $day }}</button>
+                        <button type="button" class="contact-date-button" data-schedule-date="{{ $date->format('Y-m-d') }}" @disabled($date->lt($contactToday) || $date->isWeekend()) aria-label="{{ $date->format('l j F Y') }}">{{ $day }}</button>
                     @endfor
                 </div>
             </div>

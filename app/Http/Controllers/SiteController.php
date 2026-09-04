@@ -4,6 +4,9 @@ use App\Models\{Category,ContentPage,Conversation,FranchiseApplication,Inquiry,P
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Carbon\CarbonImmutable;
 class SiteController extends Controller {
     public function home(){return view('site.home',['categories'=>Category::where('is_active',true)->orderBy('sort_order')->get(),'newProducts'=>Product::where('is_active',true)->where('is_new',true)->latest()->limit(8)->get()]);}
     public function collections(){return view('site.collections',['categories'=>Category::withCount(['products'=>fn($q)=>$q->where('is_active',true)])->where('is_active',true)->orderBy('sort_order')->get()]);}
@@ -23,5 +26,33 @@ class SiteController extends Controller {
     public function product(Product $product){abort_unless($product->is_active,404);$product->load(['variants','reviews.user','category','media']);$spinFrames=collect($product->spin_images??[])->merge($product->media->where('type','spin_360')->map(fn($media)=>Storage::disk($media->disk)->url($media->path)))->filter()->values()->all();$related=Product::where('is_active',true)->where('id','!=',$product->id)->when($product->category_id,fn($q)=>$q->where('category_id',$product->category_id))->limit(4)->get();return view('site.product',compact('product','related','spinFrames'));}
     public function category(Category $category){return view('site.shop',['products'=>$category->products()->where('is_active',true)->paginate(12),'categories'=>Category::where('is_active',true)->get(),'activeCategory'=>$category]);}
     public function page(string $page){$allowed=['collections','new-arrivals','corporate-orders','bulk-orders','franchise','careers','global-network','factory','contact','virtual-tryon','irish-traditional','irish-heritage'];abort_unless(in_array($page,$allowed,true),404);$managedPage=ContentPage::with('sections')->where('slug',$page)->where('locale',app()->getLocale())->where('status','published')->where(fn($q)=>$q->whereNull('scheduled_for')->orWhere('scheduled_for','<=',now()))->first();return view('site.page',compact('page','managedPage'));}
-    public function inquiry(Request $r){$d=$r->validate(['type'=>'required|string|max:50','name'=>'required|string|max:120','email'=>'required|email','phone'=>'nullable|string|max:50','company'=>'nullable|string|max:120','subject'=>'nullable|string|max:150','message'=>'nullable|string|max:5000','meeting_date'=>'nullable|date|after_or_equal:today','meeting_time'=>'nullable|date_format:H:i']);$meeting=array_filter(['date'=>$d['meeting_date']??null,'time'=>$d['meeting_time']??null],fn($value)=>filled($value));unset($d['meeting_date'],$d['meeting_time']);$d['meta']=['source'=>'public_contact_form','meeting'=>$meeting?:null];DB::transaction(function()use($d,$meeting){Inquiry::create($d);if($d['type']==='franchise')FranchiseApplication::create(['applicant_name'=>$d['name'],'email'=>$d['email'],'phone'=>$d['phone']??null,'territory'=>'Ireland','preferred_location'=>$d['company']??null,'business_experience'=>$d['message']??null,'status'=>'new','data'=>['source'=>'public_franchise_form']]);$conversation=Conversation::create(['channel'=>'web','contact'=>$d['email'],'subject'=>$d['subject']??str($d['type'])->headline(),'priority'=>$d['type']==='franchise'?'high':'normal','status'=>'new','metadata'=>['type'=>$d['type'],'name'=>$d['name'],'phone'=>$d['phone']??null,'company'=>$d['company']??null,'meeting'=>$meeting?:null]]);$conversation->messages()->create(['direction'=>'inbound','body'=>$d['message']??'Public form submission','delivery_status'=>'stored','sent_at'=>now()]);});return back()->with('success','Thank you. Your enquiry is now in our Communication Centre.');}
+    public function inquiry(Request $r){
+        $meetingTimes=['09:00','10:00','11:00','14:00','15:00','16:00'];
+        $d=$r->validate([
+            'type'=>['required',Rule::in(['contact','franchise','careers','corporate-orders','bulk-orders'])],
+            'name'=>'required|string|max:120','email'=>'required|email|max:255','phone'=>'nullable|string|max:50',
+            'company'=>'nullable|string|max:120','subject'=>'required_if:type,contact|nullable|string|max:150',
+            'message'=>'required_if:type,contact|nullable|string|max:5000',
+            'consent'=>[Rule::requiredIf($r->input('type')==='contact'),'nullable','accepted'],
+            'meeting_date'=>'nullable|required_with:meeting_time|date_format:Y-m-d|after_or_equal:today',
+            'meeting_time'=>['nullable','required_with:meeting_date','date_format:H:i',Rule::in($meetingTimes)],
+        ]);
+        $meeting=array_filter(['date'=>$d['meeting_date']??null,'time'=>$d['meeting_time']??null],fn($value)=>filled($value));
+        if($meeting){
+            $slot=CarbonImmutable::createFromFormat('!Y-m-d H:i',$meeting['date'].' '.$meeting['time'],config('app.timezone'));
+            if($slot->isWeekend())throw ValidationException::withMessages(['meeting_date'=>'Meetings are available Monday to Friday only.']);
+            if($slot->lessThanOrEqualTo(now(config('app.timezone'))))throw ValidationException::withMessages(['meeting_time'=>'Please choose a future meeting time.']);
+        }
+        unset($d['meeting_date'],$d['meeting_time'],$d['consent']);
+        $d['meta']=['source'=>'public_contact_form','meeting'=>$meeting?:null];
+        DB::transaction(function()use($d,$meeting){
+            Inquiry::create($d);
+            if($d['type']==='franchise')FranchiseApplication::create(['applicant_name'=>$d['name'],'email'=>$d['email'],'phone'=>$d['phone']??null,'territory'=>'Ireland','preferred_location'=>$d['company']??null,'business_experience'=>$d['message']??null,'status'=>'new','data'=>['source'=>'public_franchise_form']]);
+            $conversation=Conversation::create(['channel'=>'web','contact'=>$d['email'],'subject'=>$d['subject']??str($d['type'])->headline(),'priority'=>$d['type']==='franchise'?'high':'normal','status'=>'new','metadata'=>['type'=>$d['type'],'name'=>$d['name'],'phone'=>$d['phone']??null,'company'=>$d['company']??null,'meeting'=>$meeting?:null]]);
+            $body=$d['message']??'Public form submission';
+            if($meeting)$body.="\n\nMeeting requested: {$meeting['date']} at {$meeting['time']} (Europe/Dublin).";
+            $conversation->messages()->create(['direction'=>'inbound','body'=>$body,'delivery_status'=>'stored','sent_at'=>now()]);
+        });
+        return back()->with('success','Thank you. Your enquiry is now in our Communication Centre.');
+    }
 }

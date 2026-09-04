@@ -5,6 +5,7 @@ use App\Models\AdminRecord;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Conversation;
 use App\Services\AuditTrail;
 use Illuminate\Http\Request;
 class ResourceController extends Controller {
@@ -19,7 +20,8 @@ class ResourceController extends Controller {
     ];
     private function valid(string $module):void { abort_unless(in_array($module,$this->modules,true),404); }
     private function data(Request $r):array { return $r->validate(['title'=>'required|max:180','reference'=>'nullable|max:100','status'=>'required|max:50','amount'=>'nullable|numeric','record_date'=>'nullable|date','notes'=>'nullable|max:3000']); }
-    public function index(Request $request,string $module){$this->valid($module);if($module==='product-manager')return $this->productManager($request);$records=AdminRecord::where('module',$module)->latest()->paginate(25);return view('admin.resources.index',compact('module','records'));}
+    public function index(Request $request,string $module){$this->valid($module);if($module==='product-manager')return $this->productManager($request);if(in_array($module,['communication-center','inbox'],true))return $this->communicationCenter($request,$module);$records=AdminRecord::where('module',$module)->latest()->paginate(25);return view('admin.resources.index',compact('module','records'));}
+    private function communicationCenter(Request $request,string $module){$status=(string)$request->query('status','');$query=Conversation::with(['messages'=>fn($messages)=>$messages->oldest(),'assignee'])->latest();if(in_array($status,['new','open','pending','closed'],true))$query->where('status',$status);$conversations=$query->paginate(25)->withQueryString();return view('admin.communication-center.index',compact('module','conversations','status'));}
     private function productManager(Request $request){
         $tabs=['all'=>'All Products','published'=>'Published','draft'=>'Draft','hidden'=>'Hidden','out_of_stock'=>'Out of Stock','low_stock'=>'Low Stock','featured'=>'Featured','top_rated'=>'Top Rated'];
         $tab=(string)$request->query('tab','all');if(!array_key_exists($tab,$tabs))$tab='all';
