@@ -20,7 +20,7 @@
     <section class="contact-hero" aria-labelledby="contact-hero-title">
         <div class="contact-hero-copy">
             <p class="eyebrow">CONTACT US</p>
-            <h1 id="contact-hero-title">WE’RE HERE<br><em>TO HELP</em></h1>
+            <h1 id="contact-hero-title">WE'RE HERE<br><em>TO HELP</em></h1>
             <span class="contact-rule" aria-hidden="true"><x-icon name="clover" size="19" /></span>
             <p>Have a question about our hats and caps, an order or a partnership opportunity? Our team in Limerick is ready to assist you.</p>
         </div>
