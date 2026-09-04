@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Emerald Rozalia')</title>
     <meta name="description" content="Emerald Rozalia — Irish made hats and caps, proudly manufacturing in Limerick, Ireland.">
-    <link rel="stylesheet" href="/css/app.css?v=20260904-interactions">
+    <link rel="stylesheet" href="/css/app.css?v=20260904-contact">
 </head>
 <body class="site-body @yield('body-class')">
 <div class="topline">
@@ -54,6 +54,6 @@
     <div class="newsletter"><h4>NEWSLETTER</h4><p>Stay updated with new arrivals and offers.</p><form><input type="email" placeholder="Your email address" aria-label="Your email address"><button class="btn" type="button" aria-label="Subscribe"><x-icon name="arrow-right" /></button></form><p class="payments">VISA &nbsp; Mastercard &nbsp; PayPal &nbsp; Apple Pay &nbsp; Google Pay</p></div>
     <div class="footer-bottom"><span>© 2024 Emerald Rozalia Limited. All rights reserved.</span><span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in Limerick, Ireland</span><span><a href="/factory">Privacy Policy</a> &nbsp; <a href="/factory">Terms &amp; Conditions</a></span></div>
 </footer>
-<script src="/js/app.js"></script>
+<script src="/js/app.js?v=20260904-contact"></script>
 </body>
 </html>
