@@ -4,10 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
-    <link rel="stylesheet" href="/css/app.css?v=20260904-interactions">
+    <link rel="stylesheet" href="/css/app.css?v=20260905-collapsible-groups">
 </head>
 <body class="admin-body">
 @php
+    $orderItems=[
+        ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
+        ['order'=>'corporate','label'=>'Corporate Orders','icon'=>'briefcase','active'=>'admin/orders/corporate*','marker'=>'purple'],
+        ['order'=>'bulk','label'=>'Bulk Orders','icon'=>'package','active'=>'admin/orders/bulk*','marker'=>'orange'],
+        ['order'=>'franchise','label'=>'Franchise Orders','icon'=>'users','active'=>'admin/orders/franchise*','marker'=>'green'],
+        ['order'=>'franchise_retail','label'=>'Franchise Retail Orders','icon'=>'shopping-bag','active'=>'admin/orders/franchise_retail*','marker'=>'teal'],
+        ['order'=>'buyer','label'=>'Buyer Orders','icon'=>'user','active'=>'admin/orders/buyer*','marker'=>'yellow'],
+    ];
+    $orderCategoryCount=count($orderItems);
+    $sidebarCounts=[
+        'applications'=>\App\Models\FranchiseApplication::whereIn('status',['new','pending'])->count(),
+        'communications'=>\App\Models\Conversation::whereIn('status',['new','open','pending'])->count(),
+        'approvals'=>\Illuminate\Support\Facades\DB::table('approvals')->where('status','pending')->count(),
+        'followups'=>\App\Models\Conversation::whereNotNull('follow_up_at')->whereIn('status',['new','open','pending'])->count(),
+        'alerts'=>\App\Models\Inquiry::where('status','new')->count(),
+    ];
     $groups=[
         [
             'label'=>'WEBSITE & PRODUCTS',
@@ -40,7 +56,7 @@
         [
             'label'=>'ONLINE SALES',
             'items'=>[
-                ['slug'=>'online-sales','label'=>'Orders (6 Categories)','icon'=>'shopping-bag','active'=>'admin/resource/online-sales*'],
+                ['slug'=>'online-sales','label'=>'Orders ('.$orderCategoryCount.' Categories)','icon'=>'shopping-bag','active'=>'admin/resource/online-sales*','chevron'=>true],
                 ['slug'=>'customers','label'=>'Customers','icon'=>'users','active'=>'admin/resource/customers*'],
                 ['slug'=>'cart-checkout','label'=>'Cart & Checkout','icon'=>'shopping-bag','active'=>'admin/resource/cart-checkout*'],
                 ['slug'=>'payments','label'=>'Payments','icon'=>'credit-card','active'=>'admin/resource/payments*'],
@@ -49,21 +65,14 @@
             ],
         ],
         [
-            'label'=>'ORDER MANAGEMENT (6 CATEGORIES)',
-            'items'=>[
-                ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*'],
-                ['order'=>'corporate','label'=>'Corporate Orders','icon'=>'briefcase','active'=>'admin/orders/corporate*'],
-                ['order'=>'bulk','label'=>'Bulk Orders','icon'=>'package','active'=>'admin/orders/bulk*'],
-                ['order'=>'franchise','label'=>'Franchise Orders','icon'=>'users','active'=>'admin/orders/franchise*'],
-                ['order'=>'franchise_retail','label'=>'Franchise Retail Orders','icon'=>'shopping-bag','active'=>'admin/orders/franchise_retail*'],
-                ['order'=>'buyer','label'=>'Buyer Orders','icon'=>'user','active'=>'admin/orders/buyer*'],
-            ],
+            'label'=>'ORDER MANAGEMENT ('.$orderCategoryCount.' CATEGORIES)',
+            'items'=>$orderItems,
         ],
         [
             'label'=>'FRANCHISE MANAGEMENT',
             'items'=>[
                 ['slug'=>'franchise-dashboard','label'=>'Franchise Dashboard','icon'=>'home','active'=>'admin/resource/franchise-dashboard*'],
-                ['slug'=>'franchise-applications','label'=>'Applications & Leads','icon'=>'file-text','active'=>'admin/resource/franchise-applications*'],
+                ['slug'=>'franchise-applications','label'=>'Applications & Leads','icon'=>'file-text','active'=>'admin/resource/franchise-applications*','badge'=>['value'=>$sidebarCounts['applications'],'tone'=>'green']],
                 ['slug'=>'franchise-territories','label'=>'Territories','icon'=>'globe','active'=>'admin/resource/franchise-territories*'],
                 ['slug'=>'franchise-agreements','label'=>'Agreements','icon'=>'briefcase','active'=>'admin/resource/franchise-agreements*'],
                 ['slug'=>'franchisees','label'=>'Franchisees','icon'=>'users','active'=>'admin/resource/franchisees*'],
@@ -77,15 +86,15 @@
         [
             'label'=>'COMMUNICATION CENTER',
             'items'=>[
-                ['slug'=>'communication-center','label'=>'Communication Center','icon'=>'message','active'=>'admin/resource/communication-center*'],
+                ['slug'=>'communication-center','label'=>'Communication Center','icon'=>'message','active'=>'admin/resource/communication-center*','badge'=>['value'=>$sidebarCounts['communications'],'tone'=>'red']],
                 ['slug'=>'inbox','label'=>'Inbox','icon'=>'mail','active'=>'admin/resource/inbox*'],
                 ['slug'=>'chat-24-7','label'=>'Chat 24/7','icon'=>'message','active'=>'admin/resource/chat-24-7*'],
                 ['slug'=>'whatsapp','label'=>'WhatsApp','icon'=>'message','active'=>'admin/resource/whatsapp*'],
                 ['slug'=>'email','label'=>'Email','icon'=>'mail','active'=>'admin/resource/email*'],
                 ['slug'=>'email-templates','label'=>'Email Templates','icon'=>'file-text','active'=>'admin/resource/email-templates*'],
-                ['slug'=>'approval-center','label'=>'Approval Center','icon'=>'check','active'=>'admin/resource/approval-center*'],
-                ['slug'=>'action-follow-ups','label'=>'Action / Follow-ups','icon'=>'clock','active'=>'admin/resource/action-follow-ups*'],
-                ['slug'=>'alerts-notifications','label'=>'Alerts & Notifications','icon'=>'bell','active'=>'admin/resource/alerts-notifications*'],
+                ['slug'=>'approval-center','label'=>'Approval Center','icon'=>'check','active'=>'admin/resource/approval-center*','badge'=>['value'=>$sidebarCounts['approvals'],'tone'=>'orange']],
+                ['slug'=>'action-follow-ups','label'=>'Action / Follow-ups','icon'=>'clock','active'=>'admin/resource/action-follow-ups*','badge'=>['value'=>$sidebarCounts['followups'],'tone'=>'orange']],
+                ['slug'=>'alerts-notifications','label'=>'Alerts & Notifications','icon'=>'bell','active'=>'admin/resource/alerts-notifications*','badge'=>['value'=>$sidebarCounts['alerts'],'tone'=>'red']],
                 ['slug'=>'communication-reports','label'=>'Communication Reports','icon'=>'file-text','active'=>'admin/resource/communication-reports*'],
                 ['slug'=>'communication-history','label'=>'Communication History (Log)','icon'=>'file-text','active'=>'admin/resource/communication-history*'],
             ],
@@ -94,8 +103,7 @@
     $href=function(array $item){return isset($item['order'])?route('admin.order-master',$item['order']):(isset($item['route'])?route($item['route']):route('admin.resource',$item['slug']));};
 @endphp
 <aside id="admin-sidebar" class="admin-sidebar">
-    <a href="{{route('admin.dashboard')}}" class="admin-logo"><span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span></a>
-    <small>PROJECT 1 CONTROL PANEL</small>
+    <a href="{{route('admin.dashboard')}}" class="admin-logo"><img class="admin-logo-image" src="{{asset('assets/logo/logo_two_line.png')}}" alt="Emerald Rozalia Limited"></a>
     <a class="admin-nav-home {{request()->routeIs('admin.dashboard')?'active':''}}" href="{{route('admin.dashboard')}}"><x-icon name="home" /> Dashboard</a>
     @foreach($groups as $group)
         <details class="admin-nav-group" open>
@@ -108,22 +116,54 @@
                             <summary class="{{request()->is($item['active'])?'active':''}}"><span class="admin-nav-parent-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
                             <div class="admin-nav-subitems">
                                 @foreach($item['children'] as $child)
-                                    <a class="{{request()->is($child['active'])?'active':''}}" href="{{$href($child)}}"><x-icon name="{{$child['icon']}}" size="14" /><span>{{$child['label']}}</span></a>
+                                    <a class="{{request()->is($child['active'])?'active':''}}" href="{{$href($child)}}"><span>{{$child['label']}}</span>@if(isset($child['badge']))<span class="admin-nav-badge admin-nav-badge--{{$child['badge']['tone']}}">{{number_format($child['badge']['value'])}}</span>@endif</a>
                                 @endforeach
                             </div>
                         </details>
                     @else
-                        <a class="{{request()->is($item['active'])?'active':''}}" href="{{$href($item)}}"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></a>
+                        <a class="{{request()->is($item['active'])?'active':''}}" href="{{$href($item)}}">
+                            <span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span>
+                            @if(isset($item['marker']))<i class="admin-nav-order-dot admin-nav-order-dot--{{$item['marker']}}"></i>@endif
+                            @if(isset($item['badge']))<span class="admin-nav-badge admin-nav-badge--{{$item['badge']['tone']}}">{{number_format($item['badge']['value'])}}</span>@endif
+                            @if(isset($item['chevron']))<x-icon name="chevron-right" size="10" class="admin-group-chevron" />@endif
+                        </a>
                     @endif
                 @endforeach
             </div>
         </details>
     @endforeach
     <nav class="admin-nav-utility" aria-label="Administration">
-        <a class="admin-nav-home {{request()->is('admin/resource/reports*')?'active':''}}" href="{{route('admin.resource','reports')}}"><x-icon name="file-text" size="14" /> <span>REPORTS</span></a>
-        <a class="admin-nav-home {{request()->is('admin/resource/users-roles*')?'active':''}}" href="{{route('admin.resource','users-roles')}}"><x-icon name="users" size="14" /> <span>USERS &amp; ROLES</span></a>
-        <a class="admin-nav-home {{request()->is('admin/resource/settings*')?'active':''}}" href="{{route('admin.resource','settings')}}"><x-icon name="settings" size="14" /> <span>SETTINGS</span></a>
+        <details class="admin-nav-group" open>
+            <summary><span>REPORTS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
+            <div class="admin-nav-items">
+                <a class="{{request()->is('admin/resource/sales-reports*')?'active':''}}" href="{{route('admin.resource','sales-reports')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Sales Report</span></span></a>
+                <a class="{{request()->is('admin/resource/performance-targets*')?'active':''}}" href="{{route('admin.resource','performance-targets')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Franchise Performance</span></span></a>
+                <a class="{{request()->is('admin/resource/customer-order-reports*')?'active':''}}" href="{{route('admin.resource','customer-order-reports')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Customer &amp; Order Reports</span></span></a>
+            </div>
+        </details>
+        <details class="admin-nav-group" open>
+            <summary><span>USERS &amp; ROLES</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
+            <div class="admin-nav-items">
+                <a class="{{request()->is('admin/resource/users*')?'active':''}}" href="{{route('admin.resource','users')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Users</span></span></a>
+                <a class="{{request()->is('admin/resource/roles*')?'active':''}}" href="{{route('admin.resource','roles')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Roles</span></span></a>
+                <a class="{{request()->is('admin/resource/permissions*')?'active':''}}" href="{{route('admin.resource','permissions')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permissions</span></span></a>
+            </div>
+        </details>
+        <details class="admin-nav-group" open>
+            <summary><span>SETTINGS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
+            <div class="admin-nav-items">
+                <a class="{{request()->is('admin/resource/company-profile*')?'active':''}}" href="{{route('admin.resource','company-profile')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Company Profile</span></span></a>
+                <a class="{{request()->is('admin/resource/language*')?'active':''}}" href="{{route('admin.resource','language')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Language</span></span></a>
+                <a class="{{request()->is('admin/resource/currency*')?'active':''}}" href="{{route('admin.resource','currency')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Currency</span></span></a>
+                <a class="{{request()->is('admin/resource/payment-settings*')?'active':''}}" href="{{route('admin.resource','payment-settings')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Payment Settings</span></span></a>
+                <a class="{{request()->is('admin/resource/notifications*')?'active':''}}" href="{{route('admin.resource','notifications')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Notifications</span></span></a>
+                <a class="{{request()->is('admin/resource/branding*')?'active':''}}" href="{{route('admin.resource','branding')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Branding</span></span></a>
+                <a class="{{request()->is('admin/resource/security*')?'active':''}}" href="{{route('admin.resource','security')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Security</span></span></a>
+                <a class="{{request()->is('admin/resource/audit-logs*')?'active':''}}" href="{{route('admin.resource','audit-logs')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Audit Logs</span></span></a>
+            </div>
+        </details>
     </nav>
+    <footer class="admin-sidebar-footer"><span>&copy; {{now()->year}} Emerald Rozalia Ltd.</span><span>All rights reserved.</span></footer>
 </aside>
 <div class="admin-shell">
     <header class="admin-top">

@@ -544,7 +544,7 @@ button:not(:disabled):hover,input[type=submit]:not(:disabled):hover,input[type=b
 .site-body .home-collection-card:hover .home-reference-placeholder,.site-body .home-product-card:hover .home-product-media img,.site-body .product-card:hover .product-image img,.site-body .catalog-product-card:hover .catalog-image-placeholder img,.site-body .directory-card:hover .catalog-image-placeholder img{transform:scale(1.035)}
 .site-body .home-reference-placeholder,.site-body .home-product-media img,.site-body .product-image img,.site-body .catalog-image-placeholder img,.site-body .directory-card .catalog-image-placeholder img{transition:transform 240ms var(--interaction-ease)}
 .site-body .home-collection-card:hover span,.site-body .home-section-heading a:hover,.site-body .home-product-card:hover .home-product-cart{color:#b2dd66}.site-body .home-product-card:hover .home-product-cart{background:#1a6938;border-color:#a4cf59;box-shadow:0 4px 12px rgba(0,0,0,.25)}
-.admin-body .admin-nav-items a:hover,.admin-body .admin-nav-group>summary:hover,.admin-body .admin-nav-subgroup>summary:hover,.admin-body .admin-nav-utility a:hover{background:#1a713b;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.18);transform:translateX(2px) scale(1.015)}
+.admin-body .admin-nav-items a:hover,.admin-body .admin-nav-group>summary:hover,.admin-body .admin-nav-subgroup>summary:hover,.admin-body .admin-nav-utility a:hover{background:#1a713b;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.18);transform:translateX(2px) scale(1.015);}
 .admin-body .admin-nav-home:hover{background:#1a713b;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.18);transform:translateY(-1px) scale(1.015)}
 .admin-body .admin-menu-toggle:hover{background:#0d6b35;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.18)}
 .admin-body .admin-actions>span{transition:color var(--interaction-duration) var(--interaction-ease),transform var(--interaction-duration) var(--interaction-ease)}.admin-body .admin-actions>span:hover{color:#7fbd42;transform:translateY(-1px) scale(1.06)}
@@ -582,3 +582,109 @@ button:not(:disabled):hover,input[type=submit]:not(:disabled):hover,input[type=b
 @media(max-width:700px){.contact-page{padding-bottom:14px}.contact-breadcrumb{padding:12px 16px 9px;font-size:11px}.contact-hero{grid-template-columns:1fr;min-height:0;margin:0 16px}.contact-hero-copy{padding:31px 22px 27px}.contact-hero-copy h1{font-size:clamp(46px,14vw,66px)}.contact-hero-copy>p:last-child{font-size:14px}.contact-hero-art{min-height:240px;border-top:1px solid var(--contact-line);border-left:0}.contact-hero-art img{min-height:240px}.contact-options{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 16px}.contact-option{padding:14px 12px}.contact-option:nth-child(2){border-right:0}.contact-option:nth-child(n+3){border-top:1px solid #3c4d24}.contact-option-icon{flex-basis:42px;width:42px;height:42px}.contact-option-icon .ui-icon{width:22px;height:22px}.contact-option strong{font-size:11px}.contact-option b{font-size:11px}.contact-option small{font-size:10px}.contact-layout{margin:10px 16px 0}.contact-panel{padding:19px 16px}.contact-form-fields{gap:9px}.contact-field input,.contact-field select,.contact-field textarea{font-size:12px}.contact-schedule-points{grid-template-columns:1fr}.contact-schedule-points>div{align-items:center;flex-direction:row;gap:10px}.contact-calendar-grid{grid-auto-rows:35px}.contact-info-grid{grid-template-columns:1fr;margin:10px 16px 0}.contact-location-card{grid-row:auto}.contact-info-card{padding:17px 16px}.contact-faq{padding:19px 16px 0}.contact-faq-grid{grid-template-columns:1fr}.contact-benefits{grid-template-columns:1fr 1fr;margin:10px 16px 0}.contact-benefits>div{padding:13px 10px}.contact-benefits>div:nth-child(2n){border-right:0}.contact-benefits>div:nth-child(n+3){border-top:1px solid #394721}.contact-benefits>div:last-child{grid-column:1/-1}}
 @media(max-width:420px){.contact-form-fields{grid-template-columns:1fr}.contact-field-wide{grid-column:auto}.contact-time-options{grid-template-columns:repeat(3,minmax(0,1fr))}.contact-option{align-items:flex-start;flex-direction:column}.contact-option>span:last-child{width:100%}.contact-submit,.contact-schedule-apply{width:100%}.contact-benefits b{font-size:10px}.contact-benefits small{font-size:9px}}
 .contact-benefits>div>.ui-icon{flex:0 0 auto;color:#bfd52d}
+
+/* cPanel left rail: match the supplied reference geometry and keep the rail scroll-free horizontally. */
+.admin-body{overflow-x:hidden}
+.admin-body .admin-sidebar{display:flex;flex-direction:column;width:208px;min-width:0;padding:16px 10px 18px;background:linear-gradient(180deg,#000f0f 0%,#001313 58%,#031912 100%);overflow-x:hidden;overflow-y:auto;scrollbar-width:none}
+.admin-body .admin-sidebar::-webkit-scrollbar{width:0;height:0}
+.admin-body .admin-sidebar *{min-width:0}
+.admin-body .admin-logo{display:block;flex:0 0 65px;width:100%;max-width:100%;margin:0 0 14px;padding:0;border-radius:0;overflow:hidden}
+.admin-body .admin-logo .home-brand-crop{display:block;width:100%;max-width:188px;height:65px;background-size:1166px auto;background-position:-104px -51px}
+.admin-body .admin-sidebar small{display:none}
+.admin-body .admin-sidebar>.admin-nav-home{display:flex;align-items:center;width:100%;min-height:22px;padding:4px 8px;border-radius:4px;gap:7px;color:#f6faf6;font-size:11px;line-height:14px}
+.admin-body .admin-sidebar>.admin-nav-home>.ui-icon{width:12px;height:12px}
+.admin-body .admin-sidebar>.admin-nav-home.active{background:#0d6b35}
+.admin-body .admin-nav-group{margin:0;border-top:1px solid rgba(210,230,216,.18);padding:5px 0 4px}
+.admin-body .admin-nav-group:first-of-type{border-top:0;padding-top:5px}
+.admin-body .admin-nav-group>summary{display:flex;align-items:center;justify-content:space-between;padding:0 4px 4px;color:#79b43b;font-size:10px;font-weight:700;letter-spacing:.04em;line-height:12px;white-space:nowrap}
+.admin-body .admin-nav-group:nth-of-type(3)>summary{font-size:9px;letter-spacing:.03em}
+.admin-body .admin-nav-group>summary>.admin-group-chevron{display:block;width:14px;height:14px;flex:0 0 14px}
+.admin-body .admin-nav-group:nth-of-type(4)>summary>.admin-group-chevron{display:block;width:14px;height:14px;flex:0 0 14px}
+.admin-body .admin-nav-items{display:grid;gap:0}
+.admin-body .admin-nav-items>a{display:flex;align-items:center;width:100%;min-height:15px;padding:1px 8px;border-radius:3px;gap:0;color:#e1ebe3;font-size:10px;line-height:13px}
+.admin-body .admin-nav-items>a:hover,.admin-body .admin-nav-items>a.active{background:#0d6b35;color:#fff}
+.admin-body .admin-nav-item-label{display:flex;align-items:center;min-width:0;flex:1;gap:8px;overflow:hidden}
+.admin-body .admin-nav-item-label>.ui-icon{flex:0 0 11px;width:11px;height:11px}
+.admin-body .admin-nav-item-label>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-body .admin-nav-order-dot{display:block;flex:0 0 8px;width:8px;height:8px;margin-left:auto;border-radius:50%}
+.admin-body .admin-nav-order-dot--blue{background:#1688dc}.admin-body .admin-nav-order-dot--purple{background:#8252d4}.admin-body .admin-nav-order-dot--orange{background:#ee760d}.admin-body .admin-nav-order-dot--green{background:#0da762}.admin-body .admin-nav-order-dot--teal{background:#079d75}.admin-body .admin-nav-order-dot--yellow{background:#f7a900}
+.admin-body .admin-nav-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:18px;height:13px;margin-left:auto;padding:0 4px;border-radius:7px;color:#fff;font-size:8px;font-weight:700;line-height:13px}
+.admin-body .admin-nav-badge--green{background:#1da95b}.admin-body .admin-nav-badge--red{background:#ed3c42}.admin-body .admin-nav-badge--orange{background:#f58209}
+.admin-body .admin-nav-subgroup{margin:0}
+.admin-body .admin-nav-subgroup>summary{display:flex;align-items:center;justify-content:space-between;min-height:16px;padding:1px 8px;color:#e1ebe3;font-size:10px;font-weight:400;line-height:13px}
+.admin-body .admin-nav-subgroup>summary:hover,.admin-body .admin-nav-subgroup>summary.active{background:#0d6b35;color:#fff}
+.admin-body .admin-nav-parent-label{display:flex;align-items:center;min-width:0;flex:1;gap:6px;overflow:hidden}
+.admin-body .admin-nav-parent-label>.ui-icon{flex:0 0 11px;width:11px;height:11px}
+.admin-body .admin-nav-parent-label>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-body .admin-nav-subgroup>.admin-group-chevron,.admin-body .admin-nav-items>a>.admin-group-chevron{width:9px;height:9px;flex:0 0 9px}
+.admin-body .admin-nav-subitems{display:grid;gap:0;margin:0 0 2px 13px;padding:0 0 0 9px;border-left:1px solid rgba(210,230,216,.34)}
+.admin-body .admin-nav-subitems>a{display:flex;align-items:center;justify-content:space-between;min-height:13px;padding:0 7px;color:#e1ebe3;font-size:10px;line-height:13px}
+.admin-body .admin-nav-subitems>a:hover,.admin-body .admin-nav-subitems>a.active{background:#0d6b35;color:#fff}
+.admin-body .admin-nav-utility{display:grid;gap:0;margin-top:3px;border-top:1px solid rgba(210,230,216,.18);padding-top:4px}
+.admin-body .admin-nav-utility-group{display:grid;gap:0;border-top:1px solid rgba(210,230,216,.18);padding:5px 0 4px}
+.admin-body .admin-nav-utility-group:first-child{border-top:0;padding-top:0}
+.admin-body .admin-nav-utility-group h2{margin:0 4px 2px;color:#79b43b;font-size:10px;font-weight:700;letter-spacing:.04em;line-height:12px}
+.admin-body .admin-nav-utility-group>a{display:flex;align-items:center;gap:6px;min-height:13px;padding:0 8px;border-radius:3px;color:#dce8df;font-size:9px;line-height:13px}
+.admin-body .admin-nav-utility-group>a>.ui-icon{width:8px;height:8px;color:#1e9552}
+.admin-body .admin-nav-utility-group>a:hover,.admin-body .admin-nav-utility-group>a.active{background:#0d6b35;color:#fff}
+.admin-body .admin-sidebar-footer{display:grid;gap:4px;margin-top:auto;padding:8px 8px 0;border-top:1px solid rgba(210,230,216,.2);color:#e3ece4;font-size:12px;line-height:12px;text-align:center}
+.admin-body .admin-sidebar a:hover,.admin-body .admin-sidebar summary:hover{transform:none;box-shadow:none}
+@media(max-width:1100px){.admin-body .admin-sidebar{width:min(280px,88vw);padding:16px 10px 18px}}
+@media(max-width:700px){.admin-body .admin-sidebar{position:static;width:100%;max-height:420px;transform:none;padding:16px 12px 18px}.admin-body .admin-sidebar-footer{margin-top:18px}}
+
+/* Use the supplied transparent logo artwork everywhere the shared layouts show the brand. */
+.site-body .brand-logo-image{display:block;width:181px;height:63px;object-fit:cover;object-position:center 65%}
+.site-body .site-header .brand-logo-image{width:181px;height:63px}
+.site-body .footer-brand .brand-logo-image{width:181px;height:63px;margin-bottom:8px}
+.admin-body .admin-logo-image{display:block;width:154px;height:65px;object-fit:cover;object-position:center 65%}
+.home-brand-crop{background-image:url('/assets/logo/logo_two_line.png')!important;background-size:cover!important;background-position:center 65%!important}
+
+/* Slightly roomier cPanel type and hit areas while retaining the reference rail geometry. */
+.admin-body .admin-nav-items>a{min-height:16px;padding:1px 9px;font-size:11px;line-height:13px}
+.admin-body .admin-nav-subgroup>summary{min-height:17px;padding:2px 9px 1px;font-size:11px;line-height:13px}
+.admin-body .admin-nav-subitems{padding-left:10px}
+.admin-body .admin-nav-subitems>a{min-height:14px;padding:0 9px;font-size:11px;line-height:13px}
+.admin-body .admin-nav-utility-group>a{min-height:14px;padding:0 9px;font-size:10px;line-height:13px}
+.admin-body .admin-nav-group{padding-bottom:3px}
+.admin-body .admin-nav-utility-group{padding-bottom:3px}
+.admin-body .admin-sidebar-footer{padding-top:6px}
+@media(max-width:700px){.site-body .site-header .brand-logo-image{width:155px;height:58px}}
+
+/* Keep the shared public-header logo visible after the legacy screenshot-crop rule. */
+.site-body .site-header .brand .brand-logo-image{display:block;width:181px;height:63px;object-fit:cover;object-position:center 65%}
+
+/* Give the public header mark more presence without changing footer, invoice, or admin branding. */
+.site-body .site-header .brand{width:230px;flex-basis:230px}
+.site-body .site-header .brand .brand-logo-image{width:230px;height:80px}
+@media(max-width:700px){
+  .site-body .site-header .brand{width:190px;flex-basis:190px}
+  .site-body .site-header .brand .brand-logo-image{width:190px;height:70px}
+}
+
+/* Readable cPanel navigation hierarchy: align labels with the page's 12px content scale. */
+.admin-body .admin-nav-items>a{min-height:17px;padding:2px 9px;font-size:12px;line-height:13px}
+.admin-body .admin-nav-subgroup>summary{min-height:18px;padding:2px 9px;font-size:12px;line-height:14px}
+.admin-body .admin-nav-subitems>a{min-height:15px;padding:1px 9px;font-size:12px;line-height:13px}
+  .admin-body .admin-nav-utility-group>a{min-height:15px;padding:1px 9px;font-size:12px;line-height:13px}
+
+/* Spacious sidebar hit areas: every navigation row keeps a readable 14px scale. */
+.admin-body .admin-sidebar>.admin-nav-home,
+.admin-body .admin-nav-items>a,
+.admin-body .admin-nav-subgroup>summary,
+.admin-body .admin-nav-utility-group>a{min-height:34px;padding-top:8px;padding-bottom:8px;font-size:14px;line-height:18px}
+.admin-body .admin-nav-subitems>a{min-height:30px;padding-top:6px;padding-bottom:6px;font-size:14px;line-height:18px}
+.admin-body .admin-nav-item-label>.ui-icon,
+.admin-body .admin-nav-parent-label>.ui-icon{width:14px;height:14px;flex-basis:14px}
+.admin-body .admin-nav-utility-group>a>.ui-icon{width:12px;height:12px}
+.admin-body .admin-nav-subitems>a>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-body .admin-nav-group>summary{overflow:hidden}
+.admin-body .admin-nav-group>summary>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Keep every group summary a centered, keyboard-friendly button with a clear collapsed state. */
+.admin-body .admin-nav-group>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px;margin:0 0 5px;padding:8px 9px;border:1px solid rgba(121,180,59,.28);border-radius:4px;background:#061d14;color:#79b43b;font-size:10px;font-weight:700;letter-spacing:.04em;line-height:18px;white-space:nowrap;cursor:pointer;list-style:none}
+.admin-body .admin-nav-group>summary::-webkit-details-marker{display:none}
+.admin-body .admin-nav-group>summary::marker{content:""}
+.admin-body .admin-nav-group>summary:hover,.admin-body .admin-nav-group>summary:focus-visible{background:#0d6b35;border-color:#62ad45;color:#fff;outline:0}
+.admin-body .admin-nav-group:not([open])>summary{background:#0b3e26;border-color:rgba(99,174,69,.62);color:#f5fff5}
+.admin-body .admin-nav-group>summary>span:first-child{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-body .admin-nav-group>summary>.admin-group-chevron{display:block;width:14px;height:14px;flex:0 0 14px}

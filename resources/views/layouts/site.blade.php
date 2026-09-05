@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Emerald Rozalia')</title>
     <meta name="description" content="Emerald Rozalia — Irish made hats and caps, proudly manufacturing in Limerick, Ireland.">
-    <link rel="stylesheet" href="/css/app.css?v=20260904-contact">
+    <link rel="stylesheet" href="/css/app.css?v=20260905-sidebar-spacing">
 </head>
 <body class="site-body @yield('body-class')">
 <div class="topline">
@@ -26,7 +26,7 @@
 </div>
 <header class="site-header">
     <a href="/" class="brand">
-        <span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span>
+        <img class="brand-logo-image" src="{{asset('assets/logo/logo_one_line.png')}}" alt="Emerald Rozalia Limited">
     </a>
     <button class="nav-toggle" data-nav-toggle aria-label="Open menu"><x-icon name="menu" size="22" /></button>
     <nav data-nav>
@@ -46,7 +46,7 @@
 @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif
 <main>@yield('content')</main>
 <footer class="site-footer">
-    <div class="footer-brand"><span class="home-brand-crop" role="img" aria-label="Emerald Rozalia Limited"></span><p>Proudly manufacturing<br>hats and caps in Limerick, Ireland.</p><div class="socials"><x-icon name="facebook" label="Facebook" /><x-icon name="instagram" label="Instagram" /><x-icon name="music" label="TikTok" /><x-icon name="linkedin" label="LinkedIn" /><x-icon name="youtube" label="YouTube" /></div></div>
+    <div class="footer-brand"><img class="brand-logo-image" src="{{asset('assets/logo/logo_two_line.png')}}" alt="Emerald Rozalia Limited"><p>Proudly manufacturing<br>hats and caps in Limerick, Ireland.</p><div class="socials"><x-icon name="facebook" label="Facebook" /><x-icon name="instagram" label="Instagram" /><x-icon name="music" label="TikTok" /><x-icon name="linkedin" label="LinkedIn" /><x-icon name="youtube" label="YouTube" /></div></div>
     <div><h4>SHOP</h4><a href="/shop">All Products</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/category/snapbacks">Snapbacks</a><a href="/irish-traditional">Flat Caps</a></div>
     <div><h4>COLLECTIONS</h4><a href="/irish-traditional">Irish Traditional</a><a href="/irish-heritage">Irish Heritage</a><a href="/new-arrivals">New Arrivals</a><a href="/collections">Premium Collection</a></div>
     <div><h4>CUSTOMER CARE</h4><a href="/factory">Size Guide</a><a href="/factory">Shipping & Delivery</a><a href="/factory">Returns & Refunds</a><a href="/contact">Contact Us</a></div>

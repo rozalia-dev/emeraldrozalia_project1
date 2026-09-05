@@ -17,6 +17,7 @@ class ResourceController extends Controller {
         'discounts-coupons','sales-reports','franchise-dashboard','franchise-applications','franchise-territories','franchise-agreements',
         'franchisees','franchise-retail-stores','training-documents','marketing-assets','performance-targets','renewals','inbox','chat-24-7',
         'whatsapp','email','email-templates','approval-center','action-follow-ups','alerts-notifications','communication-reports','communication-history',
+        'customer-order-reports','users','roles','permissions','company-profile','language','currency','payment-settings','notifications','branding','security',
     ];
     private function valid(string $module):void { abort_unless(in_array($module,$this->modules,true),404); }
     private function data(Request $r):array { return $r->validate(['title'=>'required|max:180','reference'=>'nullable|max:100','status'=>'required|max:50','amount'=>'nullable|numeric','record_date'=>'nullable|date','notes'=>'nullable|max:3000']); }
