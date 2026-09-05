@@ -26,7 +26,7 @@ class SeoDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.seo.dashboard'))
             ->assertOk()
-            ->assertSee(['SEO & Content', 'SEO Health Overview', 'Meta Management'], false);
+            ->assertSee(['SEO & Content', 'SEO Health Overview', 'Meta Management']);
 
         $this->actingAs($admin)
             ->post(route('admin.seo.audit'))
