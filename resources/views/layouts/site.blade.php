@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Emerald Rozalia')</title>
     <meta name="description" content="Emerald Rozalia — Irish made hats and caps, proudly manufacturing in Limerick, Ireland.">
-    <link rel="stylesheet" href="/css/app.css?v=20260905-sidebar-spacing">
+    <link rel="stylesheet" href="/css/app.css?v=20260905-public-header-type">
 </head>
 <body class="site-body @yield('body-class')">
 <div class="topline">
@@ -40,7 +40,7 @@
         <a class="{{ request()->routeIs('careers') ? 'is-active' : '' }}" href="/careers" @if(request()->routeIs('careers')) aria-current="page" @endif>HIRING APPLY</a>
         <a class="{{ request()->routeIs('contact') ? 'is-active' : '' }}" href="/contact" @if(request()->routeIs('contact')) aria-current="page" @endif>CONTACT US</a>
     </nav>
-    <div class="utilities"><a href="/shop" aria-label="Search"><x-icon name="search" /></a><a href="/account" aria-label="Account"><x-icon name="user" /></a><a href="/cart" aria-label="Cart"><x-icon name="shopping-bag" /><small>{{count(session('cart',[]))?'('.array_sum(array_column(session('cart',[]),'quantity')).')':''}}</small></a></div>
+    <div class="utilities"><a href="/shop" aria-label="Search"><x-icon name="search" size="20" /></a><a href="/account" aria-label="Account"><x-icon name="user" size="20" /></a><a href="/cart" aria-label="Cart"><x-icon name="shopping-bag" size="20" /><small>{{count(session('cart',[]))?'('.array_sum(array_column(session('cart',[]),'quantity')).')':''}}</small></a></div>
 </header>
 @if(session('success'))<div class="flash success">{{session('success')}}</div>@endif
 @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif

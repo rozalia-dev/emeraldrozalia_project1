@@ -844,3 +844,49 @@ button:not(:disabled):hover,input[type=submit]:not(:disabled):hover,input[type=b
 .admin-body .admin-nav-group>summary>span:first-child{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:normal}
 .admin-body .admin-nav-group>summary>.admin-group-chevron{display:block;width:14px;height:14px;flex:0 0 14px}
 .admin-body .admin-nav-group:nth-of-type(3)>summary{font-size:12px;letter-spacing:.04em}
+
+/* Public header typography follows the contact page's readable 12px+ content scale. */
+.site-body .topline{font-size:14px;line-height:16px}
+.site-body .topline-tools select{font-size:14px;line-height:16px}
+.site-body .site-header{min-height:84px;align-items:center;gap:18px;padding:8px 1.4vw}
+.site-body .site-header nav{align-items:center;gap:16px;font-size:13px;font-weight:500;line-height:18px;letter-spacing:.015em}
+.site-body .site-header nav a{display:inline-flex;align-items:center;min-height:44px;padding:10px 0;line-height:18px}
+.site-body .site-header nav a.is-active{padding-top:10px;padding-bottom:9px}
+.site-body .utilities{align-items:center;gap:11px;font-size:20px;line-height:1}
+.site-body .utilities a{min-width:32px;min-height:42px}
+.site-body .utilities a .ui-icon{width:20px;height:20px}
+.site-body .utilities small{font-size:10px;line-height:14px}
+@media(max-width:1100px){
+    .site-body .site-header nav{align-items:stretch;gap:4px;padding:16px 20px}
+    .site-body .site-header nav a{min-height:44px;padding:14px 0}
+    .site-body .site-header nav a.is-active{padding-top:14px;padding-bottom:10px}
+}
+@media(max-width:700px){
+    .site-body .site-header{min-height:84px;gap:10px;padding:7px 16px}
+    .site-body .site-header nav.open{gap:4px;padding:14px 16px}
+    .site-body .site-header nav.open a{min-height:44px;padding:12px 0;font-size:13px}
+    .site-body .utilities{gap:8px}
+    .site-body .utilities a{min-width:30px}
+}
+
+/* cPanel rail interactions: every menu level gets a restrained move-and-scale response. */
+.admin-body .admin-sidebar .admin-nav-home,
+.admin-body .admin-sidebar .admin-nav-items>a,
+.admin-body .admin-sidebar .admin-nav-group>summary,
+.admin-body .admin-sidebar .admin-nav-subgroup>summary,
+.admin-body .admin-sidebar .admin-nav-subitems>a{
+    transform-origin:left center;
+}
+.admin-body .admin-sidebar .admin-nav-home:hover,
+.admin-body .admin-sidebar .admin-nav-home:focus-visible,
+.admin-body .admin-sidebar .admin-nav-items>a:hover,
+.admin-body .admin-sidebar .admin-nav-items>a:focus-visible,
+.admin-body .admin-sidebar .admin-nav-group>summary:hover,
+.admin-body .admin-sidebar .admin-nav-group>summary:focus-visible,
+.admin-body .admin-sidebar .admin-nav-subgroup>summary:hover,
+.admin-body .admin-sidebar .admin-nav-subgroup>summary:focus-visible,
+.admin-body .admin-sidebar .admin-nav-subitems>a:hover,
+.admin-body .admin-sidebar .admin-nav-subitems>a:focus-visible{
+    transform:translateX(2px) scale(1.02);
+    box-shadow:0 5px 14px rgba(0,0,0,.18);
+}
