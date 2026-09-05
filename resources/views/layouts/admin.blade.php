@@ -6,7 +6,7 @@
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
 </head>
-<body class="admin-body @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -49,7 +49,7 @@
                 ],
                 ['slug'=>'banners-sliders','label'=>'Banners & Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
                 ['route'=>'admin.pages','label'=>'Pages','icon'=>'file-text','active'=>'admin/pages*'],
-                ['slug'=>'seo-content','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/resource/seo-content*'],
+                ['route'=>'admin.seo.dashboard','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/seo*'],
                 ['slug'=>'reviews-ratings','label'=>'Reviews & Ratings','icon'=>'star','active'=>'admin/resource/reviews-ratings*'],
             ],
         ],
@@ -177,7 +177,11 @@
         <header class="admin-top">
             <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
             <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
+            @if(request()->routeIs('admin.seo.*'))
+            <form class="admin-search" method="get" action="{{route('admin.seo.dashboard')}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search SEO, pages, meta, keywords..." aria-label="Search SEO, pages, meta, keywords"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
+        @else
             <label class="admin-search"><x-icon name="search" /><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
+        @endif
             <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
         </header>
     @endif
@@ -186,6 +190,15 @@
         @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif
         @yield('content')
     </main>
+    <footer class="admin-footer">
+        <div><img src="/assets/brand/emerald-rozalia-wordmark.png" alt="Emerald Rozalia Limited"><span>© {{ now()->year }} Emerald Rozalia Limited. All rights reserved.</span></div>
+        <div class="admin-footer-contact">
+            @if(config('app.brand_contact.whatsapp'))<span>☎ {{ config('app.brand_contact.whatsapp') }}</span>@endif
+            @if(config('app.brand_contact.email'))<span>✉ {{ config('app.brand_contact.email') }}</span>@endif
+            @if(config('app.brand_contact.website'))<span>◉ {{ config('app.brand_contact.website') }}</span>@endif
+            @if(config('app.brand_contact.location'))<span>⌖ {{ config('app.brand_contact.location') }}</span>@endif
+        </div>
+    </footer>
 </div>
 <script src="/js/app.js"></script>
 </body>

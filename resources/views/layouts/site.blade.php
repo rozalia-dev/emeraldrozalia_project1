@@ -3,9 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>@yield('title','Emerald Rozalia')</title>
-    <meta name="description" content="Emerald Rozalia — Irish made hats and caps, proudly manufacturing in Limerick, Ireland.">
+    @php($seoMetadata = app(\App\Services\SeoMetadata::class)->forView(trim($__env->yieldContent('title')) ?: 'Emerald Rozalia', $product ?? null, $category ?? $activeCategory ?? null, $managedPage ?? null))
+    <title>{{ $seoMetadata['title'] }}</title>
+    <meta name="description" content="{{ $seoMetadata['description'] }}">
+    <link rel="canonical" href="{{ $seoMetadata['canonical'] }}">
+    <meta name="robots" content="{{ $seoMetadata['noindex'] ? 'noindex,nofollow' : 'index,follow' }}">
+    <meta property="og:title" content="{{ $seoMetadata['title'] }}">
+    <meta property="og:description" content="{{ $seoMetadata['description'] }}">
+    <meta property="og:url" content="{{ $seoMetadata['canonical'] }}">
+    @if($seoMetadata['schema'])<script type="application/ld+json">{!! json_encode($seoMetadata['schema'], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>@endif
     <link rel="stylesheet" href="/css/app.css?v=20260905-public-header-type">
+    @stack('styles')
 </head>
 <body class="site-body @yield('body-class')">
 <div class="topline">

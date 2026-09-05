@@ -19,6 +19,8 @@ Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Lim
 - Franchise applications, retail-store onboarding data and milestone schema
 - Communication Centre persistence for web enquiries, messages, assignments and follow-ups
 - Page Manager with drafts, review, scheduling, publishing, duplication, revision snapshots, archive, trash and restore
+- SEO & Content cPanel workspace with metadata editing, local audits, issue fixing, target keywords, redirects, sitemap, robots.txt and Organization schema publishing
+- cPanel submenu readability baseline: all submenu copy and controls are enforced at a minimum 13px, including responsive/mobile layouts
 - Product image/video/360/try-on media schema and browser-side try-on preview
 - Users, roles, permissions, audit log, reports, settings, integrations, automation, backups and maintenance surfaces
 - Company, language and currency context

@@ -328,3 +328,18 @@ if(pageBuilder){
     sections=decode(pageBuilder.dataset.builderInitial);
     render();
 }
+
+const seoDashboard=document.querySelector('[data-seo-dashboard]');
+if(seoDashboard){
+    seoDashboard.querySelectorAll('[data-seo-field]').forEach((field)=>{
+        const output=seoDashboard.querySelector(`[data-seo-count-for="${field.id}"]`);
+        const update=()=>{if(output)output.textContent=String(field.value?.length||0)};
+        field.addEventListener('input',update);
+        update();
+    });
+    seoDashboard.querySelectorAll('[data-seo-copy]').forEach((button)=>button.addEventListener('click',async()=>{
+        const value=button.dataset.seoCopy;
+        if(!value)return;
+        try{await navigator.clipboard.writeText(value);button.textContent='✓';window.setTimeout(()=>{button.textContent='▣'},1200)}catch(error){button.title='Copy is unavailable in this browser'}
+    }));
+}
