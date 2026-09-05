@@ -16,6 +16,9 @@ yarn-error.log
 /.idea
 /.vscode
 
+# Large local reference document; keep it out of GitHub commits.
+/docs/Emerald-Rozalia-Project-1-Developer-Guide-updated.pdf
+
 /storage/framework/cache/data/*
 /storage/framework/sessions/*
 /storage/framework/testing/*
