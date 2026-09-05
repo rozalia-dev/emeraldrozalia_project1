@@ -54,6 +54,6 @@
     <div class="newsletter"><h4>NEWSLETTER</h4><p>Stay updated with new arrivals and offers.</p><form><input type="email" placeholder="Your email address" aria-label="Your email address"><button class="btn" type="button" aria-label="Subscribe"><x-icon name="arrow-right" /></button></form><p class="payments">VISA &nbsp; Mastercard &nbsp; PayPal &nbsp; Apple Pay &nbsp; Google Pay</p></div>
     <div class="footer-bottom"><span>© 2024 Emerald Rozalia Limited. All rights reserved.</span><span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in Limerick, Ireland</span><span><a href="/factory">Privacy Policy</a> &nbsp; <a href="/factory">Terms &amp; Conditions</a></span></div>
 </footer>
-<script src="/js/app.js?v=20260905-scheduler"></script>
+<script src="/js/app.js?v=20260905-scheduler-final"></script>
 </body>
 </html>
