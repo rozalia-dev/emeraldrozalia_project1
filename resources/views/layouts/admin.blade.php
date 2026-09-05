@@ -6,7 +6,7 @@
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
 </head>
-<body class="admin-body @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -166,12 +166,21 @@
     <footer class="admin-sidebar-footer"><span>&copy; {{now()->year}} Emerald Rozalia Ltd.</span><span>All rights reserved.</span></footer>
 </aside>
 <div class="admin-shell">
-    <header class="admin-top">
-        <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
-        <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
-        <label class="admin-search"><x-icon name="search" /><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
-        <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
-    </header>
+    @if(false && request()->routeIs('admin.pages'))
+        <header class="admin-top pages-admin-top">
+            <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="18" /></button>
+            <div class="pages-top-breadcrumb"><strong>Project 1 Control Panel</strong><span>•</span><span>Website &amp; Products</span><span>•</span><b>Pages</b></div>
+            <label class="pages-top-search"><span class="sr-only">Search pages</span><input type="search" placeholder="Search pages..." aria-label="Search pages"><x-icon name="search" size="15" /></label>
+            <div class="pages-top-actions"><span class="pages-top-icon pages-notification"><x-icon name="bell" size="17" /><i>2</i></span><span class="pages-top-icon pages-notification"><x-icon name="message" size="17" /><i>5</i></span><span class="pages-top-icon pages-notification"><x-icon name="mail" size="17" /><i>3</i></span><span class="pages-top-icon"><x-icon name="help" size="17" /></span><span class="pages-top-user"><span class="pages-user-avatar"><x-icon name="user" size="17" /></span><span><strong>{{ auth()->user()->name ?? 'Admin User' }}</strong><small>Super Admin</small></span><x-icon name="chevron-right" size="14" /></span></div>
+        </header>
+    @else
+        <header class="admin-top">
+            <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
+            <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
+            <label class="admin-search"><x-icon name="search" /><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
+            <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
+        </header>
+    @endif
     <main class="admin-main">
         @if(session('success'))<div class="flash success">{{session('success')}}</div>@endif
         @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif

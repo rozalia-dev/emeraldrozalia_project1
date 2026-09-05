@@ -239,3 +239,92 @@ if(contactScheduler){
     });
     contactRenderCalendar();contactRenderSummary();
 }
+
+const pagesScreen=document.querySelector('[data-pages-screen]');
+if(pagesScreen){
+    const dialog=pagesScreen.querySelector('[data-page-dialog]'),form=pagesScreen.querySelector('[data-page-form]'),blockList=pagesScreen.querySelector('[data-builder-list]'),emptyState=pagesScreen.querySelector('[data-builder-empty]'),blockCount=pagesScreen.querySelector('[data-builder-count]'),sectionsInput=pagesScreen.querySelector('[data-page-sections]'),dialogTitle=pagesScreen.querySelector('[data-page-dialog-title]'),methodInput=pagesScreen.querySelector('[data-page-method]');
+    let sections=[];
+    const defaultPage=(template='standard')=>({id:null,title:'',slug:'',intro:'',body:'',status:'draft',locale:'en',template,scheduled_for:'',meta_title:'',meta_description:'',meta_keywords:'',show_in_footer:false,indexable:true,login_required:false,visibility:'public',country_restriction:'',devices:['desktop','tablet','mobile'],sections:[]});
+    const decodePayload=(encoded)=>{if(!encoded)return null;try{return JSON.parse(atob(encoded))}catch(error){return null}};
+    const field=(name)=>form?.querySelector(`[data-page-field="${name}"]`);
+    const setField=(name,value)=>{const input=field(name);if(!input)return;if(input.type==='checkbox')input.checked=!!value;else input.value=value??''};
+    const getField=(name)=>{const input=field(name);return input?.type==='checkbox'?!!input.checked:(input?.value??'')};
+    const renderBlocks=()=>{
+        if(!blockList)return;
+        blockList.replaceChildren();
+        sections.forEach((section,index)=>{
+            const row=document.createElement('div');row.className='pages-block';
+            const number=document.createElement('span');number.className='pages-block-index';number.textContent=String(index+1);
+            const fields=document.createElement('div');fields.className='pages-block-fields';
+            const label=document.createElement('input');label.type='text';label.value=section.label||'';label.placeholder='Section label';label.setAttribute('aria-label',`Section ${index+1} label`);label.addEventListener('input',()=>{section.label=label.value;syncSections()});
+            const content=document.createElement('textarea');content.value=section.settings?.content||'';content.placeholder='Section content';content.setAttribute('aria-label',`Section ${index+1} content`);content.addEventListener('input',()=>{section.settings={...(section.settings||{}),content:content.value};syncSections()});
+            fields.append(label,content);
+            const remove=document.createElement('button');remove.type='button';remove.className='pages-block-remove';remove.innerHTML='&times;';remove.title='Remove section';remove.setAttribute('aria-label',`Remove section ${index+1}`);remove.addEventListener('click',()=>{sections.splice(index,1);renderBlocks()});
+            row.append(number,fields,remove);blockList.appendChild(row);
+        });
+        if(emptyState)emptyState.hidden=sections.length>0;
+        if(blockCount)blockCount.textContent=`${sections.length} block${sections.length===1?'':'s'}`;
+        syncSections();
+    };
+    const syncSections=()=>{if(sectionsInput)sectionsInput.value=JSON.stringify(sections.map((section,index)=>({type:section.type||'content',label:section.label||'Content block',settings:section.settings||{},visible:section.visible!==false,sort_order:index}))) };
+    const openEditor=(payload,isNew=false)=>{
+        if(!dialog||!form)return;
+        const page={...defaultPage(),...(payload||{})};
+        sections=Array.isArray(page.sections)?page.sections.map((section)=>({...section,settings:section.settings||{}})):[];
+        form.action=isNew?pagesScreen.dataset.createUrl:`${pagesScreen.dataset.updateBase}/${page.id}`;
+        if(methodInput)methodInput.value=isNew?'POST':'PUT';
+        if(dialogTitle)dialogTitle.textContent=isNew?'Create New Page':'Edit Page';
+        ['title','slug','intro','body','status','locale','template','scheduled_for','meta_title','meta_description','meta_keywords','visibility','country_restriction'].forEach((name)=>setField(name,page[name]));
+        ['navigation_visible','show_in_footer','indexable','login_required'].forEach((name)=>setField(name,page[name]));
+        form.querySelectorAll('[data-page-device]').forEach((input)=>{input.checked=(page.devices||[]).includes(input.value)});
+        renderBlocks();
+        dialog.showModal();
+        field('title')?.focus();
+    };
+    const initial=decodePayload(pagesScreen.dataset.pageInit);
+    pagesScreen.querySelectorAll('[data-page-edit]').forEach((button)=>button.addEventListener('click',()=>openEditor(decodePayload(button.dataset.pageEdit),false)));
+    pagesScreen.querySelectorAll('[data-page-new]').forEach((button)=>button.addEventListener('click',()=>openEditor(defaultPage('standard'),true)));
+    pagesScreen.querySelectorAll('[data-page-new-template]').forEach((button)=>button.addEventListener('click',()=>openEditor(defaultPage(button.dataset.pageNewTemplate||'standard'),true)));
+    pagesScreen.querySelectorAll('[data-builder-add]').forEach((button)=>button.addEventListener('click',()=>{sections.push({type:button.dataset.builderAdd||'content',label:button.textContent.trim(),settings:{content:''},visible:true});renderBlocks()}));
+    pagesScreen.querySelectorAll('[data-page-dialog-close]').forEach((button)=>button.addEventListener('click',()=>dialog?.close()));
+    dialog?.addEventListener('click',(event)=>{if(event.target===dialog)dialog.close()});
+    form?.addEventListener('submit',()=>syncSections());
+    pagesScreen.querySelector('[data-page-filter-toggle]')?.addEventListener('click',()=>{const drawer=pagesScreen.querySelector('[data-page-filter-drawer]');if(drawer)drawer.hidden=!drawer.hidden});
+    pagesScreen.querySelector('[data-pages-select-all]')?.addEventListener('change',(event)=>pagesScreen.querySelectorAll('[data-page-select]').forEach((input)=>input.checked=event.currentTarget.checked));
+    pagesScreen.querySelectorAll('[data-copy-uuid]').forEach((button)=>button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(button.dataset.copyUuid||'');const original=button.innerHTML;button.textContent='Copied';setTimeout(()=>{button.innerHTML=original},1300)}catch(error){button.title='UUID: '+button.dataset.copyUuid}}));
+    if(initial)renderBlocks();
+}
+
+const pageBuilder=document.querySelector('[data-page-builder]');
+if(pageBuilder){
+    const form=pageBuilder.querySelector('[data-page-form]'),list=pageBuilder.querySelector('[data-builder-list]'),empty=pageBuilder.querySelector('[data-builder-empty]'),sectionInput=pageBuilder.querySelector('[data-page-sections]'),countLabels=[...pageBuilder.querySelectorAll('[data-builder-count]')],titleInput=pageBuilder.querySelector('[data-builder-field="title"]'),slugInput=pageBuilder.querySelector('[data-builder-field="slug"]');
+    let sections=[];
+    const decode=(value)=>{try{return JSON.parse(atob(value||''))||[]}catch(error){return[]}};
+    const labels={hero:'Hero section',content:'Rich content',gallery:'Media gallery',cta:'Call to action',form:'Enquiry form'};
+    const sync=()=>{const payload=sections.map((section,index)=>({type:section.type||'content',label:section.label||labels[section.type]||'Content block',settings:section.settings||{},visible:section.visible!==false,sort_order:index}));if(sectionInput)sectionInput.value=JSON.stringify(payload);countLabels.forEach((item)=>{item.textContent=`${payload.length} block${payload.length===1?'':'s'}`})};
+    const move=(index,delta)=>{const next=index+delta;if(next<0||next>=sections.length)return;[sections[index],sections[next]]=[sections[next],sections[index]];render()};
+    const render=()=>{
+        if(!list)return;
+        list.replaceChildren();
+        sections.forEach((section,index)=>{
+            const block=document.createElement('article');block.className='page-builder-block';
+            const header=document.createElement('div');header.className='page-builder-block-heading';
+            const title=document.createElement('strong');title.textContent=`${String(index+1).padStart(2,'0')} · ${labels[section.type]||'Content block'}`;
+            const tools=document.createElement('div');
+            [['↑','Move section up',()=>move(index,-1)],['↓','Move section down',()=>move(index,1)]].forEach(([text,label,handler])=>{const button=document.createElement('button');button.type='button';button.className='page-builder-block-tool';button.textContent=text;button.title=label;button.setAttribute('aria-label',label);button.disabled=(text==='↑'&&index===0)||(text==='↓'&&index===sections.length-1);button.addEventListener('click',handler);tools.appendChild(button)});
+            const remove=document.createElement('button');remove.type='button';remove.className='page-builder-block-remove';remove.textContent='Remove';remove.addEventListener('click',()=>{sections.splice(index,1);render()});tools.appendChild(remove);header.append(title,tools);
+            const fields=document.createElement('div');fields.className='page-builder-block-fields';
+            const label=document.createElement('label');label.textContent='Section label';const labelInput=document.createElement('input');labelInput.value=section.label||labels[section.type]||'Content block';labelInput.addEventListener('input',()=>{section.label=labelInput.value;sync()});label.appendChild(labelInput);
+            const content=document.createElement('label');content.textContent='Section content';const contentInput=document.createElement('textarea');contentInput.rows=3;contentInput.value=section.settings?.content||'';contentInput.placeholder='Add content for this section...';contentInput.addEventListener('input',()=>{section.settings={...(section.settings||{}),content:contentInput.value};sync()});content.appendChild(contentInput);
+            const visible=document.createElement('label');visible.className='page-builder-block-visible';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=section.visible!==false;visibleInput.addEventListener('change',()=>{section.visible=visibleInput.checked;sync()});visible.append(visibleInput,document.createTextNode(' Visible'));fields.append(label,content,visible);block.append(header,fields);list.appendChild(block);
+        });
+        if(empty)empty.hidden=sections.length>0;
+        sync();
+    };
+    pageBuilder.querySelectorAll('[data-builder-add]').forEach((button)=>button.addEventListener('click',()=>{const type=button.dataset.builderAdd||'content';sections.push({type,label:labels[type]||'Content block',settings:{content:''},visible:true});render();list?.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'})}));
+    titleInput?.addEventListener('input',()=>{if(!slugInput||slugInput.dataset.edited==='true')return;slugInput.value=titleInput.value.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,180)});
+    slugInput?.addEventListener('input',()=>{slugInput.dataset.edited='true'});
+    form?.addEventListener('submit',()=>sync());
+    sections=decode(pageBuilder.dataset.builderInitial);
+    render();
+}
