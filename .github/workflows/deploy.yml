@@ -107,9 +107,16 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script_stop: true
+          request_pty: true
+          debug: true
+          script_stop: false
           script: |
+            set -eux
             cd /var/www/emerald-rozalia
+            echo "Connected as: $(id -un)"
+            echo "Working directory: $(pwd)"
+            command -v git
+            command -v bash
             echo "Pulling latest code..."
             git pull --ff-only origin main
-            bash ./deploy/docker-deploy.sh
+            /bin/bash -x ./deploy/docker-deploy.sh
