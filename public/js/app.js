@@ -4,6 +4,10 @@ if(adminNavToggle&&adminSidebar){
     adminNavToggle.addEventListener('click',()=>{const open=adminSidebar.classList.toggle('open');adminNavToggle.setAttribute('aria-expanded',String(open))});
     adminSidebar.querySelectorAll('a').forEach((link)=>link.addEventListener('click',()=>{adminSidebar.classList.remove('open');adminNavToggle.setAttribute('aria-expanded','false')}));
 }
+document.querySelectorAll('[data-dashboard-period]').forEach((select)=>select.addEventListener('change',()=>{
+    document.querySelectorAll('[data-dashboard-period]').forEach((peer)=>{if(peer!==select)peer.value=select.value});
+    document.querySelectorAll('[data-dashboard-period-label]').forEach((label)=>{label.textContent=`(${select.value})`});
+}));
 
 const spin=document.querySelector('[data-spin-viewer]');
 if(spin){

@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
-    <link rel="stylesheet" href="/css/app.css?v=20260905-collapsible-groups">
+    <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
 </head>
-<body class="admin-body">
+<body class="admin-body @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
