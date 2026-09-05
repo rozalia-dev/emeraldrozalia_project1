@@ -10,13 +10,13 @@
 | Franchise | Application, store and milestone entities; enquiries create tracked applications | PostgreSQL constraints and form test |
 | Communication Centre | Conversation/message/template/approval entities; every public enquiry is persisted | Transactional enquiry test |
 | Page Manager | Content pages, sections, revisions, SEO, locale, schedule, lifecycle and soft delete | Admin lifecycle routes and revision count |
-| SEO & Content | Reference-matched cPanel workspace; metadata editor, local audit/issues, keyword targets, redirect manager, sitemap, robots.txt and Organization JSON-LD | \`docs/SEO-CONTENT-EVIDENCE.md\`; feature test coverage |
+| SEO & Content | Reference-matched cPanel workspace; metadata editor, local audit/issues, broken-link review, keyword targets, redirect manager, sitemap, robots.txt and Organization JSON-LD | \`docs/SEO-CONTENT-EVIDENCE.md\`; feature test coverage |
 | Admin submenu readability | Shared cPanel typography floor of 13px for copy, forms, tables, statuses and responsive layouts | Admin-scoped CSS contract and desktop/tablet/mobile review |
 | Media/try-on | Product media schema; image/video/360/try-on types; local browser preview | Product and studio view review |
 | Access/audit | Admin middleware, roles, permissions and immutable audit entries for operational CRUD | Seeded owner role and audit records |
 | Operations | Reports/settings/integrations/automation/backups/maintenance cPanel surfaces | Admin resource routes and database schema |
 | Integrations | Credential fields encrypted at rest; every live toggle defaults false | \`.env.example\` and integration status page |
-| Server readiness | PostgreSQL 17 Docker stack, Nginx, Supervisor, health route and CI | CI migration/seed/test job |
+| Server readiness | PostgreSQL 17 Docker stack, Redis, shared public-assets volume, Nginx, Supervisor, health route, guarded deploy script and CI | \`docs/SERVER-READY-PACKAGE.md\`; CI migration/seed/test job |
 
 ## Visual acceptance rule
 

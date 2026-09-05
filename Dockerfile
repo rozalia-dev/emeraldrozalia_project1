@@ -12,9 +12,17 @@ COPY deploy/php/uploads.ini /usr/local/etc/php/conf.d/99-uploads.ini
 WORKDIR /var/www/html
 
 COPY . .
+COPY deploy/docker-entrypoint.sh /usr/local/bin/emerald-rozalia-entrypoint
 
-RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+ && chmod +x /usr/local/bin/emerald-rozalia-entrypoint \
  && chown -R www-data:www-data storage bootstrap/cache \
  && composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
+EXPOSE 9000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD php-fpm -t >/dev/null 2>&1 || exit 1
+
+ENTRYPOINT ["/usr/local/bin/emerald-rozalia-entrypoint"]
 CMD ["php-fpm"]

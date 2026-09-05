@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Product, SeoRedirect, SeoSetting, User};
+use App\Models\{ContentPage, Product, SeoRedirect, SeoSetting, User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -113,5 +113,59 @@ class SeoDashboardTest extends TestCase
         ]);
 
         $this->get('/legacy-hats')->assertRedirect('/shop')->assertStatus(301);
+    }
+
+    public function test_broken_link_check_persists_a_reviewable_issue(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Broken Link Page',
+            'slug' => 'broken-link-page',
+            'body' => '<h1>Broken Link Page</h1><p><a href="/missing-page">Missing page</a></p>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'navigation_visible' => true,
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.links'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'content']))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'broken-internal-link',
+            'status' => 'open',
+        ]);
+    }
+
+    public function test_page_seo_fixes_can_add_alt_text_and_an_internal_link(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Image Page',
+            'slug' => 'image-page',
+            'body' => '<img src="/storage/image.webp"><p>Page copy.</p>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.seo.audit'))->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.issue.fix', ['page', $page->id, 'missing-alt-text']))
+            ->assertRedirect();
+        $this->assertStringContainsString('alt="Image Page"', (string) $page->fresh()->body);
+
+        $page->update(['body' => '<h1>Image Page</h1>']);
+        $this->actingAs($admin)
+            ->post(route('admin.seo.issue.fix', ['page', $page->id, 'missing-internal-links']))
+            ->assertRedirect();
+        $this->assertStringContainsString('href="/shop"', (string) $page->fresh()->body);
     }
 }

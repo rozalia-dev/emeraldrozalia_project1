@@ -26,7 +26,7 @@ class SeoController extends Controller
         'schema',
     ];
 
-    private const DEFAULT_ROBOTS = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /account\nDisallow: /checkout\n\nSitemap: https://emeraldrozalia.com/sitemap.xml\n";
+    private const DEFAULT_ROBOTS_PATHS = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /account\nDisallow: /checkout\n\nSitemap: ";
 
     private const DEFAULT_KEYWORDS = [
         ['keyword' => 'emerald rozalia hats', 'position' => null, 'change' => null, 'target' => '/'],
@@ -67,7 +67,7 @@ class SeoController extends Controller
         $healthBreakdown = $this->healthBreakdown($sources);
         $metaStatus = $this->metaStatus($sources);
         $keywords = $this->settingValue('keywords', self::DEFAULT_KEYWORDS);
-        $robots = (string) $this->settingValue('robots_txt', self::DEFAULT_ROBOTS);
+        $robots = (string) $this->settingValue('robots_txt', $this->defaultRobots());
         $schema = $this->settingValue('organization_schema', self::DEFAULT_SCHEMA);
         $schemaJson = json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         $metaRows = $sources->filter(function (array $source) use ($query): bool {
@@ -101,9 +101,10 @@ class SeoController extends Controller
         $sources = $this->sources();
         $definitions = $this->scanIssues($sources);
         $activeKeys = [];
+        $auditedIssueTypes = $definitions->pluck('issue_type')->unique()->all();
         $audit = null;
 
-        DB::transaction(function () use ($definitions, $sources, &$activeKeys, &$audit): void {
+        DB::transaction(function () use ($definitions, $sources, $auditedIssueTypes, &$activeKeys, &$audit): void {
             $now = now();
             foreach ($definitions as $definition) {
                 $activeKeys[] = $this->issueKey($definition);
@@ -129,7 +130,8 @@ class SeoController extends Controller
 
             $existing = SeoIssue::query()->where('status', 'open')->get();
             foreach ($existing as $issue) {
-                if (! in_array($issue->source_type.'|'.$issue->source_id.'|'.$issue->issue_type, $activeKeys, true)) {
+                if (in_array($issue->issue_type, $auditedIssueTypes, true)
+                    && ! in_array($issue->source_type.'|'.$issue->source_id.'|'.$issue->issue_type, $activeKeys, true)) {
                     $issue->update([
                         'status' => 'resolved',
                         'resolved_at' => $now,
@@ -152,6 +154,61 @@ class SeoController extends Controller
 
         return redirect()->route('admin.seo.dashboard', ['tab' => 'overview'])
             ->with('success', 'SEO audit completed. '.count($activeKeys).' issues are ready for review.');
+    }
+
+    public function checkBrokenLinks(): RedirectResponse
+    {
+        $sources = $this->sources();
+        $definitions = $this->scanBrokenLinks($sources);
+        $activeKeys = [];
+
+        DB::transaction(function () use ($definitions, &$activeKeys): void {
+            $now = now();
+
+            foreach ($definitions as $definition) {
+                $activeKeys[] = $this->issueKey($definition);
+                SeoIssue::updateOrCreate(
+                    [
+                        'company_id' => $this->tenantId(),
+                        'source_type' => $definition['source_type'],
+                        'source_id' => $definition['source_id'],
+                        'issue_type' => $definition['issue_type'],
+                    ],
+                    [
+                        'path' => $definition['path'],
+                        'title' => $definition['title'],
+                        'severity' => $definition['severity'],
+                        'status' => 'open',
+                        'details' => $definition['details'],
+                        'last_seen_at' => $now,
+                        'resolved_at' => null,
+                        'resolved_by' => null,
+                    ],
+                );
+            }
+
+            SeoIssue::query()
+                ->where('issue_type', 'broken-internal-link')
+                ->where('status', 'open')
+                ->get()
+                ->each(function (SeoIssue $issue) use ($activeKeys, $now): void {
+                    if (! in_array($this->issueKey($issue->toArray()), $activeKeys, true)) {
+                        $issue->update([
+                            'status' => 'resolved',
+                            'resolved_at' => $now,
+                            'resolved_by' => auth()->id(),
+                        ]);
+                    }
+                });
+
+            $this->saveSetting('broken_links', count($definitions));
+            $this->saveSetting('links_checked_at', $now->toIso8601String());
+        });
+
+        AuditTrail::record('seo.broken_links_checked');
+
+        return redirect()->route('admin.seo.dashboard', ['tab' => 'content'])
+            ->with('success', 'Broken-link check completed. '.count($definitions).' broken internal-link issues found.');
     }
 
     public function updateMeta(Request $request, string $sourceType, int $sourceId): RedirectResponse
@@ -216,6 +273,8 @@ class SeoController extends Controller
             'missing-meta-description',
             'meta-description-too-long',
             'missing-h1',
+            'missing-alt-text',
+            'missing-internal-links',
             'duplicate-meta-title',
         ], true), 404);
 
@@ -249,7 +308,18 @@ class SeoController extends Controller
                 if ($issueType === 'missing-h1' && ! preg_match('/<h1\b/i', (string) $record->body)) {
                     $record->body = '<h1>'.e($record->title).'</h1>'.(filled($record->body) ? "\n".$record->body : '');
                 }
-                $record->update(['meta' => $meta]);
+                if ($issueType === 'missing-alt-text') {
+                    $alt = e(Str::limit($name, 80, ''));
+                    $record->body = preg_replace_callback(
+                        '/<img\b(?![^>]*\balt\s*=)([^>]*)>/i',
+                        static fn (array $match): string => '<img alt="'.$alt.'"'.$match[1].'>',
+                        (string) $record->body,
+                    ) ?: $record->body;
+                }
+                if ($issueType === 'missing-internal-links') {
+                    $record->body = rtrim((string) $record->body)."\n<p><a href=\"/shop\">Explore the Emerald Rozalia collection.</a></p>";
+                }
+                $record->update(['meta' => $meta, 'body' => $record->body]);
                 $subject = $record;
             } else {
                 /** @var Product|Category $record */
@@ -377,7 +447,10 @@ class SeoController extends Controller
 
     public function robots()
     {
-        return response((string) $this->settingValue('robots_txt', self::DEFAULT_ROBOTS), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+        return response((string) $this->settingValue('robots_txt', $this->defaultRobots()), 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=300',
+        ]);
     }
 
     public function sitemap()
@@ -450,6 +523,7 @@ class SeoController extends Controller
                     'has_internal_links' => $this->hasInternalLinks($body),
                     'indexed' => $page->status === 'published' && ! (bool) ($meta['noindex'] ?? false),
                     'word_count' => str_word_count(strip_tags($body)),
+                    'content' => $body,
                     'updated_at' => $page->updated_at,
                 ];
             });
@@ -477,6 +551,7 @@ class SeoController extends Controller
                     'has_internal_links' => true,
                     'indexed' => ! (bool) ($seo['noindex'] ?? false),
                     'word_count' => str_word_count(strip_tags((string) $product->description)),
+                    'content' => (string) $product->description,
                     'updated_at' => $product->updated_at,
                 ];
             });
@@ -503,6 +578,7 @@ class SeoController extends Controller
                     'has_internal_links' => true,
                     'indexed' => ! (bool) ($seo['noindex'] ?? false),
                     'word_count' => str_word_count(strip_tags((string) $category->description)),
+                    'content' => (string) $category->description,
                     'updated_at' => $category->updated_at,
                 ];
             });
@@ -544,6 +620,14 @@ class SeoController extends Controller
                 $add('missing-h1', 'Missing H1 heading', 'high', 'Add one clear H1 heading that matches the page purpose.');
             }
 
+            if ($source['source_type'] === 'page' && ! $source['has_alt_text']) {
+                $add('missing-alt-text', 'Image missing alt text', 'medium', 'Add descriptive alt text to every content image for accessibility and image search.');
+            }
+
+            if ($source['source_type'] === 'page' && ! $source['has_internal_links']) {
+                $add('missing-internal-links', 'No internal links', 'low', 'Add at least one useful link to another Emerald Rozalia page.');
+            }
+
             return $items;
         })->values();
 
@@ -571,9 +655,107 @@ class SeoController extends Controller
         return $issues->sortBy(fn (array $issue): int => ['high' => 0, 'medium' => 1, 'low' => 2][$issue['severity']] ?? 3)->values();
     }
 
+    private function scanBrokenLinks(Collection $sources): Collection
+    {
+        $knownPaths = collect([
+            '/',
+            '/shop',
+            '/collections',
+            '/new-arrivals',
+            '/virtual-tryon',
+            '/irish-traditional',
+            '/irish-heritage',
+            '/factory',
+            '/corporate-orders',
+            '/bulk-orders',
+            '/franchise',
+            '/careers',
+            '/global-network',
+            '/contact',
+            '/login',
+            '/register',
+            '/account',
+            '/cart',
+            '/checkout',
+            '/robots.txt',
+            '/sitemap.xml',
+        ])->merge($sources->pluck('path'))
+            ->merge(SeoRedirect::query()->where('active', true)->pluck('from_path'))
+            ->map(fn ($path): string => '/'.ltrim((string) $path, '/'))
+            ->unique()
+            ->flip();
+
+        return $sources->flatMap(function (array $source) use ($knownPaths): Collection {
+            $content = (string) ($source['content'] ?? '');
+            if ($content === '' || ! preg_match('/\bhref\s*=/i', $content)) {
+                return collect();
+            }
+
+            preg_match_all('/\bhref\s*=\s*["\']([^"\']+)["\']/i', $content, $matches);
+            $broken = collect($matches[1] ?? [])
+                ->map(fn (string $href): ?string => $this->internalLinkPath($href))
+                ->filter()
+                ->reject(fn (string $path): bool => $knownPaths->has($path))
+                ->unique()
+                ->values();
+
+            if ($broken->isEmpty()) {
+                return collect();
+            }
+
+            $paths = $broken->take(5)->implode(', ');
+            if ($broken->count() > 5) {
+                $paths .= ' and '.($broken->count() - 5).' more';
+            }
+
+            return collect([[
+                'source_type' => $source['source_type'],
+                'source_id' => $source['source_id'],
+                'path' => $source['path'],
+                'title' => 'Broken internal links',
+                'issue_type' => 'broken-internal-link',
+                'severity' => 'high',
+                'status' => 'open',
+                'details' => 'Unresolved paths: '.$paths,
+                'last_updated' => $source['updated_at'],
+            ]]);
+        })->values();
+    }
+
+    private function internalLinkPath(string $href): ?string
+    {
+        $href = trim($href);
+        if ($href === '' || str_starts_with($href, '#') || str_starts_with($href, '//') || preg_match('/^(?:mailto|tel|javascript|data):/i', $href)) {
+            return null;
+        }
+
+        $parsed = parse_url($href);
+        if ($parsed === false) {
+            return null;
+        }
+
+        if (isset($parsed['host'])) {
+            $appHost = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+            if ($appHost === '' || strtolower((string) $parsed['host']) !== $appHost) {
+                return null;
+            }
+        }
+
+        $path = $parsed['path'] ?? (isset($parsed['host']) ? '/' : null);
+        if (! is_string($path) || ! str_starts_with($path, '/')) {
+            return null;
+        }
+
+        if (str_starts_with($path, '/assets/') || str_starts_with($path, '/storage/') || preg_match('/\.(?:css|js|jpe?g|png|gif|svg|webp|avif|pdf|xml)$/i', $path)) {
+            return null;
+        }
+
+        return '/'.ltrim($path, '/');
+    }
+
     private function currentIssues(Collection $sources): Collection
     {
-        if (SeoAudit::query()->exists()) {
+        if (SeoIssue::query()->exists()) {
             return SeoIssue::query()
                 ->where('status', 'open')
                 ->latest('last_seen_at')
@@ -614,7 +796,8 @@ class SeoController extends Controller
             'pages_crawled' => data_get($audit?->summary, 'total_pages', 0),
             'last_crawl' => $audit?->completed_at,
             'redirects' => SeoRedirect::query()->where('status_code', 301)->count(),
-            'broken_links' => (int) $this->settingValue('broken_links', 0),
+            'broken_links' => $issues->where('issue_type', 'broken-internal-link')->count()
+                ?: (int) $this->settingValue('broken_links', 0),
             'sitemap_generated_at' => $sitemapGenerated,
         ];
     }
@@ -741,6 +924,11 @@ class SeoController extends Controller
     private function settingValue(string $key, mixed $default = null): mixed
     {
         return $this->settingRecord($key)?->value ?? $default;
+    }
+
+    private function defaultRobots(): string
+    {
+        return self::DEFAULT_ROBOTS_PATHS.rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/')."/sitemap.xml\n";
     }
 
     private function saveSetting(string $key, mixed $value): SeoSetting

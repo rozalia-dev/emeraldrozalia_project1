@@ -26,7 +26,7 @@ jobs:
         env:
           POSTGRES_DB: emerald_test
           POSTGRES_USER: emerald
-          POSTGRES_PASSWORD: emerald
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -37,14 +37,12 @@ jobs:
 
     env:
       APP_ENV: testing
-      APP_KEY: base64:VGhpcy1pcy1hLXRlc3Qta2V5LWZvci1DSTAwMDAwMDA=
       APP_URL: http://localhost
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_DATABASE: emerald_test
       DB_USERNAME: emerald
-      DB_PASSWORD: emerald
       SESSION_DRIVER: database
       CACHE_STORE: database
       QUEUE_CONNECTION: sync
@@ -79,6 +77,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Generate ephemeral application key
+        run: echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
+
       - name: Generate ephemeral seeder password
         run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
@@ -108,50 +109,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script_stop: true
           script: |
-            set -e
-
             cd /var/www/emerald-rozalia
-
             echo "Pulling latest code..."
             git pull --ff-only origin main
-
-            echo "Server resource snapshot..."
-            free -h || true
-            df -h / || true
-            docker system df || true
-
-            echo "Building production containers..."
-            if ! COMPOSE_BAKE=false docker compose build app; then
-              echo "Compose Bake build failed; retrying with the classic Docker builder..."
-              DOCKER_BUILDKIT=0 COMPOSE_BAKE=false docker compose build app
-            fi
-
-            echo "Starting application..."
-            docker compose up -d
-
-            echo "Waiting for PostgreSQL..."
-            for attempt in $(seq 1 30); do
-              if docker compose exec -T db pg_isready -U emerald_rozalia -d emerald_rozalia >/dev/null 2>&1; then
-                break
-              fi
-              if [ "$attempt" -eq 30 ]; then
-                echo "PostgreSQL did not become ready." >&2
-                exit 1
-              fi
-              sleep 2
-            done
-
-            echo "Running migrations..."
-            docker compose exec -T app php artisan migrate --force
-
-            echo "Creating storage link..."
-            docker compose exec -T app php artisan storage:link || test -L public/storage
-
-            echo "Clearing and rebuilding Laravel caches..."
-            docker compose exec -T app php artisan optimize:clear
-            docker compose exec -T app php artisan optimize
-
-            echo "Checking application..."
-            curl --fail --retry 10 --retry-all-errors --silent --show-error https://emeraldrozalia.com/up
-
-            echo "Deployment successful."
+            bash ./deploy/docker-deploy.sh

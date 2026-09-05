@@ -2,7 +2,7 @@
 
 ## Current implementation status
 
-The repository is an active foundation, not a completed pixel-accurate release. The local Herd/MySQL baseline is booting and has passed migration/seed re-run verification, the UUID/domain migration is portable and seeded locally, local HTTP session cookies now support CSRF/login, cart, tenant isolation and foundation smoke routes are tested, deployment credentials/health ordering are aligned for PostgreSQL Docker, and the shared public visual foundation (header/footer/tokens), cPanel shell/dashboard, dedicated homepage/catalogue structure, variant-aware product detail, product media manager, 360° viewer contract, local-only Try-On studio and dedicated informational screens are in progress. The approved homepage reference is served from `public/assets/brand/home-page-reference.png` and wired into the live homepage as a branded visual crop baseline while Laravel links and catalogue data remain active. The public and cPanel shells now share centralized SVG icon paths and the same public header/footer geometry across routes. The approved guide still contains unimplemented or unverified public and cPanel screens; completion requires the ordered tasks and screenshot evidence described in `docs/AGENTS.md`.
+The repository now contains the Laravel 13 Project 1 full-stack package, including the responsive Emerald Rozalia storefront, single admin cPanel, SEO & Content workspace, PostgreSQL Docker stack, persistent public media volume, CI validation and guarded production deployment scripts. The SEO reference screen is functional: metadata, audits, issue fixing, broken-link checks, keywords, redirects, sitemap, robots.txt, schema and UUID-backed audit logging are connected to Laravel routes and database tables. Runtime verification remains an environment check: this workspace does not include PHP, Composer or Docker, so the authoritative migration, route, PHPUnit and container checks run in GitHub Actions.
 
 Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Limited. The repository is deployable with PostgreSQL 17 and contains no Production, Finance, Payroll, HR or POS module.
 
@@ -41,13 +41,17 @@ External payment/webhook, WhatsApp, email delivery, shipping, social, hosted 360
 
 ```bash
 cp .env.example .env
-# Set database and unique ADMIN_* secrets.
+# Set a strong DB_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD and every live-server value.
+docker compose build app
+APP_KEY="$(docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show --no-ansi | tail -n 1)"
+sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
 docker compose up -d --build
-docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate --seed --force
 docker compose exec app php artisan storage:link
 docker compose exec app php artisan optimize
 ```
+
+For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, waits for PostgreSQL, runs migrations, rebuilds Laravel caches, checks `https://emeraldrozalia.com/up` and prints container logs if deployment fails. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files.
 
 ## Linux/cPanel deployment
 
@@ -82,3 +86,5 @@ php artisan test
 CI executes the install, PostgreSQL migration/seed and tests on every push. See `docs/IMPLEMENTATION-MATRIX.md` and `docs/DEPLOYMENT-RUNBOOK.md` for specification traceability and deployment/rollback.
 
 Official footer contact values are loaded from the live server's `BRAND_*` environment variables and are never committed.
+
+See [the server-ready package runbook](docs/SERVER-READY-PACKAGE.md) for the first-release checklist, TLS proxy settings, deployment recovery and post-deploy checks.
