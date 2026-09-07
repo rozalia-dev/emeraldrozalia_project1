@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   validate:
     name: PostgreSQL validation
@@ -80,15 +84,49 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 20
 
     steps:
-      - name: Deploy
+      - name: Build and deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 20m
+          script_stop: true
           script: |
+            set -eu
             cd /var/www/emerald-rozalia
+
+            test -f .env || {
+              echo "Missing /var/www/emerald-rozalia/.env" >&2
+              exit 78
+            }
+
+            if docker compose version >/dev/null 2>&1; then
+              compose() { docker compose "$@"; }
+            elif command -v docker-compose >/dev/null 2>&1; then
+              compose() { docker-compose "$@"; }
+            else
+              echo "Docker Compose is not installed on the server." >&2
+              exit 127
+            fi
+
+            git fetch origin main
+            git checkout main
             git pull --ff-only origin main
-            bash ./deploy/deploy.sh
+
+            compose config --quiet
+            compose build --pull app
+            compose up -d --remove-orphans --wait --wait-timeout 180
+
+            compose exec -T app php artisan migrate --force
+            compose exec -T app php artisan optimize:clear
+            compose exec -T app php artisan optimize
+            compose exec -T app php artisan queue:restart || true
+
+            compose ps
+            curl --fail --silent --show-error --retry 12 --retry-delay 5               http://127.0.0.1:8080/up >/dev/null
+
+            echo "Emerald Rozalia Docker deployment completed successfully."
