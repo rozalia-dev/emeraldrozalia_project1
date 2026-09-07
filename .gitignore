@@ -18,6 +18,7 @@ yarn-error.log
 
 # Large local reference document; keep it out of GitHub commits.
 /docs/Emerald-Rozalia-Project-1-Developer-Guide-updated.pdf
+/docs/Emerald_Rozalia_Project_1_Visual_Developer_Guide_v3.pdf
 
 /storage/framework/cache/data/*
 /storage/framework/sessions/*
