@@ -10,15 +10,10 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: emerald-rozalia-production
-  cancel-in-progress: false
-
 jobs:
   validate:
     name: PostgreSQL validation
     runs-on: ubuntu-latest
-    timeout-minutes: 20
 
     services:
       postgres:
@@ -51,71 +46,48 @@ jobs:
       ADMIN_EMAIL: ci-admin@example.test
 
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: pdo_pgsql,intl,zip,bcmath,gd
           coverage: none
 
-      - name: Prepare Laravel runtime directories
-        run: |
+      - run: |
           mkdir -p bootstrap/cache
-          mkdir -p storage/framework/cache
-          mkdir -p storage/framework/sessions
-          mkdir -p storage/framework/testing
-          mkdir -p storage/framework/views
+          mkdir -p storage/framework/{cache,sessions,testing,views}
           mkdir -p storage/logs
           chmod -R ug+rw bootstrap storage
 
-      - name: Validate Composer configuration
-        run: composer validate --strict
+      - run: composer validate --strict
 
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
+      - run: composer install --no-interaction --prefer-dist
 
-      - name: Generate ephemeral application key
-        run: echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
+      - run: echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
 
-      - name: Generate ephemeral seeder password
-        run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+      - run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
-      - name: Run PostgreSQL migrations and seeders
-        run: php artisan migrate:fresh --seed --force
+      - run: php artisan migrate:fresh --seed --force
 
-      - name: Verify route registration
-        run: php artisan route:list
+      - run: php artisan route:list
 
-      - name: Run application tests
-        run: php artisan test
+      - run: php artisan test
 
   deploy:
     name: Deploy to Hetzner
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment: production
 
     steps:
-      - name: Deploy to Hetzner
+      - name: Deploy
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          port: 22
-          timeout: 60s
-          command_timeout: 20m
-          script_stop: true
           script: |
-            set -eux
             cd /var/www/emerald-rozalia
-            echo "Connected as: $(id -un)"
-            echo "Working directory: $(pwd)"
-            echo "Pulling latest code..."
             git pull --ff-only origin main
-            bash ./deploy/docker-deploy.sh
+            bash ./deploy/deploy.sh
