@@ -36,7 +36,7 @@ return new class extends Migration
             Schema::create('seo_settings', function (Blueprint $table): void {
                 $table->id();
                 $table->uuid('uuid')->unique();
-                $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete()->index();
+                $table->foreignId('company_id')->nullable()->index()->constrained()->nullOnDelete();
                 $table->string('key', 100);
                 $table->json('value')->nullable();
                 $table->timestampsTz();
@@ -48,7 +48,7 @@ return new class extends Migration
             Schema::create('seo_audits', function (Blueprint $table): void {
                 $table->id();
                 $table->uuid('uuid')->unique();
-                $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete()->index();
+                $table->foreignId('company_id')->nullable()->index()->constrained()->nullOnDelete();
                 $table->unsignedTinyInteger('score')->default(0);
                 $table->json('summary')->nullable();
                 $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -62,7 +62,7 @@ return new class extends Migration
             Schema::create('seo_issues', function (Blueprint $table): void {
                 $table->id();
                 $table->uuid('uuid')->unique();
-                $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete()->index();
+                $table->foreignId('company_id')->nullable()->index()->constrained()->nullOnDelete();
                 $table->string('source_type', 40);
                 $table->unsignedBigInteger('source_id');
                 $table->string('issue_type', 80);
@@ -84,7 +84,7 @@ return new class extends Migration
             Schema::create('seo_redirects', function (Blueprint $table): void {
                 $table->id();
                 $table->uuid('uuid')->unique();
-                $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete()->index();
+                $table->foreignId('company_id')->nullable()->index()->constrained()->nullOnDelete();
                 $table->string('from_path', 255);
                 $table->string('to_path', 255);
                 $table->unsignedSmallInteger('status_code')->default(301);
@@ -93,6 +93,7 @@ return new class extends Migration
                 $table->unique(['company_id', 'from_path']);
             });
         }
+
     }
 
     public function down(): void
