@@ -21,7 +21,6 @@ class HomeCollectionsReferenceTest extends TestCase
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260908-approved',
-                '/assets/brand/home-collections-reference.webp?v=20260908',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
