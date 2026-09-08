@@ -14,7 +14,7 @@
             <p class="fr-intro">Partner with Ireland's premium hat brand and be part of a growing global legacy. Authentic Irish craftsmanship, timeless style, proven business.</p>
             <div class="fr-hero-points" aria-label="Franchise highlights">
                 <article><x-icon name="clover" size="32" /><strong>Authentic<br>Irish Brand</strong></article>
-                <article><x-icon name="hat" size="32" /><strong>Premium<br>Quality</strong></article>
+                <article><x-icon name="star" size="32" /><strong>Premium<br>Quality</strong></article>
                 <article><x-icon name="chart" size="32" /><strong>Proven<br>Business Model</strong></article>
                 <article><x-icon name="globe" size="32" /><strong>Global<br>Opportunity</strong></article>
             </div>
@@ -26,11 +26,11 @@
         <div class="fr-partner-area">
             <h2>WHY PARTNER WITH US?</h2>
             <div class="fr-partner-grid">
-                <article><x-icon name="award" size="42" /><h3>STRONG BRAND HERITAGE</h3><p>Built on Irish heritage, quality and timeless style loved by customers worldwide.</p></article>
+                <article><x-icon name="star" size="42" /><h3>STRONG BRAND HERITAGE</h3><p>Built on Irish heritage, quality and timeless style loved by customers worldwide.</p></article>
                 <article><x-icon name="chart" size="42" /><h3>PROVEN BUSINESS MODEL</h3><p>Established systems, marketing support and operational guidance for your success.</p></article>
-                <article><x-icon name="handshake" size="42" /><h3>COMPREHENSIVE SUPPORT</h3><p>From site selection to training, we're with you every step of the way.</p></article>
+                <article><x-icon name="users" size="42" /><h3>COMPREHENSIVE SUPPORT</h3><p>From site selection to training, we're with you every step of the way.</p></article>
                 <article><x-icon name="package" size="42" /><h3>PREMIUM PRODUCTS</h3><p>High-quality, Irish made hats and caps with strong margins and repeat demand.</p></article>
-                <article><x-icon name="megaphone" size="42" /><h3>MARKETING SUPPORT</h3><p>National &amp; local marketing campaigns, in-store branding and digital support.</p></article>
+                <article><x-icon name="message" size="42" /><h3>MARKETING SUPPORT</h3><p>National &amp; local marketing campaigns, in-store branding and digital support.</p></article>
                 <article><x-icon name="globe" size="42" /><h3>GROWING GLOBAL MARKET</h3><p>Join a growing brand with expanding demand across Ireland and worldwide.</p></article>
             </div>
         </div>
@@ -57,16 +57,16 @@
                 <label class="fr-consent"><input type="checkbox" name="consent" value="1" @checked(old('consent')) required><span>I agree to the <a href="/privacy-policy">Privacy Policy</a> and <a href="/terms-conditions">Terms &amp; Conditions</a>.</span></label>
                 <button type="submit">SUBMIT ENQUIRY</button>
             </form>
-            <div class="fr-secure"><x-icon name="shield" size="18" /><span>Your information is 100% secure and confidential.</span></div>
+            <div class="fr-secure"><x-icon name="check" size="18" /><span>Your information is 100% secure and confidential.</span></div>
         </aside>
     </section>
 
     <section class="fr-advantage">
         <h2>THE EMERALD ROZALIA ADVANTAGE</h2>
         <div class="fr-metrics">
-            <article><x-icon name="store" size="34" /><strong>35+</strong><span>Retail Partners<br>Worldwide</span></article>
+            <article><x-icon name="home" size="34" /><strong>35+</strong><span>Retail Partners<br>Worldwide</span></article>
             <article><x-icon name="globe" size="34" /><strong>12</strong><span>Countries<br>Represented</span></article>
-            <article><x-icon name="hat" size="34" /><strong>100+</strong><span>Premium Styles<br>and Counting</span></article>
+            <article><x-icon name="tag" size="34" /><strong>100+</strong><span>Premium Styles<br>and Counting</span></article>
             <article><x-icon name="calendar" size="34" /><strong>10+</strong><span>Years of Heritage<br>&amp; Experience</span></article>
         </div>
     </section>
@@ -106,10 +106,10 @@
 
     <section class="fr-service-strip" aria-label="Service benefits">
         <article><x-icon name="clover" size="28" /><div><strong>IRISH MADE</strong><span>Proudly made in Limerick</span></div></article>
-        <article><x-icon name="diamond" size="28" /><div><strong>PREMIUM QUALITY</strong><span>Finest materials, built to last</span></div></article>
+        <article><x-icon name="star" size="28" /><div><strong>PREMIUM QUALITY</strong><span>Finest materials, built to last</span></div></article>
         <article><x-icon name="truck" size="28" /><div><strong>FAST DISPATCH</strong><span>Worldwide delivery</span></div></article>
         <article><x-icon name="refresh" size="28" /><div><strong>EASY RETURNS</strong><span>30-day returns</span></div></article>
-        <article><x-icon name="shield" size="28" /><div><strong>SECURE PAYMENT</strong><span>100% secure checkout</span></div></article>
+        <article><x-icon name="credit-card" size="28" /><div><strong>SECURE PAYMENT</strong><span>100% secure checkout</span></div></article>
     </section>
 
     <footer class="fr-compact-footer">
