@@ -1,14 +1,17 @@
 @extends('layouts.site')
 @section('body-class','home-body')
 @section('title','Emerald Rozalia — Irish Made Hats & Caps')
+@push('styles')
+<link rel="stylesheet" href="/css/home-collections.css?v=20260908-approved">
+@endpush
 @section('content')
-<div class="home-page">
+<div class="home-page" data-home-collections-reference="approved-2026-09-08">
 @php
     $homeCollections = [
         ['slug'=>'baseball-caps','title'=>'BASEBALL CAPS','copy'=>'Classic. Everyday. Made to perform.','reference'=>'baseball'],
         ['slug'=>'bucket-hats','title'=>'BUCKET HATS','copy'=>'Comfortable. Versatile. Timeless.','reference'=>'bucket'],
         ['slug'=>'snapbacks','title'=>'SNAPBACKS','copy'=>'Modern fit. Stand out.','reference'=>'snapback'],
-        ['slug'=>'irish-traditional-flat-caps','title'=>'IRISH TRADITIONAL FLAT CAPS','copy'=>'Authentic style. Irish tradition.','reference'=>'traditional'],
+        ['slug'=>'irish-traditional-flat-caps','title'=>'IRISH TRADITIONAL FLAT CAPS','copy'=>'Authentic style. Irish tradition.','reference'=>'traditional','new'=>true],
         ['slug'=>'irish-heritage-hats','title'=>'IRISH HERITAGE HATS','copy'=>'Heritage designs. Timeless elegance.','reference'=>'heritage'],
         ['slug'=>'beanies-more','title'=>'BEANIES & MORE','copy'=>'Warm. Stylish. Essential.','reference'=>'beanie'],
     ];
@@ -43,52 +46,79 @@
 </section>
 
 <section class="home-benefits" aria-label="Emerald Rozalia benefits">
-    <div><span class="home-benefit-icon"><x-icon name="clover" size="29" /></span><b>MADE IN LIMERICK</b><span>Proudly designing &amp; manufacturing in Ireland.</span></div>
-    <div><span class="home-benefit-icon"><x-icon name="star" size="29" /></span><b>PREMIUM QUALITY</b><span>Built to last with the finest materials.</span></div>
-    <div><span class="home-benefit-icon"><x-icon name="users" size="29" /></span><b>TRADE &amp; BULK ORDERS WELCOME</b><span>Solutions for businesses of all sizes.</span></div>
-    <div><span class="home-benefit-icon"><x-icon name="truck" size="29" /></span><b>FAST DISPATCH WORLDWIDE</b><span>Reliable delivery across the globe.</span></div>
-    <div><span class="home-benefit-icon"><x-icon name="globe" size="29" /></span><b>GLOBAL REACH</b><span>Irish roots. Worn everywhere.</span></div>
+    <div><span class="home-benefit-icon"><x-icon name="clover" size="42" /></span><span class="home-benefit-copy"><b>MADE IN LIMERICK</b><small>Proudly designing &amp;<br>manufacturing in Ireland.</small></span></div>
+    <div><span class="home-benefit-icon"><x-icon name="star" size="42" /></span><span class="home-benefit-copy"><b>PREMIUM QUALITY</b><small>Built to last with the<br>finest materials.</small></span></div>
+    <div><span class="home-benefit-icon"><x-icon name="users" size="42" /></span><span class="home-benefit-copy"><b>TRADE &amp; BULK<br>ORDERS WELCOME</b><small>Solutions for businesses<br>of all sizes.</small></span></div>
+    <div><span class="home-benefit-icon"><x-icon name="truck" size="42" /></span><span class="home-benefit-copy"><b>FAST DISPATCH<br>WORLDWIDE</b><small>Reliable delivery<br>across the globe.</small></span></div>
+    <div><span class="home-benefit-icon"><x-icon name="globe" size="42" /></span><span class="home-benefit-copy"><b>GLOBAL REACH</b><small>Irish roots.<br>Worn everywhere.</small></span></div>
 </section>
 
 <section class="home-section home-collections">
-    <div class="home-section-heading"><span></span><h2>SHOP BY COLLECTION</h2><span></span></div>
+    <div class="home-section-heading"><span></span><h2>SHOP BY COLLECTIONS</h2><span></span></div>
     <div class="home-collection-grid">
         @foreach($homeCollections as $item)
             @php($category = $categories->firstWhere('slug',$item['slug']))
             @php($href = $category ? route('category',$category) : url('/shop').'?category='.rawurlencode($item['slug']))
             <a class="home-collection-card" href="{{$href}}">
-                <div class="home-reference-placeholder home-reference-placeholder--collection home-reference-placeholder--{{$item['reference']}}" role="img" aria-label="{{ $item['title'] }} collection image"></div>
+                <div class="home-reference-placeholder home-reference-placeholder--collection home-reference-placeholder--{{$item['reference']}}" role="img" aria-label="{{ $item['title'] }} collection image">
+                    @if(!empty($item['new']))<span class="home-collection-new">NEW</span>@endif
+                </div>
                 <div><h3>{{ $item['title'] }}</h3><p>{{ $item['copy'] }}</p><span>SHOP NOW <b aria-hidden="true"><x-icon name="arrow-right" /></b></span></div>
             </a>
         @endforeach
     </div>
 </section>
 
-<section class="home-heritage">
-    <div class="home-heritage-copy"><p class="eyebrow">THE IRISH HERITAGE COLLECTION</p><h2>Tradition, Made in Limerick.</h2><p>Inspired by generations of Irish craftsmanship. Our flat caps and heritage hats are woven from premium fabrics and made to last.</p><a class="btn" href="/category/irish-heritage-hats">EXPLORE HERITAGE COLLECTION <x-icon name="arrow-right" /></a></div>
-    <div class="home-heritage-visual home-reference-image home-reference-image--heritage" role="img" aria-label="Irish heritage collection photography"></div>
+<section class="home-heritage" aria-labelledby="home-heritage-title">
+    <div class="home-heritage-copy">
+        <div class="home-heritage-title"><x-icon name="clover" size="34" /><h2 id="home-heritage-title">THE IRISH HERITAGE<br>COLLECTION</h2><x-icon name="clover" size="25" /></div>
+        <h3>Tradition, Made in Limerick.</h3>
+        <p>Inspired by generations of Irish craftsmanship. Our flat caps and heritage hats are woven from premium fabrics and made to last.</p>
+        <a class="btn" href="/irish-heritage">EXPLORE HERITAGE COLLECTION <x-icon name="arrow-right" /></a>
+    </div>
+    <div class="home-heritage-visual home-reference-image home-reference-image--heritage" role="img" aria-label="Irish flat cap, Emerald Rozalia label, embroidery craftsmanship and Limerick heritage photography"></div>
+    <div class="home-heritage-badges" aria-label="Irish heritage collection qualities">
+        <div><x-icon name="clover" size="28" /><span>AUTHENTIC<br>IRISH STYLE</span></div>
+        <div><x-icon name="package" size="28" /><span>PREMIUM<br>TWEED &amp; WOOL</span></div>
+        <div><x-icon name="settings" size="28" /><span>EXPERT<br>CRAFTSMANSHIP</span></div>
+        <div><x-icon name="home" size="28" /><span>MADE IN<br>LIMERICK</span></div>
+    </div>
 </section>
 
-<section class="home-section home-bestsellers">
-    <div class="home-section-heading home-section-heading--left"><h2>BESTSELLERS</h2><a href="/shop">VIEW ALL <x-icon name="arrow-right" /></a></div>
-    <div class="home-product-grid">
-        @if($newProducts->isNotEmpty())
-            @foreach($newProducts->take(6) as $index => $product)
-                <a class="home-product-card" href="{{route('product',$product)}}">
-                    <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{$referenceProductClasses[$index % 6]}}">
-                        @if($imageUrl = $productImageUrl($product->image))<img src="{{$imageUrl}}" alt="{{ $product->name }}">@endif
-                    </div>
-                    <span>{{ $product->name }}</span><strong>€{{number_format($product->price,2)}}</strong><b class="home-product-cart"><x-icon name="shopping-bag" size="14" /></b>
-                </a>
-            @endforeach
-        @else
-            @foreach($fallbackProducts as $item)
-                <a class="home-product-card" href="/shop">
-                    <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{$item['reference']}}" role="img" aria-label="{{$item['name']}} product image"></div>
-                    <span>{{$item['name']}}</span><strong>€{{number_format($item['price'],2)}}</strong><b class="home-product-cart"><x-icon name="shopping-bag" size="14" /></b>
-                </a>
-            @endforeach
-        @endif
+<section class="home-section home-bestsellers" data-home-bestsellers>
+    <div class="home-section-heading home-section-heading--left"><h2>BESTSELLERS</h2><span></span><a href="/shop">VIEW ALL <x-icon name="arrow-right" /></a></div>
+    <div class="home-product-carousel">
+        <button class="home-carousel-arrow home-carousel-arrow--prev" type="button" data-home-carousel-prev aria-label="Previous bestsellers"><x-icon name="chevron-left" size="20" /></button>
+        <div class="home-product-grid" data-home-carousel-track>
+            @if($newProducts->isNotEmpty())
+                @foreach($newProducts->take(6) as $index => $product)
+                    <article class="home-product-card">
+                        <a class="home-product-link" href="{{route('product',$product)}}">
+                            <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{$referenceProductClasses[$index % 6]}}">
+                                @if($imageUrl = $productImageUrl($product->image))<img src="{{$imageUrl}}" alt="{{ $product->name }}">@endif
+                            </div>
+                            <span>{{ $product->name }}</span><strong>€{{number_format($product->price,2)}}</strong>
+                        </a>
+                        @if((int)$product->stock > 0)
+                            <form method="post" action="{{route('cart.add',$product)}}" class="home-product-cart-form">@csrf<input type="hidden" name="quantity" value="1"><button class="home-product-cart" type="submit" aria-label="Add {{ $product->name }} to cart"><x-icon name="shopping-bag" size="16" /></button></form>
+                        @else
+                            <a class="home-product-cart" href="{{route('product',$product)}}" aria-label="View {{ $product->name }}"><x-icon name="arrow-right" size="16" /></a>
+                        @endif
+                    </article>
+                @endforeach
+            @else
+                @foreach($fallbackProducts as $item)
+                    <article class="home-product-card">
+                        <a class="home-product-link" href="/shop">
+                            <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{$item['reference']}}" role="img" aria-label="{{$item['name']}} product image"></div>
+                            <span>{{$item['name']}}</span><strong>€{{number_format($item['price'],2)}}</strong>
+                        </a>
+                        <a class="home-product-cart" href="/shop" aria-label="Shop {{$item['name']}}"><x-icon name="shopping-bag" size="16" /></a>
+                    </article>
+                @endforeach
+            @endif
+        </div>
+        <button class="home-carousel-arrow home-carousel-arrow--next" type="button" data-home-carousel-next aria-label="Next bestsellers"><x-icon name="chevron-right" size="20" /></button>
     </div>
 </section>
 
@@ -103,3 +133,15 @@
 </section>
 </div>
 @endsection
+@push('scripts')
+<script>
+(() => {
+    const root = document.querySelector('[data-home-bestsellers]');
+    if (!root) return;
+    const track = root.querySelector('[data-home-carousel-track]');
+    const step = () => Math.max(220, Math.round(track.clientWidth * .72));
+    root.querySelector('[data-home-carousel-prev]')?.addEventListener('click', () => track.scrollBy({left:-step(),behavior:'smooth'}));
+    root.querySelector('[data-home-carousel-next]')?.addEventListener('click', () => track.scrollBy({left:step(),behavior:'smooth'}));
+})();
+</script>
+@endpush
