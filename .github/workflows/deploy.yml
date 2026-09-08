@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-deploy
-  cancel-in-progress: false
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -50,7 +50,7 @@ jobs:
       ADMIN_EMAIL: ci-admin@example.test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -58,75 +58,81 @@ jobs:
           extensions: pdo_pgsql,intl,zip,bcmath,gd
           coverage: none
 
-      - run: |
+      - name: Install dependencies
+        run: |
+          test -e .env || touch .env
           mkdir -p bootstrap/cache
           mkdir -p storage/framework/{cache,sessions,testing,views}
           mkdir -p storage/logs
           chmod -R ug+rw bootstrap storage
+          composer validate --strict
+          composer install --no-interaction --prefer-dist
+          echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
+          echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
-      - run: composer validate --strict
+      - name: Migrations and PostgreSQL feature tests
+        run: |
+          php artisan migrate:fresh --seed --force
+          php artisan route:list
+          vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
 
-      - run: composer install --no-interaction --prefer-dist
-
-      - run: echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
-
-      - run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-
-      - run: php artisan migrate:fresh --seed --force
-
-      - run: php artisan route:list
-
-      - run: php artisan test
+  container:
+    name: Container and release validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Rehearse a Docker release
+        run: bash deploy/ci-container.sh
 
   deploy:
     name: Deploy to Hetzner
-    needs: validate
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [validate, container]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 20
-
+    concurrency:
+      group: emerald-production-release
+      cancel-in-progress: false
+    timeout-minutes: 35
     steps:
-      - name: Build and deploy with Docker Compose
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Check connection secrets
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_SSH_PASSPHRASE: ${{ secrets.SERVER_SSH_PASSPHRASE }}
+          SERVER_FINGERPRINT: ${{ secrets.SERVER_FINGERPRINT }}
+        run: |
+          for name in SERVER_HOST SERVER_USER SERVER_SSH_KEY SERVER_SSH_PASSPHRASE SERVER_FINGERPRINT; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing production secret: $name"
+              exit 78
+            fi
+          done
+      - name: Deploy the tested main commit
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          command_timeout: 20m
-          script_stop: true
+          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
+          fingerprint: ${{ secrets.SERVER_FINGERPRINT }}
+          port: 22
+          command_timeout: 30m
           script: |
             set -eu
+            umask 022
             cd /var/www/emerald-rozalia
-
-            test -f .env || {
-              echo "Missing /var/www/emerald-rozalia/.env" >&2
-              exit 78
-            }
-
-            if docker compose version >/dev/null 2>&1; then
-              compose() { docker compose "$@"; }
-            elif command -v docker-compose >/dev/null 2>&1; then
-              compose() { docker-compose "$@"; }
-            else
-              echo "Docker Compose is not installed on the server." >&2
-              exit 127
-            fi
-
+            test -f .env
+            test -z "$(git status --porcelain --untracked-files=no)"
             git fetch origin main
+            if [ "$(git rev-parse origin/main)" != "${{ github.sha }}" ]; then
+              echo "A newer main commit exists. Run the latest validated workflow."
+              exit 75
+            fi
             git checkout main
-            git pull --ff-only origin main
-
-            compose config --quiet
-            compose build --pull app
-            compose up -d --remove-orphans --wait --wait-timeout 180
-
-            compose exec -T app php artisan migrate --force
-            compose exec -T app php artisan optimize:clear
-            compose exec -T app php artisan optimize
-            compose exec -T app php artisan queue:restart || true
-
-            compose ps
-            curl --fail --silent --show-error --retry 12 --retry-delay 5               http://127.0.0.1:8080/up >/dev/null
-
-            echo "Emerald Rozalia Docker deployment completed successfully."
+            export DEPLOY_PREVIOUS_COMMIT="$(git rev-parse HEAD)"
+            git merge --ff-only "${{ github.sha }}"
+            test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+            bash deploy/docker-deploy.sh

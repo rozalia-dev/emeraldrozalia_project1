@@ -14,10 +14,13 @@ WORKDIR /var/www/html
 COPY . .
 COPY deploy/docker-entrypoint.sh /usr/local/bin/emerald-rozalia-entrypoint
 
-RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
- && chmod +x /usr/local/bin/emerald-rozalia-entrypoint \
- && chown -R www-data:www-data storage bootstrap/cache \
- && composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+RUN find . -type d -exec chmod 755 {} + \
+ && find . -type f -exec chmod a+r {} + \
+ && mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+ && chmod 755 /usr/local/bin/emerald-rozalia-entrypoint \
+ && composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader \
+ && ln -s /var/www/html/storage/app/public public/storage \
+ && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 9000
 
