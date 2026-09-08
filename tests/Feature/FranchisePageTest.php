@@ -26,7 +26,7 @@ class FranchisePageTest extends TestCase
                 'PREMIUM PRODUCTS',
                 'GROW TOGETHER',
                 'ENQUIRE ABOUT A FRANCHISE',
-                'LET&#039;S BUILD',
+                "LET'S BUILD",
                 'SOMETHING GREAT',
                 'SEND ENQUIRY',
                 'JOIN OUR FRANCHISE NETWORK',
