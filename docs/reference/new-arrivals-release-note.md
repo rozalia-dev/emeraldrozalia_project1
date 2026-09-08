@@ -1,0 +1,1 @@
+New Arrivals storefront rebuilt from the approved September 8 reference with functional filtering, sorting, product navigation, cart actions, Virtual Try-On CTA and Communication Centre newsletter submission.
