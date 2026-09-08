@@ -1,4 +1,5 @@
 .git
+public/storage
 .github
 .env
 .env.*

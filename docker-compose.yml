@@ -1,6 +1,7 @@
 services:
-  app:
+  app: &app
     build: .
+    image: emerald-rozalia-app
     init: true
     restart: unless-stopped
     env_file: .env
@@ -23,6 +24,22 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+  worker:
+    <<: *app
+    profiles: [background]
+    user: www-data
+    command: [php, artisan, 'queue:work', '--sleep=3', '--tries=3', '--timeout=60', '--max-time=3600']
+    stop_grace_period: 90s
+    healthcheck:
+      disable: true
+  scheduler:
+    <<: *app
+    profiles: [background]
+    user: www-data
+    command: [php, artisan, 'schedule:work']
+    stop_grace_period: 90s
+    healthcheck:
+      disable: true
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped

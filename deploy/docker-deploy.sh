@@ -1,61 +1,71 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+umask 022
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
-
-compose() {
-    COMPOSE_BAKE=false docker compose "$@"
-}
-
+compose() { COMPOSE_BAKE=false docker compose "$@"; }
 on_error() {
     status=$?
-    echo "Deployment failed with status ${status}. Container state and recent logs:" >&2
+    echo "Deployment failed (status $status). Inspect the server before retrying; maintenance may remain enabled." >&2
     compose ps >&2 || true
-    compose logs --tail=120 app nginx db >&2 || true
     exit "$status"
 }
 trap on_error ERR
 
-test -f .env || { echo "Missing .env in ${ROOT_DIR}." >&2; exit 78; }
-command -v docker >/dev/null 2>&1 || { echo "Docker is required on the server." >&2; exit 127; }
+test -f .env || { echo 'Missing production .env.' >&2; exit 78; }
+test -z "$(git status --porcelain --untracked-files=no)" || { echo 'Tracked server changes must be resolved first.' >&2; exit 78; }
 docker compose version >/dev/null
-
-if ! grep -Eq '^APP_KEY=(base64:)?[^[:space:]]+' .env; then
-    echo "APP_KEY is empty in .env. Generate it before deployment." >&2
-    exit 78
-fi
-
-echo "Validating production Compose configuration..."
+exec 9> .git/emerald-deploy.lock
+flock -n 9 || { echo 'Another release is running.' >&2; exit 75; }
+chmod 600 .env
 compose config --quiet
 
-echo "Building the application image..."
-compose build app
+# Nginx mounts this directory below a read-only parent bind mount.
+mkdir -p public/storage
+chmod 755 public/storage
 
-echo "Starting application services..."
-compose up -d
+# Build before interrupting the running application. Never delete data volumes.
+compose build --pull app
+compose run --rm --no-deps --user www-data app php artisan --version
+compose up -d --no-build --wait --wait-timeout 180 db redis
 
-echo "Waiting for PostgreSQL..."
-for attempt in $(seq 1 30); do
-    if compose exec -T db pg_isready -U "${POSTGRES_USER:-emerald_rozalia}" -d "${POSTGRES_DB:-emerald_rozalia}" >/dev/null 2>&1; then
-        break
-    fi
-    if [ "$attempt" -eq 30 ]; then
-        echo "PostgreSQL did not become ready." >&2
-        exit 1
-    fi
-    sleep 2
+BACKUP_DIR="${DEPLOY_BACKUP_DIR:-/var/backups/emerald-rozalia}"
+install -d -m 700 "$BACKUP_DIR"
+RELEASE_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(git rev-parse --short=12 HEAD)"
+BACKUP="$BACKUP_DIR/$RELEASE_ID"
+mkdir -m 700 "$BACKUP"
+
+# Stop background writes and drain active jobs before taking the release backup.
+compose stop worker scheduler
+if [ -n "$(compose ps --status running -q app)" ]; then
+    compose exec -T --user www-data app php artisan down --retry=60
+fi
+(umask 077; compose exec -T db pg_dump -U emerald_rozalia -d emerald_rozalia -Fc > "$BACKUP/database.dump")
+test -s "$BACKUP/database.dump"
+compose exec -T db pg_restore --list < "$BACKUP/database.dump" >/dev/null
+(umask 077; compose run --rm --no-deps --entrypoint tar app -C storage/app/public -czf - . > "$BACKUP/uploads.tar.gz")
+test -s "$BACKUP/uploads.tar.gz"
+git rev-parse HEAD > "$BACKUP/target-commit.txt"
+printf '%s\n' "${DEPLOY_PREVIOUS_COMMIT:-unknown}" > "$BACKUP/previous-commit.txt"
+echo "Release backup saved in $BACKUP"
+
+compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 app
+compose exec -T --user root app sh -c 'mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache && chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache'
+compose exec -T --user www-data app test -d public/storage
+compose exec -T --user www-data app php artisan optimize:clear --no-ansi
+compose exec -T --user www-data app php artisan migrate --force --no-ansi
+compose exec -T --user www-data app php artisan optimize --no-ansi
+compose exec -T --user www-data app php artisan up --no-ansi
+
+# Recreate nginx so it resolves the recreated app container's address.
+compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 nginx
+compose up -d --no-deps --no-build --force-recreate worker scheduler
+for service in worker scheduler; do
+    test -n "$(compose ps --status running -q "$service")"
 done
-
-echo "Running database migrations..."
-compose exec -T app php artisan migrate --force --no-ansi
-compose exec -T app php artisan storage:link --no-ansi || true
-compose exec -T app php artisan optimize:clear --no-ansi
-compose exec -T app php artisan optimize --no-ansi
-
-echo "Checking the public health endpoint..."
-HEALTHCHECK_URL="${DEPLOY_HEALTHCHECK_URL:-https://emeraldrozalia.com/up}"
-curl --fail --retry 10 --retry-all-errors --silent --show-error "$HEALTHCHECK_URL" >/dev/null
-
+for url in http://127.0.0.1:8080/up "${DEPLOY_HEALTHCHECK_URL:-https://emeraldrozalia.com/up}"; do
+    curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --retry 6 --retry-all-errors --retry-delay 5 "$url" >/dev/null
+done
 compose ps
-echo "Emerald Rozalia production deployment complete."
+echo "Production release $(git rev-parse HEAD) passed health checks."

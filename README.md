@@ -88,3 +88,5 @@ CI executes the install, PostgreSQL migration/seed and tests on every push. See 
 Official footer contact values are loaded from the live server's `BRAND_*` environment variables and are never committed.
 
 See [the server-ready package runbook](docs/SERVER-READY-PACKAGE.md) for the first-release checklist, TLS proxy settings, deployment recovery and post-deploy checks.
+
+For the current guarded GitHub Actions release procedure, use [CI/CD setup](docs/CI-CD-SETUP.md). It includes production secrets, the repository deployment switch, container permission/storage regression checks, background services, pre-migration backups and recovery limits. Production releases do not run the demo seeder. Automated production deployment remains unverified until the first enabled workflow succeeds.
