@@ -19,6 +19,7 @@
         'check' => '<path d="m5 12 4 4L19 6"/>',
         'chevron-right' => '<path d="m9 18 6-6-6-6"/>',
         'circle' => '<circle cx="12" cy="12" r="8"/>',
+        'clipboard' => '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M8 9h8m-8 4h8m-8 4h5"/>',
         'clover' => '<path d="M12 21c0-4.5 1.5-7.5 5-9.5C14 10 12 7.5 12 3c-3.5 2-4.5 4.5-2.5 7.5C6.5 9 3 10 3 13c0 3 3.5 4.5 6.5 2.5C9 18.5 10 20 12 21Z"/>',
         'credit-card' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
         'copy' => '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
