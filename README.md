@@ -4,6 +4,8 @@
 
 The repository now contains the Laravel 13 Project 1 full-stack package, including the responsive Emerald Rozalia storefront, single admin cPanel, SEO & Content workspace, PostgreSQL Docker stack, persistent public media volume, CI validation and guarded production deployment scripts. The SEO reference screen is functional: metadata, audits, issue fixing, broken-link checks, keywords, redirects, sitemap, robots.txt, schema and UUID-backed audit logging are connected to Laravel routes and database tables. Runtime verification remains an environment check: this workspace does not include PHP, Composer or Docker, so the authoritative migration, route, PHPUnit and container checks run in GitHub Actions.
 
+The shared cPanel operations layer now supports audited create/search/filter/edit/delete records, global admin search across Project 1 domains, Communication Center assignment/status/follow-up and saved replies, plus Product Manager edit/update without duplicate products. See [CPANEL-OPERATIONS-EVIDENCE.md](docs/CPANEL-OPERATIONS-EVIDENCE.md) for the exact scope and verification status.
+
 Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Limited. The repository is deployable with PostgreSQL 17 and contains no Production, Finance, Payroll, HR or POS module.
 
 ## Delivered scope
@@ -46,11 +48,12 @@ docker compose build app
 APP_KEY="$(docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show --no-ansi | tail -n 1)"
 sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
 docker compose up -d --build
-docker compose exec --user www-data app php artisan migrate --force
-docker compose exec --user www-data app php artisan optimize
+docker compose exec app php artisan migrate --seed --force
+docker compose exec app php artisan storage:link
+docker compose exec app php artisan optimize
 ```
 
-For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, takes pre-migration PostgreSQL and upload backups, runs migrations as `www-data`, rebuilds Laravel caches, starts the worker and scheduler, and checks both internal and public health endpoints. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files. Production releases do not run the demo seeder.
+For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, waits for PostgreSQL, runs migrations, rebuilds Laravel caches, checks `https://emeraldrozalia.com/up` and prints container logs if deployment fails. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files.
 
 ## Linux/cPanel deployment
 
@@ -87,5 +90,3 @@ CI executes the install, PostgreSQL migration/seed and tests on every push. See 
 Official footer contact values are loaded from the live server's `BRAND_*` environment variables and are never committed.
 
 See [the server-ready package runbook](docs/SERVER-READY-PACKAGE.md) for the first-release checklist, TLS proxy settings, deployment recovery and post-deploy checks.
-
-For the complete local, server and GitHub connection record, use [CI/CD setup](docs/CI-CD-SETUP.md). It includes the production environment secret names, SSH fingerprint procedure, Docker/Nginx/Certbot setup, release sequence, backup/recovery limits and the latest successful production workflow evidence.

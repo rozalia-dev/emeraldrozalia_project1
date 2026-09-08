@@ -343,3 +343,19 @@ if(seoDashboard){
         try{await navigator.clipboard.writeText(value);button.textContent='✓';window.setTimeout(()=>{button.textContent='▣'},1200)}catch(error){button.title='Copy is unavailable in this browser'}
     }));
 }
+
+const resourcePage=document.querySelector('[data-resource-page]');
+if(resourcePage){
+    const dialog=resourcePage.querySelector('[data-resource-dialog]'),form=resourcePage.querySelector('[data-resource-edit-form]');
+    const decode=(value)=>{try{const bytes=Uint8Array.from(atob(value||''),(character)=>character.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}catch(error){return null}};
+    const setField=(name,value)=>{const field=form?.querySelector(`[data-resource-field="${name}"]`);if(field)field.value=value??''};
+    resourcePage.querySelectorAll('[data-resource-edit]').forEach((button)=>button.addEventListener('click',()=>{
+        const record=decode(button.dataset.resourceEdit);if(!record||!dialog||!form)return;
+        form.action=form.dataset.resourceUpdateBase.replace('__record__',String(record.id));
+        ['title','reference','status','amount','record_date','notes'].forEach((name)=>setField(name,record[name]));
+        if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+        form.querySelector('[data-resource-field="title"]')?.focus();
+    }));
+    resourcePage.querySelectorAll('[data-resource-dialog-close]').forEach((button)=>button.addEventListener('click',()=>{if(typeof dialog?.close==='function')dialog.close();else dialog?.removeAttribute('open')}));
+    dialog?.addEventListener('click',(event)=>{if(event.target===dialog&&typeof dialog.close==='function')dialog.close()});
+}

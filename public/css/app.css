@@ -595,6 +595,85 @@
     .media-summary{grid-template-columns:1fr}
 }
 
+/* Functional shared resource screens: create, filter, edit and delete without losing the reference layout. */
+.admin-page-description{margin:7px 0 0;color:#64736a;line-height:1.45;max-width:760px}
+.resource-page{display:grid;gap:16px}
+.resource-create-panel,.resource-list-panel{min-width:0}
+.resource-create-panel .panel-heading,.resource-list-panel .panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:15px}
+.resource-create-panel .panel-heading h2,.resource-list-panel .panel-heading h2{margin:0;color:#13251a}
+.resource-record-count{color:#65746a;white-space:nowrap}
+.resource-field{display:grid;gap:5px;color:#53635a;font-size:13px!important}
+.resource-field input,.resource-field select{min-width:0}
+.resource-field-wide{grid-column:span 2}
+.resource-add-button{align-self:end}
+.resource-filter-form{grid-template-columns:minmax(170px,1fr) minmax(150px,190px) minmax(130px,160px) minmax(130px,160px) auto auto!important;margin-bottom:18px!important}
+.resource-filter-form label{display:grid;align-items:stretch;gap:5px}
+.resource-filter-form label input,.resource-filter-form label select{width:100%}
+.resource-filter-form .clear-filter{align-self:center;white-space:nowrap;color:#176f3d;text-decoration:underline}
+.resource-table td strong{display:block;color:#1b3022}
+.resource-table td code{color:#2d5b3c;font-family:ui-monospace,monospace}
+.resource-note{display:block;max-width:340px;margin-top:4px;color:#728078;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resource-status{display:inline-block;padding:4px 7px;border-radius:4px;background:#e8f5ea;color:#14703b;white-space:nowrap}
+.resource-status--draft,.resource-status--planned{background:#e7f0ff;color:#2a689d}
+.resource-status--in-progress,.resource-status--pending,.resource-status--on-hold{background:#fff1db;color:#a86408}
+.resource-status--rejected,.resource-status--closed,.resource-status--archived{background:#f3e8e8;color:#a14343}
+.resource-actions{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.resource-actions form{display:inline}
+.resource-actions button,.resource-actions form button{padding:5px 8px;border:1px solid #b9c9bc;border-radius:4px;background:#fff;color:#23432e;cursor:pointer}
+.resource-actions button:hover{border-color:#4f965e;background:#eff8f0;color:#075e2f}
+.resource-actions form button{border-color:#dfb9b4;color:#9b433c}
+.resource-actions form button:hover{background:#fff1ef;border-color:#c9786d}
+.resource-edit-dialog{width:min(560px,calc(100vw - 24px));padding:0;border:0;border-radius:9px;box-shadow:0 18px 70px #001e1840;color:#16271c}
+.resource-edit-dialog::backdrop{background:#001e1852}
+.resource-edit-form{display:grid;gap:12px;padding:22px}
+.resource-dialog-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid #e0e7e1;padding-bottom:12px}
+.resource-dialog-heading small{color:#277243;font-weight:700;letter-spacing:.08em}
+.resource-dialog-heading h2{margin:4px 0 0;font-family:Georgia,serif}
+.resource-dialog-close{width:30px;height:30px;border:1px solid #ccd9cf;border-radius:50%;background:#fff;color:#42594a;font-size:22px;line-height:1;cursor:pointer}
+.resource-edit-form>label{display:grid;gap:5px;color:#53635a}
+.resource-edit-form input,.resource-edit-form select,.resource-edit-form textarea{width:100%;border:1px solid #cbd8ce;border-radius:4px;background:#fff;color:#15221b;padding:10px;font:inherit}
+.resource-edit-form textarea{resize:vertical}
+.resource-dialog-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:5px}
+.resource-dialog-actions button{padding:10px 14px;border:1px solid #bdccc0;border-radius:4px;background:#fff;color:#294735;cursor:pointer}
+.resource-dialog-actions .btn{border-color:#176e3c;color:#fff}
+.admin-search-page{max-width:900px}
+.admin-global-search-form{display:grid;gap:8px}
+.admin-global-search-form>label{color:#526257;font-weight:700}
+.admin-global-search-form>div{display:flex;gap:10px}
+.admin-global-search-form input{flex:1;min-width:0}
+.admin-search-empty{display:grid;gap:6px;color:#69776e}
+.admin-search-empty strong{color:#1d3325}
+.admin-search-results{display:grid;gap:12px}
+.admin-search-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.admin-search-result{display:grid;grid-template-columns:34px minmax(0,1fr) 16px;grid-template-rows:auto auto;gap:2px 9px;align-items:center;padding:11px;border:1px solid #dce6de;border-radius:6px;color:#213a2a;transition:.16s ease}
+.admin-search-result:hover{border-color:#83b58c;background:#f2f9f3;transform:translateY(-1px)}
+.admin-search-result>span{grid-row:1 / span 2;display:grid;place-items:center;width:34px;height:34px;border-radius:6px;background:#e6f3e8;color:#187140}
+.admin-search-result strong,.admin-search-result small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-search-result small{color:#728078}
+.admin-search-result>.ui-icon:last-child{grid-column:3;grid-row:1 / span 2;color:#277243}
+.communication-filter-form{grid-template-columns:minmax(200px,1fr) minmax(160px,200px) auto auto!important}
+.communication-table{min-width:1180px!important}
+.communication-table td small{display:block;margin-top:4px;color:#728078}
+.communication-status-form{display:grid;grid-template-columns:repeat(2,minmax(90px,1fr));gap:5px;min-width:190px}
+.communication-status-form select,.communication-status-form input{min-width:0;width:100%;padding:6px;border:1px solid #cbd8ce;border-radius:4px;background:#fff;color:#22392a;font:inherit}
+.communication-status-form select:nth-of-type(3),.communication-status-form input{grid-column:1/-1}
+.communication-status-form button{justify-self:start;padding:6px 10px;border:1px solid #277243;border-radius:4px;background:#eff8f0;color:#176c3b;font-weight:700;cursor:pointer}
+.communication-status-form button:hover{background:#dff1e2}
+.communication-reply{min-width:210px}
+.communication-reply summary{display:inline-flex;padding:6px 10px;border:1px solid #b9c9bc;border-radius:4px;background:#fff;color:#176c3b;cursor:pointer}
+.communication-reply form{display:grid;gap:6px;margin-top:8px}
+.communication-reply textarea{width:100%;min-width:190px;padding:7px;border:1px solid #cbd8ce;border-radius:4px;resize:vertical;font:inherit}
+.communication-reply .btn{padding:7px 9px;font-size:12px!important}
+@media(max-width:700px){
+    .resource-field-wide{grid-column:1/-1}
+    .resource-filter-form{grid-template-columns:1fr!important}
+    .communication-filter-form{grid-template-columns:1fr!important}
+    .resource-filter-form>*{width:100%}
+    .resource-filter-form .clear-filter{text-align:center}
+    .admin-global-search-form>div{flex-direction:column}
+    .admin-search-result-grid{grid-template-columns:1fr}
+}
+
 /* Product Manager catalogue dashboard. The screen uses the shared cPanel shell and real Product data. */
 .pm-page{--pm-ink:#13221a;--pm-muted:#6e7d73;--pm-line:#dbe3dc;--pm-green:#0c7139;--pm-lime:#4c9e32;--pm-gold:#d19b16;color:var(--pm-ink);font-size:12px;min-width:0}
 .pm-page a{color:inherit}

@@ -1,13 +1,20 @@
 @extends('layouts.admin')
 
-@section('title', 'Add New Product')
+@section('title', isset($product) && $product ? 'Edit Product' : 'Add New Product')
 
 @php
-    $selectedChannels = old('channels', ['website', 'franchise_portal', 'franchise_retail', 'corporate_bulk']);
-    $selectedOrderCategories = old('order_categories', ['online', 'bulk', 'franchise', 'franchise_retail']);
+    $isEditing = isset($product) && $product;
+    $productMeta = $product?->product_metadata ?? [];
+    $selectedChannels = old('channels', $productMeta['channels'] ?? ['website', 'franchise', 'franchise_retail', 'corporate_bulk']);
+    $selectedOrderCategories = old('order_categories', $productMeta['order_categories'] ?? ['online', 'bulk', 'franchise', 'franchise_retail']);
     $selectedChannels = is_array($selectedChannels) ? $selectedChannels : [];
     $selectedOrderCategories = is_array($selectedOrderCategories) ? $selectedOrderCategories : [];
-    $publishDate = old('publish_date', now()->format('Y-m-d\TH:i'));
+    $publishDate = old('publish_date', $product?->published_at?->format('Y-m-d\TH:i') ?: now()->format('Y-m-d\TH:i'));
+    $productType = old('product_type', $productMeta['product_type'] ?? 'simple');
+    $taxClass = old('tax_class', $productMeta['tax_class'] ?? 'standard');
+    $publishedWebsite = filter_var(old('published_website', $productMeta['published_website'] ?? false), FILTER_VALIDATE_BOOLEAN);
+    $availableForSale = filter_var(old('available_for_sale', $productMeta['available_for_sale'] ?? false), FILTER_VALIDATE_BOOLEAN);
+    $featured = filter_var(old('featured', $product?->is_new ?? false), FILTER_VALIDATE_BOOLEAN);
 @endphp
 
 @section('content')
@@ -21,11 +28,11 @@
                 <x-icon name="chevron-right" size="12" />
                 <a href="{{ route('admin.resource', 'product-manager') }}">Product Manager</a>
                 <x-icon name="chevron-right" size="12" />
-                <strong>Add Product</strong>
+                <strong>{{ $isEditing ? 'Edit Product' : 'Add Product' }}</strong>
             </nav>
             <p class="ap-eyebrow">ADMIN / OPERATIONS</p>
-            <h1>Add New Product</h1>
-            <p class="ap-intro">Create a new product and publish it to your website and sales channels.</p>
+            <h1>{{ $isEditing ? 'Edit Product' : 'Add New Product' }}</h1>
+            <p class="ap-intro">{{ $isEditing ? 'Update product details, visibility and sales-channel settings.' : 'Create a new product and publish it to your website and sales channels.' }}</p>
         </div>
         <div class="ap-date-card">
             <x-icon name="clock" size="22" />
@@ -37,8 +44,9 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.add-product.store') }}" method="post" class="ap-form">
+    <form action="{{ $isEditing ? route('admin.product.update', $product) : route('admin.add-product.store') }}" method="post" class="ap-form">
         @csrf
+        @if($isEditing) @method('PUT') @endif
 
         <ol class="ap-stepper" aria-label="Product creation steps">
             <li class="is-active"><span class="ap-step-number">1</span><span><strong>Basic Information</strong><small>Product details &amp; pricing</small></span></li>
@@ -69,26 +77,26 @@
                         <div class="ap-field-column">
                             <label class="ap-field ap-field-wide">
                                 <span>Product Name <em>*</em></span>
-                                <input type="text" name="name" value="{{ old('name') }}" placeholder="Emerald Signature Cap" required>
+                                <input type="text" name="name" value="{{ old('name', $product?->name) }}" placeholder="Emerald Signature Cap" required>
                                 @error('name')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
                             <label class="ap-field ap-field-wide">
                                 <span>Short Description <em>*</em></span>
-                                <textarea name="short_description" rows="3" placeholder="Premium quality cap with embroidered Emerald Rozalia logo." required>{{ old('short_description') }}</textarea>
+                                <textarea name="short_description" rows="3" placeholder="Premium quality cap with embroidered Emerald Rozalia logo." required>{{ old('short_description', $productMeta['short_description'] ?? null) }}</textarea>
                                 @error('short_description')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
                             <label class="ap-field ap-field-wide">
                                 <span>Short Name / Slug <em>*</em></span>
-                                <input type="text" name="slug" value="{{ old('slug') }}" placeholder="emerald-signature-cap">
+                                <input type="text" name="slug" value="{{ old('slug', $product?->slug) }}" placeholder="emerald-signature-cap">
                                 <small class="ap-field-help">URL: <x-icon name="globe" size="12" /> https://www.emeraldrozalia.ie/product/{{ old('slug', 'your-product-slug') }}</small>
                                 @error('slug')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
                             <label class="ap-field ap-field-wide">
                                 <span>SKU / Barcode <em>*</em></span>
-                                <div class="ap-input-with-icon"><input type="text" name="sku" value="{{ old('sku') }}" placeholder="ERCAP-GRN-001" required><x-icon name="tag" size="17" /></div>
+                                <div class="ap-input-with-icon"><input type="text" name="sku" value="{{ old('sku', $product?->sku) }}" placeholder="ERCAP-GRN-001" required><x-icon name="tag" size="17" /></div>
                                 @error('sku')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
@@ -98,7 +106,7 @@
                                     <select name="category_id" required>
                                         <option value="">Select category</option>
                                         @foreach($categories as $category)
-                                            <option value="{{ $category->id }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                                            <option value="{{ $category->id }}" @selected((string) old('category_id', $product?->category_id) === (string) $category->id)>{{ $category->name }}</option>
                                         @endforeach
                                     </select>
                                     @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
@@ -112,21 +120,21 @@
 
                             <label class="ap-field ap-field-wide">
                                 <span>Brand / Line</span>
-                                <input type="text" name="brand" value="{{ old('brand', 'Emerald Rozalia') }}" placeholder="Emerald Rozalia">
+                                <input type="text" name="brand" value="{{ old('brand', $product?->brand ?: 'Emerald Rozalia') }}" placeholder="Emerald Rozalia">
                             </label>
 
                             <label class="ap-field ap-field-wide">
                                 <span>Tags</span>
-                                <input type="text" name="tags" value="{{ old('tags') }}" placeholder="Cap, Signature, Green, Premium">
+                                <input type="text" name="tags" value="{{ old('tags', implode(', ', $productMeta['tags'] ?? [])) }}" placeholder="Cap, Signature, Green, Premium">
                                 <small class="ap-field-help">Separate tags with commas.</small>
                             </label>
 
                             <fieldset class="ap-fieldset ap-field-wide">
                                 <legend>Product Type</legend>
                                 <div class="ap-radio-row">
-                                    <label><input type="radio" name="product_type" value="simple" @checked(old('product_type', 'simple') === 'simple')> <span>Simple</span></label>
-                                    <label><input type="radio" name="product_type" value="variable" @checked(old('product_type') === 'variable')> <span>Variable (Variants)</span></label>
-                                    <label><input type="radio" name="product_type" value="bundle" @checked(old('product_type') === 'bundle')> <span>Bundle / Kit</span></label>
+                                    <label><input type="radio" name="product_type" value="simple" @checked($productType === 'simple')> <span>Simple</span></label>
+                                    <label><input type="radio" name="product_type" value="variable" @checked($productType === 'variable')> <span>Variable (Variants)</span></label>
+                                    <label><input type="radio" name="product_type" value="bundle" @checked($productType === 'bundle')> <span>Bundle / Kit</span></label>
                                 </div>
                                 @error('product_type')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </fieldset>
@@ -135,23 +143,23 @@
                                 <label class="ap-field">
                                     <span>Tax Class</span>
                                     <select name="tax_class">
-                                        <option value="standard" @selected(old('tax_class', 'standard') === 'standard')>Standard Rate (23%)</option>
-                                        <option value="reduced" @selected(old('tax_class') === 'reduced')>Reduced Rate</option>
-                                        <option value="zero" @selected(old('tax_class') === 'zero')>Zero Rate</option>
+                                        <option value="standard" @selected($taxClass === 'standard')>Standard Rate (23%)</option>
+                                        <option value="reduced" @selected($taxClass === 'reduced')>Reduced Rate</option>
+                                        <option value="zero" @selected($taxClass === 'zero')>Zero Rate</option>
                                     </select>
                                 </label>
                                 <label class="ap-field">
                                     <span>HS Code</span>
-                                    <input type="text" name="hs_code" value="{{ old('hs_code') }}" placeholder="6505.00.30">
+                                    <input type="text" name="hs_code" value="{{ old('hs_code', $product?->hs_code) }}" placeholder="6505.00.30">
                                 </label>
                             </div>
 
                             <div class="ap-field-row ap-field-row-three">
-                                <label class="ap-field"><span>Weight (kg)</span><input type="number" name="weight" value="{{ old('weight') }}" min="0" step="0.001" placeholder="0.25"></label>
-                                <label class="ap-field"><span>Length (cm)</span><input type="number" name="length" value="{{ old('length') }}" min="0" step="0.01" placeholder="22"></label>
-                                <label class="ap-field"><span>Width (cm)</span><input type="number" name="width" value="{{ old('width') }}" min="0" step="0.01" placeholder="18"></label>
+                                <label class="ap-field"><span>Weight (kg)</span><input type="number" name="weight" value="{{ old('weight', $product?->weight) }}" min="0" step="0.001" placeholder="0.25"></label>
+                                <label class="ap-field"><span>Length (cm)</span><input type="number" name="length" value="{{ old('length', $productMeta['dimensions']['length'] ?? null) }}" min="0" step="0.01" placeholder="22"></label>
+                                <label class="ap-field"><span>Width (cm)</span><input type="number" name="width" value="{{ old('width', $productMeta['dimensions']['width'] ?? null) }}" min="0" step="0.01" placeholder="18"></label>
                             </div>
-                            <label class="ap-field ap-field-small"><span>Height (cm)</span><input type="number" name="height" value="{{ old('height') }}" min="0" step="0.01" placeholder="12"></label>
+                            <label class="ap-field ap-field-small"><span>Height (cm)</span><input type="number" name="height" value="{{ old('height', $productMeta['dimensions']['height'] ?? null) }}" min="0" step="0.01" placeholder="12"></label>
                         </div>
 
                         <div class="ap-field-column">
@@ -167,22 +175,22 @@
                                         <button type="button" aria-label="Insert image"><x-icon name="image" size="14" /></button>
                                         <button type="button" aria-label="Insert link"><x-icon name="globe" size="14" /></button>
                                     </div>
-                                    <textarea name="description" rows="11" placeholder="Describe the product, materials, fit and care instructions." required>{{ old('description') }}</textarea>
+                                    <textarea name="description" rows="11" placeholder="Describe the product, materials, fit and care instructions." required>{{ old('description', $product?->description) }}</textarea>
                                 </div>
                                 @error('description')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
-                            <section class="ap-inline-section">
+                                <section class="ap-inline-section">
                                 <div class="ap-inline-heading"><h3>Pricing</h3><span>All amounts in your selected currency.</span></div>
                                 <div class="ap-price-grid">
-                                    <label class="ap-field"><span>Cost Price (EUR)</span><input type="number" name="cost_price" value="{{ old('cost_price') }}" min="0" step="0.01" placeholder="14.90"></label>
-                                    <label class="ap-field"><span>Selling Price (EUR) <em>*</em></span><input type="number" name="price" value="{{ old('price') }}" min="0" step="0.01" placeholder="29.90" required>@error('price')<small class="ap-field-error">{{ $message }}</small>@enderror</label>
-                                    <label class="ap-field"><span>Compare At Price (EUR)</span><input type="number" name="compare_price" value="{{ old('compare_price') }}" min="0" step="0.01" placeholder="39.90"></label>
+                                    <label class="ap-field"><span>Cost Price (EUR)</span><input type="number" name="cost_price" value="{{ old('cost_price', $productMeta['cost_price'] ?? null) }}" min="0" step="0.01" placeholder="14.90"></label>
+                                    <label class="ap-field"><span>Selling Price (EUR) <em>*</em></span><input type="number" name="price" value="{{ old('price', $product?->price) }}" min="0" step="0.01" placeholder="29.90" required>@error('price')<small class="ap-field-error">{{ $message }}</small>@enderror</label>
+                                    <label class="ap-field"><span>Compare At Price (EUR)</span><input type="number" name="compare_price" value="{{ old('compare_price', $product?->compare_price) }}" min="0" step="0.01" placeholder="39.90"></label>
                                 </div>
                                 <div class="ap-price-meta">
                                     <label class="ap-field"><span>Profit Margin</span><output class="ap-output">Calculated after prices are entered</output></label>
-                                    <label class="ap-field"><span>VAT / Tax</span><input type="number" name="vat_rate" value="{{ old('vat_rate', '23') }}" min="0" max="100" step="0.01" required></label>
-                                    <label class="ap-field"><span>Currency</span><select name="currency"><option value="EUR" @selected(old('currency', 'EUR') === 'EUR')>EUR — Euro (€)</option><option value="GBP" @selected(old('currency') === 'GBP')>GBP — Pound (£)</option><option value="USD" @selected(old('currency') === 'USD')>USD — Dollar ($)</option></select></label>
+                                    <label class="ap-field"><span>VAT / Tax</span><input type="number" name="vat_rate" value="{{ old('vat_rate', $productMeta['vat_rate'] ?? '23') }}" min="0" max="100" step="0.01" required></label>
+                                    <label class="ap-field"><span>Currency</span><select name="currency"><option value="EUR" @selected(old('currency', $productMeta['currency'] ?? 'EUR') === 'EUR')>EUR — Euro (€)</option><option value="GBP" @selected(old('currency', $productMeta['currency'] ?? null) === 'GBP')>GBP — Pound (£)</option><option value="USD" @selected(old('currency', $productMeta['currency'] ?? null) === 'USD')>USD — Dollar ($)</option></select></label>
                                 </div>
                             </section>
                         </div>
@@ -192,10 +200,10 @@
                 <details class="ap-panel ap-additional" open>
                     <summary><span><strong>Additional Information (Optional)</strong><small>GTIN, MPN, warranty, country of origin and custom fields.</small></span><x-icon name="chevron-right" size="16" /></summary>
                     <div class="ap-additional-grid">
-                        <label class="ap-field"><span>Material</span><input type="text" name="material" value="{{ old('material') }}" placeholder="Premium cotton twill"></label>
-                        <label class="ap-field"><span>Care Instructions</span><input type="text" name="care" value="{{ old('care') }}" placeholder="Spot clean only"></label>
-                        <label class="ap-field"><span>SEO Title</span><input type="text" name="meta_title" value="{{ old('meta_title') }}" placeholder="Emerald Signature Cap | Emerald Rozalia"></label>
-                        <label class="ap-field"><span>SEO Description</span><textarea name="meta_description" rows="2" placeholder="A concise search description for this product.">{{ old('meta_description') }}</textarea></label>
+                        <label class="ap-field"><span>Material</span><input type="text" name="material" value="{{ old('material', $product?->material) }}" placeholder="Premium cotton twill"></label>
+                        <label class="ap-field"><span>Care Instructions</span><input type="text" name="care" value="{{ old('care', $product?->care) }}" placeholder="Spot clean only"></label>
+                        <label class="ap-field"><span>SEO Title</span><input type="text" name="meta_title" value="{{ old('meta_title', $product?->meta_title) }}" placeholder="Emerald Signature Cap | Emerald Rozalia"></label>
+                        <label class="ap-field"><span>SEO Description</span><textarea name="meta_description" rows="2" placeholder="A concise search description for this product.">{{ old('meta_description', $product?->meta_description) }}</textarea></label>
                     </div>
                 </details>
             </div>
@@ -203,18 +211,19 @@
             <aside class="ap-side-column">
                 <section class="ap-rail-card">
                     <div class="ap-rail-heading"><h2>Product Status</h2><x-icon name="settings" size="16" /></div>
-                    <label class="ap-field"><span>Status <em>*</em></span><select name="status"><option value="draft" @selected(old('status', 'draft') === 'draft')>Draft</option><option value="active" @selected(old('status') === 'active')>Active</option></select></label>
+                    <label class="ap-field"><span>Status <em>*</em></span><select name="status"><option value="draft" @selected(old('status', $product?->status ?: 'draft') === 'draft')>Draft</option><option value="active" @selected(old('status', $product?->status) === 'active')>Active</option></select></label>
+                    <label class="ap-field"><span>Stock Quantity <em>*</em></span><input type="number" name="stock" value="{{ old('stock', $product?->stock ?? 0) }}" min="0" step="1" required></label>
                     <label class="ap-field"><span>Publish Date</span><div class="ap-input-with-icon"><input type="datetime-local" name="publish_date" value="{{ $publishDate }}"><x-icon name="clock" size="16" /></div></label>
                     <div class="ap-toggle-list">
-                        <label class="ap-toggle"><span>Published on Website</span><input type="hidden" name="published_website" value="0"><input type="checkbox" name="published_website" value="1" @checked(old('published_website', false))><i aria-hidden="true"><b></b></i><small aria-live="polite"></small></label>
-                        <label class="ap-toggle"><span>Available for Sale</span><input type="hidden" name="available_for_sale" value="0"><input type="checkbox" name="available_for_sale" value="1" @checked(old('available_for_sale', false))><i aria-hidden="true"><b></b></i><small aria-live="polite"></small></label>
+                        <label class="ap-toggle"><span>Published on Website</span><input type="hidden" name="published_website" value="0"><input type="checkbox" name="published_website" value="1" @checked((bool) $publishedWebsite)><i aria-hidden="true"><b></b></i><small aria-live="polite"></small></label>
+                        <label class="ap-toggle"><span>Available for Sale</span><input type="hidden" name="available_for_sale" value="0"><input type="checkbox" name="available_for_sale" value="1" @checked((bool) $availableForSale)><i aria-hidden="true"><b></b></i><small aria-live="polite"></small></label>
                     </div>
                 </section>
 
                 <section class="ap-rail-card">
                     <div class="ap-rail-heading"><h2>Visibility &amp; Channels</h2><x-icon name="globe" size="16" /></div>
                     <div class="ap-checklist">
-                        @foreach(['website'=>'Website (Online Store)','franchise_portal'=>'Franchise Ordering Portal','franchise_retail'=>'Franchise Retail Stores','corporate_bulk'=>'Corporate / Bulk Ordering','buyer'=>'Buyer Ordering'] as $channel => $label)
+                        @foreach(['website'=>'Website (Online Store)','franchise'=>'Franchise Management','franchise_retail'=>'Franchise Retail Stores','corporate_bulk'=>'Corporate / Bulk Ordering','buyer'=>'Buyer Ordering'] as $channel => $label)
                             <label><input type="checkbox" name="channels[]" value="{{ $channel }}" @checked(in_array($channel, $selectedChannels, true))><span><x-icon name="check" size="13" />{{ $label }}</span></label>
                         @endforeach
                     </div>
@@ -231,7 +240,7 @@
                     <div class="ap-info-note"><x-icon name="help" size="15" /><span>This product will be available in the selected order masters.</span></div>
                 </section>
 
-                <label class="ap-featured-check"><input type="hidden" name="featured" value="0"><input type="checkbox" name="featured" value="1" @checked(old('featured', false))><span><x-icon name="star" size="15" /> Mark as featured product</span></label>
+                <label class="ap-featured-check"><input type="hidden" name="featured" value="0"><input type="checkbox" name="featured" value="1" @checked((bool) $featured)><span><x-icon name="star" size="15" /> Mark as featured product</span></label>
             </aside>
         </div>
 

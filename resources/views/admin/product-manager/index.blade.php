@@ -150,7 +150,7 @@
                             <td>
                                 <div class="pm-row-actions">
                                     <a href="{{ route('product',['product'=>$product->slug]) }}" title="View {{ $product->name }}" aria-label="View {{ $product->name }}"><x-icon name="eye" size="15" /></a>
-                                    <a href="{{ route('admin.resource','add-product') }}" title="Open product workflow" aria-label="Open product workflow for {{ $product->name }}"><x-icon name="pencil" size="15" /></a>
+                                    <a href="{{ route('admin.product.edit', $product) }}" title="Edit {{ $product->name }}" aria-label="Edit {{ $product->name }}"><x-icon name="pencil" size="15" /></a>
                                     <button type="button" title="More product actions" aria-label="More actions for {{ $product->name }}"><x-icon name="dots" size="15" /></button>
                                 </div>
                             </td>

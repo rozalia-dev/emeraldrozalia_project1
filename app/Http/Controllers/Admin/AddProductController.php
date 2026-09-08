@@ -8,48 +8,53 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AddProductController extends Controller
 {
-    private const CHANNELS = [
-        'website',
-        'franchise_portal',
-        'franchise_retail',
-        'corporate_bulk',
-        'buyer',
-    ];
-
-    private const ORDER_CATEGORIES = [
-        'online',
-        'corporate',
-        'bulk',
-        'franchise',
-        'franchise_retail',
-        'buyer',
-    ];
+    private const CHANNELS = ['website', 'franchise', 'franchise_retail', 'corporate_bulk', 'buyer'];
+    private const ORDER_CATEGORIES = ['online', 'corporate', 'bulk', 'franchise', 'franchise_retail', 'buyer'];
 
     public function create(): View
     {
-        $categories = Category::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        return view('admin.add-product', ['categories' => $this->categories(), 'product' => null]);
+    }
 
-        return view('admin.add-product', compact('categories'));
+    public function edit(Product $product): View
+    {
+        return view('admin.add-product', ['categories' => $this->categories(), 'product' => $product]);
     }
 
     public function store(Request $request): RedirectResponse
+    {
+        $data = $this->validated($request);
+        $product = $this->saveProduct($request, $data);
+
+        return $this->afterSave($request, $product, 'Product created successfully.');
+    }
+
+    public function update(Request $request, Product $product): RedirectResponse
+    {
+        $data = $this->validated($request, $product);
+        $this->saveProduct($request, $data, $product);
+
+        return $this->afterSave($request, $product, 'Product updated successfully.');
+    }
+
+    private function categories()
+    {
+        return Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+    }
+
+    private function validated(Request $request, ?Product $product = null): array
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:180'],
             'short_description' => ['required', 'string', 'max:1500'],
             'slug' => ['nullable', 'string', 'max:180'],
-            'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')],
+            'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product?->id)],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'brand' => ['nullable', 'string', 'max:120'],
             'tags' => ['nullable', 'string', 'max:500'],
@@ -84,16 +89,21 @@ class AddProductController extends Controller
         ]);
 
         $slug = Str::slug($data['slug'] ?: $data['name']);
-        Validator::make(
-            ['slug' => $slug],
-            ['slug' => ['required', 'string', 'max:180', Rule::unique('products', 'slug')]],
-        )->validate();
+        $slugRule = Rule::unique('products', 'slug');
+        if ($product) {
+            $slugRule->ignore($product->id);
+        }
+        validator(['slug' => $slug], ['slug' => ['required', 'string', 'max:180', $slugRule]])->validate();
+        $data['slug'] = $slug;
 
+        return $data;
+    }
+
+    private function saveProduct(Request $request, array $data, ?Product $product = null): Product
+    {
         $action = $data['save_action'];
         $status = $action === 'draft' ? 'draft' : $data['status'];
         $publishedWebsite = $status !== 'draft' && $request->boolean('published_website');
-        $availableForSale = $request->boolean('available_for_sale');
-
         $metadata = [
             'short_description' => $data['short_description'],
             'tags' => $this->tags($data['tags'] ?? null),
@@ -102,51 +112,36 @@ class AddProductController extends Controller
             'cost_price' => $data['cost_price'] ?? null,
             'vat_rate' => $data['vat_rate'],
             'currency' => $data['currency'],
-            'dimensions' => [
-                'length' => $data['length'] ?? null,
-                'width' => $data['width'] ?? null,
-                'height' => $data['height'] ?? null,
-            ],
+            'dimensions' => ['length' => $data['length'] ?? null, 'width' => $data['width'] ?? null, 'height' => $data['height'] ?? null],
             'channels' => array_values($data['channels'] ?? []),
             'order_categories' => array_values($data['order_categories'] ?? []),
             'published_website' => $publishedWebsite,
-            'available_for_sale' => $availableForSale,
+            'available_for_sale' => $request->boolean('available_for_sale'),
         ];
-
-        $product = Product::create([
-            'category_id' => $data['category_id'],
-            'name' => $data['name'],
-            'slug' => $slug,
-            'sku' => $data['sku'],
-            'description' => $data['description'],
-            'price' => $data['price'],
-            'compare_price' => $data['compare_price'] ?? null,
-            'stock' => $data['stock'],
-            'material' => $data['material'] ?? null,
-            'brand' => $data['brand'] ?? null,
-            'care' => $data['care'] ?? null,
-            'meta_title' => $data['meta_title'] ?? null,
-            'meta_description' => $data['meta_description'] ?? null,
-            'weight' => $data['weight'] ?? null,
-            'hs_code' => $data['hs_code'] ?? null,
-            'is_new' => $request->boolean('featured'),
-            'is_active' => $publishedWebsite && $availableForSale,
-            'status' => $status,
-            'product_metadata' => $metadata,
-            'published_at' => $publishedWebsite && ! empty($data['publish_date'])
-                ? Carbon::parse($data['publish_date'])
-                : null,
-        ]);
-
-        if ($action === 'media') {
-            return redirect()
-                ->route('admin.media.index', ['product_id' => $product->id])
-                ->with('success', 'Product saved. Add images, video and 360° media next.');
+        $attributes = [
+            'category_id' => $data['category_id'], 'name' => $data['name'], 'slug' => $data['slug'], 'sku' => $data['sku'],
+            'description' => $data['description'], 'price' => $data['price'], 'compare_price' => $data['compare_price'] ?? null,
+            'stock' => $data['stock'], 'material' => $data['material'] ?? null, 'brand' => $data['brand'] ?? null, 'care' => $data['care'] ?? null,
+            'meta_title' => $data['meta_title'] ?? null, 'meta_description' => $data['meta_description'] ?? null, 'weight' => $data['weight'] ?? null,
+            'hs_code' => $data['hs_code'] ?? null, 'is_new' => $request->boolean('featured'), 'is_active' => $publishedWebsite && $request->boolean('available_for_sale'),
+            'status' => $status, 'product_metadata' => $metadata,
+            'published_at' => $publishedWebsite && filled($data['publish_date'] ?? null) ? Carbon::parse($data['publish_date']) : null,
+        ];
+        if ($product) {
+            $product->update($attributes);
+            return $product->fresh();
         }
 
-        return redirect()
-            ->route('admin.resource', 'product-manager')
-            ->with('success', $status === 'draft' ? 'Product draft saved.' : 'Product created successfully.');
+        return Product::create($attributes);
+    }
+
+    private function afterSave(Request $request, Product $product, string $message): RedirectResponse
+    {
+        if ($request->input('save_action') === 'media') {
+            return redirect()->route('admin.media.index', ['product_id' => $product->id])->with('success', $message.' Add images, video and 360° media next.');
+        }
+
+        return redirect()->route('admin.resource', 'product-manager')->with('success', $message);
     }
 
     private function tags(?string $tags): array

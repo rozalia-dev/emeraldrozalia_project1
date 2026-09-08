@@ -180,7 +180,7 @@
             @if(request()->routeIs('admin.seo.*'))
             <form class="admin-search" method="get" action="{{route('admin.seo.dashboard')}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search SEO, pages, meta, keywords..." aria-label="Search SEO, pages, meta, keywords"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @else
-            <label class="admin-search"><x-icon name="search" /><input type="search" placeholder="Search anything..." aria-label="Search anything"></label>
+            <form class="admin-search" method="get" action="{{ route('admin.search') }}"><x-icon name="search" /><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Search anything..." aria-label="Search anything"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @endif
             <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
         </header>
