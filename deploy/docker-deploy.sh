@@ -46,12 +46,15 @@ test -s "$BACKUP/database.dump"
 compose exec -T db pg_restore --list < "$BACKUP/database.dump" >/dev/null
 (umask 077; compose run --rm --no-deps --entrypoint tar app -C storage/app/public -czf - . > "$BACKUP/uploads.tar.gz")
 test -s "$BACKUP/uploads.tar.gz"
+# Videos use authorization-gated private storage in the persistent storage volume.
+(umask 077; compose run --rm --no-deps --entrypoint sh app -c 'mkdir -p storage/app/private && tar -C storage/app/private -czf - .' > "$BACKUP/private-uploads.tar.gz")
+test -s "$BACKUP/private-uploads.tar.gz"
 git rev-parse HEAD > "$BACKUP/target-commit.txt"
 printf '%s\n' "${DEPLOY_PREVIOUS_COMMIT:-unknown}" > "$BACKUP/previous-commit.txt"
 echo "Release backup saved in $BACKUP"
 
 compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 app
-compose exec -T --user root app sh -c 'mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache && chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache'
+compose exec -T --user root app sh -c 'mkdir -p storage/app/public storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache && chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache'
 compose exec -T --user www-data app test -d public/storage
 compose exec -T --user www-data app php artisan optimize:clear --no-ansi
 compose exec -T --user www-data app php artisan migrate --force --no-ansi

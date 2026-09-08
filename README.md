@@ -6,6 +6,8 @@ The repository now contains the Laravel 13 Project 1 full-stack package, includi
 
 The shared cPanel operations layer now supports audited create/search/filter/edit/delete records, global admin search across Project 1 domains, Communication Center assignment/status/follow-up and saved replies, plus Product Manager edit/update without duplicate products. See [CPANEL-OPERATIONS-EVIDENCE.md](docs/CPANEL-OPERATIONS-EVIDENCE.md) for the exact scope and verification status.
 
+The Videos reference dashboard now uses real product-media records: private uploads, YouTube/Vimeo embeds, filters, bulk actions, scheduling, product-page playback, captions, website playback metrics and UUID audit history. See [VIDEO-DASHBOARD-EVIDENCE.md](docs/VIDEO-DASHBOARD-EVIDENCE.md) for the supported workflows and validation boundaries.
+
 Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Limited. The repository is deployable with PostgreSQL 17 and contains no Production, Finance, Payroll, HR or POS module.
 
 ## Delivered scope
@@ -28,7 +30,7 @@ Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Lim
 - Company, language and currency context
 - CSV/XLSX bulk product import
 
-Bulk Product Upload accepts files up to 20 MB. The production PHP-FPM upload settings are defined in `deploy/php/uploads.ini` and are installed by the Docker image.
+Bulk Product Upload and individual video uploads accept files up to 20 MB. The production PHP-FPM upload settings are defined in `deploy/php/uploads.ini` and are installed by the Docker image.
 
 External payment/webhook, WhatsApp, email delivery, shipping, social, hosted 360° and hosted try-on connections are disabled by default. Enable each only after core live-site verification.
 
@@ -52,7 +54,7 @@ docker compose exec --user www-data app php artisan migrate --force
 docker compose exec --user www-data app php artisan optimize
 ```
 
-For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, takes pre-migration PostgreSQL and upload backups, runs migrations as `www-data`, rebuilds Laravel caches, starts the worker and scheduler, and checks both internal and public health endpoints. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files. Production releases do not run the demo seeder.
+For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, takes pre-migration PostgreSQL and upload backups, runs migrations as `www-data`, rebuilds Laravel caches, starts the worker and scheduler, and checks both internal and public health endpoints. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files. New video files, posters and captions use `storage/app/private` in the persistent `storage` volume and are served through Laravel access checks. Releases also back up this private upload directory. Production releases do not run the demo seeder.
 
 ## Linux/cPanel deployment
 
@@ -69,7 +71,7 @@ php artisan view:cache
 
 Set the web root to `/path/to/project/public`. Make `storage/` and `bootstrap/cache/` writable by the PHP user. Run `php artisan queue:work --sleep=3 --tries=3 --max-time=3600` under Supervisor and schedule `php artisan schedule:run` every minute. Templates are included in `deploy/`.
 
-Before seeding, replace `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Back up PostgreSQL and `storage/app/public`; test recovery before launch. Use HTTPS, `APP_DEBUG=false`, secure cookies and a strong generated `APP_KEY`.
+Before seeding, replace `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Back up PostgreSQL, `storage/app/public` and `storage/app/private`; test recovery before launch. Use HTTPS, `APP_DEBUG=false`, secure cookies and a strong generated `APP_KEY`.
 
 ## External-service go-live rule
 

@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
+    @stack('styles')
 </head>
-<body class="admin-body @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -201,5 +202,6 @@
     </footer>
 </div>
 <script src="/js/app.js"></script>
+@stack('scripts')
 </body>
 </html>

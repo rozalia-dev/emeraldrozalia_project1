@@ -166,6 +166,20 @@
         <section class="related-products"><h2>You may also like</h2><div class="related-grid">@foreach($related as $item)<article class="related-card"><a href="{{ route('product', $item) }}"><div class="related-card-media">@if($item->image)<img src="{{ str_starts_with($item->image, 'http') || str_starts_with($item->image, '/') ? $item->image : Storage::disk('public')->url($item->image) }}" alt="{{ $item->name }}" loading="lazy">@else<x-icon name="package" size="34" />@endif</div><div class="related-card-body"><h3>{{ $item->name }}</h3><p>{{ $item->category?->name ?: 'Emerald Rozalia' }}</p><strong>€{{ number_format($item->price, 2) }}</strong></div></a></article>@endforeach</div></section>
     @endif
 </div>
+@php
+    $productVideos = \App\Models\ProductVideo::where('product_id',$product->id)->with('product')->where('active',true)->orderBy('sort_order')->get()
+        ->filter(fn ($video) => $video->isPubliclyPlayable() && data_get($video->metadata,'gallery',true));
+@endphp
+@if($productVideos->isNotEmpty())
+<section class="product-details" style="padding:24px" aria-label="Product videos">
+    <h2>Product videos</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:24px;margin-top:16px">
+    @foreach($productVideos as $video)
+        <article><h3>{{ $video->title }}</h3><x-video-player :video="$video" /><p>{{ data_get($video->metadata,'description') }}</p></article>
+    @endforeach
+    </div>
+</section>
+@endif
 @endsection
 
 @push('scripts')
