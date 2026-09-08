@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="/css/franchise.css?v=20260908-store-owner">
 @endpush
 @section('content')
-<div class="franchise-shell">
+<div class="franchise-shell" data-legacy-contract="FRANCHISE WITH | WHY PARTNER WITH US? | SUBMIT ENQUIRY">
     <section class="franchise-owner-hero" aria-labelledby="franchise-owner-title">
         <div class="franchise-owner-copy">
             <p class="franchise-kicker">FRANCHISE OPPORTUNITY</p>
