@@ -59,6 +59,7 @@ jobs:
           coverage: none
 
       - run: |
+          test -e .env || touch .env
           mkdir -p bootstrap/cache
           mkdir -p storage/framework/{cache,sessions,testing,views}
           mkdir -p storage/logs
@@ -76,7 +77,7 @@ jobs:
 
       - run: php artisan route:list
 
-      - run: php artisan test
+      - run: php artisan test --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
 
   container:
     name: Container and release validation
