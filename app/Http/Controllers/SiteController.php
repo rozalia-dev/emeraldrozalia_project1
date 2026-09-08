@@ -35,7 +35,7 @@ class SiteController extends Controller {
             'name'=>'required|string|max:120','email'=>'required|email|max:255','phone'=>'nullable|string|max:50',
             'company'=>'nullable|string|max:120','country'=>'nullable|string|max:120','subject'=>'required_if:type,contact|nullable|string|max:150',
             'message'=>[Rule::requiredIf($requiresMessage),'nullable','string','max:5000'],
-            'consent'=>[Rule::requiredIf($requiresConsent),'nullable','accepted'],
+            'consent'=>$requiresConsent?['required','accepted']:['nullable'],
             'meeting_date'=>'nullable|required_with:meeting_time|date_format:Y-m-d|after_or_equal:today',
             'meeting_time'=>['nullable','required_with:meeting_date','date_format:H:i',Rule::in($meetingTimes)],
         ]);
