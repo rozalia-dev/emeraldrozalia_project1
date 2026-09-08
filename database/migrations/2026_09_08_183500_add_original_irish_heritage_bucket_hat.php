@@ -49,6 +49,7 @@ return new class extends Migration {
             'category_id' => $categoryId,
             'name' => 'Irish Heritage Bucket Hat – Emerald Green',
             'slug' => $slug,
+            'sku' => $sku,
             'description' => 'Emerald green Irish heritage bucket hat with Emerald Rozalia crest and Irish tricolour detailing.',
             'price' => 44.99,
             'stock' => 100,
@@ -133,7 +134,7 @@ return new class extends Migration {
             return;
         }
 
-        DB::table('product_media')->where('product_id', $productId)->where('metadata', 'like', '%owner_supplied_original%')->delete();
+        DB::table('product_media')->where('product_id', $productId)->delete();
         DB::table('product_variants')->where('product_id', $productId)->delete();
         DB::table('products')->where('id', $productId)->delete();
     }
