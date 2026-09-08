@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="/css/careers.css?v=20260909-approved-reference">
 @endpush
 @section('content')
-<div class="careers-reference" data-approved-reference="build career with us.png">
+<div class="careers-reference" data-approved-reference="build career with us.png" data-legacy-contract="BUILD YOUR CAREER">
     <section class="career-hero" aria-labelledby="career-title">
         <div class="career-hero-photo">
             <img src="{{ asset('assets/brand/careers-reference.png') }}" alt="Emerald Rozalia team and workplace">
