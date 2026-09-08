@@ -1,125 +1,121 @@
 @extends('layouts.site')
-@section('body-class','franchise-page')
-@section('title','Franchise Opportunity — Be a Store Owner | Emerald Rozalia')
+@section('body-class','franchise-reference-page')
+@section('title','Franchise Opportunity | Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/franchise.css?v=20260908-store-owner">
+<link rel="stylesheet" href="/css/franchise.css?v=20260908-approved-reference">
 @endpush
 @section('content')
-<div class="franchise-shell" data-legacy-contract="FRANCHISE WITH | WHY PARTNER WITH US? | SUBMIT ENQUIRY">
-    <section class="franchise-owner-hero" aria-labelledby="franchise-owner-title">
-        <div class="franchise-owner-copy">
-            <p class="franchise-kicker">FRANCHISE OPPORTUNITY</p>
-            <h1 id="franchise-owner-title">BE A <em>STORE OWNER</em></h1>
-            <h2>Start Your Own Business with<br>Emerald Rozalia</h2>
-            <p class="franchise-intro">Join a growing Irish brand with global appeal. Bring our premium hats and caps to your city and be part of an authentic Irish success story. We provide the support, products and brand strength — you bring the ambition.</p>
-            <a class="franchise-primary-cta" href="#franchise-enquiry">CONTACT US TODAY <x-icon name="arrow-right" size="18" /></a>
-
-            <div class="franchise-hero-points" aria-label="Franchise highlights">
-                <article><x-icon name="clover" size="33" /><strong>IRISH BRAND</strong><span>Global Appeal</span></article>
-                <article><x-icon name="chart" size="33" /><strong>GROWING MARKET</strong><span>Proven Demand</span></article>
-                <article><x-icon name="users" size="33" /><strong>FULL SUPPORT</strong><span>From Our Team</span></article>
+<div class="franchise-reference" data-approved-reference="franchise page.png">
+    <section class="fr-hero" aria-labelledby="franchise-title">
+        <div class="fr-hero-copy">
+            <div class="fr-breadcrumb"><a href="/">Home</a><span>›</span><span>Franchise Opportunity</span></div>
+            <p class="fr-kicker">JOIN THE LEGACY.</p>
+            <h1 id="franchise-title">FRANCHISE WITH<br><em>EMERALD ROZALIA</em></h1>
+            <p class="fr-intro">Partner with Ireland's premium hat brand and be part of a growing global legacy. Authentic Irish craftsmanship, timeless style, proven business.</p>
+            <div class="fr-hero-points" aria-label="Franchise highlights">
+                <article><x-icon name="clover" size="32" /><strong>Authentic<br>Irish Brand</strong></article>
+                <article><x-icon name="star" size="32" /><strong>Premium<br>Quality</strong></article>
+                <article><x-icon name="chart" size="32" /><strong>Proven<br>Business Model</strong></article>
+                <article><x-icon name="globe" size="32" /><strong>Global<br>Opportunity</strong></article>
             </div>
         </div>
-        <div class="franchise-store-visual franchise-store-visual--hero" role="img" aria-label="Emerald Rozalia retail store presentation">
-            <span class="franchise-store-sign">IRISH MADE<br>LIMERICK BORN<br>WORN EVERYWHERE</span>
-        </div>
+        <div class="fr-store-image fr-store-image--hero" role="img" aria-label="Emerald Rozalia franchise retail store"></div>
     </section>
 
-    <section class="franchise-value-strip" aria-label="Franchise support benefits">
-        <article><x-icon name="home" size="39" /><div><strong>ESTABLISHED BRAND</strong><span>A trusted Irish brand with a strong identity and loyal customer base.</span></div></article>
-        <article><x-icon name="users" size="39" /><div><strong>TRAINING &amp; SUPPORT</strong><span>Comprehensive training, marketing support and ongoing guidance.</span></div></article>
-        <article><x-icon name="package" size="39" /><div><strong>PREMIUM PRODUCTS</strong><span>High-quality, Irish made hats and caps for all seasons.</span></div></article>
-        <article><x-icon name="globe" size="39" /><div><strong>GROW TOGETHER</strong><span>Be part of our global expansion and local success.</span></div></article>
-    </section>
-
-    <section class="franchise-enquiry-grid" id="franchise-enquiry">
-        <div class="franchise-form-card">
-            <div class="franchise-section-heading">
-                <h2>ENQUIRE ABOUT A FRANCHISE</h2>
-                <p>Fill out the form below and our team will get back to you.</p>
+    <section class="fr-main-band" id="franchise-enquiry">
+        <div class="fr-partner-area">
+            <h2>WHY PARTNER WITH US?</h2>
+            <div class="fr-partner-grid">
+                <article><x-icon name="star" size="42" /><h3>STRONG BRAND HERITAGE</h3><p>Built on Irish heritage, quality and timeless style loved by customers worldwide.</p></article>
+                <article><x-icon name="chart" size="42" /><h3>PROVEN BUSINESS MODEL</h3><p>Established systems, marketing support and operational guidance for your success.</p></article>
+                <article><x-icon name="users" size="42" /><h3>COMPREHENSIVE SUPPORT</h3><p>From site selection to training, we're with you every step of the way.</p></article>
+                <article><x-icon name="package" size="42" /><h3>PREMIUM PRODUCTS</h3><p>High-quality, Irish made hats and caps with strong margins and repeat demand.</p></article>
+                <article><x-icon name="message" size="42" /><h3>MARKETING SUPPORT</h3><p>National &amp; local marketing campaigns, in-store branding and digital support.</p></article>
+                <article><x-icon name="globe" size="42" /><h3>GROWING GLOBAL MARKET</h3><p>Join a growing brand with expanding demand across Ireland and worldwide.</p></article>
             </div>
+        </div>
 
-            <form method="post" action="{{ route('inquiry') }}" novalidate>
+        <aside class="fr-form-card" aria-label="Franchise application form">
+            <h2>INTERESTED IN OWNING YOUR<br><em>EMERALD ROZALIA</em> STORE?</h2>
+            <p>Fill out the form and our franchise team will get in touch with you.</p>
+            <form method="post" action="{{ route('inquiry') }}">
                 @csrf
                 <input type="hidden" name="type" value="franchise">
-                <div class="franchise-form-grid">
-                    <label>
-                        <span>Full Name <b>*</b></span>
-                        <input name="name" value="{{ old('name') }}" placeholder="Full Name *" autocomplete="name" required>
-                    </label>
-                    <label>
-                        <span>Email Address <b>*</b></span>
-                        <input name="email" type="email" value="{{ old('email') }}" placeholder="Email Address *" autocomplete="email" required>
-                    </label>
-                    <label>
-                        <span>Phone Number</span>
-                        <input name="phone" value="{{ old('phone') }}" placeholder="Phone Number" autocomplete="tel">
-                    </label>
-                    <label>
-                        <span>Preferred Location</span>
-                        <select name="company" aria-label="Preferred Location">
-                            <option value="">Preferred Location</option>
-                            @foreach(['Limerick','Dublin','Cork','Galway','Waterford','Kilkenny','Other Ireland location'] as $location)
-                                <option value="{{ $location }}" @selected(old('company')===$location)>{{ $location }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-                    <label class="franchise-message-field">
-                        <span>Your Message <b>*</b></span>
-                        <textarea name="message" placeholder="Your Message *" required>{{ old('message') }}</textarea>
-                    </label>
+                <input name="name" value="{{ old('name') }}" placeholder="Full Name *" autocomplete="name" required>
+                <input name="email" type="email" value="{{ old('email') }}" placeholder="Email Address *" autocomplete="email" required>
+                <input name="phone" value="{{ old('phone') }}" placeholder="Phone Number *" autocomplete="tel" required>
+                <div class="fr-form-row">
+                    <select name="country" aria-label="Country" required>
+                        <option value="">Country *</option>
+                        @foreach(['Ireland','United Kingdom','United States','France','Germany','Spain','Italy','Netherlands','Belgium','United Arab Emirates','Canada','Australia','Other'] as $country)
+                            <option value="{{ $country }}" @selected(old('country')===$country)>{{ $country }}</option>
+                        @endforeach
+                    </select>
+                    <input name="company" value="{{ old('company') }}" placeholder="Preferred City / Region *" required>
                 </div>
-
-                <label class="franchise-consent">
-                    <input type="checkbox" name="consent" value="1" @checked(old('consent')) required>
-                    <span>I agree to the <a href="/privacy-policy">Privacy Policy</a> and <a href="/terms-conditions">Terms &amp; Conditions</a>.</span>
-                </label>
-
-                <button class="franchise-submit" type="submit">SEND ENQUIRY <x-icon name="arrow-right" size="18" /></button>
+                <textarea name="message" placeholder="Tell us about yourself and your interest in franchising with us *" required>{{ old('message') }}</textarea>
+                <label class="fr-consent"><input type="checkbox" name="consent" value="1" @checked(old('consent')) required><span>I agree to the <a href="/privacy-policy">Privacy Policy</a> and <a href="/terms-conditions">Terms &amp; Conditions</a>.</span></label>
+                <button type="submit">SUBMIT ENQUIRY</button>
             </form>
-        </div>
+            <div class="fr-secure"><x-icon name="check" size="18" /><span>Your information is 100% secure and confidential.</span></div>
+        </aside>
+    </section>
 
-        <div class="franchise-story-card">
-            <div class="franchise-story-copy">
-                <h2>LET'S BUILD<br>SOMETHING GREAT<br><em>TOGETHER</em></h2>
-                <div class="franchise-story-rule"><span></span><x-icon name="clover" size="18" /><span></span></div>
-                <p>Whether you're an experienced retailer or new to business, Emerald Rozalia offers an exciting opportunity to own a store with a purpose — quality headwear, rooted in Irish heritage, with worldwide appeal.</p>
-                <ul>
-                    <li><span><x-icon name="check" size="14" /></span>Attractive franchise model</li>
-                    <li><span><x-icon name="check" size="14" /></span>Support at every step</li>
-                    <li><span><x-icon name="check" size="14" /></span>Marketing and brand resources</li>
-                    <li><span><x-icon name="check" size="14" /></span>A product people love</li>
-                </ul>
-            </div>
-            <div class="franchise-store-visual franchise-store-visual--network" role="img" aria-label="Emerald Rozalia franchise retail storefront"></div>
+    <section class="fr-advantage">
+        <h2>THE EMERALD ROZALIA ADVANTAGE</h2>
+        <div class="fr-metrics">
+            <article><x-icon name="home" size="34" /><strong>35+</strong><span>Retail Partners<br>Worldwide</span></article>
+            <article><x-icon name="globe" size="34" /><strong>12</strong><span>Countries<br>Represented</span></article>
+            <article><x-icon name="tag" size="34" /><strong>100+</strong><span>Premium Styles<br>and Counting</span></article>
+            <article><x-icon name="calendar" size="34" /><strong>10+</strong><span>Years of Heritage<br>&amp; Experience</span></article>
         </div>
     </section>
 
-    <section class="franchise-service-strip" aria-label="Customer service commitments">
-        <article><x-icon name="clover" size="30" /><div><strong>IRISH MADE</strong><span>Proudly made in Limerick</span></div></article>
-        <article><x-icon name="star" size="30" /><div><strong>PREMIUM QUALITY</strong><span>Finest materials, built to last</span></div></article>
-        <article><x-icon name="truck" size="30" /><div><strong>FAST DISPATCH</strong><span>Worldwide Delivery</span></div></article>
-        <article><x-icon name="refresh" size="30" /><div><strong>EASY RETURNS</strong><span>30-day returns</span></div></article>
-        <article><x-icon name="credit-card" size="30" /><div><strong>SECURE PAYMENT</strong><span>100% secure checkout</span></div></article>
+    <section class="fr-lower-grid">
+        <article class="fr-list-card">
+            <h2>WHAT WE PROVIDE</h2>
+            <ul>
+                <li><x-icon name="check" size="15" />Exclusive territory opportunities</li>
+                <li><x-icon name="check" size="15" />Store design &amp; fit-out guidance</li>
+                <li><x-icon name="check" size="15" />Staff training &amp; product knowledge</li>
+                <li><x-icon name="check" size="15" />Retail operations manual</li>
+                <li><x-icon name="check" size="15" />Ongoing business development support</li>
+                <li><x-icon name="check" size="15" />Access to new collections &amp; innovations</li>
+            </ul>
+        </article>
+        <div class="fr-store-image fr-store-image--interior" role="img" aria-label="Emerald Rozalia store interior"></div>
+        <article class="fr-list-card fr-ideal">
+            <h2>IDEAL PARTNER</h2>
+            <ul>
+                <li><x-icon name="user" size="23" />Passionate about fashion, quality and customer experience</li>
+                <li><x-icon name="briefcase" size="23" />Strong business acumen and entrepreneurial mindset</li>
+                <li><x-icon name="users" size="23" />Commitment to building a long-term successful business</li>
+                <li><x-icon name="heart" size="23" />Proud to represent an authentic Irish brand</li>
+            </ul>
+        </article>
+        <div class="fr-world-card">
+            <div class="fr-world-image" role="img" aria-label="Limerick and Irish heritage"></div>
+            <blockquote>“ From Limerick to the world.<br>A brand. A legacy. An opportunity.<br>Let's build it together. ”</blockquote>
+        </div>
     </section>
 
-    <footer class="franchise-footer">
-        <div class="franchise-footer-brand">
-            <img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited">
-            <p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p>
-        </div>
-        <div><h3>SHOP</h3><a href="/shop">All Hats &amp; Caps</a><a href="/irish-traditional">Irish Traditional</a><a href="/irish-heritage">Irish Heritage</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/category/snapbacks">Snapbacks</a><a href="/category/bucket-hats">Bucket Hats</a></div>
-        <div><h3>COLLECTIONS</h3><a href="/irish-traditional">Irish Traditional Flat Caps</a><a href="/irish-heritage">Irish Heritage Hats</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/category/snapbacks">Snapbacks</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/collections">Beanies &amp; More</a></div>
-        <div><h3>HELP</h3><a href="/contact">Contact Us</a><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/factory">Size Guide</a><a href="/account">Track Your Order</a></div>
-        <div><h3>COMPANY</h3><a href="/factory">About Us</a><a href="/careers">Careers</a><a href="/franchise">Franchise</a><a href="/global-network">Sustainability</a><a href="/factory">News</a></div>
-        <div class="franchise-footer-cta">
-            <div><x-icon name="globe" size="35" /><span><strong>JOIN OUR FRANCHISE NETWORK</strong>Be a store owner. Start your own business.</span></div>
-            <a href="#franchise-enquiry">CONTACT US TODAY <x-icon name="arrow-right" size="17" /></a>
-        </div>
-        <div class="franchise-footer-bottom">
-            <span>© 2024 Emerald Rozalia Limited. All Rights Reserved.</span>
-            <span><a href="/privacy-policy">Privacy Policy</a><i></i><a href="/terms-conditions">Terms &amp; Conditions</a><i></i><a href="/cookie-policy">Cookie Policy</a></span>
-        </div>
+    <section class="fr-journey">
+        <div><strong>BE PART OF OUR JOURNEY. BUILD YOUR FUTURE WITH <em>EMERALD ROZALIA.</em></strong><span>Apply today and take the first step towards owning your Emerald Rozalia store.</span></div>
+        <a href="#franchise-enquiry">APPLY NOW <x-icon name="arrow-right" size="20" /></a>
+    </section>
+
+    <section class="fr-service-strip" aria-label="Service benefits">
+        <article><x-icon name="clover" size="28" /><div><strong>IRISH MADE</strong><span>Proudly made in Limerick</span></div></article>
+        <article><x-icon name="star" size="28" /><div><strong>PREMIUM QUALITY</strong><span>Finest materials, built to last</span></div></article>
+        <article><x-icon name="truck" size="28" /><div><strong>FAST DISPATCH</strong><span>Worldwide delivery</span></div></article>
+        <article><x-icon name="refresh" size="28" /><div><strong>EASY RETURNS</strong><span>30-day returns</span></div></article>
+        <article><x-icon name="credit-card" size="28" /><div><strong>SECURE PAYMENT</strong><span>100% secure checkout</span></div></article>
+    </section>
+
+    <footer class="fr-compact-footer">
+        <div class="fr-footer-brand"><img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited"><span>© {{ date('Y') }} All Rights Reserved.</span></div>
+        <nav aria-label="Franchise footer links"><a href="/factory">About Us</a><a href="/contact">Contact Us</a><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/terms-conditions">Terms &amp; Conditions</a><a href="/privacy-policy">Privacy Policy</a></nav>
+        <div class="fr-social"><span>FOLLOW US</span><x-icon name="facebook" size="18" /><x-icon name="instagram" size="18" /><x-icon name="music" size="18" /><x-icon name="youtube" size="18" /></div>
     </footer>
 </div>
 @endsection

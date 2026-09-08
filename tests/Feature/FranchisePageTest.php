@@ -12,25 +12,31 @@ class FranchisePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_franchise_store_owner_page_matches_public_contract(): void
+    public function test_franchise_page_matches_approved_reference_contract(): void
     {
         $this->get('/franchise')
             ->assertOk()
             ->assertSee([
-                'FRANCHISE OPPORTUNITY',
-                'BE A',
-                'STORE OWNER',
-                'CONTACT US TODAY',
-                'ESTABLISHED BRAND',
-                'TRAINING &amp; SUPPORT',
+                'JOIN THE LEGACY.',
+                'FRANCHISE WITH',
+                'EMERALD ROZALIA',
+                'WHY PARTNER WITH US?',
+                'STRONG BRAND HERITAGE',
+                'PROVEN BUSINESS MODEL',
+                'COMPREHENSIVE SUPPORT',
                 'PREMIUM PRODUCTS',
-                'GROW TOGETHER',
-                'ENQUIRE ABOUT A FRANCHISE',
-                "LET'S BUILD",
-                'SOMETHING GREAT',
-                'SEND ENQUIRY',
-                'JOIN OUR FRANCHISE NETWORK',
-                '/css/franchise.css?v=20260908-store-owner',
+                'MARKETING SUPPORT',
+                'GROWING GLOBAL MARKET',
+                'INTERESTED IN OWNING YOUR',
+                'Preferred City / Region *',
+                'SUBMIT ENQUIRY',
+                'THE EMERALD ROZALIA ADVANTAGE',
+                'WHAT WE PROVIDE',
+                'IDEAL PARTNER',
+                'BE PART OF OUR JOURNEY.',
+                'APPLY NOW',
+                '/css/franchise.css?v=20260908-approved-reference',
+                'data-approved-reference="franchise page.png"',
             ], false);
     }
 
@@ -40,6 +46,8 @@ class FranchisePageTest extends TestCase
             'type' => 'franchise',
             'name' => 'Aoife Franchise',
             'email' => 'aoife.franchise@example.com',
+            'phone' => '0890000000',
+            'country' => 'Ireland',
             'company' => 'Limerick',
         ];
 
@@ -58,13 +66,14 @@ class FranchisePageTest extends TestCase
         $this->assertDatabaseCount('conversations', 0);
     }
 
-    public function test_franchise_enquiry_enters_application_and_communication_centre(): void
+    public function test_franchise_enquiry_enters_application_and_communication_centre_with_location(): void
     {
         $response = $this->from('/franchise')->post('/enquiry', [
             'type' => 'franchise',
             'name' => 'Aoife Franchise',
             'email' => 'aoife.franchise@example.com',
             'phone' => '0890000000',
+            'country' => 'Ireland',
             'company' => 'Limerick',
             'message' => 'I am interested in opening an Emerald Rozalia store in Limerick.',
             'consent' => '1',
@@ -78,6 +87,7 @@ class FranchisePageTest extends TestCase
 
         $this->assertSame('franchise', $inquiry->type);
         $this->assertSame('public_franchise_form', $inquiry->meta['source']);
+        $this->assertSame('Ireland', $inquiry->meta['country']);
         $this->assertSame('Aoife Franchise', $application->applicant_name);
         $this->assertSame('Limerick', $application->preferred_location);
         $this->assertSame('Ireland', $application->territory);
@@ -85,6 +95,7 @@ class FranchisePageTest extends TestCase
         $this->assertSame('high', $conversation->priority);
         $this->assertSame('franchise', $conversation->metadata['type']);
         $this->assertSame('Limerick', $conversation->metadata['company']);
+        $this->assertSame('Ireland', $conversation->metadata['country']);
         $this->assertCount(1, $conversation->messages);
         $this->assertStringContainsString('opening an Emerald Rozalia store', $conversation->messages->first()->body);
     }
