@@ -10,7 +10,7 @@ use App\Services\AuditTrail;
 use Illuminate\Http\Request;
 class ResourceController extends Controller {
     public array $modules=[
-        'website-products','products','product-manager','add-product','online-sales','customers','cart-checkout','payments',
+        'website-products','products','product-manager','add-product','online-sales','customers','cart-checkout','payments','reconciliation','payment-gateways',
         'franchise-management','communication-center','reports','users-roles','integrations','settings','audit-logs','automation',
         'backup-recovery','system-maintenance','returns-refunds','media-manager','images','videos','360-product-view','virtual-try-on',
         'categories','collections','variants','banners-sliders','seo-content','reviews-testimonials','reviews-ratings','shipping-delivery',

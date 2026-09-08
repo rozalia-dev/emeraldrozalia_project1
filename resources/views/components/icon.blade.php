@@ -10,6 +10,7 @@
         'arrow-right' => '<path d="M5 12h14m-7-7 7 7-7 7"/>',
         'arrow-up' => '<path d="M12 19V5m0 0-5 5m5-5 5 5"/>',
         'arrow-down' => '<path d="M12 5v14m0 0 5-5m-5 5-5-5"/>',
+        'alert' => '<path d="M12 3 2.8 20h18.4z"/><path d="M12 9v5m0 3h.01"/>',
         'bell' => '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
         'briefcase' => '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-13 5h18m-9-2v4"/>',
         'camera' => '<path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3"/>',
