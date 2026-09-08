@@ -8,10 +8,7 @@ on the host. The public health URL is `https://emeraldrozalia.com/up`.
 
 Create the `production` environment in Settings → Environments. Restrict its
 deployment branches to `main`. Enable a required reviewer if your GitHub plan
-supports it. In Settings → Secrets and variables → Actions → Variables, create
-the **repository variable** `PRODUCTION_DEPLOY_ENABLED` with value `false` until
-the first release is ready. The gate is evaluated before entering the environment,
-so do not use an environment variable for this switch.
+supports it. Keep deployment branches restricted to `main`. Deployment is controlled by the protected `production` environment and its required secrets/reviewers; no extra repository variable is required.
 
 Set these **environment secrets** in `production`:
 
@@ -62,7 +59,7 @@ a disposable database, starts nginx, and exercises the release script and worker
 Only this disposable CI database is seeded/reset. Production releases never seed,
 reset passwords, run migrate:fresh or delete volumes.
 
-After both checks pass on main, an enabled deployment authenticates the host,
+After both checks pass on main, the deployment authenticates the host,
 fetches main, rejects a superseded workflow, and fast-forwards to the exact tested
 commit. It builds on the server, checks Artisan permissions, stops background
 services, puts the existing app into maintenance, saves a PostgreSQL custom-format
@@ -84,11 +81,10 @@ business job has completed. Health checks do not replace storefront/admin testin
 
 1. Merge the reviewed change only after its CI checks pass.
 2. Confirm the environment secrets and server preflight above.
-3. Set repository variable `PRODUCTION_DEPLOY_ENABLED` to `true`.
-4. Open Actions → Validate and deploy production → Run workflow, selecting main.
-5. Approve the production environment if configured. Inspect both validation jobs
+3. Open Actions → Validate and deploy production → Run workflow, selecting main.
+4. Approve the production environment if configured. Inspect both validation jobs
    and the deployment job; require all three to succeed.
-6. Check HTTPS `/up`, the homepage and admin login in the browser. Inspect
+5. Check HTTPS `/up`, the homepage and admin login in the browser. Inspect
    `docker compose --profile background ps` and worker/scheduler logs on the server.
 
 For branch protection, require `PostgreSQL validation` and `Container and release
