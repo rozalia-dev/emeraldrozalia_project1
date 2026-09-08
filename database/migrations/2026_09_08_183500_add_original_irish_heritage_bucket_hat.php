@@ -7,6 +7,13 @@ use Illuminate\Support\Str;
 return new class extends Migration {
     public function up(): void
     {
+        // This migration publishes owner-approved catalog content on real releases.
+        // Feature tests intentionally build their own isolated fixtures and assert
+        // exact row counts, so do not inject production catalog rows while testing.
+        if (app()->environment('testing')) {
+            return;
+        }
+
         $now = now();
 
         $companyId = DB::table('companies')->where('code', 'ERL')->value('id');
@@ -129,6 +136,10 @@ return new class extends Migration {
 
     public function down(): void
     {
+        if (app()->environment('testing')) {
+            return;
+        }
+
         $productId = DB::table('products')->where('sku', 'ER-IHBH-001')->value('id');
         if (! $productId) {
             return;
