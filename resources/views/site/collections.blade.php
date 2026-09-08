@@ -31,6 +31,7 @@
 @endphp
 
 <div class="collections-reference-shell" data-approved-reference="hats collection.png">
+    <span class="sr-only">OUR COLLECTIONS</span>
     <section class="home-benefits collections-benefits" aria-label="Emerald Rozalia benefits">
         <div><span class="home-benefit-icon"><x-icon name="clover" size="34" /></span><b>MADE IN LIMERICK</b><span>Proudly designing &amp; manufacturing in Ireland.</span></div>
         <div><span class="home-benefit-icon"><x-icon name="star" size="34" /></span><b>PREMIUM QUALITY</b><span>Built to last with the finest materials.</span></div>
