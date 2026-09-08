@@ -48,12 +48,11 @@ docker compose build app
 APP_KEY="$(docker compose run --rm --no-deps --entrypoint php app artisan key:generate --show --no-ansi | tail -n 1)"
 sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
 docker compose up -d --build
-docker compose exec app php artisan migrate --seed --force
-docker compose exec app php artisan storage:link
-docker compose exec app php artisan optimize
+docker compose exec --user www-data app php artisan migrate --force
+docker compose exec --user www-data app php artisan optimize
 ```
 
-For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, waits for PostgreSQL, runs migrations, rebuilds Laravel caches, checks `https://emeraldrozalia.com/up` and prints container logs if deployment fails. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files.
+For a repeatable server release after the first `.env` setup, run `bash deploy/docker-deploy.sh`. It validates the Compose file, builds the application, takes pre-migration PostgreSQL and upload backups, runs migrations as `www-data`, rebuilds Laravel caches, starts the worker and scheduler, and checks both internal and public health endpoints. Public uploads are stored in the shared `public-assets` volume so Nginx and PHP see the same files. Production releases do not run the demo seeder.
 
 ## Linux/cPanel deployment
 
@@ -90,3 +89,5 @@ CI executes the install, PostgreSQL migration/seed and tests on every push. See 
 Official footer contact values are loaded from the live server's `BRAND_*` environment variables and are never committed.
 
 See [the server-ready package runbook](docs/SERVER-READY-PACKAGE.md) for the first-release checklist, TLS proxy settings, deployment recovery and post-deploy checks.
+
+For the complete local, server and GitHub connection record, use [CI/CD setup](docs/CI-CD-SETUP.md). It includes the production environment secret names, SSH fingerprint procedure, Docker/Nginx/Certbot setup, release sequence, backup/recovery limits and the latest successful production workflow evidence.
