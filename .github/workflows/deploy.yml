@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -50,7 +50,7 @@ jobs:
       ADMIN_EMAIL: ci-admin@example.test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -58,68 +58,32 @@ jobs:
           extensions: pdo_pgsql,intl,zip,bcmath,gd
           coverage: none
 
-      - run: |
+      - name: Install dependencies
+        run: |
           test -e .env || touch .env
           mkdir -p bootstrap/cache
           mkdir -p storage/framework/{cache,sessions,testing,views}
           mkdir -p storage/logs
           chmod -R ug+rw bootstrap storage
+          composer validate --strict
+          composer install --no-interaction --prefer-dist
+          echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
+          echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
-      - run: composer validate --strict
-
-      - run: composer install --no-interaction --prefer-dist
-
-      - run: echo "APP_KEY=$(php artisan key:generate --show --no-ansi)" >> "$GITHUB_ENV"
-
-      - run: echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-
-      - run: php artisan migrate:fresh --seed --force
-
-      - run: php artisan route:list
-
-      - run: vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
+      - name: Migrations and PostgreSQL feature tests
+        run: |
+          php artisan migrate:fresh --seed --force
+          php artisan route:list
+          vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
 
   container:
     name: Container and release validation
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate shell scripts
-        run: |
-          bash -n deploy/docker-deploy.sh
-          sh -n deploy/docker-entrypoint.sh
-      - name: Build using restrictive source permissions
-        run: |
-          cp .env.example .env
-          printf '\nAPP_KEY=base64:%s\nDB_PASSWORD=ci-only-password\n' "$(openssl rand -base64 32)" >> .env
-          mkdir -p public/storage
-          git ls-files -z | xargs -0 chmod go-rwx
-          docker compose config --quiet
-          docker compose build app
-      - name: Check PHP user access and storage link
-        run: |
-          docker compose run --rm --no-deps --user www-data app php artisan --version
-          docker compose run --rm --no-deps --user www-data app sh -ec 'test -L public/storage; test -d public/storage; test -r vendor/autoload.php; test -w storage/framework/views; test -w bootstrap/cache'
-      - name: Validate fresh database and nginx
-        run: |
-          git ls-files -z | xargs -0 chmod go+rX
-          docker compose up -d --no-build --wait --wait-timeout 180 db redis app
-          docker compose exec -T --user www-data app php artisan migrate --force
-          docker compose exec -T --user www-data app php artisan optimize
-          docker compose up -d --no-build --wait --wait-timeout 180 nginx
-          curl --fail --silent --show-error http://127.0.0.1:8080/up
-          DEPLOY_BACKUP_DIR="$RUNNER_TEMP/emerald-backups" DEPLOY_HEALTHCHECK_URL=http://127.0.0.1:8080/up bash deploy/docker-deploy.sh
-          sleep 10
-          for service in worker scheduler; do
-            test -n "$(docker compose ps --status running -q "$service")"
-          done
-      - name: Container diagnostics
-        if: failure()
-        run: docker compose logs --tail=80
-      - name: Clean up CI containers
-        if: always()
-        run: docker compose --profile background down --volumes
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Rehearse a Docker release
+        run: bash deploy/ci-container.sh
 
   deploy:
     name: Deploy to Hetzner
