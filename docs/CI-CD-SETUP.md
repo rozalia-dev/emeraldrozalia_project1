@@ -1,118 +1,238 @@
-# Production CI/CD setup
+# Emerald Rozalia Project 1 — local, server and GitHub CI/CD runbook
 
-This workflow targets `/var/www/emerald-rozalia` on the existing server, using the
-`deploy` account and Docker Compose plugin. Host nginx and Certbot remain managed
-on the host. The public health URL is `https://emeraldrozalia.com/up`.
+This is the saved operational record for Project 1. It deliberately documents
+connection names, paths and commands, but never stores private keys, passwords,
+APP_KEY values or the contents of `.env`.
 
-## GitHub configuration
+## Current verified release
 
-Create the `production` environment in Settings → Environments. Restrict its
-deployment branches to `main`. Enable a required reviewer if your GitHub plan
-supports it. Keep deployment branches restricted to `main`. Deployment is controlled by the protected `production` environment and its required secrets/reviewers; no extra repository variable is required.
+The latest verified production release is commit `f9a3d5bbcb82e065e6869fb52478674db9182cf8`.
+GitHub Actions run [34240664241](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34240664241)
+completed successfully on 2026-09-08:
 
-Set these **environment secrets** in `production`:
+| Job | Result |
+| --- | --- |
+| PostgreSQL validation | Passed: 48 tests, 471 assertions |
+| Container and release validation | Passed: image permissions, storage link, migrations, nginx, backup rehearsal, worker and scheduler |
+| Deploy to Hetzner | Passed: SSH fingerprint verification, exact-commit checkout, Docker release and internal/public health checks |
 
-| Secret | Value |
+The workflow is triggered by a push to `main` or manually from Actions. Pull
+requests run validation only. Production deployment is protected by the GitHub
+`production` environment and its required secrets/reviewers.
+
+## Project and branch connection
+
+| Item | Value |
+| --- | --- |
+| GitHub repository | `rozalia-dev/emeraldrozalia_project1` |
+| Production branch | `main` |
+| Production checkout | `/var/www/emerald-rozalia` |
+| Deployment account | `deploy` |
+| Administrative account | `eradmin` with sudo; root SSH is disabled |
+| Public domain | `https://emeraldrozalia.com` |
+| Server address | `188.245.86.68` |
+| Server OS | Ubuntu 26.04.1 LTS (Resolute) |
+| Backup directory | `/var/backups/emerald-rozalia` |
+
+The server repository must remain on `main`, have no tracked local changes, and
+be able to fetch `origin/main` without an interactive Git credential prompt. The
+deployment script uses fast-forward-only updates and refuses to deploy a commit
+other than the exact GitHub Actions SHA being tested.
+
+## Local development (Windows + Laravel Herd)
+
+The local development baseline is Windows with Laravel Herd, PHP 8.4 and MySQL:
+
+```text
+APP_ENV=local
+APP_URL=http://emeraldrozalia_project1.test
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=emerald_rozalia
+```
+
+Use a local `.env` derived from `.env.example`; keep it untracked and never copy
+production PostgreSQL credentials into it. From the repository root:
+
+```powershell
+git switch main
+git pull --ff-only origin main
+composer install
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan storage:link
+php artisan optimize:clear
+php artisan serve
+```
+
+Herd may provide the host automatically at
+`http://emeraldrozalia_project1.test`. If using the Docker stack locally instead,
+set `DB_HOST=db`, `REDIS_HOST=redis`, and a development-only `DB_PASSWORD` in
+`.env`, then run:
+
+```powershell
+docker compose config --quiet
+docker compose up -d --build --wait --wait-timeout 180
+docker compose exec --user www-data app php artisan migrate --force
+docker compose exec --user www-data app php artisan optimize
+```
+
+The demo seeder is for a disposable local/CI database only. It is not part of a
+production release and must not be used to reset a live administrator password.
+
+Before pushing a change, run the checks available in the local environment:
+
+```powershell
+composer validate --strict
+php artisan route:list
+php artisan test
+git diff --check
+git status --short --branch
+```
+
+## Server foundation
+
+The rebuilt host has a 76 GB disk (about 71 GB free at setup), 3.7 GiB RAM and
+no swap. UFW allows only TCP 22, 80 and 443 inbound; outgoing traffic is allowed.
+Docker Engine 29.8.0 and Docker Compose v5.5.1 are installed and the Docker
+health check passed with `hello-world`.
+
+The `deploy` account has no sudo access and belongs to the `docker` group. Its
+Actions key is passphrase-protected and authorized with restricted SSH options.
+The `eradmin` account is the only administrative login. Effective SSH settings
+are public-key-only: root login, password authentication and keyboard-interactive
+authentication are disabled. Do not reintroduce the former rescue-system
+`ForceCommand`/session-gate configuration.
+
+Useful read-only checks:
+
+```bash
+whoami
+sudo -v
+sudo ufw status verbose
+docker version
+docker compose version
+sudo sshd -T | grep -E '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|forcecommand) '
+```
+
+## Docker services and persistent data
+
+`docker-compose.yml` defines:
+
+| Service | Purpose | Exposure |
+| --- | --- | --- |
+| `app` | Laravel PHP-FPM 8.4 application | Docker network only, port 9000 |
+| `nginx` | Static/PHP front controller | `127.0.0.1:8080` only |
+| `db` | PostgreSQL 17 | Docker network only |
+| `redis` | Redis 7 | Docker network only |
+| `worker` | Database queue worker | Background profile |
+| `scheduler` | Laravel scheduler | Background profile |
+
+Named volumes are `pgsql`, `storage` and `public-assets`. Never use `docker
+compose down --volumes` on production. Nginx mounts the repository read-only and
+the public-assets volume at `public/storage`; the host directory
+`/var/www/emerald-rozalia/public/storage` must exist before nginx starts.
+
+The image normalizes source files to be readable by `www-data`, creates the
+`public/storage` link, and keeps runtime write access limited to `storage` and
+`bootstrap/cache`. This prevents the earlier unreadable `artisan` and missing
+storage-mount failures.
+
+## Host Nginx and HTTPS
+
+Host Nginx listens on ports 80 and 443 for `emeraldrozalia.com` and proxies to
+`http://127.0.0.1:8080`. The container itself is never exposed directly to the
+Internet. Certbot manages the certificate under
+`/etc/letsencrypt/live/emeraldrozalia.com/`; the renewal dry run passed. DNS A
+record `emeraldrozalia.com` points to `188.245.86.68`; no AAAA record is currently
+configured.
+
+Checks:
+
+```bash
+sudo nginx -t
+curl --fail --silent --show-error https://emeraldrozalia.com/up
+sudo /snap/bin/certbot renew --dry-run
+```
+
+## GitHub Actions connection
+
+Create the `production` environment and restrict deployments to `main`. The
+workflow uses these environment secret names:
+
+| Secret | Stored value |
 | --- | --- |
 | `SERVER_HOST` | `188.245.86.68` |
 | `SERVER_USER` | `deploy` |
-| `SERVER_SSH_KEY` | Complete private key from the Windows `emerald_actions_20260908` file, including BEGIN/END lines |
-| `SERVER_SSH_PASSPHRASE` | Passphrase for that private key |
-| `SERVER_FINGERPRINT` | Full current server ED25519 fingerprint, starting with `SHA256:` |
+| `SERVER_SSH_KEY` | Complete private key for the local `emerald_actions_20260908` key |
+| `SERVER_SSH_PASSPHRASE` | Passphrase for that key |
+| `SERVER_FINGERPRINT` | Current server host-key fingerprint |
 
-Obtain the host fingerprint from the trusted eradmin session:
+The fingerprint must be copied from the rebuilt server, with no key length,
+username, spaces or trailing text. The SSH action may negotiate the ECDSA host
+key, so obtain the value used by the action with:
 
 ```bash
-sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256
+sudo ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub -E sha256 | awk '{print $2}'
 ```
 
-Use only the fingerprint field, not the key length, username or `(ED25519)` suffix.
-Do not use the former rescue system fingerprint. Paste secrets directly into
-GitHub; do not put them in an issue, terminal transcript or chat. The deployment
-account must already be able to fetch this repository noninteractively. Its
-incoming Actions SSH key does not itself grant access to a private GitHub repo.
+If the server host keys or IP are changed, recalculate the fingerprint and update
+the environment secret before rerunning Actions. Never remove fingerprint
+verification to make a deployment pass.
 
-## Server preflight
+The workflow pins `actions/checkout` and `appleboy/ssh-action` to reviewed commit
+SHAs. The SSH step first verifies all five secrets are non-empty, then checks that
+the server has fetched the exact workflow SHA. It refuses a superseded commit.
 
-Log in as deploy and run:
+## Production release sequence
+
+After the two validation jobs pass, `Deploy to Hetzner`:
+
+1. Connects as `deploy` with the passphrase-protected key and host fingerprint.
+2. Fetches `origin/main` and fast-forwards to the exact tested SHA.
+3. Builds the application image before interrupting the current app.
+4. Ensures `public/storage` exists and takes a PostgreSQL custom-format dump and
+   public-upload archive under `/var/backups/emerald-rozalia/<timestamp>-<sha>`.
+5. Stops worker/scheduler and enters Laravel maintenance mode.
+6. Recreates `app`, fixes runtime ownership, runs migrations as `www-data`,
+   clears/rebuilds caches, and exits maintenance mode.
+7. Recreates nginx, starts worker/scheduler, and checks both
+   `http://127.0.0.1:8080/up` and the public HTTPS `/up` endpoint.
+
+This is a single-server deployment with a maintenance window. It does not seed
+demo data, reset passwords, prune volumes, or claim zero downtime. A passing
+health endpoint does not replace homepage, admin-login, checkout and queue
+acceptance checks.
+
+## Failure, rollback and rotation
+
+If a release fails, inspect the printed backup directory and container state:
 
 ```bash
 cd /var/www/emerald-rozalia
-git status --short --branch
-GIT_TERMINAL_PROMPT=0 git fetch origin main
-docker compose version
-docker compose config --quiet
-stat -c '%a %U:%G %n' .env
-curl --fail --silent --show-error https://emeraldrozalia.com/up
+docker compose --profile background ps
+docker compose logs --tail=120 app nginx db worker scheduler
 ```
 
-Preserve the existing `.env`, APP_KEY, database and upload volumes. Keep `.env`
-mode 600, owned by deploy. Resolve tracked changes before deployment. The workflow
-will not force-reset them. Review any local Compose override before enabling CI;
-worker and scheduler are now defined in the repository and need no override.
+Maintenance may remain enabled after a migration failure. Do not blindly run
+`php artisan up`; first determine whether the database migration completed and
+whether the previous code is compatible. Restore a selected database dump and
+matching uploads only after stopping writes and reviewing migration compatibility.
+Never run an automatic production migration rollback. The local release backup
+is not an off-server backup policy; configure encrypted off-server copies,
+retention and an isolated full restore drill.
 
-## Release behavior
+Rotate the following independently when needed: server host keys, the Actions SSH
+key/passphrase, GitHub environment secrets, the production database password,
+administrator password, APP_KEY (only with a planned session/token impact), and
+TLS certificates. Never paste any of these values into commits, issues or chat.
 
-Pull requests run PostgreSQL tests and a container integration check. The latter
-builds from restrictively permissioned source, runs Artisan as www-data, migrates
-a disposable database, starts nginx, and exercises the release script and workers.
-Only this disposable CI database is seeded/reset. Production releases never seed,
-reset passwords, run migrate:fresh or delete volumes.
+## Operating evidence and ownership
 
-After both checks pass on main, the deployment authenticates the host,
-fetches main, rejects a superseded workflow, and fast-forwards to the exact tested
-commit. It builds on the server, checks Artisan permissions, stops background
-services, puts the existing app into maintenance, saves a PostgreSQL custom-format
-dump and public uploads, and validates that the dump index can be read. It then
-recreates the app, fixes runtime directory ownership, migrates, caches, restores
-traffic, recreates nginx, starts the worker and scheduler, and checks internal and
-public health URLs. A file lock and Actions concurrency serialize releases.
+The server setup, Docker stack, nginx proxy, Certbot renewal and GitHub deployment
+connection were manually verified on 2026-09-08. The latest automated evidence is
+the successful [main workflow run 34240664241](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34240664241).
+Update this document whenever the server IP, OS, Docker versions, repository path,
+SSH key, deployment action, ports, volumes or release procedure changes.
 
-This is a single-server deployment with a maintenance window, not zero downtime.
-nginx serves source assets from the checkout, so source files can change before
-the new app starts. Dependencies and base image tags are rebuilt on the server;
-the commit is exact but the image is not a promoted immutable CI artifact.
-
-The scheduler process starts, but scheduled business tasks still require schedule
-definitions in application code. A running worker is not proof that a real queued
-business job has completed. Health checks do not replace storefront/admin testing.
-
-## First run
-
-1. Merge the reviewed change only after its CI checks pass.
-2. Confirm the environment secrets and server preflight above.
-3. Open Actions → Validate and deploy production → Run workflow, selecting main.
-4. Approve the production environment if configured. Inspect both validation jobs
-   and the deployment job; require all three to succeed.
-5. Check HTTPS `/up`, the homepage and admin login in the browser. Inspect
-   `docker compose --profile background ps` and worker/scheduler logs on the server.
-
-For branch protection, require `PostgreSQL validation` and `Container and release
-validation` before merging main. The deploy job must not be a PR-required check.
-
-## Failure and recovery
-
-A failure stops the script. Maintenance may remain enabled after a backup or
-migration failure. Inspect `docker compose --profile background ps` and server
-logs; do not blindly run `artisan up` after a failed migration. The release backup
-directory is printed in the deployment output under `/var/backups/emerald-rozalia`.
-It contains database.dump, uploads.tar.gz, and previous/target commit identifiers.
-The previous commit is `unknown` for a manual invocation without the workflow.
-
-Rollback is an operator decision: determine whether the previous code is compatible
-with any applied migrations. If data restoration is necessary, stop writes, restore
-the selected database and matching uploads, and redeploy compatible code. Never run
-automatic migration rollback on production. This script does not certify restoration
-merely because `pg_restore --list` succeeds. Perform a full restore drill into an
-isolated database before accepting recovery readiness.
-
-These are local release backups, not an off-server backup policy. Configure encrypted
-off-server copies, retention and recovery testing separately; monitor disk space.
-
-## Evidence
-
-The operator reported successful production PostgreSQL migrations, all four original
-containers healthy, HTTPS `/up` HTTP 200, nginx configuration validation, and a
-successful Certbot renewal dry run on 2026-09-08. Those results predate this workflow.
-CI execution and the first automated production release must be recorded separately;
-they are not implied by the earlier manual deployment.
