@@ -26,7 +26,7 @@ class VideoController extends Controller
             });
         }
         if ($request->filled('product_id')) $query->where('product_id', $request->integer('product_id'));
-        if (array_key_exists($request->input('category', ''), ProductVideo::CATEGORIES)) {
+        if (array_key_exists((string) $request->input('category', ''), ProductVideo::CATEGORIES)) {
             $category = $request->input('category');
             $query->where(fn ($q) => $q->where('metadata->category', $category)->when($category === 'product', fn ($q) => $q->orWhereNull('metadata->category')));
         }
@@ -237,6 +237,7 @@ class VideoController extends Controller
 
     public function export(Request $request)
     {
+        $request->validate(['q'=>'nullable|string|max:150','product_id'=>'nullable|integer','category'=>'nullable|string','platform'=>'nullable|string','status'=>'nullable|string']);
         return response()->streamDownload(function () use ($request): void {
             $out = fopen('php://output','w');
             fputcsv($out,['UUID','Title','Product','SKU','Category','Status','Visibility','Platform','Views (30 days)','Watch seconds (30 days)'],',','"','');

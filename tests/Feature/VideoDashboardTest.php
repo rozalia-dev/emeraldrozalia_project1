@@ -192,6 +192,8 @@ class VideoDashboardTest extends TestCase
         $video=$this->video($this->product());
         $url=route('videos.record',$video->uuid);
         $this->postJson($url,['seconds'=>0])->assertNoContent();
+        // JSON test requests must explicitly carry the browser session cookie.
+        $this->withCredentials()->withCookie(config('session.cookie'), session()->getId());
         $this->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertDatabaseCount('video_plays',1);
         $this->assertSame(0,VideoPlay::firstOrFail()->seconds);

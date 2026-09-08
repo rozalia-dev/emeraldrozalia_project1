@@ -7,7 +7,7 @@
     const records = new Map(JSON.parse($('#vd-video-data').textContent).map(video => [String(video.id), video]));
     const dialog = $('#vd-dialog'), form = $('#vd-form'), settings = $('#vd-settings-form'), infoDialog = $('#vd-info-dialog');
     const filesInput = $('#vd-files');
-    let selected = null, editing = null, busy = false, queuedFiles = [];
+    let selected = null, editing = null, busy = false, queuedFiles = [], bulkNames = false;
     const notice = (message, error = false) => {
         const node = $('#vd-notice'); node.hidden = false; node.textContent = message; node.classList.toggle('is-error',error);
     };
@@ -117,7 +117,7 @@
         if (accepted.length > (editing ? 1 : 10)) { formError(editing ? 'Choose one replacement video.' : 'Choose up to 10 files per batch.'); return; }
         const invalid = accepted.find(file => file.size > 20*1024*1024 || !/\.(mp4|webm|mov)$/i.test(file.name));
         if (invalid) { formError(invalid.name+': use an MP4, WebM or MOV file up to 20 MB.'); queuedFiles = []; filesInput.value = ''; platformFields(); return; }
-        queuedFiles = accepted; formError('');
+        queuedFiles = accepted; bulkNames = accepted.length > 1; formError('');
         const listing = $('#vd-file-list'); listing.replaceChildren();
         queuedFiles.forEach(file => listing.append(element('div',file.name+' · '+(file.size/1048576).toFixed(1)+' MB')));
         if (!editing && accepted.length && !form.elements.title.value) form.elements.title.value = accepted[0].name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
@@ -125,7 +125,7 @@
     };
     const openEditor = (video = null, incoming = null) => {
         if (busy) return;
-        editing = video; form.reset(); queuedFiles = []; filesInput.value = '';
+        editing = video; form.reset(); queuedFiles = []; bulkNames = false; filesInput.value = '';
         $('#vd-file-list').replaceChildren(); $('#vd-progress').hidden = true; $('#vd-upload-status').textContent = ''; formError('');
         filesInput.multiple = !video;
         $('#vd-dialog-title').textContent = video ? 'Edit Video' : 'Upload Video';
@@ -208,7 +208,7 @@
                 if (editing) data.set('_method','PATCH');
                 if (file) {
                     data.set('file',file);
-                    if (queue.length > 1) data.set('title',file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ').slice(0,160));
+                    if (bulkNames) data.set('title',file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ').slice(0,160));
                     $('#vd-upload-status').textContent = 'Preparing '+file.name+'…';
                     const details = await inspectFile(file,$('#vd-auto-poster').checked && !original.has('poster'));
                     if (details.duration) data.set('duration',String(details.duration));

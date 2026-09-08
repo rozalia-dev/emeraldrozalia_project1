@@ -32,6 +32,8 @@ class VideoPlaybackController extends Controller
         $headers = ['Cache-Control'=>'private, no-store','X-Content-Type-Options'=>'nosniff'];
         if ($asset === 'captions') $headers['Content-Type'] = 'text/vtt; charset=UTF-8';
         $response = response()->file(Storage::disk($disk)->path($path),$headers);
+        $response->setPrivate();
+        $response->headers->addCacheControlDirective('no-store');
         $response->setContentDisposition($request->boolean('download') ? 'attachment' : 'inline');
         return $response;
     }
