@@ -44,7 +44,7 @@
         <div class="home-collection-grid collections-reference-grid">
             @foreach($collectionCards as $item)
                 @php($category = $categories->firstWhere('slug',$item['slug']))
-                @php($href = $category ? route('category',$category) : $item['href'])
+                @php($href = $category ? route('category',['category'=>$category->slug]) : $item['href'])
                 <a class="home-collection-card collections-reference-card" href="{{ $href }}">
                     <div class="home-reference-placeholder home-reference-placeholder--collection home-reference-placeholder--{{ $item['reference'] }} collections-reference-photo" role="img" aria-label="{{ $item['title'] }} collection image">
                         @if(!empty($item['new']))<b class="collections-new-badge">NEW</b>@endif
@@ -82,7 +82,7 @@
             @if($bestsellers->isNotEmpty())
                 @foreach($bestsellers as $index => $product)
                     <article class="home-product-card collections-product-card">
-                        <a class="collections-product-link" href="{{ route('product',$product) }}">
+                        <a class="collections-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
                             <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{ $referenceProductClasses[$index % 6] }}">
                                 @if($imageUrl = $productImageUrl($product->image))<img src="{{ $imageUrl }}" alt="{{ $product->name }}">@endif
                             </div>
