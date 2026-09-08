@@ -17,7 +17,7 @@ class SiteController extends Controller {
     private function categoryLanding(Request $request,string $slug,string $eyebrow,string $title,string $intro){$category=Category::where('slug',$slug)->where('is_active',true)->first() ?: new Category(['name'=>trim($eyebrow.' '.$title)]);$query=$category->exists ? $category->products()->with('category')->where('is_active',true) : Product::whereRaw('1 = 0');if($request->filled('q'))$query->where(fn($q)=>$q->where('name','like','%'.$request->q.'%')->orWhere('sku','like','%'.$request->q.'%'));match($request->input('sort')){'price_low'=>$query->orderBy('price'),'price_high'=>$query->orderByDesc('price'),default=>$query->latest()};$products=$query->paginate(12)->withQueryString();return view('site.category-landing',compact('category','eyebrow','title','intro','products'));}
     public function factory(){return view('site.factory');}
     public function corporateOrders(){return view('site.business-order',['type'=>'corporate-orders','eyebrow'=>'CORPORATE ORDERS','title'=>'CORPORATE ORDERS','tagline'=>'Premium Headwear. Professional Impact.','intro'=>'From branded caps for your team to custom designs for events, promotions and corporate gifting, we deliver quality headwear that represents your brand with pride.']);}
-    public function bulkOrders(){return view('site.business-order',['type'=>'bulk-orders','eyebrow'=>'BULK ORDER','title'=>'BULK ORDER SOLUTIONS','tagline'=>'Premium Headwear. Made in Limerick.','intro'=>'High-quality hats and caps for brands, businesses, events and organisations. Custom designs, expert craftsmanship and reliable worldwide delivery.']);}
+    public function bulkOrders(){return view('site.bulk-order');}
     public function franchise(){return view('site.franchise');}
     public function careers(){return view('site.careers');}
     public function globalNetwork(){return view('site.global-network');}
@@ -28,13 +28,14 @@ class SiteController extends Controller {
     public function page(string $page){$allowed=['collections','new-arrivals','corporate-orders','bulk-orders','franchise','careers','global-network','factory','contact','virtual-tryon','irish-traditional','irish-heritage'];$managedPage=ContentPage::with('sections')->where('slug',$page)->where('locale',app()->getLocale())->where('status','published')->where(fn($q)=>$q->whereNull('scheduled_for')->orWhere('scheduled_for','<=',now()))->first();abort_unless($managedPage || in_array($page,$allowed,true),404);return view('site.page',compact('page','managedPage'));}
     public function inquiry(Request $r){
         $meetingTimes=['09:00','10:00','11:00','14:00','15:00','16:00'];
-        $isContactOrFranchise=in_array($r->input('type'),['contact','franchise'],true);
+        $requiresMessage=in_array($r->input('type'),['contact','franchise','bulk-orders'],true);
+        $requiresConsent=in_array($r->input('type'),['contact','franchise'],true);
         $d=$r->validate([
             'type'=>['required',Rule::in(['contact','franchise','careers','corporate-orders','bulk-orders'])],
             'name'=>'required|string|max:120','email'=>'required|email|max:255','phone'=>'nullable|string|max:50',
-            'company'=>'nullable|string|max:120','subject'=>'required_if:type,contact|nullable|string|max:150',
-            'message'=>[Rule::requiredIf($isContactOrFranchise),'nullable','string','max:5000'],
-            'consent'=>[Rule::requiredIf($isContactOrFranchise),'nullable','accepted'],
+            'company'=>'nullable|string|max:120','country'=>'nullable|string|max:120','subject'=>'required_if:type,contact|nullable|string|max:150',
+            'message'=>[Rule::requiredIf($requiresMessage),'nullable','string','max:5000'],
+            'consent'=>[Rule::requiredIf($requiresConsent),'nullable','accepted'],
             'meeting_date'=>'nullable|required_with:meeting_time|date_format:Y-m-d|after_or_equal:today',
             'meeting_time'=>['nullable','required_with:meeting_date','date_format:H:i',Rule::in($meetingTimes)],
         ]);
@@ -44,12 +45,13 @@ class SiteController extends Controller {
             if($slot->isWeekend())throw ValidationException::withMessages(['meeting_date'=>'Meetings are available Monday to Friday only.']);
             if($slot->lessThanOrEqualTo(now(config('app.timezone'))))throw ValidationException::withMessages(['meeting_time'=>'Please choose a future meeting time.']);
         }
-        unset($d['meeting_date'],$d['meeting_time'],$d['consent']);
-        $d['meta']=['source'=>'public_'.$d['type'].'_form','meeting'=>$meeting?:null];
+        $country=$d['country']??null;
+        unset($d['meeting_date'],$d['meeting_time'],$d['consent'],$d['country']);
+        $d['meta']=['source'=>'public_'.$d['type'].'_form','meeting'=>$meeting?:null,'country'=>$country];
         DB::transaction(function()use($d,$meeting){
             Inquiry::create($d);
             if($d['type']==='franchise')FranchiseApplication::create(['applicant_name'=>$d['name'],'email'=>$d['email'],'phone'=>$d['phone']??null,'territory'=>'Ireland','preferred_location'=>$d['company']??null,'business_experience'=>$d['message']??null,'status'=>'new','data'=>['source'=>'public_franchise_form']]);
-            $conversation=Conversation::create(['channel'=>'web','contact'=>$d['email'],'subject'=>$d['subject']??str($d['type'])->headline(),'priority'=>$d['type']==='franchise'?'high':'normal','status'=>'new','metadata'=>['type'=>$d['type'],'name'=>$d['name'],'phone'=>$d['phone']??null,'company'=>$d['company']??null,'meeting'=>$meeting?:null]]);
+            $conversation=Conversation::create(['channel'=>'web','contact'=>$d['email'],'subject'=>$d['subject']??str($d['type'])->headline(),'priority'=>$d['type']==='franchise'?'high':'normal','status'=>'new','metadata'=>['type'=>$d['type'],'name'=>$d['name'],'phone'=>$d['phone']??null,'company'=>$d['company']??null,'country'=>$d['meta']['country']??null,'meeting'=>$meeting?:null]]);
             $body=$d['message']??'Public form submission';
             if($meeting)$body.="\n\nMeeting requested: {$meeting['date']} at {$meeting['time']} (Europe/Dublin).";
             $conversation->messages()->create(['direction'=>'inbound','body'=>$body,'delivery_status'=>'stored','sent_at'=>now()]);
