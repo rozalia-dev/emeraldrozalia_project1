@@ -77,7 +77,7 @@ jobs:
 
       - run: php artisan route:list
 
-      - run: php artisan test --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
+      - run: vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
 
   container:
     name: Container and release validation
