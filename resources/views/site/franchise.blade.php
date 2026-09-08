@@ -45,20 +45,20 @@
                 <div class="franchise-form-grid">
                     <label>
                         <span>Full Name <b>*</b></span>
-                        <input name="name" value="{{ old('name') }}" autocomplete="name" required>
+                        <input name="name" value="{{ old('name') }}" placeholder="Full Name *" autocomplete="name" required>
                     </label>
                     <label>
                         <span>Email Address <b>*</b></span>
-                        <input name="email" type="email" value="{{ old('email') }}" autocomplete="email" required>
+                        <input name="email" type="email" value="{{ old('email') }}" placeholder="Email Address *" autocomplete="email" required>
                     </label>
                     <label>
                         <span>Phone Number</span>
-                        <input name="phone" value="{{ old('phone') }}" autocomplete="tel">
+                        <input name="phone" value="{{ old('phone') }}" placeholder="Phone Number" autocomplete="tel">
                     </label>
                     <label>
                         <span>Preferred Location</span>
-                        <select name="company">
-                            <option value="">Select location</option>
+                        <select name="company" aria-label="Preferred Location">
+                            <option value="">Preferred Location</option>
                             @foreach(['Limerick','Dublin','Cork','Galway','Waterford','Kilkenny','Other Ireland location'] as $location)
                                 <option value="{{ $location }}" @selected(old('company')===$location)>{{ $location }}</option>
                             @endforeach
@@ -66,7 +66,7 @@
                     </label>
                     <label class="franchise-message-field">
                         <span>Your Message <b>*</b></span>
-                        <textarea name="message" required>{{ old('message') }}</textarea>
+                        <textarea name="message" placeholder="Your Message *" required>{{ old('message') }}</textarea>
                     </label>
                 </div>
 
