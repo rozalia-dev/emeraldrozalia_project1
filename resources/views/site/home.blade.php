@@ -21,6 +21,11 @@
         ['name'=>'Emerald Trucker Cap','price'=>34.99,'reference'=>'six'],
     ];
     $referenceProductClasses = ['one','two','three','four','five','six'];
+    $productImageUrl = static function (?string $path): ?string {
+        if (blank($path)) return null;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
+        return Storage::disk('public')->url($path);
+    };
 @endphp
 
 <section class="home-hero">
@@ -71,7 +76,7 @@
             @foreach($newProducts->take(6) as $index => $product)
                 <a class="home-product-card" href="{{route('product',$product)}}">
                     <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{$referenceProductClasses[$index % 6]}}">
-                        @if(filled($product->image))<img src="{{Storage::url($product->image)}}" alt="{{ $product->name }}">@endif
+                        @if($imageUrl = $productImageUrl($product->image))<img src="{{$imageUrl}}" alt="{{ $product->name }}">@endif
                     </div>
                     <span>{{ $product->name }}</span><strong>€{{number_format($product->price,2)}}</strong><b class="home-product-cart"><x-icon name="shopping-bag" size="14" /></b>
                 </a>
