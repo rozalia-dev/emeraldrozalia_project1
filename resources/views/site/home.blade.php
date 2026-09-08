@@ -71,7 +71,7 @@
 
 <section class="home-heritage" aria-labelledby="home-heritage-title">
     <div class="home-heritage-copy">
-        <div class="home-heritage-title"><x-icon name="clover" size="34" /><h2 id="home-heritage-title">THE IRISH HERITAGE<br>COLLECTION</h2><x-icon name="clover" size="25" /></div>
+        <div class="home-heritage-title"><x-icon name="clover" size="34" /><h2 id="home-heritage-title">THE IRISH HERITAGE COLLECTION</h2><x-icon name="clover" size="25" /></div>
         <h3>Tradition, Made in Limerick.</h3>
         <p>Inspired by generations of Irish craftsmanship. Our flat caps and heritage hats are woven from premium fabrics and made to last.</p>
         <a class="btn" href="/irish-heritage">EXPLORE HERITAGE COLLECTION <x-icon name="arrow-right" /></a>
