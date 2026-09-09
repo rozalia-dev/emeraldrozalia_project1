@@ -32,7 +32,9 @@ class SpinController extends Controller
         $types=$all->countBy('category');
         $products=Product::orderBy('name')->get(['id','name','sku']);
         $selected=$request->filled('edit')?ProductSpin::findOrFail($request->integer('edit')):$spins->first();
-        return view('admin.spins.index',compact('spins','stats','types','products','selected'));
+        $statuses=ProductSpin::STATUSES;
+        $categories=ProductSpin::CATEGORIES;
+        return view('admin.spins.index',compact('spins','stats','types','products','selected','statuses','categories'));
     }
     private function save(Request $request, ?ProductSpin $spin=null)
     {
