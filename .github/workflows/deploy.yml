@@ -80,7 +80,7 @@ jobs:
         env:
           VIDEO_BROWSER_MODULES: ${{ runner.temp }}/video-browser
           VIDEO_ARTIFACTS: ${{ runner.temp }}/video-artifacts
-          VIDEO_TEST_FILE: ${{ runner.temp }}/video-smoke.mp4
+          VIDEO_TEST_FILE: ${{ runner.temp }}/video-smoke.webm
           VIDEO_TEST_CAPTIONS: ${{ runner.temp }}/video-smoke.vtt
         run: |
           node --check public/js/videos.js
@@ -90,7 +90,7 @@ jobs:
           npm install --no-audit --no-fund --prefix "$VIDEO_BROWSER_MODULES" playwright@1.55.0
           "$VIDEO_BROWSER_MODULES/node_modules/.bin/playwright" install --with-deps chromium
           command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y ffmpeg; }
-          ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=0x084b2b:s=320x180:r=10 -t 3 -c:v libx264 -pix_fmt yuv420p "$VIDEO_TEST_FILE"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=0x084b2b:s=320x180:r=10 -t 3 -c:v libvpx-vp9 -b:v 500k "$VIDEO_TEST_FILE"
           printf 'WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nEmerald video fixture\n' > "$VIDEO_TEST_CAPTIONS"
           php -d upload_max_filesize=20M -d post_max_size=25M artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/video-server.log" 2>&1 &
           for attempt in $(seq 1 30); do
