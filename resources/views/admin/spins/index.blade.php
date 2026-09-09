@@ -3,18 +3,6 @@
 @push('styles')<link rel="stylesheet" href="/css/spins.css">@endpush
 @push('scripts')<script src="/js/spin-viewer.js" defer></script><script src="/js/spins-admin.js" defer></script>@endpush
 @section('content')
-@php($statuses=\App\Models\ProductSpin::STATUSES)
-@php($categories=\App\Models\ProductSpin::CATEGORIES)
-@php
-    $typeTotal=max(1,(int)$stats['total']);
-    $typeProduct=(int)($types['product']??0);
-    $typeLifestyle=(int)($types['lifestyle']??0);
-    $typePromotional=(int)($types['promotional']??0);
-    $typeOther=(int)($types['other']??0);
-    $angleProduct=round(360*$typeProduct/$typeTotal,2);
-    $angleLifestyle=round($angleProduct+(360*$typeLifestyle/$typeTotal),2);
-    $anglePromotional=round($angleLifestyle+(360*$typePromotional/$typeTotal),2);
-@endphp
 <div class="sd" data-spin-dashboard>
 <header class="sd-heading">
     <div>
@@ -74,7 +62,6 @@
     <span>Showing {{ $spins->firstItem()??0 }} to {{ $spins->lastItem()??0 }} of {{ $spins->total() }} 360° views</span>
     <nav class="sd-pagination" aria-label="360° view pages">
         @if($spins->previousPageUrl())<a href="{{ $spins->previousPageUrl() }}" aria-label="Previous page">‹</a>@endif
-        @php($pageStart=max(1,$spins->currentPage()-2)) @php($pageEnd=min($spins->lastPage(),$spins->currentPage()+2))
         @if($pageStart>1)<a href="{{ $spins->url(1) }}">1</a>@if($pageStart>2)<span>…</span>@endif @endif
         @for($page=$pageStart;$page<=$pageEnd;$page++)<a href="{{ $spins->url($page) }}" @class(['active'=>$page===$spins->currentPage()]) aria-current="{{ $page===$spins->currentPage()?'page':'false' }}">{{ $page }}</a>@endfor
         @if($pageEnd<$spins->lastPage())@if($pageEnd<$spins->lastPage()-1)<span>…</span>@endif<a href="{{ $spins->url($spins->lastPage()) }}">{{ $spins->lastPage() }}</a>@endif
