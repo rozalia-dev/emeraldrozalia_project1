@@ -193,6 +193,8 @@ class VideoDashboardTest extends TestCase
         $clientHeaders = ['X-Video-Client'=>'video-test-browser'];
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>0])->assertNoContent();
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
+        $debugPlay = VideoPlay::firstOrFail();
+        fwrite(STDERR, "VIDEO_DEBUG updated=".$debugPlay->updated_at->toIso8601String()." now=".now()->toIso8601String()." diff=".now()->diffInSeconds($debugPlay->updated_at)." seconds=".$debugPlay->seconds."\n");
         $this->assertDatabaseCount('video_plays',1);
         $this->assertSame(0,VideoPlay::firstOrFail()->seconds);
         // Set the persisted timestamp explicitly so the assertion is independent of
