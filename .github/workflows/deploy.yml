@@ -76,7 +76,7 @@ jobs:
           php artisan route:list
           vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
 
-      - name: Video browser acceptance
+      - name: Media browser acceptance
         env:
           VIDEO_BROWSER_MODULES: ${{ runner.temp }}/video-browser
           VIDEO_ARTIFACTS: ${{ runner.temp }}/video-artifacts
@@ -85,25 +85,29 @@ jobs:
         run: |
           node --check public/js/videos.js
           node --check public/js/video-playback.js
+          node --check public/js/spin-viewer.js
+          node --check public/js/spins-admin.js
           php artisan migrate:fresh --seed --force
           php tests/Browser/seed-video.php
+          php tests/Browser/seed-spin.php
           npm install --no-audit --no-fund --prefix "$VIDEO_BROWSER_MODULES" playwright@1.55.0
           "$VIDEO_BROWSER_MODULES/node_modules/.bin/playwright" install --with-deps chromium
           command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y ffmpeg; }
           ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=0x084b2b:s=320x180:r=10 -t 3 -c:v libvpx-vp9 -b:v 500k "$VIDEO_TEST_FILE"
           printf 'WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nEmerald video fixture\n' > "$VIDEO_TEST_CAPTIONS"
-          php -d upload_max_filesize=20M -d post_max_size=25M artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/video-server.log" 2>&1 &
+          php -d upload_max_filesize=20M -d post_max_size=25M artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/media-server.log" 2>&1 &
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8000/up >/dev/null; then break; fi
             sleep 1
           done
           node tests/Browser/video-dashboard.cjs
+          node tests/Browser/spin-dashboard.cjs
 
-      - name: Upload video browser evidence
+      - name: Upload media browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: video-browser-evidence
+          name: media-browser-evidence
           path: ${{ runner.temp }}/video-artifacts
           if-no-files-found: ignore
 
