@@ -197,7 +197,7 @@ class VideoDashboardTest extends TestCase
         $this->assertSame(0,VideoPlay::firstOrFail()->seconds);
         // Set the persisted timestamp explicitly so the assertion is independent of
         // the framework's test clock implementation and mirrors 10 seconds of elapsed time.
-        VideoPlay::query()->update(['updated_at'=>now()->subSeconds(10)]);
+        VideoPlay::query()->update(['updated_at'=>now()->utc()->subSeconds(10)]);
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertSame(10,VideoPlay::firstOrFail()->seconds);
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>10000])->assertUnprocessable();

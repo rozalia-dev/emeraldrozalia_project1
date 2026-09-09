@@ -51,7 +51,7 @@ class VideoPlaybackController extends Controller
         }
         $hash = hash_hmac('sha256',$client,config('app.key'));
         $day = now()->toDateString();
-        $now = now();
+        $now = now()->utc();
         VideoPlay::query()->insertOrIgnore([
             'product_media_id'=>$video->id,'session_hash'=>$hash,'day'=>$day,
             'started_at'=>$now,'seconds'=>0,'created_at'=>$now,'updated_at'=>$now,
@@ -60,9 +60,10 @@ class VideoPlaybackController extends Controller
             $play = VideoPlay::where('product_media_id',$video->id)->where('session_hash',$hash)->where('day',$day)->lockForUpdate()->firstOrFail();
             $elapsed = max(0, now()->getTimestamp() - $play->updated_at->getTimestamp());
             $increment = min((int)$data['seconds'], $elapsed, 15);
-            $play->seconds = min(86400,$play->seconds + $increment);
-            $play->updated_at = now();
-            $play->save();
+            $seconds = min(86400,$play->seconds + $increment);
+            // Persist UTC explicitly; PostgreSQL timestamp-with-time-zone values must
+            // not be rewritten as local Dublin wall time without an offset.
+            VideoPlay::whereKey($play->id)->update(['seconds'=>$seconds,'updated_at'=>$now]);
         });
         return response()->noContent();
     }
