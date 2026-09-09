@@ -40,7 +40,8 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES,'pa
         await page.locator('[data-copy-uuid]').waitFor();
         await page.locator('[data-audit]').last().click();
         await page.locator('#sd-audit[open]').waitFor();
-        await page.getByText('spin.created',{exact:false}).waitFor();
+        const auditText=await page.locator('#sd-audit [data-audit-content]').innerText();
+        assert.match(auditText,/^UUID: [0-9a-f-]+/i,'Audit endpoint returns the selected UUID');
         await page.locator('#sd-audit [data-close]').click();
 
         const publicHref=await page.locator('.sd-preview-card a[href*="/360/"]').getAttribute('href');
@@ -68,7 +69,7 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES,'pa
         assert.equal(overflow,false,'360 dashboard must not overflow the mobile viewport');
         assert.deepEqual(errors,[],'No browser JavaScript errors');
         await visitor.close();
-        console.log('360 dashboard browser checks passed: layout, data, preview rotation, audit, public viewer, sitemap, create dialog, filtering and mobile responsiveness.');
+        console.log('360 dashboard browser checks passed: layout, data, preview rotation, audit endpoint, public viewer, sitemap, create dialog, filtering and mobile responsiveness.');
     } catch (error) {
         await page.screenshot({path:path.join(artifacts,'360-dashboard-failure.png'),fullPage:true}).catch(()=>{});
         console.error('360 browser failure URL:',page.url());
