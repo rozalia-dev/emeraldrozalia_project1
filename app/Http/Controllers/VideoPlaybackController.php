@@ -56,7 +56,7 @@ class VideoPlaybackController extends Controller
             'product_media_id'=>$video->id,'session_hash'=>$hash,'day'=>$day,
             'started_at'=>$now,'seconds'=>0,'created_at'=>$now,'updated_at'=>$now,
         ]);
-        DB::transaction(function () use ($video,$hash,$day,$data): void {
+        DB::transaction(function () use ($video,$hash,$day,$data,$now): void {
             $play = VideoPlay::where('product_media_id',$video->id)->where('session_hash',$hash)->where('day',$day)->lockForUpdate()->firstOrFail();
             $elapsed = max(0, now()->getTimestamp() - $play->updated_at->getTimestamp());
             $increment = min((int)$data['seconds'], $elapsed, 15);
