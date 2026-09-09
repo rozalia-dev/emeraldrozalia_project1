@@ -2,18 +2,32 @@
 @section('body-class','careers-reference-page')
 @section('title','Careers — Build Your Career with Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/careers.css?v=20260909-approved-reference">
+<link rel="stylesheet" href="/css/careers.css?v=20260909-careers-live-layout">
 @endpush
 @section('content')
-<div class="careers-reference" data-approved-reference="build career with us.png" data-legacy-contract="BUILD YOUR CAREER">
+<div class="careers-reference" data-page="careers-live">
     <section class="career-hero" aria-labelledby="career-title">
-        <div class="career-hero-photo">
-            <img src="{{ asset('assets/brand/careers-reference.png') }}" alt="Emerald Rozalia team and workplace">
+        <div class="career-hero-visual" aria-label="Emerald Rozalia careers in Limerick">
+            <div class="career-visual-glow"></div>
+            <div class="career-visual-brand">
+                <img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited">
+                <span>CAREERS · LIMERICK, IRELAND</span>
+            </div>
+            <div class="career-visual-copy">
+                <p>IRISH MADE · LIMERICK BORN</p>
+                <strong>CRAFT.<br>CREATE.<br>GROW.</strong>
+                <span>Join the people behind an Irish headwear brand building for customers at home and around the world.</span>
+            </div>
+            <div class="career-visual-points" aria-label="Career areas">
+                <article><x-icon name="briefcase" size="22" /><span>PRODUCT &amp; DESIGN</span></article>
+                <article><x-icon name="users" size="22" /><span>RETAIL &amp; SERVICE</span></article>
+                <article><x-icon name="globe" size="22" /><span>DIGITAL &amp; GLOBAL</span></article>
+            </div>
         </div>
         <div class="career-hero-copy">
             <p class="career-kicker">CAREER WITH US</p>
             <h1 id="career-title">BUILD YOUR<br>CAREER WITH<br><em>EMERALD ROZALIA</em></h1>
-            <p>Join a growing Irish brand connecting craftsmanship, creativity, retail and global opportunity.</p>
+            <p>Join a growing Irish brand connecting craftsmanship, creativity, retail and global opportunity from our home in Limerick.</p>
             <div class="career-hero-actions">
                 <a href="#open-positions" class="career-btn">VIEW OPEN POSITIONS <x-icon name="arrow-right" size="18" /></a>
                 <a href="#career-form" class="career-btn career-btn--ghost">JOIN OUR TEAM</a>
@@ -23,7 +37,7 @@
 
     <section class="career-value-strip" aria-label="Why work with Emerald Rozalia">
         <article><x-icon name="clover" size="31" /><div><strong>IRISH HERITAGE</strong><span>Be part of a proud Irish brand.</span></div></article>
-        <article><x-icon name="chart" size="31" /><div><strong>GROW WITH US</strong><span>Training, mentoring and development.</span></div></article>
+        <article><x-icon name="chart" size="31" /><div><strong>LEARN &amp; GROW</strong><span>Training, mentoring and development.</span></div></article>
         <article><x-icon name="users" size="31" /><div><strong>GREAT TEAM</strong><span>Passionate, skilled and supportive people.</span></div></article>
         <article><x-icon name="globe" size="31" /><div><strong>GLOBAL OPPORTUNITY</strong><span>Build a career with worldwide potential.</span></div></article>
     </section>
@@ -89,7 +103,11 @@
     </section>
 
     <section class="career-story-grid">
-        <div class="career-story-photo career-story-photo--factory"><img src="{{ asset('assets/brand/careers-reference.png') }}" alt="Emerald Rozalia workplace and production team"></div>
+        <div class="career-story-visual career-story-visual--limerick">
+            <x-icon name="home" size="34" />
+            <strong>PROUDLY BASED<br>IN LIMERICK</strong>
+            <span>Our home, our community and the starting point for a brand built to travel.</span>
+        </div>
         <article class="career-story-copy">
             <p class="career-kicker">MADE IN LIMERICK</p>
             <h2>WORK WITH A BRAND<br>BUILT ON <em>CRAFT.</em></h2>
@@ -101,7 +119,11 @@
                 <li><x-icon name="check" size="15" /> Opportunity to grow with the brand</li>
             </ul>
         </article>
-        <div class="career-story-photo career-story-photo--team"><img src="{{ asset('assets/brand/careers-reference.png') }}" alt="Emerald Rozalia people and team culture"></div>
+        <div class="career-story-visual career-story-visual--team">
+            <x-icon name="users" size="34" />
+            <strong>ONE TEAM.<br>SHARED STANDARD.</strong>
+            <span>Design, manufacturing, retail, digital and customer care working together.</span>
+        </div>
     </section>
 
     <section class="career-cta">
@@ -116,12 +138,6 @@
         <article><x-icon name="chart" size="27" /><div><strong>GROWTH</strong><span>Learn and develop with us</span></div></article>
         <article><x-icon name="globe" size="27" /><div><strong>GLOBAL REACH</strong><span>Limerick born. Worn everywhere.</span></div></article>
     </section>
-
-    <footer class="career-footer">
-        <div class="career-footer-brand"><img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited"><span>© {{ date('Y') }} Emerald Rozalia Limited. All Rights Reserved.</span></div>
-        <nav aria-label="Careers footer"><a href="/factory">About Us</a><a href="/contact">Contact Us</a><a href="/franchise">Franchise</a><a href="/terms-conditions">Terms &amp; Conditions</a><a href="/privacy-policy">Privacy Policy</a></nav>
-        <div class="career-follow"><span>FOLLOW US</span><x-icon name="facebook" size="18" /><x-icon name="instagram" size="18" /><x-icon name="linkedin" size="18" /><x-icon name="youtube" size="18" /></div>
-    </footer>
 </div>
 <script>
 document.querySelectorAll('.career-job-apply').forEach(function(link){link.addEventListener('click',function(){var select=document.getElementById('career-position');if(select){select.value=this.dataset.position||'';}});});
