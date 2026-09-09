@@ -70,7 +70,11 @@ class VideoPlaybackController extends Controller
 
     public function sitemap()
     {
-        $videos = ProductVideo::with('product')->where('active',true)->get()->filter(fn ($video) => $video->isPubliclyPlayable());
+        $videos = ProductVideo::with('product')
+            ->where('active',true)
+            ->whereNotNull('uuid')
+            ->get()
+            ->filter(fn ($video) => $video->isPubliclyPlayable());
         return response()->view('site.video-sitemap',compact('videos'),200,['Content-Type'=>'application/xml; charset=UTF-8']);
     }
 }
