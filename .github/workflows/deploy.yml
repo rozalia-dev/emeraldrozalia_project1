@@ -104,7 +104,9 @@ jobs:
             sleep 1
           done
           node tests/Browser/video-dashboard.cjs
+          php artisan cache:clear
           node tests/Browser/spin-dashboard.cjs
+          php artisan cache:clear
           node tests/Browser/tryon-dashboard.cjs
 
       - name: Upload media browser evidence
