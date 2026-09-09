@@ -89,6 +89,7 @@ jobs:
           node --check public/js/spins-admin.js
           node --check public/js/tryons-admin.js
           node --check public/js/tryon-tracking.js
+          node --check public/js/categories-admin.js
           php artisan migrate:fresh --seed --force
           php tests/Browser/seed-video.php
           php tests/Browser/seed-spin.php
@@ -108,6 +109,8 @@ jobs:
           node tests/Browser/spin-dashboard.cjs
           php artisan cache:clear
           node tests/Browser/tryon-dashboard.cjs
+          php artisan cache:clear
+          node tests/Browser/category-dashboard.cjs
 
       - name: Upload media browser evidence
         if: always()
