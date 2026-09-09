@@ -97,8 +97,12 @@ class SpinDashboardTest extends TestCase
     public function test_metrics_dedupe_and_exclude_admin_preview():void
     {
         $spin=$this->spin($this->product());$url=route('spins.visit',$spin->uuid);
-        $this->postJson($url,['engaged'=>false,'load_ms'=>100])->assertNoContent();
-        $this->postJson($url,['engaged'=>true,'load_ms'=>200])->assertNoContent();
+        $first=$this->postJson($url,['engaged'=>false,'load_ms'=>100])->assertNoContent();
+        // Carry the issued encrypted session cookie, as a real browser does.
+        // Laravel's synthetic requests do not retain response cookies automatically.
+        $cookie=collect($first->headers->getCookies())->first(fn($c)=>$c->getName()===config('session.cookie'));
+        $this->assertNotNull($cookie);
+        $this->withUnencryptedCookie($cookie->getName(),$cookie->getValue())->postJson($url,['engaged'=>true,'load_ms'=>200])->assertNoContent();
         $this->assertDatabaseCount('spin_visits',1);$this->assertTrue(SpinVisit::firstOrFail()->engaged);
         $this->actingAs($this->admin())->postJson($url,['engaged'=>true,'load_ms'=>10])->assertNoContent();$this->assertDatabaseCount('spin_visits',1);
     }
