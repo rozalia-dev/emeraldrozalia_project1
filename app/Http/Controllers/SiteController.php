@@ -23,7 +23,27 @@ class SiteController extends Controller {
         match($r->input('sort')){'price_low'=>$q->orderBy('price'),'price_high'=>$q->orderByDesc('price'),'name'=>$q->orderBy('name'),default=>$q->latest()};
         return view('site.new-arrivals',['products'=>$q->paginate(12)->withQueryString(),'categories'=>Category::where('is_active',true)->orderBy('sort_order')->get()]);
     }
-    public function virtualTryOn(Request $request){$products=Product::where('is_active',true)->with('media')->orderBy('name')->get();$selected=$products->firstWhere('id',(int)$request->input('product_id')) ?: $products->first();$assetMap=$products->mapWithKeys(function($product){$assets=[];if(filled($product->try_on_asset)){if(str_starts_with($product->try_on_asset,'/')||str_starts_with($product->try_on_asset,'http'))$assets[]=$product->try_on_asset;elseif(Storage::disk('public')->exists($product->try_on_asset))$assets[]=Storage::disk('public')->url($product->try_on_asset);}foreach($product->media->where('type','try_on') as $media)$assets[]=Storage::disk($media->disk)->url($media->path);return[$product->id=>$assets];})->all();return view('site.virtual-tryon',compact('products','selected','assetMap'));}
+    public function virtualTryOn(Request $request){
+        $products=Product::where('is_active',true)->with(['media','tryOnAssets'=>fn($query)=>$query->where('status','published')->where('visibility','public')->latest('updated_at')])->orderBy('name')->get();
+        $selected=$products->firstWhere('id',(int)$request->input('product_id')) ?: $products->first();
+        $assetMetaMap=[];
+        $assetMap=$products->mapWithKeys(function($product)use(&$assetMetaMap){
+            $assets=[];
+            $managed=$product->tryOnAssets->first(fn($asset)=>$asset->isPublic());
+            if($managed){
+                $assets[]=$managed->previewUrl();
+                $assetMetaMap[$product->id]=$managed->viewerData();
+                return[$product->id=>$assets];
+            }
+            if(filled($product->try_on_asset)){
+                if(str_starts_with($product->try_on_asset,'/')||str_starts_with($product->try_on_asset,'http'))$assets[]=$product->try_on_asset;
+                elseif(Storage::disk('public')->exists($product->try_on_asset))$assets[]=Storage::disk('public')->url($product->try_on_asset);
+            }
+            foreach($product->media->where('type','try_on') as $media)$assets[]=Storage::disk($media->disk)->url($media->path);
+            return[$product->id=>$assets];
+        })->all();
+        return view('site.virtual-tryon',compact('products','selected','assetMap','assetMetaMap'));
+    }
     public function irishTraditional(Request $request){return $this->categoryLanding($request,'irish-traditional-flat-caps','IRISH TRADITIONAL','FLAT CAPS','Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');}
     public function irishHeritage(Request $request){return $this->categoryLanding($request,'irish-heritage-hats','IRISH HERITAGE','HATS','Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');}
     private function categoryLanding(Request $request,string $slug,string $eyebrow,string $title,string $intro){$category=Category::where('slug',$slug)->where('is_active',true)->first() ?: new Category(['name'=>trim($eyebrow.' '.$title)]);$query=$category->exists ? $category->products()->with('category')->where('is_active',true) : Product::whereRaw('1 = 0');if($request->filled('q'))$query->where(fn($q)=>$q->where('name','like','%'.$request->q.'%')->orWhere('sku','like','%'.$request->q.'%'));match($request->input('sort')){'price_low'=>$query->orderBy('price'),'price_high'=>$query->orderByDesc('price'),default=>$query->latest()};$products=$query->paginate(12)->withQueryString();return view('site.category-landing',compact('category','eyebrow','title','intro','products'));}

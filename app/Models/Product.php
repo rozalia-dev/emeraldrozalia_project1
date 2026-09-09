@@ -29,6 +29,7 @@ class Product extends Model
     public function reviews() { return $this->hasMany(Review::class)->where('status', 'approved'); }
     public function inventoryMovements() { return $this->hasMany(InventoryMovement::class); }
     public function spins() { return $this->hasMany(ProductSpin::class); }
+    public function tryOnAssets() { return $this->hasMany(TryOnAsset::class); }
 
     public function getSpinImagesAttribute($value): array
     {

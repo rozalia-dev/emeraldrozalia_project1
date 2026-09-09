@@ -46,7 +46,7 @@ test -s "$BACKUP/database.dump"
 compose exec -T db pg_restore --list < "$BACKUP/database.dump" >/dev/null
 (umask 077; compose run --rm --no-deps --entrypoint tar app -C storage/app/public -czf - . > "$BACKUP/uploads.tar.gz")
 test -s "$BACKUP/uploads.tar.gz"
-# Videos use authorization-gated private storage in the persistent storage volume.
+# Videos and managed 360° / Try-On assets use authorization-gated private storage in the persistent storage volume.
 (umask 077; compose run --rm --no-deps --entrypoint sh app -c 'mkdir -p storage/app/private && tar -C storage/app/private -czf - .' > "$BACKUP/private-uploads.tar.gz")
 test -s "$BACKUP/private-uploads.tar.gz"
 git rev-parse HEAD > "$BACKUP/target-commit.txt"
@@ -70,7 +70,8 @@ done
 for url in http://127.0.0.1:8080/up "${DEPLOY_HEALTHCHECK_URL:-https://emeraldrozalia.com/up}"; do
     curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --retry 6 --retry-all-errors --retry-delay 5 "$url" >/dev/null
 done
-# Verify the new database-backed public route after migrations and cache warming.
+# Verify database-backed public media routes after migrations and cache warming.
 curl --fail --silent --show-error --connect-timeout 10 --max-time 30 http://127.0.0.1:8080/360-sitemap.xml >/dev/null
+curl --fail --silent --show-error --connect-timeout 10 --max-time 30 http://127.0.0.1:8080/virtual-tryon >/dev/null
 compose ps
 echo "Production release $(git rev-parse HEAD) passed health checks."

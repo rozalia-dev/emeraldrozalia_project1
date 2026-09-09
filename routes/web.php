@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 require __DIR__.'/spins.php';
+require __DIR__.'/tryons.php';
 Route::get('/',[SiteController::class,'home'])->name('home');
 Route::get('/shop',[SiteController::class,'shop'])->name('shop');
 Route::get('/collections',[SiteController::class,'collections'])->name('collections');
