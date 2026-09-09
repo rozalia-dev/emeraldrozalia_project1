@@ -15,7 +15,7 @@ Baseline: main at 2b2a1d108d37b193fd7d0d0cf3f961c6671bfe24.
 - Private/draft/future scheduled videos, posters, captions and watch pages are not accessible to visitors. Admin preview is permitted. Existing public media is copied to private storage on editing; shared legacy files require a replacement before privacy can change.
 - Existing public YouTube and Vimeo URLs are normalized to allow-listed embed URLs. No external URL is fetched by the server.
 - Bulk publication, draft and deletion actions validate the whole selection, restrict targets to videos, preserve privacy and record audit entries. Deletion removes the media and its recorded playback rows; owned unreferenced files are cleaned after commit.
-- Website playback records are deduplicated per browser session/video/day. Watch increments are bounded by elapsed server time. Admin previews are excluded. The dashboard and CSV export use these records; no screenshot counts are seeded.
+- Website playback records are deduplicated per browser identifier/video/day. Watch increments are bounded by elapsed server time. Admin previews are excluded. The dashboard and CSV export use these records; no screenshot counts are seeded.
 - Filtered CSV export escapes spreadsheet formula prefixes. The public /video-sitemap.xml lists watch URLs for publicly playable videos.
 - UUID copy and the per-video audit dialog expose traceable changes.
 - The persistent private media volume is included in release backups.

@@ -44,7 +44,12 @@ class VideoPlaybackController extends Controller
         $data = $request->validate(['seconds'=>'required|integer|min:0|max:15']);
         // Preview sessions are deliberately excluded from customer metrics.
         if ($request->user()?->is_admin) return response()->noContent();
-        $hash = hash_hmac('sha256',$request->session()->getId(),config('app.key'));
+        $client = $request->session()->getId();
+        $headerClient = trim((string) $request->header('X-Video-Client'));
+        if (preg_match('/^[A-Za-z0-9._:-]{8,128}$/', $headerClient)) {
+            $client = $headerClient;
+        }
+        $hash = hash_hmac('sha256',$client,config('app.key'));
         $day = now()->toDateString();
         $now = now();
         VideoPlay::query()->insertOrIgnore([

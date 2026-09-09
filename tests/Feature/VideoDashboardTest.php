@@ -191,18 +191,15 @@ class VideoDashboardTest extends TestCase
     {
         $video=$this->video($this->product());
         $url=route('videos.record',$video->uuid);
-        $initial = $this->postJson($url,['seconds'=>0]);
-        $initial->assertNoContent();
-        // Keep the same session cookie across requests, just as the browser does.
-        $sessionCookie = $initial->getCookie(config('session.cookie'));
-        $this->withCookie(config('session.cookie'), $sessionCookie?->getValue());
-        $this->postJson($url,['seconds'=>15])->assertNoContent();
+        $clientHeaders = ['X-Video-Client'=>'video-test-browser'];
+        $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>0])->assertNoContent();
+        $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertDatabaseCount('video_plays',1);
         $this->assertSame(0,VideoPlay::firstOrFail()->seconds);
         $this->travel(10)->seconds();
-        $this->postJson($url,['seconds'=>15])->assertNoContent();
+        $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertSame(10,VideoPlay::firstOrFail()->seconds);
-        $this->postJson($url,['seconds'=>10000])->assertUnprocessable();
+        $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>10000])->assertUnprocessable();
         $this->actingAs($this->admin())->postJson($url,['seconds'=>10])->assertNoContent();
         $this->assertSame(10,VideoPlay::firstOrFail()->seconds);
         $this->get('/admin/resource/videos')->assertOk()->assertSee('Signature Cap Overview');

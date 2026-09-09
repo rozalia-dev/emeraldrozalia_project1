@@ -3,6 +3,12 @@
         if (video.dataset.trackingReady) return;
         video.dataset.trackingReady = '1';
         let pending = 0, previous = 0, lastClock = performance.now(), started = false, sending = false;
+        const clientKey = 'er-video-client';
+        let clientId = '';
+        try {
+            clientId = localStorage.getItem(clientKey) || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now());
+            localStorage.setItem(clientKey, clientId);
+        } catch (_) { clientId = ''; }
         const send = async (initial = false) => {
             if (sending || (!initial && pending < 1)) return;
             const seconds = initial ? 0 : Math.min(15, Math.floor(pending));
@@ -10,7 +16,7 @@
             try {
                 await fetch(video.dataset.trackUrl, {
                     method: 'POST', credentials: 'same-origin', keepalive: true,
-                    headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':video.dataset.csrf},
+                    headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':video.dataset.csrf, ...(clientId ? {'X-Video-Client':clientId} : {})},
                     body: JSON.stringify({seconds})
                 });
             } catch (_) { /* Playback remains available if analytics is offline. */ }
