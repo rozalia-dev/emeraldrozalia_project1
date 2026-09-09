@@ -120,7 +120,6 @@ class VideoDashboardTest extends TestCase
         }
         $this->travel(2)->hours();
         $this->get(route('videos.asset',[$scheduled->uuid,'video']))->assertOk();
-        $this->travelBack();
         $this->actingAs($this->admin())->get(route('videos.asset',[$private->uuid,'video']))->assertOk();
         Auth::logout();
         $product->update(['is_active'=>false]);
@@ -196,7 +195,9 @@ class VideoDashboardTest extends TestCase
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertDatabaseCount('video_plays',1);
         $this->assertSame(0,VideoPlay::firstOrFail()->seconds);
-        $this->travel(10)->seconds();
+        // Set the persisted timestamp explicitly so the assertion is independent of
+        // the framework's test clock implementation and mirrors 10 seconds of elapsed time.
+        VideoPlay::query()->update(['updated_at'=>now()->subSeconds(10)]);
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertSame(10,VideoPlay::firstOrFail()->seconds);
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>10000])->assertUnprocessable();
