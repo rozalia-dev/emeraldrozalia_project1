@@ -210,7 +210,7 @@
                     data.set('file',file);
                     if (bulkNames) data.set('title',file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ').slice(0,160));
                     $('#vd-upload-status').textContent = 'Preparing '+file.name+'…';
-                    const details = await inspectFile(file,$('#vd-auto-poster').checked && !original.has('poster'));
+                    const details = await inspectFile(file,$('#vd-auto-poster').checked && !original.get('poster')?.size);
                     if (details.duration) data.set('duration',String(details.duration));
                     if (details.resolution) data.set('resolution',details.resolution);
                     if (details.poster) data.set('poster',details.poster,'thumbnail.jpg');
