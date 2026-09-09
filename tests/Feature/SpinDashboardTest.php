@@ -102,7 +102,7 @@ class SpinDashboardTest extends TestCase
         // Laravel's synthetic requests do not retain response cookies automatically.
         $cookie=collect($first->headers->getCookies())->first(fn($c)=>$c->getName()===config('session.cookie'));
         $this->assertNotNull($cookie);
-        $this->withUnencryptedCookie($cookie->getName(),$cookie->getValue())->postJson($url,['engaged'=>true,'load_ms'=>200])->assertNoContent();
+        $this->withCredentials()->withUnencryptedCookie($cookie->getName(),$cookie->getValue())->postJson($url,['engaged'=>true,'load_ms'=>200])->assertNoContent();
         $this->assertDatabaseCount('spin_visits',1);$this->assertTrue(SpinVisit::firstOrFail()->engaged);
         $this->actingAs($this->admin())->postJson($url,['engaged'=>true,'load_ms'=>10])->assertNoContent();$this->assertDatabaseCount('spin_visits',1);
     }
