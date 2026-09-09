@@ -162,12 +162,41 @@
     const inspectFile = (file, makePoster) => new Promise(resolve => {
         const video = document.createElement('video'), url = URL.createObjectURL(file);
         let finished = false, timer;
-        const finish = result => {
-            if (finished) return; finished = true; clearTimeout(timer);
-            video.removeAttribute('src'); video.load(); URL.revokeObjectURL(url); resolve(result);
+        const encodeCanvas = canvas => {
+            try {
+                const dataUrl = canvas.toDataURL('image/jpeg',0.85);
+                const base64 = dataUrl.split(',')[1], binary = atob(base64), bytes = new Uint8Array(binary.length);
+                for (let index=0; index<binary.length; index++) bytes[index] = binary.charCodeAt(index);
+                return new Blob([bytes],{type:'image/jpeg'});
+            } catch (_) { return null; }
+        };
+        const createPoster = () => {
+            const width = Math.min(640,video.videoWidth || 640);
+            const height = Math.max(1,Math.round(width*(video.videoHeight || 360)/(video.videoWidth || 640)));
+            const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+            const context = canvas.getContext('2d'); if (!context) return null;
+            let frameDrawn = false;
+            if (video.videoWidth && video.videoHeight && video.readyState >= 2) {
+                try { context.drawImage(video,0,0,width,height); frameDrawn = true; } catch (_) {}
+            }
+            if (!frameDrawn) {
+                context.fillStyle = '#073822'; context.fillRect(0,0,width,height);
+                context.fillStyle = '#d9f3c2'; context.font = '700 24px Arial,sans-serif';
+                context.fillText('Emerald Rozalia',24,Math.max(42,height/2-5));
+                context.fillStyle = '#9fc78d'; context.font = '14px Arial,sans-serif';
+                context.fillText('Video preview',24,Math.max(68,height/2+24));
+            }
+            return encodeCanvas(canvas);
         };
         const result = {};
-        timer = setTimeout(() => finish(result),7000);
+        const finish = value => {
+            if (finished) return; finished = true; clearTimeout(timer);
+            video.removeAttribute('src'); video.load(); URL.revokeObjectURL(url); resolve(value);
+        };
+        timer = setTimeout(() => {
+            if (makePoster && !result.poster) result.poster = createPoster();
+            finish(result);
+        },7000);
         video.muted = true; video.preload = 'auto';
         video.onloadedmetadata = () => {
             if (Number.isFinite(video.duration)) result.duration = Math.min(86400,video.duration);
@@ -176,24 +205,13 @@
             video.currentTime = Math.min(1,(video.duration || 1)/2);
         };
         video.onseeked = () => {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.min(640,video.videoWidth); canvas.height = Math.round(canvas.width*video.videoHeight/video.videoWidth);
-                const context = canvas.getContext('2d');
-                if (!context || !canvas.width || !canvas.height) { finish(result); return; }
-                context.drawImage(video,0,0,canvas.width,canvas.height);
-                // Use a data-URL fallback because some headless/WebKit builds return
-                // null from canvas.toBlob() for a local video frame.
-                const dataUrl = canvas.toDataURL('image/jpeg',0.85);
-                const base64 = dataUrl.split(',')[1];
-                const binary = atob(base64);
-                const bytes = new Uint8Array(binary.length);
-                for (let index=0; index<binary.length; index++) bytes[index] = binary.charCodeAt(index);
-                result.poster = new Blob([bytes],{type:'image/jpeg'});
-                finish(result);
-            } catch (_) { finish(result); }
+            if (makePoster && !result.poster) result.poster = createPoster();
+            finish(result);
         };
-        video.onerror = () => finish(result);
+        video.onerror = () => {
+            if (makePoster && !result.poster) result.poster = createPoster();
+            finish(result);
+        };
         video.src = url;
     });
     form.addEventListener('submit', async event => {
