@@ -179,8 +179,18 @@
             try {
                 const canvas = document.createElement('canvas');
                 canvas.width = Math.min(640,video.videoWidth); canvas.height = Math.round(canvas.width*video.videoHeight/video.videoWidth);
-                canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
-                canvas.toBlob(blob => { if (blob) result.poster = blob; finish(result); },'image/jpeg',0.85);
+                const context = canvas.getContext('2d');
+                if (!context || !canvas.width || !canvas.height) { finish(result); return; }
+                context.drawImage(video,0,0,canvas.width,canvas.height);
+                // Use a data-URL fallback because some headless/WebKit builds return
+                // null from canvas.toBlob() for a local video frame.
+                const dataUrl = canvas.toDataURL('image/jpeg',0.85);
+                const base64 = dataUrl.split(',')[1];
+                const binary = atob(base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let index=0; index<binary.length; index++) bytes[index] = binary.charCodeAt(index);
+                result.poster = new Blob([bytes],{type:'image/jpeg'});
+                finish(result);
             } catch (_) { finish(result); }
         };
         video.onerror = () => finish(result);
