@@ -96,7 +96,7 @@ class CategoryController extends Controller
             'visible' => $visible,
             'hidden' => Category::query()->where('is_visible', false)->count(),
             'draft' => Category::query()->where('status', 'draft')->count(),
-            'inactive' => Category::query()->where(fn ($q) => $q->where('status', 'inactive')->orWhere('is_active', false))->count(),
+            'inactive' => Category::query()->where('status', 'inactive')->count(),
         ];
 
         $parents = Category::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'parent_id']);
@@ -114,7 +114,7 @@ class CategoryController extends Controller
         $category = DB::transaction(function () use ($data): Category {
             $category = Category::create([
                 ...$data,
-                'is_active' => $data['status'] === 'active',
+                'is_active' => $data['status'] === 'active' && (bool) $data['is_visible'],
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);
@@ -130,7 +130,7 @@ class CategoryController extends Controller
         $data = $this->validated($request, $category);
         $this->assertParentAllowed($category, $data['parent_id'] ?? null);
         $before = $category->toArray();
-        $category->update([...$data, 'is_active' => $data['status'] === 'active', 'updated_by' => auth()->id()]);
+        $category->update([...$data, 'is_active' => $data['status'] === 'active' && (bool) $data['is_visible'], 'updated_by' => auth()->id()]);
         AuditTrail::record('category.updated', $category, $before, $category->fresh()->toArray());
 
         return redirect()->route('admin.categories.index', ['selected' => $category->uuid])->with('success', 'Category updated.');
@@ -168,9 +168,18 @@ class CategoryController extends Controller
                     continue;
                 }
                 if (in_array($data['action'], ['visible', 'hidden'], true)) {
-                    $category->update(['is_visible' => $data['action'] === 'visible', 'updated_by' => auth()->id()]);
+                    $isVisible = $data['action'] === 'visible';
+                    $category->update([
+                        'is_visible' => $isVisible,
+                        'is_active' => $isVisible && $category->status === 'active',
+                        'updated_by' => auth()->id(),
+                    ]);
                 } else {
-                    $category->update(['status' => $data['action'], 'is_active' => $data['action'] === 'active', 'updated_by' => auth()->id()]);
+                    $category->update([
+                        'status' => $data['action'],
+                        'is_active' => $data['action'] === 'active' && $category->is_visible,
+                        'updated_by' => auth()->id(),
+                    ]);
                 }
                 AuditTrail::record('category.bulk_updated', $category, $before, $category->fresh()->toArray());
             }
@@ -205,14 +214,14 @@ class CategoryController extends Controller
         $filename = 'categories-'.now()->format('Ymd-His').'.csv';
         return response()->streamDownload(function (): void {
             $out = fopen('php://output', 'wb');
-            fputcsv($out, ['uuid','name','slug','parent_slug','status','visibility','sort_order','products','description','meta_title','meta_description']);
+            fputcsv($out, ['uuid','name','slug','parent_slug','status','visibility','sort_order','products','description','meta_title','meta_description'], ',', '"', '');
             Category::query()->with('parent:id,slug')->withCount('products')->orderBy('sort_order')->orderBy('id')->chunk(200, function ($categories) use ($out): void {
                 foreach ($categories as $category) {
                     fputcsv($out, [
                         $category->uuid, $category->name, $category->slug, $category->parent?->slug,
                         $category->status, $category->is_visible ? 'visible' : 'hidden', $category->sort_order,
                         $category->products_count, $category->description, $category->meta_title, $category->meta_description,
-                    ]);
+                    ], ',', '"', '');
                 }
             });
             fclose($out);
@@ -223,8 +232,7 @@ class CategoryController extends Controller
     {
         $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:2048']]);
         $handle = fopen($request->file('file')->getRealPath(), 'rb');
-        $header = fgetcsv($handle);
-        $expected = ['name','slug','parent_slug','status','visibility','sort_order','description','meta_title','meta_description'];
+        $header = fgetcsv($handle, escape: '');
         if (! $header) {
             throw ValidationException::withMessages(['file' => 'The CSV is empty.']);
         }
@@ -236,7 +244,7 @@ class CategoryController extends Controller
         }
 
         $rows = [];
-        while (($values = fgetcsv($handle)) !== false && count($rows) < 500) {
+        while (($values = fgetcsv($handle, escape: '')) !== false && count($rows) < 500) {
             $values = array_pad($values, count($header), null);
             $row = array_combine($header, array_slice($values, 0, count($header)));
             if (filled($row['name'] ?? null) && filled($row['slug'] ?? null)) {
@@ -250,15 +258,17 @@ class CategoryController extends Controller
 
         DB::transaction(function () use ($rows): void {
             foreach ($rows as $row) {
-                $status = isset(self::STATUSES[$row['status'] ?? '']) ? $row['status'] : 'active';
+                $rowStatus = (string) ($row['status'] ?? '');
+                $status = isset(self::STATUSES[$rowStatus]) ? $rowStatus : 'active';
+                $isVisible = strtolower((string) ($row['visibility'] ?? 'visible')) !== 'hidden';
                 $category = Category::query()->firstOrNew(['slug' => Str::slug($row['slug'])]);
                 $before = $category->exists ? $category->toArray() : null;
                 $category->fill([
                     'name' => trim($row['name']),
                     'description' => $row['description'] ?? null,
                     'status' => $status,
-                    'is_active' => $status === 'active',
-                    'is_visible' => strtolower((string) ($row['visibility'] ?? 'visible')) !== 'hidden',
+                    'is_active' => $status === 'active' && $isVisible,
+                    'is_visible' => $isVisible,
                     'sort_order' => is_numeric($row['sort_order'] ?? null) ? max(0, (int) $row['sort_order']) : 0,
                     'meta_title' => $row['meta_title'] ?? null,
                     'meta_description' => $row['meta_description'] ?? null,
