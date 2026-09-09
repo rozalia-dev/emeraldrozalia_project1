@@ -87,9 +87,12 @@ jobs:
           node --check public/js/video-playback.js
           node --check public/js/spin-viewer.js
           node --check public/js/spins-admin.js
+          node --check public/js/tryons-admin.js
+          node --check public/js/tryon-tracking.js
           php artisan migrate:fresh --seed --force
           php tests/Browser/seed-video.php
           php tests/Browser/seed-spin.php
+          php tests/Browser/seed-tryon.php
           npm install --no-audit --no-fund --prefix "$VIDEO_BROWSER_MODULES" playwright@1.55.0
           "$VIDEO_BROWSER_MODULES/node_modules/.bin/playwright" install --with-deps chromium
           command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y ffmpeg; }
@@ -102,6 +105,7 @@ jobs:
           done
           node tests/Browser/video-dashboard.cjs
           node tests/Browser/spin-dashboard.cjs
+          node tests/Browser/tryon-dashboard.cjs
 
       - name: Upload media browser evidence
         if: always()
