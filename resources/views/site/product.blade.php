@@ -180,6 +180,16 @@
     </div>
 </section>
 @endif
+@php($productSpins = \App\Models\ProductSpin::where('product_id',$product->id)->with('product')->where('status','published')->where('visibility','public')->get()->filter(fn($spin)=>$spin->isPublic()))
+@if($productSpins->isNotEmpty())
+<link rel="stylesheet" href="/css/spins.css">
+<section class="product-details" style="padding:24px" aria-label="Interactive 360° product views">
+<h2>Explore in 360°</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:24px">
+@foreach($productSpins as $spin)<article><h3>{{ $spin->title }}</h3><x-spin-viewer :spin="$spin" /></article>@endforeach
+</div></section>
+<script src="/js/spin-viewer.js" defer></script>
+@endif
 @endsection
 
 @push('scripts')

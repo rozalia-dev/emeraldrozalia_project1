@@ -41,7 +41,7 @@
                         ['route'=>'admin.media.index','label'=>'Product Media Manager','icon'=>'camera','active'=>'admin/resource/media-manager*'],
                         ['route'=>'admin.images.index','label'=>'Images','icon'=>'camera','active'=>'admin/resource/images*'],
                         ['slug'=>'videos','label'=>'Videos','icon'=>'file-text','active'=>'admin/resource/videos*'],
-                        ['slug'=>'360-product-view','label'=>'360° Product View','icon'=>'refresh','active'=>'admin/resource/360-product-view*'],
+                        ['route'=>'admin.spins.index','label'=>'360° Product View','icon'=>'refresh','active'=>'admin/resource/360-product-view*'],
                         ['slug'=>'virtual-try-on','label'=>'Virtual Try-On','icon'=>'heart','active'=>'admin/resource/virtual-try-on*'],
                         ['slug'=>'categories','label'=>'Categories','icon'=>'package','active'=>'admin/resource/categories*'],
                         ['slug'=>'collections','label'=>'Collections','icon'=>'clover','active'=>'admin/resource/collections*'],
