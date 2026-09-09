@@ -34,7 +34,13 @@ class SpinController extends Controller
         $selected=$request->filled('edit')?ProductSpin::findOrFail($request->integer('edit')):$spins->first();
         $statuses=ProductSpin::STATUSES;
         $categories=ProductSpin::CATEGORIES;
-        return view('admin.spins.index',compact('spins','stats','types','products','selected','statuses','categories'));
+        $typeTotal=max(1,(int)$stats['total']);
+        $angleProduct=round(360*(int)($types['product']??0)/$typeTotal,2);
+        $angleLifestyle=round($angleProduct+(360*(int)($types['lifestyle']??0)/$typeTotal),2);
+        $anglePromotional=round($angleLifestyle+(360*(int)($types['promotional']??0)/$typeTotal),2);
+        $pageStart=max(1,$spins->currentPage()-2);
+        $pageEnd=min($spins->lastPage(),$spins->currentPage()+2);
+        return view('admin.spins.index',compact('spins','stats','types','products','selected','statuses','categories','angleProduct','angleLifestyle','anglePromotional','pageStart','pageEnd'));
     }
     private function save(Request $request, ?ProductSpin $spin=null)
     {
