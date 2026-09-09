@@ -20,7 +20,7 @@ class TryOnViewerController extends Controller
         $path = data_get($tryon->files, $asset);
         abort_unless(is_string($path) && $path !== '', 404);
         $quotedUuid = preg_quote($tryon->uuid, '~');
-        abort_unless((bool) preg_match('~^tryons/'.$quotedUuid.'/(overlay\.(png|jpg|webp)|model\.(glb|usdz))$~', $path), 404);
+        abort_unless((bool) preg_match('~^tryons/'.$quotedUuid.'/[a-z0-9]{12}/(overlay\.(png|jpg|webp)|model\.(glb|usdz))$~', $path), 404);
         abort_unless(Storage::disk('local')->exists($path), 404);
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $mime = match ($extension) {
@@ -54,18 +54,15 @@ class TryOnViewerController extends Controller
             'visitor_hash' => $hash,
             'day' => now()->toDateString(),
         ];
-        TryOnVisit::insertOrIgnore($key + [
+        $visit = TryOnVisit::firstOrCreate($key, [
             'device' => $data['device'],
             'converted' => $data['converted'],
             'session_seconds' => $data['session_seconds'],
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
-        TryOnVisit::where($key)->update([
+        $visit->update([
             'device' => $data['device'],
-            'converted' => $data['converted'] ? true : \DB::raw('converted'),
-            'session_seconds' => \DB::raw('GREATEST(session_seconds, '.(int) $data['session_seconds'].')'),
-            'updated_at' => now(),
+            'converted' => $visit->converted || $data['converted'],
+            'session_seconds' => max((int) $visit->session_seconds, (int) $data['session_seconds']),
         ]);
         return response()->noContent();
     }
