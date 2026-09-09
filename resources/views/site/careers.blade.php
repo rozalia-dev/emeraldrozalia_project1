@@ -26,7 +26,7 @@
         </div>
         <div class="career-hero-copy">
             <p class="career-kicker">CAREER WITH US</p>
-            <h1 id="career-title">BUILD YOUR<br>CAREER WITH<br><em>EMERALD ROZALIA</em></h1>
+            <h1 id="career-title" aria-label="BUILD YOUR CAREER WITH EMERALD ROZALIA">BUILD YOUR<br>CAREER WITH<br><em>EMERALD ROZALIA</em></h1>
             <p>Join a growing Irish brand connecting craftsmanship, creativity, retail and global opportunity from our home in Limerick.</p>
             <div class="career-hero-actions">
                 <a href="#open-positions" class="career-btn">VIEW OPEN POSITIONS <x-icon name="arrow-right" size="18" /></a>
