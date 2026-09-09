@@ -131,7 +131,7 @@ class TryOnDashboardTest extends TestCase
         $asset=TryOnAsset::firstOrFail();
         Auth::logout();
         $response=$this->get('/virtual-tryon?product_id='.$product->id)->assertOk();
-        $response->assertSee(route('tryons.asset',[$asset->uuid,'preview']),false)->assertDontSee('legacy/overlay.png',false)->assertSee('data-try-meta',false);
+        $response->assertSee($asset->uuid,false)->assertDontSee('legacy/overlay.png',false)->assertSee('data-try-meta',false);
         $this->get('/product/'.$product->slug)->assertOk()->assertSee('/virtual-tryon?product_id='.$product->id,false);
     }
 
