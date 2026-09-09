@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
 
@@ -18,36 +19,41 @@ class TryOnFiles
     public function store(UploadedFile $upload, string $uuid): array
     {
         $extension = strtolower($upload->getClientOriginalExtension());
-        if ($extension === 'zip') {
-            return $this->storeZip($upload, $uuid);
-        }
-        if (!in_array($extension, array_merge(self::IMAGE_EXTENSIONS, self::MODEL_EXTENSIONS), true)) {
+        if (!in_array($extension, array_merge(['zip'], self::IMAGE_EXTENSIONS, self::MODEL_EXTENSIONS), true)) {
             throw ValidationException::withMessages(['asset' => 'Use ZIP, PNG, JPG, WebP, GLB or USDZ files only.']);
         }
-        $directory = 'tryons/'.$uuid;
-        Storage::disk('local')->deleteDirectory($directory);
+        $directory = 'tryons/'.$uuid.'/'.Str::lower(Str::random(12));
         try {
-            $files = [];
-            if (in_array($extension, self::IMAGE_EXTENSIONS, true)) {
-                $files['preview'] = $this->storeImage(file_get_contents($upload->getRealPath()), $directory, $extension);
-            } else {
-                $files['model'] = $this->storeModel(file_get_contents($upload->getRealPath()), $directory, $extension);
-            }
-            return ['files'=>$files,'bytes'=>$this->sizeOf($files),'directory'=>$directory];
+            return $extension === 'zip'
+                ? $this->storeZip($upload, $directory)
+                : $this->storeSingle($upload, $directory, $extension);
         } catch (\Throwable $e) {
             Storage::disk('local')->deleteDirectory($directory);
             throw $e;
         }
     }
 
-    private function storeZip(UploadedFile $upload, string $uuid): array
+    private function storeSingle(UploadedFile $upload, string $directory, string $extension): array
+    {
+        $data = file_get_contents($upload->getRealPath());
+        if (!is_string($data) || $data === '') {
+            throw ValidationException::withMessages(['asset'=>'The uploaded try-on asset could not be read.']);
+        }
+        $files = [];
+        if (in_array($extension, self::IMAGE_EXTENSIONS, true)) {
+            $files['preview'] = $this->storeImage($data, $directory, $extension);
+        } else {
+            $files['model'] = $this->storeModel($data, $directory, $extension);
+        }
+        return ['files'=>$files,'bytes'=>$this->sizeOf($files),'directory'=>$directory];
+    }
+
+    private function storeZip(UploadedFile $upload, string $directory): array
     {
         $zip = new ZipArchive();
         if ($zip->open($upload->getRealPath()) !== true) {
             throw ValidationException::withMessages(['asset'=>'The ZIP archive could not be opened.']);
         }
-        $directory = 'tryons/'.$uuid;
-        Storage::disk('local')->deleteDirectory($directory);
         try {
             if ($zip->numFiles < 1 || $zip->numFiles > self::MAX_ARCHIVE_ENTRIES) {
                 throw ValidationException::withMessages(['asset'=>'A ZIP may contain between 1 and '.self::MAX_ARCHIVE_ENTRIES.' supported assets.']);
@@ -86,9 +92,6 @@ class TryOnFiles
             }
             $files = array_filter(['preview'=>$preview,'model'=>$model]);
             return ['files'=>$files,'bytes'=>$this->sizeOf($files),'directory'=>$directory];
-        } catch (\Throwable $e) {
-            Storage::disk('local')->deleteDirectory($directory);
-            throw $e;
         } finally {
             $zip->close();
         }
@@ -107,11 +110,14 @@ class TryOnFiles
         $path = $directory.'/overlay.'.$outputExt;
         ob_start();
         if ($outputExt === 'png') {
-            imagealphablending($image, false); imagesavealpha($image, true); imagepng($image, null, 8);
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+            imagepng($image, null, 8);
         } elseif ($outputExt === 'webp' && function_exists('imagewebp')) {
             imagewebp($image, null, 88);
         } else {
-            imagejpeg($image, null, 90); $path = $directory.'/overlay.jpg';
+            imagejpeg($image, null, 90);
+            $path = $directory.'/overlay.jpg';
         }
         $encoded = ob_get_clean();
         imagedestroy($image);
