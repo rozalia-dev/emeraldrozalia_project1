@@ -188,7 +188,7 @@ class TryOnController extends Controller
     {
         $entries = AuditLog::where('subject_type',TryOnAsset::class)
             ->where('subject_id',(string) $tryon->id)
-            ->latest('created_at')->limit(50)->get(['action','created_at','user_id']);
+            ->latest('id')->limit(50)->get(['action','created_at','user_id']);
         return response()->json(['uuid'=>$tryon->uuid,'entries'=>$entries]);
     }
 
