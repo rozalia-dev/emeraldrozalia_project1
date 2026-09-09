@@ -11,27 +11,32 @@ class CareersReferencePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_careers_page_matches_approved_reference_contract(): void
+    public function test_careers_page_renders_live_responsive_content_without_embedded_mockup(): void
     {
-        $this->get('/careers')
+        $response = $this->get('/careers')
             ->assertOk()
             ->assertSee([
                 'CAREER WITH US',
                 'BUILD YOUR',
                 'CAREER WITH',
                 'EMERALD ROZALIA',
+                'CRAFT.',
+                'CREATE.',
+                'GROW.',
                 'CURRENT OPEN POSITIONS',
                 'Retail Store Manager',
                 'Digital Marketing Executive',
                 'Warehouse &amp; Fulfilment Assistant',
                 'APPLY TO JOIN EMERALD ROZALIA',
-                'MORE THAN A JOB.',
+                'PROUDLY BASED',
+                'IN LIMERICK',
                 'READY TO BUILD YOUR FUTURE',
-                '/css/careers.css?v=20260909-approved-reference',
-                '/assets/brand/careers-reference.png',
+                '/css/careers.css?v=20260909-careers-live-layout',
             ], false);
 
-        $this->assertFileExists(public_path('assets/brand/careers-reference.png'));
+        $response->assertDontSee('/assets/brand/careers-reference.png', false)
+            ->assertDontSee('data-approved-reference', false)
+            ->assertSee('/assets/logo/logo_two_line.png', false);
     }
 
     public function test_career_application_enters_inquiry_and_communication_centre(): void
