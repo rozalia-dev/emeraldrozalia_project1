@@ -73,7 +73,6 @@ class VideoPlaybackController extends Controller
         $videos = ProductVideo::with('product')
             ->where('active',true)
             ->whereNotNull('uuid')
-            ->where('uuid','!=','')
             ->get()
             ->filter(fn ($video) => $video->isPubliclyPlayable());
         return response()->view('site.video-sitemap',compact('videos'),200,['Content-Type'=>'application/xml; charset=UTF-8']);
