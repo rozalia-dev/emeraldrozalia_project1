@@ -40,15 +40,18 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES,'pa
         await page.locator('[data-copy-uuid]').waitFor();
         await page.locator('[data-audit]').last().click();
         await page.locator('#sd-audit[open]').waitFor();
-        const auditText=await page.locator('#sd-audit [data-audit-content]').innerText();
+        const auditOutput=page.locator('#sd-audit [data-audit-content]');
+        await auditOutput.filter({hasText:/UUID:/i}).waitFor();
+        const auditText=await auditOutput.innerText();
         assert.match(auditText,/^UUID: [0-9a-f-]+/i,'Audit endpoint returns the selected UUID');
         await page.locator('#sd-audit [data-close]').click();
 
         const publicHref=await page.locator('.sd-preview-card a[href*="/360/"]').getAttribute('href');
         assert.ok(publicHref,'Public 360 viewer link is available');
+        const publicPath=new URL(publicHref,base).pathname;
         const visitor=await browser.newContext();
         const publicPage=await visitor.newPage();
-        await publicPage.goto(new URL(publicHref,base).toString());
+        await publicPage.goto(base+publicPath);
         await publicPage.locator('[data-spin-widget]').waitFor();
         assert.equal((await visitor.request.get(base+'/360-sitemap.xml')).status(),200);
 
@@ -60,7 +63,7 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES,'pa
         await page.locator('#sd-create [data-close]').click();
 
         await page.locator('.sd-filters [name=q]').fill('Browser Spin Cap');
-        await Promise.all([page.waitForURL(/q=/),page.locator('.sd-filters button[type=submit]').click()]);
+        await Promise.all([page.waitForURL(/q=/),page.locator('.sd-filters .sd-button').click()]);
         await page.locator('tbody tr').filter({hasText:'BROWSER-SPIN-001'}).first().waitFor();
 
         await page.setViewportSize({width:390,height:844});
