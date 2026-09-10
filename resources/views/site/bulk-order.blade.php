@@ -3,6 +3,7 @@
 @section('title','Bulk Order Solutions — Emerald Rozalia')
 @push('styles')
 <link rel="stylesheet" href="/css/bulk-order.css?v=20260908-approved">
+<link rel="stylesheet" href="/css/order-fullwidth.css?v=20260910-fullwidth">
 @endpush
 @section('content')
 <div class="bulk-shell" data-reference-contract="BULK ORDER SOLUTIONS | OUR BULK ORDER PROCESS | REQUEST A BULK QUOTE | WHAT YOU CAN ORDER | QUANTITY, LEAD TIME & PRICING">

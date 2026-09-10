@@ -26,6 +26,7 @@ class CorporateOrderPageTest extends TestCase
                 'TRUSTED BY ORGANISATIONS WORLDWIDE',
                 "LET'S WORK TOGETHER",
                 '/css/corporate-order.css?v=20260908-approved',
+                '/css/order-fullwidth.css?v=20260910-fullwidth',
                 '/assets/brand/corporate-order-reference.png?v=20260908',
             ], false);
 

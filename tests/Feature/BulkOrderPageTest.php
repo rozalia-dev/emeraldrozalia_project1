@@ -29,6 +29,7 @@ class BulkOrderPageTest extends TestCase
                 'WELCOME TO',
                 'VISIT OUR FACTORY',
                 '/css/bulk-order.css?v=20260908-approved',
+                '/css/order-fullwidth.css?v=20260910-fullwidth',
             ], false);
 
         $this->assertFileExists(public_path('assets/brand/bulk-order-reference.png'));
