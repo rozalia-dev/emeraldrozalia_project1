@@ -16,7 +16,7 @@ class ShopReferencePageTest extends TestCase
         $this->get('/shop')
             ->assertOk()
             ->assertSee([
-                'SHOP ALL HATS &amp; CAPS',
+                'SHOP ALL HATS & CAPS',
                 'Irish made. Premium quality. Made in Limerick.',
                 'IRISH MADE',
                 'WORLDWIDE DELIVERY',
