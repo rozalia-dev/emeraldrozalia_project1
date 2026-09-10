@@ -32,6 +32,7 @@ class CareersReferencePageTest extends TestCase
                 'IN LIMERICK',
                 'READY TO BUILD YOUR FUTURE',
                 '/css/careers.css?v=20260909-careers-live-layout',
+                '/css/careers-fullwidth.css?v=20260910-fullwidth',
             ], false);
 
         $response->assertDontSee('/assets/brand/careers-reference.png', false)
