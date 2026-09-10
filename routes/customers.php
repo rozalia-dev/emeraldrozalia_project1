@@ -3,7 +3,7 @@
 use App\Http\Controllers\Admin\CustomerManagementController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('admin')->middleware(['auth','admin'])->name('admin.')->group(function () {
+Route::prefix('admin')->middleware(['web','auth','admin'])->name('admin.')->group(function () {
     Route::get('/resource/customers', [CustomerManagementController::class,'index'])->name('customers.index');
     Route::post('/resource/customers', [CustomerManagementController::class,'store'])->name('customers.store');
     Route::get('/resource/customers/export', [CustomerManagementController::class,'exportCustomers'])->name('customers.export');
