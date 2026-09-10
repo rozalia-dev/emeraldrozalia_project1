@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             require base_path('routes/order-master.php');
             require base_path('routes/customers.php');
+            require base_path('routes/user-system.php');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
