@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
     @stack('styles')
 </head>
-<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -141,9 +141,13 @@
         <details class="admin-nav-group" open>
             <summary><span>REPORTS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
-                <a class="{{request()->is('admin/resource/sales-reports*')?'active':''}}" href="{{route('admin.resource','sales-reports')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Sales Report</span></span></a>
-                <a class="{{request()->is('admin/resource/performance-targets*')?'active':''}}" href="{{route('admin.resource','performance-targets')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Franchise Performance</span></span></a>
-                <a class="{{request()->is('admin/resource/customer-order-reports*')?'active':''}}" href="{{route('admin.resource','customer-order-reports')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Customer &amp; Order Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.overview')?'active':''}}" href="{{route('admin.reports.overview')}}"><span class="admin-nav-item-label"><x-icon name="chart" size="14" /><span>General Reporting / Report Center</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.approvals')?'active':''}}" href="{{route('admin.reports.approvals')}}"><span class="admin-nav-item-label"><x-icon name="check" size="14" /><span>Approval Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.custom')?'active':''}}" href="{{route('admin.reports.custom')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Custom Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.scheduler')?'active':''}}" href="{{route('admin.reports.scheduler')}}"><span class="admin-nav-item-label"><x-icon name="calendar" size="14" /><span>Schedule Report</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.history')?'active':''}}" href="{{route('admin.reports.history')}}"><span class="admin-nav-item-label"><x-icon name="clock" size="14" /><span>Report History</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.returns')?'active':''}}" href="{{route('admin.reports.returns')}}"><span class="admin-nav-item-label"><x-icon name="refresh" size="14" /><span>Returns &amp; Refund Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.roles')?'active':''}}" href="{{route('admin.reports.roles')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>User Roles &amp; Permissions</span></span></a>
             </div>
         </details>
         <details class="admin-nav-group" open>
