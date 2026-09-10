@@ -113,4 +113,19 @@ class OrderMasterOverviewTest extends TestCase
         $this->actingAs($admin)->get(route('admin.order-master','franchise'))->assertOk()->assertSee('FRAN-KEEP-001',false);
         $this->actingAs($admin)->get('/admin/resource/online-sales')->assertOk()->assertSee('Online Sales',false);
     }
+
+    public function test_shared_admin_sidebar_has_one_order_navigation_source(): void
+    {
+        $admin=$this->admin();
+        $response=$this->actingAs($admin)->get(route('admin.order-master.overview'))->assertOk();
+        $html=$response->getContent();
+
+        $this->assertSame(1, substr_count($html, 'id="admin-sidebar"'));
+        $this->assertStringContainsString(route('admin.order-master.overview'), $html);
+        $this->assertStringNotContainsString('ORDER MANAGEMENT (6 CATEGORIES)', $html);
+
+        foreach (['online','corporate','bulk','franchise','franchise_retail','buyer'] as $type) {
+            $this->assertStringContainsString(route('admin.order-master', $type), $html);
+        }
+    }
 }
