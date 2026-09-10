@@ -74,7 +74,15 @@ jobs:
         run: |
           php artisan migrate:fresh --seed --force
           php artisan route:list
-          vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
+          vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning --log-junit "$RUNNER_TEMP/phpunit-junit.xml"
+
+      - name: Upload PHPUnit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-diagnostics
+          path: ${{ runner.temp }}/phpunit-junit.xml
+          if-no-files-found: ignore
 
       - name: Media browser acceptance
         env:
