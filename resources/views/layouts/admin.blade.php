@@ -57,17 +57,14 @@
         [
             'label'=>'ONLINE SALES',
             'items'=>[
-                ['slug'=>'online-sales','label'=>'Orders ('.$orderCategoryCount.' Categories)','icon'=>'shopping-bag','active'=>'admin/resource/online-sales*','chevron'=>true],
+                ['route'=>'admin.order-master.overview','label'=>'Order Master Overview','icon'=>'shopping-bag','active'=>'admin/order-master*'],
+                ...$orderItems,
                 ['slug'=>'customers','label'=>'Customers','icon'=>'users','active'=>'admin/resource/customers*'],
                 ['slug'=>'cart-checkout','label'=>'Cart & Checkout','icon'=>'shopping-bag','active'=>'admin/resource/cart-checkout*'],
                 ['slug'=>'payments','label'=>'Payments','icon'=>'credit-card','active'=>'admin/resource/payments*'],
                 ['slug'=>'discounts-coupons','label'=>'Discounts & Coupons','icon'=>'star','active'=>'admin/resource/discounts-coupons*'],
                 ['slug'=>'sales-reports','label'=>'Sales Reports','icon'=>'file-text','active'=>'admin/resource/sales-reports*'],
             ],
-        ],
-        [
-            'label'=>'ORDER MANAGEMENT ('.$orderCategoryCount.' CATEGORIES)',
-            'items'=>$orderItems,
         ],
         [
             'label'=>'FRANCHISE MANAGEMENT',
