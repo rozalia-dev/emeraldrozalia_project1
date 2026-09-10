@@ -11,6 +11,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($c
     // not replace one another in Laravel's route collection.
     foreach (CommunicationCenterController::SECTIONS as $section) {
         Route::get('/resource/'.$section, [CommunicationCenterController::class, 'show'])
+            ->defaults('section', $section)
             ->name('admin.communication-center.page.'.$section);
     }
 
