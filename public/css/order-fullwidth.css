@@ -1,0 +1,13 @@
+.corporate-shell,.bulk-shell{width:min(1536px,100%);margin:0 auto;padding-left:14px;padding-right:14px}
+.corporate-order-page .flash,.bulk-order-page .flash{max-width:1536px}
+@media(min-width:1101px){
+.corporate-hero,.bulk-hero{grid-template-columns:minmax(360px,34%) minmax(0,66%)}
+.corporate-hero-copy,.bulk-hero-copy{padding-left:clamp(24px,2.2vw,42px);padding-right:clamp(20px,1.8vw,34px)}
+.corporate-hero-copy>p,.bulk-hero-copy>p{max-width:420px}
+.corporate-reference--hero,.bulk-reference--hero{background-size:cover;background-position:center}
+.corporate-reference--trust,.bulk-reference--trust,.bulk-reference--factory{background-size:cover;background-position:center}
+.corporate-main-grid,.bulk-main-grid{grid-template-columns:minmax(0,1.65fr) minmax(360px,.9fr)}
+.corporate-process-panel,.bulk-process-panel,.corporate-offer-panel,.bulk-products-panel,.corporate-why-panel,.bulk-pricing-panel,.corporate-quote-panel,.bulk-quote-panel{min-width:0}
+.corporate-offer-photo,.bulk-product-photo{background-size:cover;background-position:center}
+}
+@media(max-width:1100px){.corporate-shell,.bulk-shell{width:100%}}
