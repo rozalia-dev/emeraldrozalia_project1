@@ -258,3 +258,720 @@ class CommunicationCenterController extends Controller
             $this->applyConversationFilters($query, $request);
             $rows = $query->limit(10000)->get();
 
+            return response()->streamDownload(function () use ($rows): void {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['UUID', 'Channel', 'Contact', 'Subject', 'Status', 'Priority', 'Assigned To', 'Follow-up', 'Created']);
+                foreach ($rows as $row) {
+                    fputcsv($handle, [
+                        $row->uuid,
+                        $row->channel,
+                        $row->contact,
+                        $row->subject,
+                        $row->status,
+                        $row->priority,
+                        $row->assignee?->name,
+                        optional($row->follow_up_at)->toDateTimeString(),
+                        optional($row->created_at)->toDateTimeString(),
+                    ]);
+                }
+                fclose($handle);
+            }, $section.'-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
+        }
+
+        $query = AdminRecord::query()->where('module', $section);
+        $this->applyRecordFilters($query, $request, $config);
+        $rows = $query->latest('id')->limit(10000)->get();
+
+        return response()->streamDownload(function () use ($rows): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Reference', 'Title', 'Status', 'Date', 'Amount', 'Metadata']);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row->reference,
+                    $row->title,
+                    $row->status,
+                    optional($row->record_date)->format('Y-m-d'),
+                    $row->amount,
+                    json_encode($row->data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ]);
+            }
+            fclose($handle);
+        }, $section.'-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    private function conversationQuery(string $section): Builder
+    {
+        $query = Conversation::query()
+            ->with(['messages' => fn ($messages) => $messages->oldest('id'), 'assignee'])
+            ->latest('id');
+
+        return $this->scopeConversationChannel($query, $section);
+    }
+
+    private function scopeConversationChannel(Builder $query, string $section): Builder
+    {
+        return match ($section) {
+            'chat-24-7' => $query->where('channel', 'chat'),
+            'whatsapp' => $query->where('channel', 'whatsapp'),
+            'email' => $query->where('channel', 'email'),
+            default => $query,
+        };
+    }
+
+    private function applyConversationFilters(Builder $query, Request $request): void
+    {
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder->where('contact', 'like', '%'.$search.'%')
+                    ->orWhere('subject', 'like', '%'.$search.'%')
+                    ->orWhere('uuid', 'like', '%'.$search.'%');
+            });
+        }
+
+        $status = (string) $request->query('status', '');
+        if (in_array($status, ['new', 'open', 'pending', 'closed'], true)) {
+            $query->where('status', $status);
+        }
+
+        $priority = (string) $request->query('priority', '');
+        if (in_array($priority, ['low', 'normal', 'high', 'urgent'], true)) {
+            $query->where('priority', $priority);
+        }
+
+        $channel = (string) $request->query('channel', '');
+        if (in_array($channel, ['email', 'whatsapp', 'chat', 'web', 'phone', 'system'], true)) {
+            $query->where('channel', $channel);
+        }
+    }
+
+    private function applyRecordFilters(Builder $query, Request $request, array $config): void
+    {
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder->where('title', 'like', '%'.$search.'%')
+                    ->orWhere('reference', 'like', '%'.$search.'%');
+            });
+        }
+
+        $status = (string) $request->query('status', '');
+        $tab = (string) $request->query('tab', 'all');
+        if ($status === '' && isset($config['statuses'][$tab])) {
+            $status = $tab;
+        }
+        if (isset($config['statuses'][$status])) {
+            $query->where('status', $status);
+        }
+
+        $priority = Str::lower((string) $request->query('priority', ''));
+        if (in_array($priority, ['low', 'medium', 'normal', 'high', 'urgent'], true)) {
+            $query->where('data->priority', $priority);
+        }
+    }
+
+    private function applyAuditFilters(Builder $query, Request $request): void
+    {
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder->where('action', 'like', '%'.$search.'%')
+                    ->orWhere('subject_type', 'like', '%'.$search.'%')
+                    ->orWhere('request_id', 'like', '%'.$search.'%')
+                    ->orWhere('ip_address', 'like', '%'.$search.'%');
+            });
+        }
+    }
+
+    private function conversationMetrics(string $section): array
+    {
+        $base = fn () => $this->scopeConversationChannel(Conversation::query(), $section);
+        $total = $base()->count();
+        $open = $base()->whereIn('status', ['new', 'open'])->count();
+        $pending = $base()->where('status', 'pending')->count();
+        $closed = $base()->where('status', 'closed')->count();
+        $urgent = $base()->where('priority', 'urgent')->where('status', '!=', 'closed')->count();
+        $followUps = $base()->whereNotNull('follow_up_at')->where('status', '!=', 'closed')->count();
+
+        if ($section === 'communication-center') {
+            $approvals = AdminRecord::query()->where('module', 'approval-center')->whereIn('status', ['pending', 'in-progress'])->count();
+            $alerts = AdminRecord::query()->where('module', 'alerts-notifications')->whereIn('status', ['unread', 'in-progress', 'escalated'])->count();
+
+            return [
+                $this->metric('Total Conversations', $total, 'message', 'blue', 'Live communication records'),
+                $this->metric('Unread Messages', $base()->where('status', 'new')->count(), 'mail', 'green', 'Needs attention'),
+                $this->metric('Pending Approvals', $approvals, 'briefcase', 'orange', 'Waiting for decision'),
+                $this->metric('Open Follow-ups', $followUps, 'clock', 'purple', 'Scheduled commitments'),
+                $this->metric('Alerts & Notifications', $alerts, 'bell', 'red', 'Open alerts'),
+                $this->metric('Resolved (This Month)', $closed, 'check', 'teal', 'Closed conversations'),
+            ];
+        }
+
+        if ($section === 'chat-24-7') {
+            $answered = ConversationMessage::query()
+                ->where('direction', 'outbound')
+                ->whereHas('conversation', fn (Builder $query) => $this->scopeConversationChannel($query, $section))
+                ->count();
+
+            return [
+                $this->metric('Active Chats', $open, 'message', 'green', 'Open live sessions'),
+                $this->metric('Waiting', $pending, 'clock', 'orange', 'Waiting for agent'),
+                $this->metric('Answered (This Month)', $answered, 'check', 'blue', 'Stored outbound replies'),
+                $this->metric('Avg. Response Time', $this->averageResponseTime($section), 'clock', 'purple', 'From captured response data'),
+                $this->metric('Satisfaction (CSAT)', $this->averageCsat($section), 'star', 'green', 'Customer rating'),
+                $this->metric('Missed Chats', $urgent, 'alert', 'red', 'Urgent unresolved'),
+                $this->metric('SLA Met', $this->slaRate($total, $urgent), 'check', 'teal', 'Current communication SLA'),
+            ];
+        }
+
+        if ($section === 'whatsapp') {
+            return [
+                $this->metric('Conversations (This Month)', $total, 'message', 'green', 'WhatsApp threads'),
+                $this->metric('New Contacts', $this->uniqueContacts($section), 'users', 'blue', 'Unique contacts'),
+                $this->metric('Avg. Response Time', $this->averageResponseTime($section), 'clock', 'orange', 'Captured response data'),
+                $this->metric('Resolved', $closed, 'check', 'purple', 'Closed threads'),
+                $this->metric('Active Contacts', $open + $pending, 'users', 'green', 'Active contacts'),
+                $this->metric('SLA Met', $this->slaRate($total, $urgent), 'clock', 'red', 'Current SLA'),
+            ];
+        }
+
+        if ($section === 'email') {
+            $sent = ConversationMessage::query()
+                ->where('direction', 'outbound')
+                ->whereHas('conversation', fn (Builder $query) => $this->scopeConversationChannel($query, $section))
+                ->count();
+            $replied = $base()->whereHas('messages', fn (Builder $query) => $query->where('direction', 'outbound'))->count();
+
+            return [
+                $this->metric('Emails (This Month)', $total, 'mail', 'green', 'Tracked email threads'),
+                $this->metric('Inbox', $open + $pending, 'briefcase', 'blue', 'Open email work'),
+                $this->metric('Sent', $sent, 'message', 'orange', 'Outbound messages'),
+                $this->metric('Replied', $replied, 'refresh', 'purple', 'Threads with replies'),
+                $this->metric('Resolved', $closed, 'check', 'green', 'Closed email threads'),
+                $this->metric('SLA Breaches', $urgent, 'alert', 'red', 'Urgent unresolved'),
+            ];
+        }
+
+        return [
+            $this->metric('Total Conversations', $total, 'message', 'green', 'All channels'),
+            $this->metric('Open', $open, 'message', 'blue', 'New and open'),
+            $this->metric('Pending', $pending, 'briefcase', 'orange', 'Waiting'),
+            $this->metric('In Progress', $open, 'clock', 'purple', 'Being handled'),
+            $this->metric('Resolved', $closed, 'check', 'green', 'Resolved'),
+            $this->metric('Closed', $closed, 'check', 'dark', 'Closed'),
+            $this->metric('SLA Breaches', $urgent, 'alert', 'red', 'Urgent unresolved'),
+        ];
+    }
+
+    private function recordMetrics(string $section): array
+    {
+        $rows = AdminRecord::query()->where('module', $section)->get();
+        $count = fn (string ...$statuses) => $rows->whereIn('status', $statuses)->count();
+
+        if ($section === 'email-templates') {
+            return [
+                $this->metric('Total Templates', $rows->count(), 'mail', 'green', 'Reusable templates'),
+                $this->metric('Sent (This Month)', $this->sumMeta($rows, 'sent_count'), 'message', 'blue', 'Recorded sends'),
+                $this->metric('Opened', $this->sumMeta($rows, 'opened_count'), 'mail', 'orange', 'Tracked opens'),
+                $this->metric('Clicked', $this->sumMeta($rows, 'clicked_count'), 'message', 'purple', 'Tracked clicks'),
+                $this->metric('Replied', $this->sumMeta($rows, 'replied_count'), 'star', 'green', 'Template replies'),
+                $this->metric('Bounced', $this->sumMeta($rows, 'bounced_count'), 'alert', 'red', 'Delivery bounces'),
+            ];
+        }
+
+        if ($section === 'approval-center') {
+            return [
+                $this->metric('Total Requests', $rows->count(), 'briefcase', 'blue', 'All approval requests'),
+                $this->metric('Pending', $count('pending'), 'briefcase', 'orange', 'Awaiting approval'),
+                $this->metric('In Progress', $count('in-progress', 'escalated'), 'briefcase', 'purple', 'Being reviewed'),
+                $this->metric('Approved', $count('approved'), 'check', 'green', 'Approved requests'),
+                $this->metric('Rejected', $count('rejected'), 'alert', 'red', 'Rejected requests'),
+                $this->metric('Avg. Approval Time', $this->averageMetaDuration($rows, 'approval_seconds'), 'clock', 'dark', 'Captured workflow time'),
+            ];
+        }
+
+        if ($section === 'action-follow-ups') {
+            return [
+                $this->metric('Total Actions', $rows->count(), 'check', 'green', 'All follow-ups'),
+                $this->metric('Pending', $count('pending'), 'clock', 'orange', 'Waiting'),
+                $this->metric('In Progress', $count('in-progress'), 'message', 'blue', 'Active tasks'),
+                $this->metric('Completed', $count('completed'), 'check', 'purple', 'Finished'),
+                $this->metric('Overdue', $count('overdue'), 'alert', 'red', 'Needs attention'),
+                $this->metric('Avg. Completion Time', $this->averageMetaDuration($rows, 'completion_seconds'), 'clock', 'dark', 'Captured duration'),
+            ];
+        }
+
+        return [
+            $this->metric('Critical', $this->metaCount($rows, 'severity', 'critical'), 'bell', 'red', 'Critical alerts'),
+            $this->metric('High', $this->metaCount($rows, 'severity', 'high'), 'alert', 'orange', 'High severity'),
+            $this->metric('Medium', $this->metaCount($rows, 'severity', 'medium'), 'help', 'orange', 'Medium severity'),
+            $this->metric('Low', $this->metaCount($rows, 'severity', 'low'), 'help', 'blue', 'Low severity'),
+            $this->metric('Unread', $count('unread'), 'mail', 'purple', 'Unread alerts'),
+            $this->metric('Acknowledged', $count('acknowledged'), 'check', 'green', 'Acknowledged'),
+            $this->metric('Avg. Response Time', $this->averageMetaDuration($rows, 'response_seconds'), 'clock', 'dark', 'Captured response time'),
+        ];
+    }
+
+    private function reportMetrics(): array
+    {
+        $total = Conversation::query()->count();
+        $messages = ConversationMessage::query()->where('direction', 'outbound')->count();
+        $unique = Conversation::query()->whereNotNull('contact')->distinct()->count('contact');
+        $urgent = Conversation::query()->where('priority', 'urgent')->where('status', '!=', 'closed')->count();
+        $closed = Conversation::query()->where('status', 'closed')->count();
+
+        return [
+            $this->metric('Total Conversations', $total, 'message', 'green', 'All communication channels'),
+            $this->metric('Messages Sent', $messages, 'mail', 'blue', 'Stored messages'),
+            $this->metric('Unique Customers', $unique, 'users', 'purple', 'Distinct contacts'),
+            $this->metric('Avg. Response Time', $this->averageResponseTime('communication-center'), 'clock', 'orange', 'Captured response data'),
+            $this->metric('Avg. Resolution Time', $this->averageResolutionTime(), 'check', 'teal', 'Captured resolution data'),
+            $this->metric('Customer Satisfaction', $this->averageCsat('communication-center'), 'star', 'orange', 'Average CSAT'),
+            $this->metric('SLA Breach Rate', $total ? number_format(($urgent / $total) * 100, 2).'%' : '0.00%', 'alert', 'red', $closed.' conversations resolved'),
+        ];
+    }
+
+    private function auditMetrics(): array
+    {
+        $query = AuditLog::query();
+        $total = $query->count();
+
+        return [
+            $this->metric('Total Activities', $total, 'message', 'green', 'Complete audit activity'),
+            $this->metric('Messages Logged', (clone $query)->where('action', 'like', '%message%')->count(), 'mail', 'blue', 'Communication messages'),
+            $this->metric('Attachments', (clone $query)->where('action', 'like', '%attachment%')->count(), 'briefcase', 'orange', 'Attachment events'),
+            $this->metric('Actions Performed', (clone $query)->where('action', 'like', '%action%')->count(), 'star', 'purple', 'Action events'),
+            $this->metric('Changes Logged', (clone $query)->where(function (Builder $builder): void {
+                $builder->where('action', 'like', '%.updated%')->orWhere('action', 'like', '%changed%');
+            })->count(), 'file-text', 'teal', 'Change events'),
+            $this->metric('Users Involved', (clone $query)->whereNotNull('user_id')->distinct()->count('user_id'), 'users', 'red', 'Unique users'),
+        ];
+    }
+
+    private function reportData(): array
+    {
+        $total = max(1, Conversation::query()->count());
+
+        $channels = Conversation::query()
+            ->selectRaw('channel, COUNT(*) AS aggregate')
+            ->groupBy('channel')
+            ->orderByDesc('aggregate')
+            ->get()
+            ->map(fn ($row) => [
+                'label' => Str::headline($row->channel ?: 'Other'),
+                'count' => (int) $row->aggregate,
+                'share' => round(((int) $row->aggregate / $total) * 100, 2),
+            ])->values()->all();
+
+        $statuses = Conversation::query()
+            ->selectRaw('status, COUNT(*) AS aggregate')
+            ->groupBy('status')
+            ->orderByDesc('aggregate')
+            ->get()
+            ->map(fn ($row) => [
+                'label' => Str::headline($row->status ?: 'Unknown'),
+                'count' => (int) $row->aggregate,
+                'share' => round(((int) $row->aggregate / $total) * 100, 2),
+            ])->values()->all();
+
+        $trend = collect(range(6, 0))->map(function (int $daysAgo): array {
+            $date = now()->subDays($daysAgo);
+
+            return [
+                'label' => $date->format('M j'),
+                'count' => Conversation::query()->whereDate('created_at', $date->toDateString())->count(),
+            ];
+        })->all();
+
+        $sample = Conversation::query()->latest('id')->limit(5000)->get(['id', 'subject', 'channel', 'status', 'priority', 'assigned_to', 'metadata']);
+        $topics = $sample->groupBy(function (Conversation $conversation): string {
+            return (string) data_get($conversation->metadata, 'topic', $this->topicFromSubject($conversation->subject));
+        })->map->count()->sortDesc()->take(6)->map(function (int $count, string $label) use ($sample): array {
+            $base = max(1, $sample->count());
+            return ['label' => $label, 'count' => $count, 'share' => round(($count / $base) * 100, 2)];
+        })->values()->all();
+
+        $business = $sample->groupBy(function (Conversation $conversation): string {
+            return Str::headline((string) data_get($conversation->metadata, 'order_category', data_get($conversation->metadata, 'business_activity', 'General')));
+        })->map->count()->sortDesc()->take(7)->map(function (int $count, string $label) use ($sample): array {
+            $base = max(1, $sample->count());
+            return ['label' => $label, 'count' => $count, 'share' => round(($count / $base) * 100, 2)];
+        })->values()->all();
+
+        $agentRows = Conversation::query()
+            ->whereNotNull('assigned_to')
+            ->selectRaw('assigned_to, COUNT(*) AS aggregate')
+            ->groupBy('assigned_to')
+            ->orderByDesc('aggregate')
+            ->limit(5)
+            ->get();
+        $agentNames = User::query()->whereIn('id', $agentRows->pluck('assigned_to'))->pluck('name', 'id');
+        $agents = $agentRows->map(fn ($row) => [
+            'label' => $agentNames[$row->assigned_to] ?? 'Admin User',
+            'count' => (int) $row->aggregate,
+        ])->values()->all();
+
+        $urgent = Conversation::query()->where('priority', 'urgent')->where('status', '!=', 'closed')->count();
+        $sla = round(max(0, 100 - (($urgent / $total) * 100)), 2);
+
+        return [
+            'total' => Conversation::query()->count(),
+            'channels' => $channels,
+            'statuses' => $statuses,
+            'trend' => $trend,
+            'topics' => $topics,
+            'business' => $business,
+            'agents' => $agents,
+            'sla' => $sla,
+            'csat' => $this->averageCsat('communication-center'),
+            'avg_response' => $this->averageResponseTime('communication-center'),
+            'avg_resolution' => $this->averageResolutionTime(),
+            'open' => Conversation::query()->whereIn('status', ['new', 'open', 'pending'])->count(),
+            'closed' => Conversation::query()->where('status', 'closed')->count(),
+            'recent' => Conversation::query()->latest('id')->limit(5)->get(),
+            'approval_recent' => AdminRecord::query()->where('module', 'approval-center')->latest('id')->limit(5)->get(),
+            'alert_recent' => AdminRecord::query()->where('module', 'alerts-notifications')->latest('id')->limit(5)->get(),
+        ];
+    }
+
+    private function conversationSideData(string $section): array
+    {
+        $base = $this->scopeConversationChannel(Conversation::query(), $section);
+        $total = max(1, (clone $base)->count());
+
+        return [
+            'open' => (clone $base)->whereIn('status', ['new', 'open'])->count(),
+            'pending' => (clone $base)->where('status', 'pending')->count(),
+            'closed' => (clone $base)->where('status', 'closed')->count(),
+            'urgent' => (clone $base)->where('priority', 'urgent')->where('status', '!=', 'closed')->count(),
+            'total' => $total,
+        ];
+    }
+
+    private function recordSummary(string $section): array
+    {
+        $rows = AdminRecord::query()->where('module', $section)->latest('id')->get();
+
+        return [
+            'total' => $rows->count(),
+            'recent' => $rows->take(5),
+            'status_counts' => $rows->groupBy('status')->map->count()->sortDesc(),
+            'category_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'category', 'General'))->map->count()->sortDesc()->take(7),
+            'source_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'source', 'Communication Center'))->map->count()->sortDesc()->take(7),
+            'priority_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'priority', 'normal'))->map->count()->sortDesc(),
+            'severity_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'severity', 'low'))->map->count()->sortDesc(),
+        ];
+    }
+
+    private function auditSummary(): array
+    {
+        $rows = AuditLog::query()->latest('created_at')->limit(5000)->get();
+
+        return [
+            'total' => $rows->count(),
+            'by_action' => $rows->groupBy(fn (AuditLog $row) => Str::headline(Str::before($row->action, '.')))->map->count()->sortDesc()->take(7),
+            'by_entity' => $rows->groupBy(fn (AuditLog $row) => class_basename((string) $row->subject_type ?: 'System'))->map->count()->sortDesc()->take(7),
+            'recent' => $rows->take(5),
+        ];
+    }
+
+    private function validatedRecord(Request $request, array $config): array
+    {
+        return $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'reference' => ['nullable', 'string', 'max:100'],
+            'status' => ['required', Rule::in(array_keys($config['statuses']))],
+            'record_date' => ['nullable', 'date'],
+            'amount' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
+            'subject' => ['nullable', 'string', 'max:250'],
+            'description' => ['nullable', 'string', 'max:3000'],
+            'category' => ['nullable', 'string', 'max:120'],
+            'type' => ['nullable', 'string', 'max:120'],
+            'priority' => ['nullable', Rule::in(['low', 'medium', 'normal', 'high', 'urgent'])],
+            'assigned_to_name' => ['nullable', 'string', 'max:180'],
+            'requested_by' => ['nullable', 'string', 'max:180'],
+            'approver' => ['nullable', 'string', 'max:180'],
+            'entity' => ['nullable', 'string', 'max:180'],
+            'source' => ['nullable', 'string', 'max:120'],
+            'due_at' => ['nullable', 'date'],
+            'language' => ['nullable', 'string', 'max:80'],
+            'channel' => ['nullable', 'string', 'max:80'],
+            'body' => ['nullable', 'string', 'max:10000'],
+            'severity' => ['nullable', Rule::in(['critical', 'high', 'medium', 'low', 'informational'])],
+            'notes' => ['nullable', 'string', 'max:3000'],
+        ]);
+    }
+
+    private function recordAttributes(string $section, array $data, ?AdminRecord $existing = null): array
+    {
+        $metadataKeys = [
+            'subject', 'description', 'category', 'type', 'priority', 'assigned_to_name',
+            'requested_by', 'approver', 'entity', 'source', 'due_at', 'language', 'channel',
+            'body', 'severity', 'notes',
+        ];
+        $metadata = [];
+        foreach ($metadataKeys as $key) {
+            if (array_key_exists($key, $data)) {
+                $metadata[$key] = $data[$key];
+            }
+        }
+
+        return [
+            'module' => $section,
+            'title' => $data['title'],
+            'reference' => $data['reference'] ?? $existing?->reference,
+            'status' => $data['status'],
+            'amount' => $data['amount'] ?? null,
+            'record_date' => filled($data['record_date'] ?? null) ? $data['record_date'] : ($existing?->record_date ?? now()->toDateString()),
+            'user_id' => auth()->id(),
+            'data' => array_merge($existing?->data ?? [], $metadata),
+        ];
+    }
+
+    private function guardRecord(string $section, AdminRecord $record): void
+    {
+        abort_unless($record->module === $section, 404);
+    }
+
+    private function referenceFor(string $section, int $id): string
+    {
+        $prefix = match ($section) {
+            'email-templates' => 'TPL',
+            'approval-center' => 'APR',
+            'action-follow-ups' => 'ACT',
+            'alerts-notifications' => 'ALT',
+            default => 'COM',
+        };
+
+        return $prefix.'-'.now()->format('ymd').'-'.str_pad((string) $id, 5, '0', STR_PAD_LEFT);
+    }
+
+    private function metric(string $label, mixed $value, string $icon, string $tone, string $sub): array
+    {
+        return compact('label', 'value', 'icon', 'tone', 'sub');
+    }
+
+    private function metaCount(Collection $rows, string $key, string $value): int
+    {
+        return $rows->filter(fn (AdminRecord $row) => Str::lower((string) data_get($row->data, $key)) === $value)->count();
+    }
+
+    private function sumMeta(Collection $rows, string $key): int
+    {
+        return (int) $rows->sum(fn (AdminRecord $row) => (int) data_get($row->data, $key, 0));
+    }
+
+    private function averageMetaDuration(Collection $rows, string $key): string
+    {
+        $values = $rows->map(fn (AdminRecord $row) => data_get($row->data, $key))
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (float) $value);
+        if ($values->isEmpty()) {
+            return '—';
+        }
+
+        return $this->durationLabel((int) round((float) $values->average()));
+    }
+
+    private function averageResponseTime(string $section): string
+    {
+        $rows = $this->scopeConversationChannel(Conversation::query(), $section)
+            ->latest('id')->limit(2000)->get(['metadata']);
+        $values = $rows->map(fn (Conversation $row) => data_get($row->metadata, 'first_response_seconds'))
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (float) $value);
+
+        return $values->isEmpty() ? '—' : $this->durationLabel((int) round((float) $values->average()));
+    }
+
+    private function averageResolutionTime(): string
+    {
+        $values = Conversation::query()->latest('id')->limit(2000)->get(['metadata'])
+            ->map(fn (Conversation $row) => data_get($row->metadata, 'resolution_seconds'))
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (float) $value);
+
+        return $values->isEmpty() ? '—' : $this->durationLabel((int) round((float) $values->average()));
+    }
+
+    private function averageCsat(string $section): string
+    {
+        $rows = $this->scopeConversationChannel(Conversation::query(), $section)
+            ->latest('id')->limit(2000)->get(['metadata']);
+        $values = $rows->map(fn (Conversation $row) => data_get($row->metadata, 'csat'))
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (float) $value);
+
+        return $values->isEmpty() ? '—' : number_format((float) $values->average(), 2).' / 5';
+    }
+
+    private function uniqueContacts(string $section): int
+    {
+        return $this->scopeConversationChannel(Conversation::query(), $section)
+            ->whereNotNull('contact')->distinct()->count('contact');
+    }
+
+    private function slaRate(int $total, int $breaches): string
+    {
+        if ($total === 0) {
+            return '100%';
+        }
+
+        return number_format(max(0, 100 - (($breaches / $total) * 100)), 2).'%';
+    }
+
+    private function durationLabel(int $seconds): string
+    {
+        if ($seconds < 60) {
+            return $seconds.'s';
+        }
+        if ($seconds < 3600) {
+            return intdiv($seconds, 60).'m '.($seconds % 60).'s';
+        }
+
+        return intdiv($seconds, 3600).'h '.intdiv($seconds % 3600, 60).'m';
+    }
+
+    private function topicFromSubject(?string $subject): string
+    {
+        $subject = Str::lower((string) $subject);
+
+        return match (true) {
+            str_contains($subject, 'order') => 'Order Status',
+            str_contains($subject, 'return'), str_contains($subject, 'refund') => 'Returns & Refunds',
+            str_contains($subject, 'payment') => 'Payment Issues',
+            str_contains($subject, 'franchise') => 'Franchise',
+            str_contains($subject, 'product') => 'Product Information',
+            str_contains($subject, 'deliver'), str_contains($subject, 'ship') => 'Delivery & Shipping',
+            default => 'Other',
+        };
+    }
+
+    private function navigation(): array
+    {
+        return [
+            'communication-center' => ['label' => 'Overview', 'icon' => 'message'],
+            'inbox' => ['label' => 'Inbox', 'icon' => 'mail'],
+            'chat-24-7' => ['label' => 'Chat 24/7', 'icon' => 'message'],
+            'whatsapp' => ['label' => 'WhatsApp', 'icon' => 'message'],
+            'email' => ['label' => 'Email', 'icon' => 'mail'],
+            'email-templates' => ['label' => 'Email Templates', 'icon' => 'file-text'],
+            'approval-center' => ['label' => 'Approval Center', 'icon' => 'check'],
+            'action-follow-ups' => ['label' => 'Action / Follow-ups', 'icon' => 'clock'],
+            'alerts-notifications' => ['label' => 'Alerts & Notifications', 'icon' => 'bell'],
+            'communication-reports' => ['label' => 'Communication Reports', 'icon' => 'chart'],
+            'communication-history' => ['label' => 'Communication History', 'icon' => 'file-text'],
+        ];
+    }
+
+    private function config(string $section): ?array
+    {
+        $configs = [
+            'communication-center' => [
+                'title' => 'Communication Center',
+                'subtitle' => 'Unified communication, approvals and follow-ups across all channels.',
+                'icon' => 'message',
+                'variant' => 'overview',
+                'singular' => 'Conversation',
+                'statuses' => [],
+                'tabs' => [],
+            ],
+            'inbox' => [
+                'title' => 'Inbox',
+                'subtitle' => 'View, manage and respond to all incoming messages and tickets from every channel.',
+                'icon' => 'mail',
+                'variant' => 'conversation',
+                'singular' => 'Conversation',
+                'statuses' => ['new' => 'Unread', 'open' => 'Open', 'pending' => 'Pending', 'closed' => 'Resolved'],
+                'tabs' => ['all' => 'All Channels', 'new' => 'Unread', 'open' => 'Open', 'pending' => 'Pending', 'closed' => 'Resolved'],
+            ],
+            'chat-24-7' => [
+                'title' => 'Chat 24/7',
+                'subtitle' => 'Live chat with website visitors and customers in real time.',
+                'icon' => 'message',
+                'variant' => 'conversation',
+                'singular' => 'Chat',
+                'statuses' => ['new' => 'Active', 'open' => 'Active', 'pending' => 'Waiting', 'closed' => 'Closed'],
+                'tabs' => ['all' => 'Active', 'pending' => 'Waiting', 'closed' => 'Closed'],
+            ],
+            'whatsapp' => [
+                'title' => 'WhatsApp',
+                'subtitle' => 'Manage WhatsApp conversations, automate responses and engage with customers instantly.',
+                'icon' => 'message',
+                'variant' => 'conversation',
+                'singular' => 'WhatsApp conversation',
+                'statuses' => ['new' => 'Open', 'open' => 'Open', 'pending' => 'Pending', 'closed' => 'Resolved'],
+                'tabs' => ['all' => 'All Conversations', 'new' => 'Unassigned', 'open' => 'Mine', 'closed' => 'Resolved'],
+            ],
+            'email' => [
+                'title' => 'Email',
+                'subtitle' => 'Send, receive and manage emails across all channels.',
+                'icon' => 'mail',
+                'variant' => 'conversation',
+                'singular' => 'Email',
+                'statuses' => ['new' => 'Inbox', 'open' => 'Inbox', 'pending' => 'Snoozed', 'closed' => 'Resolved'],
+                'tabs' => ['all' => 'All Emails', 'new' => 'Inbox', 'open' => 'Sent', 'pending' => 'Drafts', 'closed' => 'Resolved'],
+            ],
+            'email-templates' => [
+                'title' => 'Email Templates',
+                'subtitle' => 'Create, manage and track email templates for all communication needs.',
+                'icon' => 'mail',
+                'variant' => 'records',
+                'singular' => 'Template',
+                'create_label' => 'Create Template',
+                'statuses' => ['active' => 'Active', 'draft' => 'Draft', 'archived' => 'Archived'],
+                'tabs' => ['all' => 'All Templates', 'active' => 'Active', 'draft' => 'Custom Templates', 'archived' => 'Archived'],
+            ],
+            'approval-center' => [
+                'title' => 'Approval Center',
+                'subtitle' => 'Review, approve or reject requests and track all approval workflows.',
+                'icon' => 'check',
+                'variant' => 'records',
+                'singular' => 'Approval request',
+                'create_label' => 'New Approval Request',
+                'statuses' => ['pending' => 'Pending', 'in-progress' => 'In Progress', 'approved' => 'Approved', 'rejected' => 'Rejected', 'escalated' => 'Escalated'],
+                'tabs' => ['all' => 'All Requests', 'pending' => 'Pending', 'in-progress' => 'In Progress', 'approved' => 'Approved', 'rejected' => 'Rejected', 'escalated' => 'Escalated'],
+            ],
+            'action-follow-ups' => [
+                'title' => 'Action / Follow-ups',
+                'subtitle' => 'Manage tasks, follow-ups and commitments across all communications and operations.',
+                'icon' => 'check',
+                'variant' => 'records',
+                'singular' => 'Action',
+                'create_label' => 'New Action',
+                'statuses' => ['pending' => 'Pending', 'in-progress' => 'In Progress', 'completed' => 'Completed', 'overdue' => 'Overdue', 'cancelled' => 'Cancelled'],
+                'tabs' => ['all' => 'All Actions', 'pending' => 'Pending', 'in-progress' => 'In Progress', 'overdue' => 'Overdue', 'completed' => 'Completed', 'cancelled' => 'Cancelled'],
+            ],
+            'alerts-notifications' => [
+                'title' => 'Alerts & Notifications',
+                'subtitle' => 'Monitor critical events and stay informed in real-time.',
+                'icon' => 'bell',
+                'variant' => 'records',
+                'singular' => 'Alert',
+                'create_label' => 'Create Alert',
+                'statuses' => ['unread' => 'Unread', 'in-progress' => 'In Progress', 'acknowledged' => 'Acknowledged', 'escalated' => 'Escalated', 'resolved' => 'Resolved'],
+                'tabs' => ['all' => 'All Alerts', 'unread' => 'Unread', 'in-progress' => 'In Progress', 'acknowledged' => 'Acknowledged', 'escalated' => 'Escalated', 'resolved' => 'Resolved'],
+            ],
+            'communication-reports' => [
+                'title' => 'Communication Reports',
+                'subtitle' => 'Track performance and effectiveness of all communication channels and activities.',
+                'icon' => 'chart',
+                'variant' => 'reports',
+                'singular' => 'Report',
+                'statuses' => [],
+                'tabs' => ['overview' => 'Overview', 'channels' => 'Channels', 'agents' => 'Agents', 'customers' => 'Customers', 'franchise' => 'Franchise & Stores', 'orders' => 'Orders', 'approvals' => 'Approvals', 'followups' => 'Follow-ups', 'sla' => 'SLA & Performance', 'trends' => 'Trends', 'audit' => 'Audit'],
+            ],
+            'communication-history' => [
+                'title' => 'Communication History / Audit Log',
+                'subtitle' => 'Complete audit trail of all communication activities, changes, actions and events.',
+                'icon' => 'file-text',
+                'variant' => 'history',
+                'singular' => 'Activity',
+                'statuses' => [],
+                'tabs' => ['all' => 'All Activities', 'messages' => 'Messages', 'chats' => 'Chats', 'whatsapp' => 'WhatsApp', 'emails' => 'Emails', 'approvals' => 'Approvals', 'followups' => 'Follow-ups', 'system' => 'System Events', 'changes' => 'Data Changes', 'logins' => 'Logins', 'exports' => 'Exports'],
+            ],
+        ];
+
+        return $configs[$section] ?? null;
+    }
+}
