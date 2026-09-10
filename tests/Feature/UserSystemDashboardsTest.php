@@ -29,8 +29,8 @@ class UserSystemDashboardsTest extends TestCase
         foreach ($routes as $route => $heading) {
             $response = $this->actingAs($admin)->get(route($route));
             $response->assertOk()
-                ->assertSee($heading, false)
-                ->assertSee('Project 1 Control Panel (cPanel)', false)
+                ->assertSeeText($heading)
+                ->assertSeeText('Project 1 Control Panel (cPanel)')
                 ->assertSeeText('Users & Roles');
         }
     }
@@ -91,6 +91,6 @@ class UserSystemDashboardsTest extends TestCase
         $this->actingAs($admin)->post(route('admin.user-system.assignments.store'), ['user_id'=>$user->id,'role_id'=>$role->id,'assignment_type'=>'secondary'])->assertRedirect(route('admin.user-system.assignments',['selected'=>$user->id]));
         $this->actingAs($admin)->get(route('admin.user-system.assignments',['q'=>$user->email]))->assertOk()->assertSee([$user->email,'Sales Representative','Secondary'],false);
         $this->assertDatabaseHas('audit_logs',['action'=>'roles.assigned','subject_id'=>(string)$user->id]);
-        $this->actingAs($admin)->get(route('admin.user-system.activity',['q'=>'roles.assigned']))->assertOk()->assertSee('Roles Assigned',false);
+        $this->actingAs($admin)->get(route('admin.user-system.activity',['q'=>'roles.assigned']))->assertOk()->assertSeeText('Roles Assigned');
     }
 }
