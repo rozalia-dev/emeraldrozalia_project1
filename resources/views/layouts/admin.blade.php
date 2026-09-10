@@ -149,9 +149,13 @@
         <details class="admin-nav-group" open>
             <summary><span>USERS &amp; ROLES</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
-                <a class="{{request()->is('admin/resource/users*')?'active':''}}" href="{{route('admin.resource','users')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Users</span></span></a>
-                <a class="{{request()->is('admin/resource/roles*')?'active':''}}" href="{{route('admin.resource','roles')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Roles</span></span></a>
-                <a class="{{request()->is('admin/resource/permissions*')?'active':''}}" href="{{route('admin.resource','permissions')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permissions</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.users')?'active':''}}" href="{{route('admin.user-system.users')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Users Management</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.roles')?'active':''}}" href="{{route('admin.user-system.roles')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Roles Management</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.roles-permissions')?'active':''}}" href="{{route('admin.user-system.roles-permissions')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>User Roles &amp; Permissions</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.assignments')?'active':''}}" href="{{route('admin.user-system.assignments')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Role Assignments</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.permission-groups')?'active':''}}" href="{{route('admin.user-system.permission-groups')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permission Groups</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.matrix')?'active':''}}" href="{{route('admin.user-system.matrix')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permission Matrix</span></span></a>
+                <a class="{{request()->routeIs('admin.user-system.activity')?'active':''}}" href="{{route('admin.user-system.activity')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Activity &amp; Security Log</span></span></a>
             </div>
         </details>
         <details class="admin-nav-group" open>
