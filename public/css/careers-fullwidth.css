@@ -1,0 +1,4 @@
+.careers-reference{width:min(1536px,100%);margin:0 auto;padding-left:14px;padding-right:14px}
+.careers-reference-page .flash{max-width:1536px}
+@media(max-width:980px){.careers-reference{width:100%;padding-left:12px;padding-right:12px}}
+@media(max-width:650px){.careers-reference{padding-left:8px;padding-right:8px}}

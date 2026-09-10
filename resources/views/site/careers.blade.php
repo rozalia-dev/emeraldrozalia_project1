@@ -3,6 +3,7 @@
 @section('title','Careers — Build Your Career with Emerald Rozalia')
 @push('styles')
 <link rel="stylesheet" href="/css/careers.css?v=20260909-careers-live-layout">
+<link rel="stylesheet" href="/css/careers-fullwidth.css?v=20260910-fullwidth">
 @endpush
 @section('content')
 <div class="careers-reference" data-page="careers-live">
