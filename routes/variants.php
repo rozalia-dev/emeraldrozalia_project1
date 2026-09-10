@@ -1,10 +1,12 @@
 <?php
+use App\Http\Controllers\Admin\VariantBulkPriceController;
 use App\Http\Controllers\Admin\VariantController;
 use Illuminate\Support\Facades\Route;
 Route::prefix('admin/resource/variants')->middleware(['auth','admin'])->name('admin.variants.')->group(function():void{
     Route::get('/',[VariantController::class,'index'])->name('index');
     Route::post('/',[VariantController::class,'store'])->name('store');
     Route::post('/bulk-create',[VariantController::class,'bulkCreate'])->name('bulk-create');
+    Route::post('/bulk-price',VariantBulkPriceController::class)->name('bulk-price');
     Route::post('/bulk',[VariantController::class,'bulk'])->name('bulk');
     Route::post('/settings',[VariantController::class,'updateSettings'])->name('settings');
     Route::post('/import',[VariantController::class,'import'])->name('import');
