@@ -54,7 +54,7 @@ class Category extends Model
 
         static::creating(function (Category $category): void {
             $category->public_uuid ??= (string) Str::uuid();
-            $category->status = $category->status ?: ($category->is_active ? 'active' : 'inactive');
+            $category->status = $category->status ?: ($category->is_active === false ? 'inactive' : 'active');
             $category->is_active = $category->status === 'active';
             $category->is_visible ??= $category->is_active;
         });
