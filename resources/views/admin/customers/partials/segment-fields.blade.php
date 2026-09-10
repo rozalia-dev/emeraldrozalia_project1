@@ -1,0 +1,7 @@
+<label>Segment Name<input name="name" required value="{{ old('name',$editing?->name) }}"></label>
+<label>Segment Type<select name="type">@foreach(['behavior'=>'Behavior Based','value'=>'Value Based','demographic'=>'Demographic','geographic'=>'Geographic','lifecycle'=>'Lifecycle Stage','rfm'=>'RFM Segments','custom'=>'Custom Segments'] as $key=>$label)<option value="{{ $key }}" @selected(old('type',$editing?->type??'custom')===$key)>{{ $label }}</option>@endforeach</select></label>
+<label class="is-wide">Description<textarea name="description">{{ old('description',$editing?->description) }}</textarea></label>
+<label>Country<input name="country" maxlength="2" placeholder="IE" value="{{ old('country',$editing?->country) }}"></label>
+<label>Rule / Criteria<input name="rule_definition" placeholder="e.g. lifetime_spend > 1000" value="{{ old('rule_definition',data_get($editing?->rule_definition,'expression')) }}"></label>
+<label class="is-wide">Customers<select name="customer_ids[]" multiple size="8">@foreach($availableCustomers as $customer)<option value="{{ $customer->id }}" @selected(in_array($customer->id,old('customer_ids',$editing?->customers?->pluck('id')->all()??[])))>{{ $customer->name }} — {{ $customer->email }}</option>@endforeach</select></label>
+<label class="crm-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active',$editing?->is_active??true))> Active Segment</label>
