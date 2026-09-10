@@ -15,7 +15,7 @@ class SpinController extends Controller
     {
         $request->validate(['q'=>'nullable|string|max:150','product_id'=>'nullable|integer','status'=>['nullable',Rule::in(array_keys(ProductSpin::STATUSES))],'category'=>['nullable',Rule::in(array_keys(ProductSpin::CATEGORIES))],'device'=>'nullable|in:mobile,desktop']);
         $q=ProductSpin::with('product');
-        if ($term=trim((string)$request->input('q'))) $q->where(fn($q)=>$q->where('title','ilike','%'.$term.'%')->orWhereHas('product',fn($p)=>$p->where('name','ilike','%'.$term.'%')->orWhere('sku','ilike','%'.$term.'%')));
+        if ($term=trim((string)$request->input('q'))) { $like=DB::connection()->getDriverName()==='pgsql'?'ilike':'like'; $q->where(fn($q)=>$q->where('title',$like,'%'.$term.'%')->orWhereHas('product',fn($p)=>$p->where('name',$like,'%'.$term.'%')->orWhere('sku',$like,'%'.$term.'%'))); }
         foreach (['product_id','status','category'] as $key) if ($request->filled($key)) $q->where($key,$request->input($key));
         if ($request->input('device')==='mobile') $q->where('settings->mobile',true);
         if ($request->input('device')==='desktop') $q->where('settings->mobile',false);

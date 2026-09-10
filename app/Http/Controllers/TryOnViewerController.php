@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\{TryOnAsset,TryOnVisit};
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -54,11 +55,18 @@ class TryOnViewerController extends Controller
             'visitor_hash' => $hash,
             'day' => now()->toDateString(),
         ];
-        $visit = TryOnVisit::firstOrCreate($key, [
-            'device' => $data['device'],
-            'converted' => $data['converted'],
-            'session_seconds' => $data['session_seconds'],
-        ]);
+        $visit = TryOnVisit::query()->where('try_on_asset_id', $tryon->id)->where('visitor_hash', $hash)->whereDate('day', $key['day'])->first();
+        if (! $visit) {
+            try {
+                $visit = TryOnVisit::create($key + [
+                    'device' => $data['device'],
+                    'converted' => $data['converted'],
+                    'session_seconds' => $data['session_seconds'],
+                ]);
+            } catch (QueryException $exception) {
+                $visit = TryOnVisit::query()->where('try_on_asset_id', $tryon->id)->where('visitor_hash', $hash)->whereDate('day', $key['day'])->firstOrFail();
+            }
+        }
         $visit->update([
             'device' => $data['device'],
             'converted' => $visit->converted || $data['converted'],

@@ -2,6 +2,7 @@
 use App\Http\Controllers\{CartController,CheckoutController,ContextController,ReviewController,SiteController,WishlistController};
 use App\Http\Controllers\Account\AccountController;
 use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SeoController};
+use App\Http\Controllers\Admin\CollectionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\VideoPlaybackController;
@@ -49,6 +50,14 @@ Route::post('/resource/videos/bulk',[VideoController::class,'bulk'])->name('vide
 Route::patch('/resource/videos/{video}',[VideoController::class,'update'])->name('videos.update');
 Route::delete('/resource/videos/{video}',[VideoController::class,'destroy'])->name('videos.destroy');
 Route::get('/resource/videos/{video}/audit',[VideoController::class,'audit'])->name('videos.audit');
+Route::get('/resource/collections',[CollectionController::class,'index'])->name('collections.index');
+Route::post('/resource/collections',[CollectionController::class,'store'])->name('collections.store');
+Route::put('/resource/collections/{collection}',[CollectionController::class,'update'])->name('collections.update');
+Route::delete('/resource/collections/{collection}',[CollectionController::class,'destroy'])->name('collections.destroy');
+Route::patch('/resource/collections/{collection}/visibility',[CollectionController::class,'toggleVisibility'])->name('collections.visibility');
+Route::post('/resource/collections/{collection}/duplicate',[CollectionController::class,'duplicate'])->name('collections.duplicate');
+Route::post('/resource/collections/{collection}/products',[CollectionController::class,'syncProducts'])->name('collections.products.sync');
+Route::delete('/resource/collections/{collection}/products/{product}',[CollectionController::class,'removeProduct'])->name('collections.products.remove');
 Route::get('/resource/{module}',[ResourceController::class,'index'])->name('resource');Route::post('/resource/{module}',[ResourceController::class,'store'])->name('resource.store');Route::patch('/resource/{module}/{record}',[ResourceController::class,'update'])->name('resource.update');Route::delete('/resource/{module}/{record}',[ResourceController::class,'destroy'])->name('resource.destroy');Route::get('/module/{module}',[AdminController::class,'module'])->name('module');Route::get('/integration-status',\App\Http\Controllers\Admin\IntegrationStatusController::class)->name('integration-status');});
 Route::post('/context/company',[ContextController::class,'company'])->middleware('auth')->name('context.company');Route::post('/context/language',[ContextController::class,'locale'])->name('context.language');Route::post('/context/currency',[ContextController::class,'currency'])->name('context.currency');
 Route::get('/{page}',[SiteController::class,'page'])->where('page','(?!up$)[A-Za-z0-9-]+')->name('content.page');

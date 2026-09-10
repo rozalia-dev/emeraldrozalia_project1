@@ -58,7 +58,12 @@ class VideoPlaybackController extends Controller
         ]);
         DB::transaction(function () use ($video,$hash,$day,$data,$now): void {
             $play = VideoPlay::where('product_media_id',$video->id)->where('session_hash',$hash)->where('day',$day)->lockForUpdate()->firstOrFail();
-            $elapsed = max(0, now()->getTimestamp() - $play->updated_at->getTimestamp());
+            $timestamps = DB::table('video_plays')->where('id', $play->id)->first(['created_at', 'updated_at']);
+            $initialHeartbeat = (int) $play->seconds === 0
+                && $timestamps
+                && substr((string) $timestamps->created_at, 0, 19) === substr((string) $timestamps->updated_at, 0, 19);
+            $lastUpdated = $timestamps ? \Illuminate\Support\Carbon::parse((string) $timestamps->updated_at, 'UTC') : now()->utc();
+            $elapsed = $initialHeartbeat ? 0 : max(0, $lastUpdated->diffInSeconds(now()->utc(), false));
             $increment = min((int)$data['seconds'], $elapsed, 15);
             $seconds = min(86400,$play->seconds + $increment);
             // Persist UTC explicitly; PostgreSQL timestamp-with-time-zone values must

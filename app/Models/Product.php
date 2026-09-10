@@ -30,6 +30,7 @@ class Product extends Model
     public function inventoryMovements() { return $this->hasMany(InventoryMovement::class); }
     public function spins() { return $this->hasMany(ProductSpin::class); }
     public function tryOnAssets() { return $this->hasMany(TryOnAsset::class); }
+    public function collections() { return $this->belongsToMany(ProductCollection::class, 'collection_product', 'product_id', 'collection_id')->withPivot('sort_order'); }
 
     public function getSpinImagesAttribute($value): array
     {

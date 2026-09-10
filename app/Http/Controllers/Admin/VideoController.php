@@ -19,10 +19,11 @@ class VideoController extends Controller
         $query = ProductVideo::with('product')->withCount(['plays' => fn ($q) => $q->where('day', '>=', now()->subDays(29)->toDateString())])
             ->withSum(['plays' => fn ($q) => $q->where('day', '>=', now()->subDays(29)->toDateString())], 'seconds');
         if ($search = trim((string) $request->input('q'))) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('metadata->title', 'ilike', '%'.$search.'%')
-                    ->orWhere('alt_text', 'ilike', '%'.$search.'%')
-                    ->orWhereHas('product', fn ($p) => $p->where('name', 'ilike', '%'.$search.'%')->orWhere('sku', 'ilike', '%'.$search.'%'));
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like): void {
+                $q->where('metadata->title', $like, '%'.$search.'%')
+                    ->orWhere('alt_text', $like, '%'.$search.'%')
+                    ->orWhereHas('product', fn ($p) => $p->where('name', $like, '%'.$search.'%')->orWhere('sku', $like, '%'.$search.'%'));
             });
         }
         if ($request->filled('product_id')) $query->where('product_id', $request->integer('product_id'));

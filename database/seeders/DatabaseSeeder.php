@@ -1,6 +1,6 @@
 <?php
 namespace Database\Seeders;
-use App\Models\{AdminRecord,Category,Company,ContentPage,Currency,Discount,IntegrationConnection,Language,Permission,Product,ProductVariant,Role,SeoSetting,ShippingMethod,User};
+use App\Models\{AdminRecord,Category,Company,ContentPage,Currency,Discount,IntegrationConnection,Language,Permission,Product,ProductCollection,ProductVariant,Role,SeoSetting,ShippingMethod,User};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder {
@@ -10,6 +10,20 @@ class DatabaseSeeder extends Seeder {
   $company->currencies()->syncWithoutDetaching(['EUR'=>['is_base'=>true,'enabled_storefront'=>true]]); $company->languages()->syncWithoutDetaching(['en'=>['is_default'=>true]]);
   $categories=[]; foreach([['Baseball Caps','baseball-caps'],['Bucket Hats','bucket-hats'],['Snapbacks','snapbacks'],['Irish Traditional Flat Caps','irish-traditional-flat-caps'],['Irish Heritage Hats','irish-heritage-hats'],['Beanies & More','beanies-more'],['GAA Baseball Caps','gaa-baseball-caps'],['GAA Bucket Hats','gaa-bucket-hats'],['GAA Beanie Hats','gaa-beanie-hats']] as $i=>$c)$categories[]=Category::updateOrCreate(['slug'=>$c[1]],['company_id'=>$company->id,'name'=>$c[0],'description'=>'Premium Emerald Rozalia headwear made in Limerick, Ireland.','sort_order'=>$i,'is_active'=>true]);
   foreach([['Classic Emerald Cap',3499],['Emerald Signature Cap',3499],['Rozalia Snapback',3699],['Emerald Flat Cap',4499],['Emerald Beanie',2999],['Emerald Trucker Cap',3499]] as $i=>$seed){$p=Product::updateOrCreate(['sku'=>'ER-'.str_pad((string)($i+1),4,'0',STR_PAD_LEFT)],['company_id'=>$company->id,'category_id'=>$categories[$i]->id,'name'=>$seed[0],'slug'=>str($seed[0])->slug(),'description'=>'Premium quality, Irish character and expert craftsmanship.','price'=>$seed[1]/100,'stock'=>100,'material'=>'Premium headwear fabric','is_new'=>true,'is_active'=>true,'status'=>'active','brand'=>'Emerald Rozalia']);ProductVariant::updateOrCreate(['sku'=>$p->sku.'-STD'],['product_id'=>$p->id,'colour'=>'Emerald / Black','size'=>'Adjustable','price'=>$p->price,'stock'=>100,'is_active'=>true]);}
+  $collectionSeeds=[
+   ['Spring Summer 2025','spring-summer-2025','seasonal','Spring / Summer 2025',true,'visible'],
+   ['Best Sellers','best-sellers','curated','All Season',true,'visible'],
+   ['New Arrivals','new-arrivals','automated','All Season',false,'visible'],
+   ['Premium Collection','premium-collection','curated','All Season',true,'visible'],
+   ['Wedding Collection','wedding-collection','occasion','Weddings',false,'visible'],
+   ['Corporate Gifting','corporate-gifting','occasion','Corporate',false,'visible'],
+   ['Limited Edition','limited-edition','curated','All Season',true,'visible'],
+   ['Winter Essentials','winter-essentials','seasonal','Winter 2024–2025',false,'hidden'],
+   ['Back to College','back-to-college','occasion','Student',false,'visible'],
+   ['Gift for Her','gift-for-her','occasion','Gifting',false,'visible'],
+  ];
+  $seedProducts=Product::query()->orderBy('id')->get();
+  foreach($collectionSeeds as $i=>$seed){$collection=ProductCollection::updateOrCreate(['slug'=>$seed[1]],['company_id'=>$company->id,'name'=>$seed[0],'type'=>$seed[2],'season'=>$seed[3],'description'=>'A considered Emerald Rozalia edit curated for '.$seed[3].'.','status'=>'active','visibility'=>$seed[5],'is_featured'=>$seed[4],'show_on_homepage'=>$seed[4],'allow_in_filters'=>true,'sort_order'=>$i+1,'meta_title'=>$seed[0].' Collection — Emerald Rozalia','meta_description'=>'Explore the '.$seed[0].' collection from Emerald Rozalia Limited.']);$collection->products()->sync($seedProducts->filter(fn($product,$productIndex)=>($productIndex+$i)%3!==0)->values()->mapWithKeys(fn($product,$productIndex)=>[$product->id=>['sort_order'=>$productIndex+1]])->all());}
   ShippingMethod::updateOrCreate(['code'=>'IE_STANDARD'],['company_id'=>$company->id,'name'=>'Ireland Standard Delivery','country'=>'IE','price'=>6.95,'free_over'=>100,'is_active'=>true]); Discount::updateOrCreate(['code'=>'WELCOME10'],['company_id'=>$company->id,'type'=>'percent','value'=>10,'minimum_order'=>50,'is_active'=>true]);
   throw_if(blank(env('ADMIN_EMAIL'))||blank(env('ADMIN_PASSWORD')),\RuntimeException::class,'ADMIN_EMAIL and ADMIN_PASSWORD must be set before seeding.');
   $admin=User::updateOrCreate(['email'=>env('ADMIN_EMAIL')],['name'=>env('ADMIN_NAME','Project Owner'),'password'=>Hash::make(env('ADMIN_PASSWORD')),'is_admin'=>true,'email_verified_at'=>now()]); $company->users()->syncWithoutDetaching([$admin->id=>['role'=>'owner','is_default'=>true]]);
