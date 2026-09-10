@@ -70,10 +70,18 @@ class CollectionController extends Controller
         $collections = $query->orderBy('sort_order')->orderBy('name')->paginate(10)->withQueryString();
         $selectedId = (int) $request->query('selected', 0);
         $selectedCollection = $selectedId
-            ? ProductCollection::with(['products.media', 'creator', 'updater'])->find($selectedId)
+            ? ProductCollection::with([
+                'products' => fn ($products) => $products->with('media')->orderByPivot('sort_order')->orderBy('products.name'),
+                'creator',
+                'updater',
+            ])->find($selectedId)
             : null;
         if (! $selectedCollection && $collections->first()) {
-            $selectedCollection = ProductCollection::with(['products.media', 'creator', 'updater'])->find($collections->first()->id);
+            $selectedCollection = ProductCollection::with([
+                'products' => fn ($products) => $products->with('media')->orderByPivot('sort_order')->orderBy('products.name'),
+                'creator',
+                'updater',
+            ])->find($collections->first()->id);
         }
 
         $metrics = [
@@ -146,7 +154,8 @@ class CollectionController extends Controller
         $copy->created_by = auth()->id();
         $copy->updated_by = auth()->id();
         $copy->save();
-        $copy->products()->sync($collection->products->mapWithKeys(fn (Product $product, int $index) => [
+        $products = $collection->products()->orderByPivot('sort_order')->orderBy('products.name')->get();
+        $copy->products()->sync($products->mapWithKeys(fn (Product $product, int $index) => [
             $product->id => ['sort_order' => $product->pivot->sort_order ?? $index],
         ])->all());
         AuditTrail::record('collection.duplicated', $copy, null, $copy->fresh()->toArray());

@@ -34,9 +34,7 @@ class ProductCollection extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'collection_product', 'collection_id', 'product_id')
-            ->withPivot('sort_order')
-            ->orderBy('collection_product.sort_order')
-            ->orderBy('products.name');
+            ->withPivot('sort_order');
     }
 
     public function creator(): BelongsTo
