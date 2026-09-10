@@ -1,0 +1,5 @@
+@extends('layouts.admin')
+@section('title','Variant Audit Log')
+@section('content')
+<div class="admin-card" style="margin:24px"><div style="display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px"><div><h1 style="margin:0">Variant Audit Log</h1><p>{{ $variant->sku }} · {{ $variant->public_uuid }}</p></div><a class="button" href="{{ route('admin.variants.index',['selected'=>$variant->public_uuid]) }}">Back to Variants</a></div><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Date</th><th>Action</th><th>Request ID</th><th>Before</th><th>After</th></tr></thead><tbody>@forelse($logs as $log)<tr><td>{{ optional($log->created_at)->format('d M Y H:i:s') }}</td><td>{{ $log->action }}</td><td><code>{{ $log->request_id }}</code></td><td><pre>{{ json_encode($log->before,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</pre></td><td><pre>{{ json_encode($log->after,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</pre></td></tr>@empty<tr><td colspan="5">No audit entries yet.</td></tr>@endforelse</tbody></table></div>{{ $logs->links() }}</div>
+@endsection

@@ -18,3 +18,5 @@ Route::prefix('admin/resource/categories')
         Route::patch('/{category}', [CategoryController::class, 'update'])->name('update');
         Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
     });
+
+require __DIR__.'/variants.php';
