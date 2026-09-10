@@ -59,7 +59,14 @@
             'items'=>[
                 ['route'=>'admin.order-master.overview','label'=>'Order Master Overview','icon'=>'shopping-bag','active'=>'admin/order-master*'],
                 ...$orderItems,
-                ['slug'=>'customers','label'=>'Customers','icon'=>'users','active'=>'admin/resource/customers*'],
+                [
+                    'route'=>'admin.customers.index','label'=>'Customers','icon'=>'users','active'=>'admin/customers*',
+                    'children'=>[
+                        ['route'=>'admin.customers.index','label'=>'Customer Management','active'=>'admin/customers*'],
+                        ['route'=>'admin.customer-groups.index','label'=>'Customer Groups','active'=>'admin/customer-groups*'],
+                        ['route'=>'admin.customer-segments.index','label'=>'Customer Segments','active'=>'admin/customer-segments*'],
+                    ],
+                ],
                 ['slug'=>'cart-checkout','label'=>'Cart & Checkout','icon'=>'shopping-bag','active'=>'admin/resource/cart-checkout*'],
                 ['slug'=>'payments','label'=>'Payments','icon'=>'credit-card','active'=>'admin/resource/payments*'],
                 ['slug'=>'discounts-coupons','label'=>'Discounts & Coupons','icon'=>'star','active'=>'admin/resource/discounts-coupons*'],
