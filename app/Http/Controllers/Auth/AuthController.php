@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -30,14 +31,24 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $candidate = User::where('email', $credentials['email'])->first();
+        if ($candidate && (($candidate->status ?? 'active') !== 'active' || $candidate->locked_at)) {
+            $this->authAudit('authentication.blocked-login', $candidate, $request, ['reason'=>$candidate->locked_at ? 'locked' : 'inactive']);
+            return back()->withErrors(['email' => 'This account is currently unavailable. Contact an administrator.'])->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            $user = Auth::user();
+            $user->forceFill(['last_login_at'=>now()])->save();
+            $this->authAudit('authentication.login', $user, $request, ['status'=>'success']);
 
             return redirect()->intended(
-                Auth::user()->is_admin ? route('admin.dashboard') : route('account.dashboard')
+                $user->is_admin ? route('admin.dashboard') : route('account.dashboard')
             );
         }
 
+        $this->authAudit('authentication.failed-login', $candidate, $request, ['status'=>'failed']);
         return back()
             ->withErrors(['email' => 'Those credentials do not match our records.'])
             ->onlyInput('email');
@@ -52,10 +63,11 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $user = User::create($data);
+        $user = User::create($data + ['status'=>'active']);
         event(new Registered($user));
         Auth::login($user);
         $request->session()->regenerate();
+        $this->authAudit('users.registered', $user, $request, ['status'=>'active']);
 
         return redirect()
             ->route('account.dashboard')
@@ -70,9 +82,6 @@ class AuthController extends Controller
     public function forgot(Request $request)
     {
         $request->validate(['email' => ['required', 'email']]);
-
-        // Keep this response deliberately generic so the form cannot be used to
-        // enumerate registered customer addresses.
         Password::sendResetLink($request->only('email'));
 
         return back()->with(
@@ -103,6 +112,7 @@ class AuthController extends Controller
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
+                    'password_changed_at' => now(),
                 ])->save();
             }
         );
@@ -121,5 +131,19 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    private function authAudit(string $action, ?User $user, Request $request, array $after): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('audit_logs')) return;
+        AuditLog::create([
+            'user_id'=>$user?->id,
+            'action'=>$action,
+            'subject_type'=>$user ? User::class : null,
+            'subject_id'=>$user?->id,
+            'request_id'=>(string)Str::uuid(),
+            'ip_address'=>$request->ip(),
+            'after'=>$after,
+        ]);
     }
 }
