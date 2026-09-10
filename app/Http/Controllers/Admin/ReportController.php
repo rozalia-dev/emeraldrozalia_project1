@@ -12,11 +12,11 @@ use App\Models\User;
 use App\Services\AuditTrail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\StreamedResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -214,7 +214,7 @@ class ReportController extends Controller
     {
         $runs = AdminRecord::query()->where('module','report-runs')->when($request->filled('q'), fn($q) => $q->where('title','like','%'.$request->string('q').'%'))->where('status','!=','deleted')->latest('record_date')->paginate(10)->withQueryString();
         if ($runs->total() === 0) $runs = new \Illuminate\Pagination\LengthAwarePaginator(collect($this->previewRuns()), 1248, 10, (int) $request->query('page',1), ['path'=>url()->current(),'query'=>$request->query()]);
-        return ['history'=>$runs,'selectedRun'=>$runs->first(),'historyMetrics'=>[['label'=>'Total Runs','value'=>1248,'tone'=>'green','icon'=>'file-text'],['label'=>'Successful Runs','value'=>1152,'tone'=>'blue','icon'=>'check'],['label'=>'Failed Runs','value'=>32,'tone'=>'orange','icon'=>'alert'],['label'=>'In Progress','value'=>8,'tone'=>'purple','icon'=>'clock'],['label'=>'Downloads','value'=>856,'tone'=>'teal','icon'=>'download'],['label'=>'Avg. Run Time','value'=>'00:00:18','tone'=>'gold','icon'=>'clock']],'statusBreakdown'=>[['label'=>'Success','value'=>1152,'percent'=>'92.31%','tone'=>'green'],['label'=>'Failed','value'=>32,'percent'=>'2.56%','tone'=>'red'],['label'=>'In Progress','value'=>8,'percent'=>'0.64%','tone'=>'blue'],['label'=>'Cancelled','value'=>56,'percent'=>'4.49%','tone'=>'orange']]];
+        return ['history'=>$runs,'selectedRun'=>$runs->first(),'recent'=>$this->previewRecent(),'historyMetrics'=>[['label'=>'Total Runs','value'=>1248,'tone'=>'green','icon'=>'file-text'],['label'=>'Successful Runs','value'=>1152,'tone'=>'blue','icon'=>'check'],['label'=>'Failed Runs','value'=>32,'tone'=>'orange','icon'=>'alert'],['label'=>'In Progress','value'=>8,'tone'=>'purple','icon'=>'clock'],['label'=>'Downloads','value'=>856,'tone'=>'teal','icon'=>'download'],['label'=>'Avg. Run Time','value'=>'00:00:18','tone'=>'gold','icon'=>'clock']],'statusBreakdown'=>[['label'=>'Success','value'=>1152,'percent'=>'92.31%','tone'=>'green'],['label'=>'Failed','value'=>32,'percent'=>'2.56%','tone'=>'red'],['label'=>'In Progress','value'=>8,'percent'=>'0.64%','tone'=>'blue'],['label'=>'Cancelled','value'=>56,'percent'=>'4.49%','tone'=>'orange']]];
     }
 
     private function returnsData(array $filters): array
