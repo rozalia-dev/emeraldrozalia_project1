@@ -13,7 +13,7 @@ class ResolveTenantContext
     public function handle(Request $request, Closure $next)
     {
         $ctx = app(TenantContext::class);
-        if (!session()->has('company_id')) {
+        if (! session()->has('company_id')) {
             if ($company = Company::where('active', true)->first()) {
                 session(['company_id' => $company->id]);
             }
@@ -23,10 +23,6 @@ class ResolveTenantContext
         view()->share('tenantCompany', $ctx->company());
         view()->share('activeLocale', $ctx->locale());
         view()->share('activeCurrency', $ctx->currency());
-
-        if ($request->isMethod('get') && $request->is('admin/resource/online-sales')) {
-            return redirect()->route('admin.order-master.overview');
-        }
 
         return $next($request);
     }
