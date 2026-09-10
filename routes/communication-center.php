@@ -6,9 +6,13 @@ use Illuminate\Support\Facades\Route;
 $communicationSectionPattern = implode('|', CommunicationCenterController::SECTIONS);
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($communicationSectionPattern): void {
-    Route::get('/resource/{section}', [CommunicationCenterController::class, 'show'])
-        ->where('section', $communicationSectionPattern)
-        ->name('admin.communication-center.page');
+    // Franchise management owns the wildcard /resource/{section} route. Use
+    // literal communication-center paths here so the two route families do
+    // not replace one another in Laravel's route collection.
+    foreach (CommunicationCenterController::SECTIONS as $section) {
+        Route::get('/resource/'.$section, [CommunicationCenterController::class, 'show'])
+            ->name('admin.communication-center.page.'.$section);
+    }
 
     Route::get('/communication-center/{section}/export', [CommunicationCenterController::class, 'export'])
         ->where('section', $communicationSectionPattern)

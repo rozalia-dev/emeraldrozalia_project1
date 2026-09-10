@@ -2,6 +2,10 @@
 
 @section('title', $config['title'])
 
+@php
+    $pageUrl = static fn (string $target, array $query = []): string => url('/admin/resource/'.$target).($query ? '?'.http_build_query($query) : '');
+@endphp
+
 @push('styles')
 <link rel="stylesheet" href="/css/communication-center-reference.css?v=20260910-1">
 @endpush
@@ -65,7 +69,7 @@
 
     <nav class="cc-main-nav" aria-label="Communication Center">
         @foreach($navigation as $slug => $item)
-            <a href="{{ route('admin.communication-center.page', ['section' => $slug]) }}" class="{{ $section === $slug ? 'active' : '' }}">
+            <a href="{{ $pageUrl($slug) }}" class="{{ $section === $slug ? 'active' : '' }}">
                 <x-icon name="{{ $item['icon'] }}" size="13" />{{ $item['label'] }}
             </a>
         @endforeach
@@ -74,7 +78,7 @@
     @if(!empty($config['tabs']) && !in_array($config['variant'], ['conversation'], true))
         <nav class="cc-subtabs" aria-label="{{ $config['title'] }} tabs">
             @foreach($config['tabs'] as $tabKey => $tabLabel)
-                @php $tabHref = route('admin.communication-center.page', ['section' => $section]).'?'.http_build_query(array_filter(array_merge(request()->except('page', 'status'), ['tab' => $tabKey]))); @endphp
+                @php $tabHref = $pageUrl($section, array_filter(array_merge(request()->except('page', 'status'), ['tab' => $tabKey]))); @endphp
                 <a href="{{ $tabHref }}" class="{{ $tab === $tabKey || ($tab === 'all' && $tabKey === 'all') ? 'active' : '' }}">{{ $tabLabel }}
                     @if(isset($config['statuses'][$tabKey]) && isset($report['status_counts']))<span>{{ number_format((int)($report['status_counts'][$tabKey] ?? 0)) }}</span>@endif
                 </a>
@@ -85,7 +89,7 @@
     @if($config['variant'] === 'overview')
         <section class="cc-overview-grid">
             <article class="cc-card cc-chart-card">
-                <header><h2>Conversations by Channel</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header>
+                <header><h2>Conversations by Channel</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header>
                 <div class="cc-donut-wrap">
                     @php $channelFirst = $report['channels'][0]['share'] ?? 0; @endphp
                     <div class="cc-donut" style="--p:{{ min(100,$channelFirst) }}"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div>
@@ -97,7 +101,7 @@
                         @endforelse
                     </ul>
                 </div>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Channel Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View Channel Report →</a>
             </article>
 
             <article class="cc-card cc-chart-card">
@@ -110,11 +114,11 @@
                         @endforeach
                     </div>
                 </div>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Trend Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View Trend Report →</a>
             </article>
 
             <article class="cc-card cc-chart-card">
-                <header><h2>Conversations by Status</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header>
+                <header><h2>Conversations by Status</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header>
                 <div class="cc-donut-wrap">
                     @php $statusFirst = $report['statuses'][0]['share'] ?? 0; @endphp
                     <div class="cc-donut cc-donut-status" style="--p:{{ min(100,$statusFirst) }}"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div>
@@ -126,26 +130,33 @@
                         @endforelse
                     </ul>
                 </div>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Status Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View Status Report →</a>
             </article>
 
             <article class="cc-card cc-sla-card">
                 <header><h2>SLA Performance (This Month)</h2></header>
                 <div class="cc-gauge" style="--p:{{ $report['sla'] }}"><span><b>{{ number_format($report['sla'],2) }}%</b><small>SLA Met</small></span></div>
                 <p>Target: 90.00%</p>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View SLA Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View SLA Report →</a>
             </article>
         </section>
 
         <section class="cc-overview-row cc-overview-row-wide">
             <article class="cc-card">
-                <header><h2>Recent Conversations</h2><a href="{{ route('admin.communication-center.page',['section'=>'inbox']) }}">View All</a></header>
+                @php
+                    $overviewConversations = $conversations?->getCollection() ?? collect($report['recent']);
+                @endphp
+                <header><h2>Recent Conversations</h2><span class="cc-panel-caption">Customer conversations</span><a href="{{ $pageUrl('inbox') }}">View All</a></header>
                 <div class="cc-compact-table">
                     <div class="cc-compact-head"><span>Channel</span><span>Subject / Customer</span><span>From</span><span>Status</span><span>Time</span></div>
-                    @forelse($report['recent'] as $conversation)
-                        <a class="cc-compact-row" href="{{ route('admin.communication-center.page',['section'=>'inbox','conversation'=>$conversation->id]) }}">
+                    @forelse($overviewConversations as $conversation)
+                        @php
+                            $meeting = data_get($conversation->metadata, 'meeting');
+                            $lastMessage = $conversation->messages?->last()?->body;
+                        @endphp
+                        <a class="cc-compact-row" href="{{ $pageUrl('inbox', ['conversation' => $conversation->id]) }}">
                             <span class="cc-channel-pill"><x-icon name="{{ $conversation->channel === 'email' ? 'mail' : 'message' }}" size="14" /></span>
-                            <span><b>{{ str($conversation->subject ?: 'Customer conversation')->limit(42) }}</b><small>{{ $conversationName($conversation) }}</small></span>
+                            <span><b>{{ str($conversation->subject ?: 'Customer conversation')->limit(42) }}</b><small>{{ $conversationName($conversation) }}</small>@if($meeting)<small>{{ $meeting['date'] ?? '' }}</small><small>{{ $meeting['time'] ?? '' }} Europe/Dublin</small>@endif @if($lastMessage)<small>{{ $lastMessage }}</small>@endif</span>
                             <span>{{ str($conversation->contact)->limit(26) }}</span>
                             <span><i class="cc-badge cc-badge-{{ $statusTone($conversation->status) }}">{{ \Illuminate\Support\Str::headline($conversation->status) }}</i></span>
                             <span>{{ optional($conversation->created_at)->diffForHumans() }}</span>
@@ -154,31 +165,31 @@
                         <div class="cc-empty">No conversations yet. Website enquiries and connected channels will appear here.</div>
                     @endforelse
                 </div>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'inbox']) }}">View All Conversations →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('inbox') }}">View All Conversations →</a>
             </article>
 
             <article class="cc-card">
-                <header><h2>Pending Approvals</h2><a href="{{ route('admin.communication-center.page',['section'=>'approval-center']) }}">View All</a></header>
+                <header><h2>Pending Approvals</h2><a href="{{ $pageUrl('approval-center') }}">View All</a></header>
                 <div class="cc-list-stack">
                     @forelse($report['approval_recent'] as $record)
-                        <a href="{{ route('admin.communication-center.page',['section'=>'approval-center']) }}"><span><b>{{ $record->title }}</b><small>{{ $meta($record,'type','Approval') }} · {{ $meta($record,'requested_by','Unassigned') }}</small></span><i class="cc-badge cc-badge-{{ $statusTone($record->status) }}">{{ \Illuminate\Support\Str::headline($record->status) }}</i></a>
+                        <a href="{{ $pageUrl('approval-center') }}"><span><b>{{ $record->title }}</b><small>{{ $meta($record,'type','Approval') }} · {{ $meta($record,'requested_by','Unassigned') }}</small></span><i class="cc-badge cc-badge-{{ $statusTone($record->status) }}">{{ \Illuminate\Support\Str::headline($record->status) }}</i></a>
                     @empty
                         <div class="cc-empty">No approval requests.</div>
                     @endforelse
                 </div>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'approval-center']) }}">Go to Approval Center →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('approval-center') }}">Go to Approval Center →</a>
             </article>
 
             <article class="cc-card">
-                <header><h2>Alerts & Notifications</h2><a href="{{ route('admin.communication-center.page',['section'=>'alerts-notifications']) }}">View All</a></header>
+                <header><h2>Alerts & Notifications</h2><a href="{{ $pageUrl('alerts-notifications') }}">View All</a></header>
                 <div class="cc-list-stack">
                     @forelse($report['alert_recent'] as $record)
-                        <a href="{{ route('admin.communication-center.page',['section'=>'alerts-notifications']) }}"><span class="cc-alert-mark">!</span><span><b>{{ $record->title }}</b><small>{{ \Illuminate\Support\Str::headline($record->status) }}</small></span><em>{{ optional($record->updated_at)->diffForHumans() }}</em></a>
+                        <a href="{{ $pageUrl('alerts-notifications') }}"><span class="cc-alert-mark">!</span><span><b>{{ $record->title }}</b><small>{{ \Illuminate\Support\Str::headline($record->status) }}</small></span><em>{{ optional($record->updated_at)->diffForHumans() }}</em></a>
                     @empty
                         <div class="cc-empty">No active alerts.</div>
                     @endforelse
                 </div>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'alerts-notifications']) }}">View All Alerts →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('alerts-notifications') }}">View All Alerts →</a>
             </article>
         </section>
 
@@ -187,21 +198,21 @@
                 <header><h2>Response Time (Average)</h2></header>
                 <strong class="cc-large-stat">{{ $report['avg_response'] }}</strong>
                 <p>Conversation response data is calculated from stored channel metadata.</p>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Performance Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View Performance Report →</a>
             </article>
             <article class="cc-card">
                 <header><h2>Top Conversation Topics</h2><span class="cc-mini-select">This Month⌄</span></header>
                 <ul class="cc-ranked-list">
                     @forelse($report['topics'] as $row)<li><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@empty<li>No topics yet.</li>@endforelse
                 </ul>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Topics Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View Topics Report →</a>
             </article>
             <article class="cc-card cc-csat-card">
                 <header><h2>Customer Satisfaction (CSAT)</h2></header>
                 <strong>{{ $report['csat'] }}</strong>
                 <div class="cc-stars">★★★★☆</div>
                 <p>From captured conversation CSAT metadata.</p>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View CSAT Report →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View CSAT Report →</a>
             </article>
             <article class="cc-card">
                 <header><h2>Channel Availability</h2></header>
@@ -209,7 +220,7 @@
                     @foreach(['Inbox (Tickets)','Chat 24/7','WhatsApp','Email'] as $channel)<li><span><x-icon name="message" size="14" />{{ $channel }}</span><b>Online</b></li>@endforeach
                     <li><span><x-icon name="check" size="14" />System Status</span><b>All Systems Operational</b></li>
                 </ul>
-                <a class="cc-card-link" href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View System Status →</a>
+                <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View System Status →</a>
             </article>
         </section>
     @endif
@@ -220,19 +231,19 @@
                 @php
                     $params = request()->except('page','status','tab','conversation');
                     if($tabKey !== 'all'){$params['status']=$tabKey;$params['tab']=$tabKey;} else {$params['tab']='all';}
-                    $href = route('admin.communication-center.page',['section'=>$section]).($params ? '?'.http_build_query($params) : '');
+                    $href = $pageUrl($section, $params);
                 @endphp
                 <a href="{{ $href }}" class="{{ ($tabKey==='all' && $status==='') || $status===$tabKey ? 'active' : '' }}">{{ $tabLabel }}</a>
             @endforeach
         </nav>
 
-        <form class="cc-filterbar" method="get" action="{{ route('admin.communication-center.page',['section'=>$section]) }}">
+        <form class="cc-filterbar" method="get" action="{{ $pageUrl($section) }}">
             <label class="cc-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search {{ $section === 'email' ? 'emails' : 'conversations' }}..."><x-icon name="search" size="14" /></label>
             <select name="status"><option value="">All Statuses</option>@foreach(['new'=>'New','open'=>'Open','pending'=>'Pending','closed'=>'Closed'] as $key=>$label)<option value="{{ $key }}" @selected($status===$key)>{{ $label }}</option>@endforeach</select>
             <select name="priority"><option value="">All Priorities</option>@foreach(['low','normal','high','urgent'] as $key)<option value="{{ $key }}" @selected($priority===$key)>{{ \Illuminate\Support\Str::headline($key) }}</option>@endforeach</select>
             @if($section === 'inbox')<select name="channel"><option value="">All Channels</option>@foreach(['email'=>'Email','whatsapp'=>'WhatsApp','chat'=>'Chat 24/7','web'=>'Inbox (Tickets)','phone'=>'Phone','system'=>'System'] as $key=>$label)<option value="{{ $key }}" @selected(request('channel')===$key)>{{ $label }}</option>@endforeach</select>@endif
             <button type="submit" class="cc-btn cc-btn-light"><x-icon name="filter" size="13" /> Filters</button>
-            <a class="cc-btn cc-btn-light" href="{{ route('admin.communication-center.page',['section'=>$section]) }}">Reset</a>
+            <a class="cc-btn cc-btn-light" href="{{ $pageUrl($section) }}">Reset</a>
             <a class="cc-btn cc-btn-light cc-export" href="{{ route('admin.communication-center.export',['section'=>$section] + request()->query()) }}"><x-icon name="download" size="13" /> Export</a>
         </form>
 
@@ -241,7 +252,7 @@
                 <header><h2>{{ $section === 'email' ? 'Emails' : 'Conversations' }} ({{ number_format($conversations->total()) }})</h2><span>Sort: Newest⌄</span></header>
                 <div class="cc-thread-scroll">
                     @forelse($conversations as $conversation)
-                        @php $conversationUrl = route('admin.communication-center.page',['section'=>$section]).'?'.http_build_query(array_merge(request()->except('page','conversation'),['conversation'=>$conversation->id])); @endphp
+                        @php $conversationUrl = $pageUrl($section, array_merge(request()->except('page','conversation'), ['conversation' => $conversation->id])); @endphp
                         <a class="cc-thread-item {{ $selected?->id === $conversation->id ? 'active' : '' }}" href="{{ $conversationUrl }}">
                             <span class="cc-avatar">{{ strtoupper(substr((string)$conversationName($conversation),0,2)) }}</span>
                             <span class="cc-thread-copy">
@@ -337,12 +348,12 @@
     @endif
 
     @if($config['variant'] === 'records')
-        <form class="cc-filterbar cc-record-filterbar" method="get" action="{{ route('admin.communication-center.page',['section'=>$section]) }}">
+        <form class="cc-filterbar cc-record-filterbar" method="get" action="{{ $pageUrl($section) }}">
             <label class="cc-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search by title, ID, subject or reference..."><x-icon name="search" size="14" /></label>
             <select name="status"><option value="">Status: All</option>@foreach($config['statuses'] as $key=>$label)<option value="{{ $key }}" @selected($status===$key)>{{ $label }}</option>@endforeach</select>
             @if(in_array($section,['approval-center','action-follow-ups'],true))<select name="priority"><option value="">Priority: All</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>@endif
             <button class="cc-btn cc-btn-light" type="submit"><x-icon name="filter" size="13" /> Filters</button>
-            <a class="cc-btn cc-btn-light" href="{{ route('admin.communication-center.page',['section'=>$section]) }}">Clear All</a>
+            <a class="cc-btn cc-btn-light" href="{{ $pageUrl($section) }}">Clear All</a>
             <a class="cc-btn cc-btn-light cc-export" href="{{ route('admin.communication-center.export',['section'=>$section] + request()->query()) }}"><x-icon name="download" size="13" /> Export</a>
             <button type="button" class="cc-btn cc-btn-primary" data-cc-create><x-icon name="plus" size="13" /> {{ $config['create_label'] }}</button>
         </form>
@@ -440,7 +451,7 @@
 
             <aside class="cc-record-side">
                 <section class="cc-side-card cc-summary-card">
-                    <header><h2>{{ \Illuminate\Support\Str::headline(str_replace('-',' ',$section)) }} Summary</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header>
+                    <header><h2>{{ \Illuminate\Support\Str::headline(str_replace('-',' ',$section)) }} Summary</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header>
                     <div class="cc-donut-wrap">
                         @php
                             $summaryTotal = max(1,(int)$report['total']);
@@ -454,7 +465,7 @@
                     </div>
                 </section>
                 <section class="cc-side-card">
-                    <header><h2>Recent Activity</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-history']) }}">View All</a></header>
+                    <header><h2>Recent Activity</h2><a href="{{ $pageUrl('communication-history') }}">View All</a></header>
                     <div class="cc-list-stack">
                         @forelse($report['recent'] as $recent)<a href="#"><span><b>{{ $recent->title }}</b><small>{{ $recent->reference }} · {{ \Illuminate\Support\Str::headline($recent->status) }}</small></span><em>{{ optional($recent->updated_at)->diffForHumans() }}</em></a>@empty<div class="cc-empty">No recent activity.</div>@endforelse
                     </div>
@@ -473,21 +484,21 @@
 
         <section class="cc-bottom-grid">
             <article class="cc-card">
-                <header><h2>{{ $section === 'alerts-notifications' ? 'Alerts by Severity' : ($section === 'approval-center' ? 'Requests by Type' : ($section === 'email-templates' ? 'Template Categories' : 'Actions by Category')) }}</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header>
+                <header><h2>{{ $section === 'alerts-notifications' ? 'Alerts by Severity' : ($section === 'approval-center' ? 'Requests by Type' : ($section === 'email-templates' ? 'Template Categories' : 'Actions by Category')) }}</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header>
                 <div class="cc-bars">
                     @php $bars = $section === 'alerts-notifications' ? $report['severity_counts'] : $report['category_counts']; $barMax=max(1,(int)collect($bars)->max()); @endphp
                     @forelse(collect($bars)->take(7) as $label=>$count)<div><span>{{ \Illuminate\Support\Str::headline($label) }}</span><i><b style="width:{{ round(($count/$barMax)*100) }}%"></b></i><em>{{ $count }}</em></div>@empty<div class="cc-empty">No data yet.</div>@endforelse
                 </div>
             </article>
             <article class="cc-card">
-                <header><h2>Status Breakdown</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header>
+                <header><h2>Status Breakdown</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header>
                 <div class="cc-bars">
                     @php $bars=$report['status_counts']; $barMax=max(1,(int)collect($bars)->max()); @endphp
                     @forelse(collect($bars)->take(7) as $label=>$count)<div><span>{{ \Illuminate\Support\Str::headline($label) }}</span><i><b style="width:{{ round(($count/$barMax)*100) }}%"></b></i><em>{{ $count }}</em></div>@empty<div class="cc-empty">No status data yet.</div>@endforelse
                 </div>
             </article>
             <article class="cc-card">
-                <header><h2>Source / Workload</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header>
+                <header><h2>Source / Workload</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header>
                 <div class="cc-bars">
                     @php $bars=$report['source_counts']; $barMax=max(1,(int)collect($bars)->max()); @endphp
                     @forelse(collect($bars)->take(7) as $label=>$count)<div><span>{{ \Illuminate\Support\Str::headline($label) }}</span><i><b style="width:{{ round(($count/$barMax)*100) }}%"></b></i><em>{{ $count }}</em></div>@empty<div class="cc-empty">No source data yet.</div>@endforelse
@@ -613,7 +624,7 @@
             <label class="cc-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search by keyword, UUID, subject, customer..."><x-icon name="search" size="14"/></label>
             <select><option>Channel: All</option></select><select><option>Type: All</option></select><select><option>Action: All</option></select><select><option>User: All</option></select><select><option>Entity Type: All</option></select>
             <button class="cc-btn cc-btn-light" type="submit"><x-icon name="filter" size="13"/> Filters</button>
-            <a class="cc-btn cc-btn-light cc-export" href="{{ route('admin.communication-center.export',['section'=>$section] + request()->query()) }}"><x-icon name="download" size="13"/> Export</a>
+            <a class="cc-btn cc-btn-light cc-export" href="{{ route('admin.communication-center.export', ['section' => $section] + request()->query()) }}"><x-icon name="download" size="13"/> Export</a>
         </form>
         <section class="cc-history-layout">
             <main class="cc-record-main">
@@ -644,7 +655,7 @@
                 <footer class="cc-table-footer"><span>Showing {{ $activities->firstItem() ?? 0 }} to {{ $activities->lastItem() ?? 0 }} of {{ number_format($activities->total()) }} activities</span><div class="cc-pager"><a href="{{ $activities->previousPageUrl() ?: '#' }}" class="{{ $activities->onFirstPage()?'disabled':'' }}">‹</a><b>{{ $activities->currentPage() }}</b><a href="{{ $activities->nextPageUrl() ?: '#' }}" class="{{ $activities->hasMorePages()?'':'disabled' }}">›</a></div></footer>
             </main>
             <aside class="cc-record-side">
-                <section class="cc-side-card"><header><h2>Activity Summary</h2><a href="{{ route('admin.communication-center.page',['section'=>'communication-reports']) }}">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:50"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></section>
+                <section class="cc-side-card"><header><h2>Activity Summary</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:50"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></section>
                 <section class="cc-side-card"><header><h2>Top Entity Types</h2><a href="#">View Report</a></header><ul class="cc-ranked-list">@foreach($report['by_entity'] as $label=>$count)<li><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></section>
                 <section class="cc-side-card"><header><h2>Quick Actions</h2></header><ul class="cc-quick-list"><li><x-icon name="file-text" size="14"/> View Full Audit Log</li><li><x-icon name="download" size="14"/> Export Audit Log</li><li><x-icon name="calendar" size="14"/> Schedule Audit Report</li><li><x-icon name="settings" size="14"/> Configure Log Settings</li></ul></section>
             </aside>

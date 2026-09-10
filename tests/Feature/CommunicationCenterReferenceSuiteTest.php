@@ -148,6 +148,8 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(2, AdminRecord::query()->where('module', 'email-templates')->count());
+        $copy = AdminRecord::query()->where('module', 'email-templates')->where('id', '!=', $record->id)->firstOrFail();
+        $this->assertNotSame($record->public_uuid, $copy->public_uuid);
 
         $this->actingAs($admin)
             ->get(route('admin.communication-center.export', ['section' => 'email-templates']))
