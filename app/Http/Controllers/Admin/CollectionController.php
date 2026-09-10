@@ -556,7 +556,7 @@ class CollectionController extends Controller
             'product_ids.*' => ['integer', 'distinct', 'exists:products,id'],
         ]);
 
-        $slug = Str::slug($data['slug'] ?: $data['name']);
+        $slug = Str::slug((string) (($data['slug'] ?? null) ?: $data['name']));
         validator(['slug' => $slug], ['slug' => ['required', 'max:180', Rule::unique('product_collections', 'slug')->ignore($collection?->id)]])->validate();
         $data['slug'] = $slug;
 
