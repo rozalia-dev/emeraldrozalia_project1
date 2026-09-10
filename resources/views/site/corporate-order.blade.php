@@ -3,6 +3,7 @@
 @section('title','Corporate Orders — Emerald Rozalia')
 @push('styles')
 <link rel="stylesheet" href="/css/corporate-order.css?v=20260908-approved">
+<link rel="stylesheet" href="/css/order-fullwidth.css?v=20260910-fullwidth">
 @endpush
 @section('content')
 <div class="corporate-shell" data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE" data-reference-image="/assets/brand/corporate-order-reference.png?v=20260908">
