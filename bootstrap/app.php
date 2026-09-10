@@ -7,7 +7,14 @@ use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\ResolveTenantContext;
 
 return Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/up')
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+        then: function (): void {
+            require base_path('routes/order-master.php');
+        },
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         // The host TLS proxy terminates HTTPS before traffic reaches this container.
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', 'REMOTE_ADDR'));
