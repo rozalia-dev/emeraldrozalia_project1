@@ -63,9 +63,13 @@ class VideoPlaybackController extends Controller
                 && $timestamps
                 && substr((string) $timestamps->created_at, 0, 19) === substr((string) $timestamps->updated_at, 0, 19);
             $lastUpdated = $timestamps ? \Illuminate\Support\Carbon::parse((string) $timestamps->updated_at, 'UTC') : now()->utc();
-            $elapsed = $initialHeartbeat ? 0 : max(0, $lastUpdated->diffInSeconds(now()->utc(), false));
-            $increment = min((int)$data['seconds'], $elapsed, 15);
-            $seconds = min(86400,$play->seconds + $increment);
+            // Carbon 3 returns fractional seconds. Normalize elapsed wall time before
+            // persisting to the integer `seconds` column so PostgreSQL never receives a decimal.
+            $elapsed = $initialHeartbeat
+                ? 0
+                : max(0, (int) floor($lastUpdated->diffInSeconds(now()->utc(), false)));
+            $increment = min((int) $data['seconds'], $elapsed, 15);
+            $seconds = min(86400, (int) $play->seconds + $increment);
             // Persist UTC explicitly; PostgreSQL timestamp-with-time-zone values must
             // not be rewritten as local Dublin wall time without an offset.
             VideoPlay::whereKey($play->id)->update(['seconds'=>$seconds,'updated_at'=>$now]);
