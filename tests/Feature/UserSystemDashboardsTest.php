@@ -27,7 +27,11 @@ class UserSystemDashboardsTest extends TestCase
         ];
 
         foreach ($routes as $route => $heading) {
-            $this->actingAs($admin)->get(route($route))->assertOk()->assertSee([$heading, 'Project 1 Control Panel (cPanel)', 'Users & Roles'], false);
+            $response = $this->actingAs($admin)->get(route($route));
+            $response->assertOk()
+                ->assertSee($heading, false)
+                ->assertSee('Project 1 Control Panel (cPanel)', false)
+                ->assertSeeText('Users & Roles');
         }
     }
 
