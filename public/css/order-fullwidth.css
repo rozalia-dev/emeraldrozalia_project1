@@ -1,0 +1,10 @@
+.corporate-shell,.bulk-shell{width:min(1536px,100%);margin:0 auto;padding-left:14px;padding-right:14px}
+.corporate-order-page .flash,.bulk-order-page .flash{max-width:1536px}
+@media(min-width:1101px){
+  .corporate-hero-copy{padding-left:28px;padding-right:24px}
+  .bulk-hero-copy{padding-left:28px;padding-right:24px}
+  .corporate-reference--hero,.bulk-reference--hero{background-size:cover;background-position:center}
+  .corporate-reference--trust,.bulk-reference--trust{background-size:cover;background-position:center}
+  .bulk-reference--factory{background-size:cover;background-position:center}
+}
+@media(max-width:1100px){.corporate-shell,.bulk-shell{width:100%}}
