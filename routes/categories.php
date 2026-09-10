@@ -20,3 +20,4 @@ Route::prefix('admin/resource/categories')
     });
 
 require __DIR__.'/variants.php';
+require __DIR__.'/collections.php';
