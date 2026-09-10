@@ -107,10 +107,10 @@ class OrderMasterOverviewTest extends TestCase
         $this->assertDatabaseHas('orders',['number'=>'BULK-IMPORT-001','order_type'=>'bulk','fulfillment_status'=>'picking','total'=>515]);
     }
 
-    public function test_existing_type_order_route_remains_functional(): void
+    public function test_existing_type_and_online_sales_resource_routes_remain_functional(): void
     {
         $admin=$this->admin(); $this->order(['order_type'=>'franchise','number'=>'FRAN-KEEP-001']);
         $this->actingAs($admin)->get(route('admin.order-master','franchise'))->assertOk()->assertSee('FRAN-KEEP-001',false);
-        $this->actingAs($admin)->get('/admin/resource/online-sales')->assertRedirect(route('admin.order-master.overview'));
+        $this->actingAs($admin)->get('/admin/resource/online-sales')->assertOk()->assertSee('Online Sales',false);
     }
 }
