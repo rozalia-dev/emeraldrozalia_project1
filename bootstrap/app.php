@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             require base_path('routes/order-master.php');
+            require base_path('routes/customers.php');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
