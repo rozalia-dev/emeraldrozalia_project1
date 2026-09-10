@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
     @stack('styles')
 </head>
-<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -160,15 +160,32 @@
         </details>
         <details class="admin-nav-group" open>
             <summary><span>SETTINGS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
-            <div class="admin-nav-items">
-                <a class="{{request()->is('admin/resource/company-profile*')?'active':''}}" href="{{route('admin.resource','company-profile')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Company Profile</span></span></a>
-                <a class="{{request()->is('admin/resource/language*')?'active':''}}" href="{{route('admin.resource','language')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Language</span></span></a>
-                <a class="{{request()->is('admin/resource/currency*')?'active':''}}" href="{{route('admin.resource','currency')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Currency</span></span></a>
-                <a class="{{request()->is('admin/resource/payment-settings*')?'active':''}}" href="{{route('admin.resource','payment-settings')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Payment Settings</span></span></a>
-                <a class="{{request()->is('admin/resource/notifications*')?'active':''}}" href="{{route('admin.resource','notifications')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Notifications</span></span></a>
-                <a class="{{request()->is('admin/resource/branding*')?'active':''}}" href="{{route('admin.resource','branding')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Branding</span></span></a>
-                <a class="{{request()->is('admin/resource/security*')?'active':''}}" href="{{route('admin.resource','security')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Security</span></span></a>
-                <a class="{{request()->is('admin/resource/audit-logs*')?'active':''}}" href="{{route('admin.resource','audit-logs')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Audit Logs</span></span></a>
+            <div class="admin-nav-items admin-settings-nav-items">
+                @php
+                    $settingsNav = [
+                        ['slug' => null, 'label' => 'Settings Overview', 'icon' => 'grid', 'active' => request()->routeIs('admin.settings.overview')],
+                        ['slug' => 'general-configuration', 'label' => 'General Configuration', 'icon' => 'settings'],
+                        ['slug' => 'company-branding', 'label' => 'Company & Branding', 'icon' => 'briefcase'],
+                        ['slug' => 'email-notifications', 'label' => 'Email & Notifications', 'icon' => 'mail'],
+                        ['slug' => 'whatsapp-messaging', 'label' => 'WhatsApp & Messaging', 'icon' => 'message'],
+                        ['slug' => 'payment-gateways', 'label' => 'Payment Gateways', 'icon' => 'credit-card'],
+                        ['slug' => 'localization', 'label' => 'Localization', 'icon' => 'globe'],
+                        ['slug' => 'security-access', 'label' => 'Security & Access', 'icon' => 'check'],
+                        ['slug' => 'api-roles', 'label' => 'Users & Roles Settings', 'icon' => 'users'],
+                        ['slug' => 'application-settings', 'label' => 'Application Settings', 'icon' => 'settings'],
+                        ['slug' => 'document-storage', 'label' => 'Document & Storage', 'icon' => 'file-text'],
+                        ['slug' => 'integrations', 'label' => 'Integrations', 'icon' => 'refresh'],
+                        ['slug' => 'automations', 'label' => 'Automations', 'icon' => 'refresh'],
+                        ['slug' => 'backup-recovery', 'label' => 'Backup & Recovery', 'icon' => 'download'],
+                        ['slug' => 'audit-logs', 'label' => 'Audit & Logs', 'icon' => 'file-text'],
+                        ['slug' => 'system-maintenance', 'label' => 'System Maintenance', 'icon' => 'refresh'],
+                        ['slug' => 'other-settings', 'label' => 'Other Settings', 'icon' => 'dots'],
+                    ];
+                @endphp
+                @foreach($settingsNav as $item)
+                    @php $active = $item['slug'] === null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section') === $item['slug']; @endphp
+                    <a class="{{$active?'active':''}}" href="{{$item['slug'] === null ? route('admin.settings.overview') : route('admin.settings.page', $item['slug'])}}"><span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span></a>
+                @endforeach
             </div>
         </details>
     </nav>
