@@ -6,15 +6,15 @@ APP_KEY values or the contents of `.env`.
 
 ## Current verified release
 
-The latest verified production release is commit `f9a3d5bbcb82e065e6869fb52478674db9182cf8`.
-GitHub Actions run [34240664241](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34240664241)
-completed successfully on 2026-09-08:
+The latest audited production release is commit `c54e933e36c68f2951e5e05afb32119ea02ea467`.
+GitHub Actions run [#277](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34697538744)
+completed successfully on 2026-09-12:
 
 | Job | Result |
 | --- | --- |
-| PostgreSQL validation | Passed: 48 tests, 471 assertions |
-| Container and release validation | Passed: image permissions, storage link, migrations, nginx, backup rehearsal, worker and scheduler |
-| Deploy to Hetzner | Passed: SSH fingerprint verification, exact-commit checkout, Docker release and internal/public health checks |
+| PostgreSQL validation | Passed |
+| Container and release validation | Passed |
+| Deploy to Hetzner | Passed |
 
 The workflow is triggered by a push to `main` or manually from Actions. Pull
 requests run validation only. Production deployment is protected by the GitHub
@@ -232,7 +232,6 @@ TLS certificates. Never paste any of these values into commits, issues or chat.
 
 The server setup, Docker stack, nginx proxy, Certbot renewal and GitHub deployment
 connection were manually verified on 2026-09-08. The latest automated evidence is
-the successful [main workflow run 34240664241](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34240664241).
+the successful [main workflow run #277](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34697538744).
 Update this document whenever the server IP, OS, Docker versions, repository path,
 SSH key, deployment action, ports, volumes or release procedure changes.
-

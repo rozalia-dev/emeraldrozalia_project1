@@ -18,7 +18,9 @@ Do not bundle unrelated domain work into one change.
 
 ## Reviewed repository baseline
 
-The user's requested Windows directory is C:\Users\newuser\Herd\emeraldrozalia_project1. That directory was not mounted in the review environment. The available clean snapshot reviewed for this instruction file was the repository's origin/main at commit 0727c8d (Add GitHub Actions workflow for production deployment to Hetzner). Confirm the user's actual branch and commit before applying these instructions there.
+The current audited clean baseline is origin/main at commit c54e933e36c68f2951e5e05afb32119ea02ea467. The detailed current route, asset, synchronization, order, franchise, UI and CI evidence is in the docs/PROJECT1-*.md matrices.
+
+The historical Windows directory is not mounted in this review environment. Use the current audited origin/main baseline and the exact target checkout recorded in docs/PROJECT1-CI-GATE-MATRIX.md before applying these instructions.
 
 The current README.md correctly describes the intended Project 1 boundary and deployment shape, but its Delivered scope list is broader than the verified implementation. Treat a README claim as a target or foundation claim until a test, migration result, route check, or approved screenshot proves it.
 
@@ -66,7 +68,7 @@ The following are outside Project 1 and must not be added to its cPanel: product
 - Keep the Limerick marker in Ireland when implementing the global-network visual. Do not invent partner counts, countries, production facts, or contact values.
 - Responsive behaviour and the approved desktop/mobile references are acceptance requirements, not optional polish.
 
-The referenced file Emerald_Rozalia_Project_1_Visual_Developer_Guide_v3(1).pdf was unavailable during this review. When it is supplied again, use it as specification evidence and record its pages/assets in the traceability manifest; never claim that it was reviewed before it is available.
+The approved Emerald-Rozalia-Project-1-Developer-Guide.pdf, version 3, 519 pages, has been reviewed for the Batch 0 baseline. Its ordered 167-entry matrix and missing archive evidence are recorded in docs/PROJECT1-GUIDE-COVERAGE.md; do not claim visual completion while the missing references or required tests remain open.
 
 ## Open findings from the repository review
 

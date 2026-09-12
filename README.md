@@ -2,6 +2,8 @@
 
 ## Current implementation status
 
+The audited release baseline is c54e933e36c68f2951e5e05afb32119ea02ea467; GitHub Actions run #277 passed the PostgreSQL, container/release and Hetzner deployment jobs. The repository remains a partial foundation against the 519-page guide, not a completed 167-visual acceptance release. Batch 0 evidence is recorded in the PROJECT1-*.md matrices.
+
 The repository now contains the Laravel 13 Project 1 full-stack package, including the responsive Emerald Rozalia storefront, single admin cPanel, SEO & Content workspace, PostgreSQL Docker stack, persistent public media volume, CI validation and guarded production deployment scripts. The SEO reference screen is functional: metadata, audits, issue fixing, broken-link checks, keywords, redirects, sitemap, robots.txt, schema and UUID-backed audit logging are connected to Laravel routes and database tables. Runtime verification remains an environment check: this workspace does not include PHP, Composer or Docker, so the authoritative migration, route, PHPUnit and container checks run in GitHub Actions.
 
 The shared cPanel operations layer now supports audited create/search/filter/edit/delete records, global admin search across Project 1 domains, Communication Center assignment/status/follow-up and saved replies, plus Product Manager edit/update without duplicate products. See [CPANEL-OPERATIONS-EVIDENCE.md](docs/CPANEL-OPERATIONS-EVIDENCE.md) for the exact scope and verification status.
@@ -86,7 +88,7 @@ php artisan route:list
 php artisan test
 ```
 
-CI executes the install, PostgreSQL migration/seed and tests on every push. See `docs/IMPLEMENTATION-MATRIX.md` and `docs/DEPLOYMENT-RUNBOOK.md` for specification traceability and deployment/rollback.
+CI executes the install, PostgreSQL migration/seed and tests on every push. See `docs/PROJECT1-GUIDE-COVERAGE.md`, `docs/PROJECT1-CI-GATE-MATRIX.md` and `docs/DEPLOYMENT-RUNBOOK.md` for current specification traceability and deployment/rollback.
 
 Official footer contact values are loaded from the live server's `BRAND_*` environment variables and are never committed.
 

@@ -1,6 +1,6 @@
 # Visual source inventory (P0.2)
 
-The approved guide is `Emerald_Rozalia_Project_1_Visual_Developer_Guide_v3.pdf`. The repository currently contains the following 33 supplied screenshot references under `docs/new project image/`. These are evidence images, not original production photography.
+The canonical Batch 0 register is `PROJECT1-ASSET-REGISTER.md`. The approved guide is `Emerald-Rozalia-Project-1-Developer-Guide.pdf`, version 3, 519 pages. This checkout contains 33 screenshot references under `docs/new project image/`; the audit records 165 archive-equivalent references (142 unique plus 23 intentional duplicates), so the ordered archive remains incomplete locally. These are evidence images, not original production photography.
 
 | Reference image | Dimensions | SHA-256 |
 |---|---:|---|
@@ -38,4 +38,4 @@ The approved guide is `Emerald_Rozalia_Project_1_Visual_Developer_Guide_v3.pdf`.
 | store setup page.png | 1536x1024 | 2a088b008512543af1abb7e80f9f68cc6cfbf64b8f694edccadde8400ea639ac |
 | virtual studio try on.png | 1536x1024 | a5f8cbbaeb8e7439f61e743b1cfc2a30796343e738194ea77cab65fc8d39e82f |
 
-The audit describes 165 supplied image references (142 unique plus 23 intentional duplicates). The remaining reference archive/ordered manifest is not present in this working tree, so the 167-row traceability manifest cannot honestly be marked complete yet. Do not treat screenshot references as production artwork or use them as unreviewed Playwright baselines.
+The ordered 167-row traceability manifest is now captured in `PROJECT1-GUIDE-COVERAGE.md`; missing archive files remain an explicit comparison blocker. Do not treat screenshot references as production artwork or use them as unreviewed Playwright baselines.

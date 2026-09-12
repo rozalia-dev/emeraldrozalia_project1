@@ -1,5 +1,7 @@
 # Project 1 implementation matrix
 
+The detailed Batch 0 source of truth is `PROJECT1-GUIDE-COVERAGE.md`. It records all 167 ordered guide entries, the 165 archive-reference count, the 33 locally tracked reference files, route/owner evidence and the remaining gates. The table below remains a high-level foundation summary.
+
 | Requirement | Implementation | Acceptance evidence |
 |---|---|---|
 | Brand | Exact supplied PNG assets in \`public/assets/brand\`; footer-only official contact | Asset hashes; layout review |
