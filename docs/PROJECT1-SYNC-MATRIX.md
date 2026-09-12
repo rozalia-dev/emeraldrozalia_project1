@@ -1,6 +1,7 @@
 # Project 1 public/private synchronization matrix
 
 **Baseline:** Batch 8 deployed `main` release `093e451df45e4ed1665204003591f86833913d81`
+**Next batch:** Batch 9 settings/public-branding synchronization
 **Rule:** “connected” means a traceable shared model/query path exists; it does not mean the complete production workflow is proven.
 
 | Public surface | Public read/write path | Private consumer | Current result | Required next contract |
@@ -15,7 +16,7 @@
 | Customer account | AccountController reads authenticated user’s orders, payments, returns and addresses | Admin order/customer/payment/return pages | Shared records with owner checks | Complete policy/transition matrix and privacy tests |
 | Franchise lead/store | Public franchise form creates application; FranchiseManagementController queries applications/stores | Franchise cPanel sections | Partial; no durable origin link and generic/fallback sections remain | Application→approval→agreement→onboarding→store UUID/correlation workflow |
 | Communication web channel | Public form creates web Conversation/Message | Communication Center and communication reports | Shared web path verified | Provider adapters, signed callbacks, queues, retries, delivery state and redaction |
-| Settings and branding | SettingsController saves AdminRecord and selected Company/IntegrationConnection state | Shared admin/public context and layout | Partial; public layout still relies on config/static assets in places | Versioned published settings/theme contract and reverse-direction tests |
+| Settings and branding | SettingsController saves tenant-scoped AdminRecord and appends a public-safe `PublishedSiteSetting` revision for general, company-branding and localization sections | Shared public shell and TenantContext consume the latest published revision; private sections remain admin-only | Source-of-truth connected for the shared shell; version, tenant isolation, allow-list, asset/color sanitization and reverse reads are feature-tested | Add explicit approval/activation/rollback UI, per-record policies, provider consumers and supplied-reference screenshot/accessibility proof |
 | Reports and analytics | ReportController/analytics service reads Order, Conversation and User | Report pages and exports | Live queries exist, but fallbacks/simplified metrics/N+1 are present | Versioned read models, no fixture fallback, pagination, currency/timezone and export reconciliation |
 
 ## Synchronization acceptance

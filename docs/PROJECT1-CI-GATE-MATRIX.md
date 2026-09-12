@@ -25,7 +25,7 @@ GitHub Actions run #310 (workflow “Validate and deploy production”) complete
 | Navigation | Target hierarchy and source-to-route map | Captured; source mismatch remains open |
 | Asset register | Hash, dimensions, source/archive mapping, exact-logo review | 33 local references registered; 132 archive references missing; two brand PNG verification failures |
 | Public page matrix | Route/data/form/consumer/evidence per public row | Captured; visual/live content proof remains partial |
-| Synchronization | Public write/read to private/admin/report consumers | Captured; Batch 8 closes the banner/review source-of-truth boundary; correlation/settings/report gaps remain |
+| Synchronization | Public write/read to private/admin/report consumers | Captured; Batch 8 closes the banner/review boundary and Batch 9 adds versioned tenant-scoped public settings; lifecycle/report gaps remain |
 | Order engine | One engine with six category projections | Captured; conversion/transition/reconciliation evidence remains partial |
 | Franchise lifecycle | Application→approval→agreement→onboarding→store→retail→renewal | Captured; complete transition/policy evidence remains partial |
 | UI tokens | Geometry, typography, spacing, responsive and published theme version | Contract captured; measurements/runtime publisher unverified |
@@ -50,6 +50,6 @@ Local PHP, Composer and Docker are unavailable in this workspace. The local evid
 1. Reconcile the canonical navigation tree and screenshot dimensions.
 2. Attach the missing ordered guide archive/manifest or record an approved exception.
 3. Add strict visual, responsive and accessibility suites.
-4. Complete settings/public branding versioning and reverse-direction tests.
+4. Complete explicit settings approval/activation/rollback policies and broaden public consumers beyond the shared shell.
 5. Define remaining domain contracts, policies, UUID/tenant/money/idempotency and provider boundaries.
 6. Add direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.

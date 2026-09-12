@@ -1,6 +1,7 @@
 <?php
 namespace App\Providers;
 use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
+use App\Services\PublishedSiteSettings;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -30,6 +31,7 @@ class AppServiceProvider extends ServiceProvider {
         }
 
         View::composer('layouts.site', function ($view): void {
+            $siteSettings = app(PublishedSiteSettings::class)->forCompany();
             $footerPages = ContentPage::query()
                 ->where('locale', app()->getLocale())
                 ->where('status', 'published')
@@ -41,7 +43,7 @@ class AppServiceProvider extends ServiceProvider {
                 ->take(8)
                 ->values();
 
-            $view->with('footerPages', $footerPages);
+            $view->with(['footerPages' => $footerPages, 'siteSettings' => $siteSettings]);
         });
     }
 }
