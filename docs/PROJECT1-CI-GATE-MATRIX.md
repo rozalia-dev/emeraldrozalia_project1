@@ -6,13 +6,13 @@
 
 ## Current verified workflow
 
-GitHub Actions run #277 (workflow “Validate and deploy production”) completed successfully for c54e933 on 12 September 2026.
+GitHub Actions run #293 (workflow “Validate and deploy production”) completed successfully for merged release `14ba4142ed98816cec1787097944682beaf32534` on 12 September 2026.
 
 | Job | Current evidence | Guide completion meaning |
 |---|---|---|
-| PostgreSQL validation | Passed in run #277 | Green release baseline; does not cover all guide contracts |
-| Container and release validation | Passed in run #277 | Container/release rehearsal is green |
-| Deploy to Hetzner | Passed in run #277 | Exact audited SHA reached the server and health checks passed |
+| PostgreSQL validation | Passed in run #293, including full rollback/re-run and main-only media acceptance | Green release baseline; does not cover all guide contracts |
+| Container and release validation | Passed in run #293 | Container/release rehearsal is green |
+| Deploy to Hetzner | Passed in run #293 | Exact merged SHA reached the server and health checks passed |
 | Commit status API | No individual statuses were reported; workflow run is the authoritative record | Do not infer broader coverage from an empty status list |
 
 ## Required gates and current state
@@ -32,11 +32,11 @@ GitHub Actions run #277 (workflow “Validate and deploy production”) complete
 | Browser/accessibility | Desktop/tablet/mobile journeys, keyboard, focus, labels, contrast, overflow | Missing broad suite |
 | API/contracts | /api/v1, Form Requests, API Resources, Policies, OpenAPI | Not found in audited tree |
 | Async/provider | Jobs, events/listeners, queue/retry/idempotency, email/WhatsApp/payment/webhook contracts | Not found or incomplete |
-| PostgreSQL | migrate/seed/route/feature suite | Passed in run #277 |
-| Container/release | Docker image, storage, Nginx, worker/scheduler rehearsal | Passed in run #277 |
-| Backup/restore/rollback | Actual restore drill and rollback rehearsal | Not independently evidenced |
+| PostgreSQL | migrate/seed/route/feature suite | Passed in run #293; rollback, re-migrate, seed and status are now rehearsed |
+| Container/release | Docker image, storage, Nginx, worker/scheduler rehearsal | Passed in run #293 |
+| Backup/restore/rollback | Actual restore drill and rollback rehearsal | Rollback/re-run passed in run #293; backup/restore remains not independently evidenced |
 | Deploy | Push only the tested SHA; server fast-forward to same SHA | Enforced by deploy workflow; verify again for every release |
-| Post-deploy smoke | /up, homepage, product, account/cart/admin and relevant feature paths | Passed for audited release workflow; current data correctness still requires smoke evidence |
+| Post-deploy smoke | /up, homepage, product, account/cart/admin and relevant feature paths | Deployment health passed in run #293; broad post-deploy data smoke remains limited |
 
 ## Release rule
 
@@ -51,4 +51,4 @@ Local PHP, Composer and Docker are unavailable in this workspace. The local evid
 3. Add strict visual, responsive and accessibility suites.
 4. Correct public Banner and admin Review synchronization.
 5. Define domain contracts, policies, UUID/tenant/money/idempotency and provider boundaries.
-6. Run backup/restore/rollback evidence before a guide-complete claim.
+6. Add direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.
