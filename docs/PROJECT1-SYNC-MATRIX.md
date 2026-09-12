@@ -1,7 +1,7 @@
 # Project 1 public/private synchronization matrix
 
-**Current verified release:** Batch 9 deployed `main` release `cba21d6474c3ab2d78a17aecc7175ca6dbaf2072`
-**Current batch:** Settings/public-branding synchronization
+**Current verified release:** Communication Center contract follow-up deployed `main` release `b8b9db1d1f9313bb3a3f49a3051c38cd321cbbf3`
+**Current batch:** Communication Center delivery and webhook contract
 **Rule:** “connected” means a traceable shared model/query path exists; it does not mean the complete production workflow is proven.
 
 | Public surface | Public read/write path | Private consumer | Current result | Required next contract |
