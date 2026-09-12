@@ -30,7 +30,7 @@ class PublicContentContractTest extends TestCase
         }
 
         $this->assertStringNotContainsString('CONTACT US', $nav);
-        $this->assertStringContainsString('href="' . route('contact') . '"', $html);
+        $this->assertStringContainsString('href="/contact">Contact Us', $html);
         $this->assertStringContainsString('aria-label="Language"', $html);
         $this->assertStringContainsString('aria-label="Currency"', $html);
         $this->assertStringContainsString('aria-label="Search"', $html);
