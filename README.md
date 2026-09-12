@@ -12,6 +12,8 @@ Batch 2 now hardens the Users & Roles boundary with action-specific permissions,
 
 The shared cPanel operations layer now supports audited create/search/filter/edit/delete records, global admin search across Project 1 domains, Communication Center assignment/status/follow-up and saved replies, plus Product Manager edit/update without duplicate products. See [CPANEL-OPERATIONS-EVIDENCE.md](docs/CPANEL-OPERATIONS-EVIDENCE.md) for the exact scope and verification status.
 
+Batch 3 now hardens the UUID/domain migration contract for clean, partial and repeated application, preserves existing public identifiers, repairs duplicate/null values before constraints and adds a forward repair migration for already-recorded schemas. Release a2464ddf7258eb436ecd7c5361dc7ba40351e74f passed the PostgreSQL, container and production deployment gates in [run #290](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34706590537). See [Batch 3 migration evidence](docs/PROJECT1-BATCH3-MIGRATION-EVIDENCE.md).
+
 The Videos reference dashboard now uses real product-media records: private uploads, YouTube/Vimeo embeds, filters, bulk actions, scheduling, product-page playback, captions, website playback metrics and UUID audit history. See [VIDEO-DASHBOARD-EVIDENCE.md](docs/VIDEO-DASHBOARD-EVIDENCE.md) for the supported workflows and validation boundaries.
 
 Laravel 13 full-stack storefront and single admin cPanel for Emerald Rozalia Limited. The repository is deployable with PostgreSQL 17 and contains no Production, Finance, Payroll, HR or POS module.
