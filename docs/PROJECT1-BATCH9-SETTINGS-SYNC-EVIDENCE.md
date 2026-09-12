@@ -45,3 +45,19 @@ branding/general/localization snapshot consumed by the shared storefront shell.
 - Exact supplied-reference screenshot diffs, responsive/browser/accessibility
   journeys, the complete 519-page guide and the 167-reference visual
   acceptance set remain open.
+
+## Release verification
+
+- Pull request [#79](https://github.com/rozalia-dev/emeraldrozalia_project1/pull/79)
+  passed the PostgreSQL validation and rollback/re-run gates in
+  [run #313](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34714835167).
+- The merged main release is
+  `cba21d6474c3ab2d78a17aecc7175ca6dbaf2072`. Main workflow
+  [run #314](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34714948981)
+  passed PostgreSQL validation, rollback/re-run, media-browser acceptance,
+  Docker release rehearsal and the Hetzner deployment.
+- The deployment log records migration
+  `2026_09_12_000400_create_published_site_settings_table` as `DONE`, healthy
+  application/PostgreSQL/Redis/Nginx services, and a successful health check
+  for the exact merged release. The pre-migration backup was recorded at
+  `/var/backups/emerald-rozalia/20260912T194700Z-cba21d6474c3`.

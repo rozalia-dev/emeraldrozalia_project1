@@ -1,19 +1,19 @@
 # Project 1 CI and release gate matrix
 
 **Baseline audited release:** c54e933e36c68f2951e5e05afb32119ea02ea467
-**Current verified release:** 093e451df45e4ed1665204003591f86833913d81
+**Current verified release:** cba21d6474c3ab2d78a17aecc7175ca6dbaf2072
 **Repository:** rozalia-dev/emeraldrozalia_project1
 **Production target:** Hetzner, /var/www/emerald-rozalia, https://emeraldrozalia.com
 
 ## Current verified workflow
 
-GitHub Actions run #310 (workflow “Validate and deploy production”) completed successfully for merged release `093e451df45e4ed1665204003591f86833913d81` on 12 September 2026.
+GitHub Actions run #314 (workflow “Validate and deploy production”) completed successfully for merged release `cba21d6474c3ab2d78a17aecc7175ca6dbaf2072` on 12 September 2026.
 
 | Job | Current evidence | Guide completion meaning |
 |---|---|---|
-| PostgreSQL validation | Passed in run #310, including full rollback/re-run and main-only media acceptance | Green release baseline; does not cover all guide contracts |
-| Container and release validation | Passed in run #310 | Container/release rehearsal is green |
-| Deploy to Hetzner | Passed in run #310 | Exact merged SHA reached the server and health checks passed |
+| PostgreSQL validation | Passed in run #314, including full rollback/re-run and main-only media acceptance | Green release baseline; does not cover all guide contracts |
+| Container and release validation | Passed in run #314 | Container/release rehearsal is green |
+| Deploy to Hetzner | Passed in run #314 | Exact merged SHA reached the server and health checks passed |
 | Commit status API | No individual statuses were reported; workflow run is the authoritative record | Do not infer broader coverage from an empty status list |
 
 ## Required gates and current state
@@ -33,17 +33,17 @@ GitHub Actions run #310 (workflow “Validate and deploy production”) complete
 | Browser/accessibility | Desktop/tablet/mobile journeys, keyboard, focus, labels, contrast, overflow | Missing broad suite |
 | API/contracts | /api/v1, Form Requests, API Resources, Policies, OpenAPI | Versioned catalog contracts are feature-tested; broader guide/API coverage remains partial |
 | Async/provider | Jobs, events/listeners, queue/retry/idempotency, email/WhatsApp/payment/webhook contracts | Not found or incomplete |
-| PostgreSQL | migrate/seed/route/feature suite | Passed in run #310; rollback, re-migrate, seed and status are now rehearsed |
-| Container/release | Docker image, storage, Nginx, worker/scheduler rehearsal | Passed in run #310 |
+| PostgreSQL | migrate/seed/route/feature suite | Passed in run #314; rollback, re-migrate, seed and status are now rehearsed |
+| Container/release | Docker image, storage, Nginx, worker/scheduler rehearsal | Passed in run #314 |
 | Backup/restore/rollback | Actual restore drill and rollback rehearsal | Rollback/re-run passed in run #297; backup/restore remains not independently evidenced |
 | Deploy | Push only the tested SHA; server fast-forward to same SHA | Enforced by deploy workflow; verify again for every release |
-| Post-deploy smoke | /up, homepage, product, account/cart/admin and relevant feature paths | Deployment health passed in run #310; broad post-deploy data smoke remains limited |
+| Post-deploy smoke | /up, homepage, product, account/cart/admin and relevant feature paths | Deployment health passed in run #314; broad post-deploy data smoke remains limited |
 
 ## Release rule
 
 A main push triggers validation and, only when the main workflow is green, the Deploy to Hetzner job. The server checks that origin/main equals the exact GitHub SHA, fast-forwards main, runs deploy/docker-deploy.sh, and checks health. Never deploy a dirty worktree or a SHA that was not the completed workflow head.
 
-Local PHP, Composer and Docker are unavailable in this workspace. The local evidence for this Batch 8 commit is therefore limited to source/static checks and documentation validation; CI must remain the runtime authority.
+Local PHP, Composer and Docker are unavailable in this workspace. The local evidence for this Batch 9 commit is therefore limited to source/static checks and documentation validation; CI must remain the runtime authority.
 
 ## Next gates
 
