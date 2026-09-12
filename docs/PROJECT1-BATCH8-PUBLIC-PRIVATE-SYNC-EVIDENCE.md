@@ -24,3 +24,9 @@ Batch 8 hardens the public/private synchronization boundary for the two audit-pr
 
 - Banner media approval, complete tenant/company workflow and full review moderation history remain partial.
 - Exact supplied-reference screenshot diffs, responsive/browser/accessibility journeys, the complete 519-page guide and the 167-reference visual acceptance set remain open.
+
+## Release verification
+
+- PR #77 passed the PostgreSQL feature and rollback/re-run gate in [Actions run #309](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34713286740).
+- Merged main release `093e451df45e4ed1665204003591f86833913d81` passed PostgreSQL, rollback/re-run, media/browser acceptance, Docker release rehearsal and Hetzner deployment in [Actions run #310](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34713386271).
+- The server release backup was saved at `/var/backups/emerald-rozalia/20260912T191440Z-093e451df45e`; migrations reported `Nothing to migrate`, and app, PostgreSQL, Redis and Nginx health checks passed.

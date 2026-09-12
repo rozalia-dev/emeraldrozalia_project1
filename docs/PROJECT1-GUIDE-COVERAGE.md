@@ -3,6 +3,7 @@
 **Baseline date:** 12 September 2026
 **Guide:** Emerald-Rozalia-Project-1-Developer-Guide.pdf, version 3, 519 pages
 **Audited release baseline:** c54e933e36c68f2951e5e05afb32119ea02ea467
+**Current verified release:** 093e451df45e4ed1665204003591f86833913d81
 **Scope:** Batch 0 — baseline, evidence, and safety lock
 
 This is the ordered implementation matrix for every guide visual/build entry. A route, menu label, view, fixture, or README statement is not treated as completion evidence by itself.
