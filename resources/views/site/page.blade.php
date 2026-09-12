@@ -8,6 +8,10 @@
 
 @section('title', $pageTitle . ' - Emerald Rozalia')
 
+@push('styles')
+    <link rel="stylesheet" href="/css/managed-pages.css?v=20260912-batch5">
+@endpush
+
 @section('content')
 <section class="page-hero"><p class="eyebrow">EMERALD ROZALIA LIMITED</p><h1>{{ $pageTitle }}</h1><p>{{ $managedPage?->intro ?: 'Timeless styles. Irish heritage. Made in Limerick.' }}</p></section>
 
@@ -16,7 +20,7 @@
         @if($managedPage->body)<div class="managed-page-body">{!! nl2br(e($managedPage->body)) !!}</div>@endif
         @foreach($managedPage->sections as $section)
             @if($section->visible)
-                <article class="managed-page-section managed-page-section--{{ $section->type }}"><h2>{{ $section->label ?: str($section->type)->headline() }}</h2><p>{!! nl2br(e(data_get($section->settings, 'content', 'Section content is ready to be edited in the Page Manager.'))) !!}</p></article>
+                @include('site.partials.managed-section', ['section' => $section, 'page' => $managedPage])
             @endif
         @endforeach
     </section>

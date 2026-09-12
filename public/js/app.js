@@ -301,6 +301,45 @@ if(pageBuilder){
     let sections=[];
     const decode=(value)=>{try{return JSON.parse(atob(value||''))||[]}catch(error){return[]}};
     const labels={hero:'Hero section',content:'Rich content',gallery:'Media gallery',cta:'Call to action',form:'Enquiry form'};
+    const settingValue=(section,key,fallback='')=>{const value=section.settings?.[key];return value===undefined||value===null?fallback:value};
+    const setSetting=(section,key,value)=>{section.settings={...(section.settings||{}),[key]:value};sync()};
+    const addTextField=(fields,section,title,key,{textarea=false,placeholder=''}={})=>{
+        const wrapper=document.createElement('label');wrapper.textContent=title;
+        const control=textarea?document.createElement('textarea'):document.createElement('input');
+        if(!textarea)control.type='text';if(textarea)control.rows=3;control.value=settingValue(section,key,'');control.placeholder=placeholder;
+        control.addEventListener('input',()=>setSetting(section,key,control.value));wrapper.appendChild(control);fields.appendChild(wrapper);
+    };
+    const addSelectField=(fields,section,title,key,options)=>{
+        const wrapper=document.createElement('label');wrapper.textContent=title;const control=document.createElement('select');
+        const current=settingValue(section,key,options[0][0]);options.forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.selected=current===value;control.appendChild(option)});
+        control.addEventListener('change',()=>setSetting(section,key,control.value));wrapper.appendChild(control);fields.appendChild(wrapper);
+    };
+    const addSectionSettings=(fields,section)=>{
+        const type=labels[section.type]?section.type:'content';
+        if(type==='hero'){
+            addTextField(fields,section,'Headline','title',{placeholder:'Irish made. Worn everywhere.'});
+            addTextField(fields,section,'Image path or URL','image',{placeholder:'assets/brand/example.png'});
+            addTextField(fields,section,'Image alt text','alt',{placeholder:'Describe the image'});
+            addTextField(fields,section,'Button label','button_label',{placeholder:'Explore more'});
+            addTextField(fields,section,'Button URL','url',{placeholder:'/shop'});
+        }else if(type==='gallery'){
+            addTextField(fields,section,'Gallery title','title',{placeholder:'Explore the collection'});
+            const currentItems=Array.isArray(section.settings?.items)?section.settings.items:[];
+            const currentImages=currentItems.map((item)=>typeof item==='string'?item:(item?.image||item?.src||'')).filter(Boolean).join('\n')||settingValue(section,'image','');
+            const wrapper=document.createElement('label');wrapper.textContent='Images (one path or URL per line)';const control=document.createElement('textarea');control.rows=4;control.value=currentImages;control.placeholder='assets/brand/first.png\nassets/brand/second.png';control.addEventListener('input',()=>{const items=control.value.split(/\r?\n/).map((image)=>image.trim()).filter(Boolean).map((image)=>({image}));section.settings={...(section.settings||{}),items};delete section.settings.image;sync()});wrapper.appendChild(control);fields.appendChild(wrapper);
+        }else if(type==='cta'){
+            addTextField(fields,section,'Heading','title',{placeholder:'Start a conversation'});
+            addTextField(fields,section,'Button label','button_label',{placeholder:'Contact us'});
+            addTextField(fields,section,'Button URL','url',{placeholder:'/contact'});
+        }else if(type==='form'){
+            addTextField(fields,section,'Form heading','title',{placeholder:'Send us a message'});
+            addSelectField(fields,section,'Enquiry type','inquiry_type',[['contact','Contact'],['franchise','Franchise'],['careers','Careers'],['corporate-orders','Corporate orders'],['bulk-orders','Bulk orders']]);
+            addTextField(fields,section,'Submit button label','button_label',{placeholder:'Submit enquiry'});
+        }else{
+            addTextField(fields,section,'Heading','title',{placeholder:'Section heading'});
+        }
+        addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Add plain-text content for this section...'});
+    };
     const sync=()=>{const payload=sections.map((section,index)=>({type:section.type||'content',label:section.label||labels[section.type]||'Content block',settings:section.settings||{},visible:section.visible!==false,sort_order:index}));if(sectionInput)sectionInput.value=JSON.stringify(payload);countLabels.forEach((item)=>{item.textContent=`${payload.length} block${payload.length===1?'':'s'}`})};
     const move=(index,delta)=>{const next=index+delta;if(next<0||next>=sections.length)return;[sections[index],sections[next]]=[sections[next],sections[index]];render()};
     const render=()=>{
@@ -315,8 +354,8 @@ if(pageBuilder){
             const remove=document.createElement('button');remove.type='button';remove.className='page-builder-block-remove';remove.textContent='Remove';remove.addEventListener('click',()=>{sections.splice(index,1);render()});tools.appendChild(remove);header.append(title,tools);
             const fields=document.createElement('div');fields.className='page-builder-block-fields';
             const label=document.createElement('label');label.textContent='Section label';const labelInput=document.createElement('input');labelInput.value=section.label||labels[section.type]||'Content block';labelInput.addEventListener('input',()=>{section.label=labelInput.value;sync()});label.appendChild(labelInput);
-            const content=document.createElement('label');content.textContent='Section content';const contentInput=document.createElement('textarea');contentInput.rows=3;contentInput.value=section.settings?.content||'';contentInput.placeholder='Add content for this section...';contentInput.addEventListener('input',()=>{section.settings={...(section.settings||{}),content:contentInput.value};sync()});content.appendChild(contentInput);
-            const visible=document.createElement('label');visible.className='page-builder-block-visible';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=section.visible!==false;visibleInput.addEventListener('change',()=>{section.visible=visibleInput.checked;sync()});visible.append(visibleInput,document.createTextNode(' Visible'));fields.append(label,content,visible);block.append(header,fields);list.appendChild(block);
+            const settings=document.createElement('div');settings.className='page-builder-block-settings';addSectionSettings(settings,section);
+            const visible=document.createElement('label');visible.className='page-builder-block-visible';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=section.visible!==false;visibleInput.addEventListener('change',()=>{section.visible=visibleInput.checked;sync()});visible.append(visibleInput,document.createTextNode(' Visible'));fields.append(label,settings,visible);block.append(header,fields);list.appendChild(block);
         });
         if(empty)empty.hidden=sections.length>0;
         sync();

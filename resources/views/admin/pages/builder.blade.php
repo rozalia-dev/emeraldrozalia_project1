@@ -16,6 +16,12 @@
 
 @section('title', $isCreate ? 'Create Page' : 'Edit ' . $page->title)
 
+@push('styles')
+    <style>
+        .page-builder-block-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}.page-builder-block-settings label{min-width:0}.page-builder-block-settings label:last-child{grid-column:1/-1}.page-builder-block-settings select{width:100%;padding:8px;border:1px solid #ccdacf;border-radius:4px;background:#fff;color:#253b2d;font:inherit;font-size:13px}.page-builder-block-settings textarea{min-height:74px}.page-builder-block-settings input:focus,.page-builder-block-settings select:focus,.page-builder-block-settings textarea:focus{border-color:#5d9c6c;box-shadow:0 0 0 3px rgba(79,146,91,.13);outline:0}@media(max-width:700px){.page-builder-block-settings{grid-template-columns:1fr}.page-builder-block-settings label:last-child{grid-column:auto}}
+    </style>
+@endpush
+
 @section('content')
 
 <div class="page-builder-screen" data-page-builder data-builder-initial="{{ base64_encode(json_encode($builderInitial)) }}">
@@ -42,7 +48,7 @@
                         <label>Page title <span class="field-required">Required</span><input name="title" value="{{ old('title', $page->title) }}" required data-builder-field="title" placeholder="About Emerald Rozalia"></label>
                         <label>URL slug <span class="field-required">Required</span><input name="slug" value="{{ old('slug', $page->slug) }}" required data-builder-field="slug" placeholder="about-emerald-rozalia"><small>Use lowercase letters, numbers and hyphens.</small></label>
                         <label class="page-builder-field-wide">Short description<textarea name="intro" rows="3" data-builder-field="intro" placeholder="A concise introduction shown in page previews and search results.">{{ old('intro', $page->intro) }}</textarea></label>
-                        <label class="page-builder-field-wide">Page body<textarea name="body" rows="8" data-builder-field="body" placeholder="Write editorial copy or use structured sections below.">{{ old('body', $page->body) }}</textarea><small>Plain text and line breaks are preserved. Structured blocks are stored separately for future rendering.</small></label>
+                        <label class="page-builder-field-wide">Page body<textarea name="body" rows="8" data-builder-field="body" placeholder="Write editorial copy or use structured sections below.">{{ old('body', $page->body) }}</textarea><small>Plain text and line breaks are preserved. Structured blocks publish through the controlled storefront renderer.</small></label>
                     </div>
                 </section>
 
