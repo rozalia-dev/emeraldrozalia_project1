@@ -18,11 +18,21 @@ class ProductPolicy
 
     public function update(User $user, Product $product): bool
     {
-        return $user->is_admin;
+        return $user->hasPermission('website.products.edit') && $this->sameCompany($user, $product);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('website.products.create');
     }
 
     public function delete(User $user, Product $product): bool
     {
-        return $user->is_admin;
+        return $user->hasPermission('website.products.delete') && $this->sameCompany($user, $product);
+    }
+
+    private function sameCompany(User $user, Product $product): bool
+    {
+        return ! session('company_id') || (int) $product->company_id === (int) session('company_id');
     }
 }

@@ -40,11 +40,33 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasPermission(string $permission): bool
     {
         if ($this->is_admin) return true;
-        $roleIds = $this->roles()->wherePivot('status', 'active')->pluck('roles.id');
-        if ($roleIds->isEmpty()) return false;
+
+        if ($this->status !== 'active' || $this->locked_at) return false;
+
+        $companyId = session('company_id');
+        if ($companyId && ! $this->companies()->whereKey((int) $companyId)->where('companies.active', true)->exists()) {
+            return false;
+        }
+
         return Permission::query()
             ->where('name', $permission)
-            ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roleIds)->where('permission_role.access_level', '!=', 'none'))
+            ->whereHas('roles', function ($query): void {
+                $query->where('roles.is_active', true)
+                    ->where('permission_role.access_level', '!=', 'none')
+                    ->whereHas('users', function ($users): void {
+                        $users->whereKey($this->getKey())
+                            ->where('role_user.status', 'active')
+                            ->where(function ($assignment): void {
+                                $assignment->whereNull('role_user.expires_at')
+                                    ->orWhere('role_user.expires_at', '>', now());
+                            });
+                    });
+            })
             ->exists();
+    }
+
+    public function hasAnyPermission(array $permissions): bool
+    {
+        return collect($permissions)->contains(fn (string $permission): bool => $this->hasPermission($permission));
     }
 }

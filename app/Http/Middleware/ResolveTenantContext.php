@@ -13,10 +13,14 @@ class ResolveTenantContext
     public function handle(Request $request, Closure $next)
     {
         $ctx = app(TenantContext::class);
-        if (! session()->has('company_id')) {
-            if ($company = Company::where('active', true)->first()) {
+        $company = $ctx->company($request->user());
+
+        if ($company) {
+            if ((int) session('company_id') !== (int) $company->id) {
                 session(['company_id' => $company->id]);
             }
+        } elseif ($request->user() && ! $request->user()->is_admin) {
+            session()->forget('company_id');
         }
 
         App::setLocale($ctx->locale());
