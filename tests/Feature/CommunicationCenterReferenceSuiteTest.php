@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AdminRecord;
 use App\Models\AuditLog;
 use App\Models\Conversation;
+use App\Models\CommunicationTemplate;
 use App\Models\User;
 use App\Services\AuditTrail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,7 +109,7 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)
-            ->post(route('admin.communication-center.record.store', 'email-templates'), [
+            ->post(route('admin.communication-center.templates.store'), [
                 'title' => 'Order Confirmation',
                 'subject' => 'Your order is confirmed',
                 'category' => 'Order',
@@ -119,37 +120,37 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
                 'record_date' => '2026-09-10',
             ])->assertRedirect();
 
-        $record = AdminRecord::query()
-            ->where('module', 'email-templates')
-            ->where('title', 'Order Confirmation')
+        $record = CommunicationTemplate::query()
+            ->where('name', 'Order Confirmation')
             ->firstOrFail();
 
-        $this->assertStringStartsWith('TPL-', (string) $record->reference);
-        $this->assertSame('Your order is confirmed', data_get($record->data, 'subject'));
-        $this->assertDatabaseHas('audit_logs', ['action' => 'communication.email-templates.created']);
+        $this->assertTrue((bool) preg_match('/^[0-9a-f-]{36}$/', (string) $record->uuid));
+        $this->assertSame('Your order is confirmed', $record->subject);
+        $this->assertSame('Order', data_get($record->variables, 'category'));
+        $this->assertDatabaseHas('audit_logs', ['action' => 'communication.email-template.created', 'subject_uuid' => $record->uuid]);
 
         $this->actingAs($admin)
-            ->patch(route('admin.communication-center.record.update', ['email-templates', $record]), [
+            ->patch(route('admin.communication-center.templates.update', $record), [
                 'title' => 'Order Confirmation Updated',
-                'reference' => $record->reference,
                 'subject' => 'Your order has been confirmed',
                 'category' => 'Order',
                 'channel' => 'Email',
                 'language' => 'English',
                 'body' => 'Thank you for shopping with Emerald Rozalia.',
                 'status' => 'active',
-                'record_date' => '2026-09-10',
+                'expected_version' => 1,
             ])->assertRedirect();
 
         $this->assertSame('Order Confirmation Updated', $record->fresh()->title);
+        $this->assertSame(2, $record->fresh()->version);
 
         $this->actingAs($admin)
-            ->post(route('admin.communication-center.record.action', ['email-templates', $record, 'duplicate']))
+            ->post(route('admin.communication-center.templates.action', [$record, 'duplicate']))
             ->assertRedirect();
 
-        $this->assertSame(2, AdminRecord::query()->where('module', 'email-templates')->count());
-        $copy = AdminRecord::query()->where('module', 'email-templates')->where('id', '!=', $record->id)->firstOrFail();
-        $this->assertNotSame($record->public_uuid, $copy->public_uuid);
+        $this->assertSame(2, CommunicationTemplate::query()->count());
+        $copy = CommunicationTemplate::query()->where('uuid', '!=', $record->uuid)->firstOrFail();
+        $this->assertNotSame($record->uuid, $copy->uuid);
 
         $this->actingAs($admin)
             ->get(route('admin.communication-center.export', ['section' => 'email-templates']))

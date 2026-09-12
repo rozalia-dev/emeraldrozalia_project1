@@ -1,6 +1,6 @@
 # Project 1 Communication Center contract evidence
 
-**Scope:** Communication Center source-of-truth and delivery boundary follow-up
+**Scope:** Communication Center source-of-truth and delivery boundary follow-up, plus the Email Templates contract candidate
 **Guide references:** pages 417–419 (Communication Audit Dashboard) and pages 436–438 (Email Templates Dashboard)
 **Audit requirement:** one shared cPanel conversation path for web, chat, WhatsApp and email; durable correlation, idempotency, provider, queue, retry, callback, consent, redaction and audit contracts
 
@@ -17,6 +17,7 @@ This is a bounded implementation slice. It does not claim completion of the 519-
 | Signed callback | `POST /api/v1/communication/webhooks/{provider}` validates the raw-body HMAC-SHA256 signature, accepts email/WhatsApp/chat provider keys, records a UUID event ledger and applies monotonic delivery transitions. | `CommunicationWebhookController`; `CommunicationWebhookService`; signed/duplicate/bad-signature assertions in `CommunicationContractTest` |
 | Duplicate/privacy boundary | `(provider, external_event_id)` is unique. Webhook payloads are redacted recursively for body/message/content/email/phone/token/secret/authorization and related contact keys before persistence. | `communication_webhook_events` migration; redaction assertions in `CommunicationContractTest` |
 | Audit/correlation | Public submission, reply creation, conversation updates, delivery changes, retries, failures and webhook processing write audit entries containing identifiers/statuses without message bodies or webhook secrets. | `AuditTrail` calls in the communication service/job/webhook service |
+| Email Templates | The Email Templates page now reads the durable UUID-keyed `CommunicationTemplate` aggregate with tenant scope, named web/API routes, request validation, resources, version/idempotency checks, lifecycle actions and redacted audit state. | [Email Templates contract evidence](PROJECT1-COMMUNICATION-TEMPLATE-EVIDENCE.md); `CommunicationTemplateContractTest` |
 
 ## Required runtime configuration
 
@@ -34,7 +35,7 @@ Until an adapter is installed and a signed callback is tested, outbound messages
 ## Explicit remaining gaps
 
 - No production email, WhatsApp or chat adapter is enabled or verified in this slice.
-- The cPanel template, approval, action/follow-up and alert surfaces still use their existing generic `AdminRecord` workflow; the pre-existing `communication_templates` and `approvals` tables are not yet the complete UI source of truth.
+- Approval, action/follow-up and alert surfaces still use their existing generic `AdminRecord` workflow; their durable domain contracts are not yet complete.
 - Communication reports/analytics still require the later reports and integrations contract, including removal of fixture fallbacks and export reconciliation.
 - The guide’s exact screenshot archive, ordered 167-row visual acceptance, responsive browser journeys and accessibility evidence remain incomplete.
 - Provider-specific callback schemas, MFA/policy coverage, real queue-worker operations and a production restore drill remain open.

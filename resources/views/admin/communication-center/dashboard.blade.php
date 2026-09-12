@@ -423,7 +423,7 @@
                                     <td>{{ optional($record->created_at)->format('d M Y H:i') }}</td>
                                 @endif
                                 <td class="cc-actions">
-                                    <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
+                                    <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ $section === 'email-templates' ? $record->uuid : $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
                                     @if($section === 'approval-center' && !in_array($record->status,['approved','rejected'],true))
                                         <form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'approve']) }}">@csrf<button title="Approve"><x-icon name="check" size="14" /></button></form>
                                         <form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'reject']) }}">@csrf<button title="Reject">×</button></form>
@@ -432,9 +432,14 @@
                                     @elseif($section === 'alerts-notifications')
                                         @if($record->status !== 'acknowledged')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'acknowledge']) }}">@csrf<button title="Acknowledge"><x-icon name="check" size="14" /></button></form>@endif
                                     @elseif($section === 'email-templates')
-                                        <form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'duplicate']) }}">@csrf<button title="Duplicate">⧉</button></form>
+                                        <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'duplicate']) }}">@csrf<button title="Duplicate">⧉</button></form>
+                                        @if($record->status === 'archived')
+                                            <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'restore']) }}">@csrf<button title="Restore"><x-icon name="refresh" size="14" /></button></form>
+                                        @else
+                                            <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'archive']) }}">@csrf<button title="Archive"><x-icon name="folder" size="14" /></button></form>
+                                        @endif
                                     @endif
-                                    <form method="post" action="{{ route('admin.communication-center.record.destroy',[$section,$record]) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button title="Delete"><x-icon name="trash" size="14" /></button></form>
+                                    <form method="post" action="{{ $section === 'email-templates' ? route('admin.communication-center.templates.destroy', $record) : route('admin.communication-center.record.destroy',[$section,$record]) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button title="Delete"><x-icon name="trash" size="14" /></button></form>
                                 </td>
                             </tr>
                         @empty
@@ -507,7 +512,11 @@
         </section>
 
         <dialog class="cc-dialog" data-cc-dialog>
-            <form method="post" action="{{ route('admin.communication-center.record.store',$section) }}" data-cc-form data-store-url="{{ route('admin.communication-center.record.store',$section) }}" data-update-template="{{ route('admin.communication-center.record.update',[$section,'__id__']) }}">
+            @php
+                $recordStoreUrl = $section === 'email-templates' ? route('admin.communication-center.templates.store') : route('admin.communication-center.record.store', $section);
+                $recordUpdateUrl = $section === 'email-templates' ? route('admin.communication-center.templates.update', ['template' => '__id__']) : route('admin.communication-center.record.update', [$section, '__id__']);
+            @endphp
+            <form method="post" action="{{ $recordStoreUrl }}" data-cc-form data-store-url="{{ $recordStoreUrl }}" data-update-template="{{ $recordUpdateUrl }}">
                 @csrf
                 <input type="hidden" name="_method" value="PATCH" data-cc-method disabled>
                 <header><div><small>COMMUNICATION CENTER</small><h2 data-cc-dialog-title>{{ $config['create_label'] }}</h2></div><button type="button" data-cc-close>×</button></header>
@@ -515,11 +524,11 @@
                     <label>Title / Name<input name="title" required maxlength="180"></label>
                     <label>Reference<input name="reference" maxlength="100" placeholder="Auto-generated if blank"></label>
                     @if($section === 'email-templates')
-                        <label class="cc-span-2">Email Subject<input name="subject" maxlength="250"></label>
+                        <label class="cc-span-2">Email Subject<input name="subject" maxlength="250" required></label>
                         <label>Category<input name="category" maxlength="120" placeholder="Order, Returns, Franchise..."></label>
                         <label>Channel<input name="channel" maxlength="80" value="Email"></label>
                         <label>Language<input name="language" maxlength="80" value="English"></label>
-                        <label class="cc-span-2">Template Body<textarea name="body" rows="8" maxlength="10000"></textarea></label>
+                        <label class="cc-span-2">Template Body<textarea name="body" rows="8" maxlength="10000" required></textarea></label>
                     @elseif($section === 'approval-center')
                         <label>Type<input name="type" maxlength="120" placeholder="Franchise Application, Bulk Order..."></label>
                         <label>Priority<select name="priority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
