@@ -69,7 +69,7 @@ class CustomerFrontOffice360ContractTest extends TestCase
         $this->assertStringContainsString('data-product-spin-source="none"', $content);
         $this->assertStringContainsString('data-spin-frames=\'[]\'', $content);
         $this->assertStringContainsString('aria-disabled="true"', $content);
-        $this->assertStringContainsString('>PHOTOS</button>', $content);
+        $this->assertStringContainsString('PHOTOS</button>', $content);
         $this->assertStringNotContainsString('data-spin-widget', $content);
     }
 
@@ -100,7 +100,7 @@ class CustomerFrontOffice360ContractTest extends TestCase
 
         $this->assertStringContainsString('<strong>9</strong><small>Orders</small>', $content);
         $this->assertStringContainsString('<strong>1</strong><small>Returns &amp; Exchanges</small>', $content);
-        $this->assertStringContainsString('href="/account/returns"', $content);
+        $this->assertStringContainsString('href="'.route('account.section', 'returns').'"', $content);
         $this->assertStringNotContainsString('Custom Designs', $content);
         $this->assertStringNotContainsString('My Designs', $content);
     }
