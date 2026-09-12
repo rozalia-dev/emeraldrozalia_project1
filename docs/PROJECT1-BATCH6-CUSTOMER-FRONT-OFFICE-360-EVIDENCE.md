@@ -4,6 +4,13 @@ Date: 2026-09-12
 
 Batch 6 is a bounded customer/front-office and product-media integration slice. It does not claim completion of the 519-page guide or the 167-reference visual acceptance set.
 
+## Release evidence
+
+- PR #74 passed its PostgreSQL gate in [GitHub Actions run #303](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34710729157) at the corrected head `a48e3520babe0b1728ca06a98a2b01ba35d4d866`.
+- The merged `main` release is `b6cd7cd19d3b8875d82f30ea91cb31d132e85622`.
+- Main validation, media-browser acceptance, rollback/re-run, container rehearsal and Hetzner deployment passed in [GitHub Actions run #304](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34710843822).
+- Production saved `/var/backups/emerald-rozalia/20260912T182410Z-b6cd7cd19d3b` and reported healthy app, PostgreSQL, Redis and Nginx containers.
+
 ## Implemented
 
 - Product detail now eager-loads the public managed 360 records and selects the latest valid `ProductSpin` with at least two frames.
