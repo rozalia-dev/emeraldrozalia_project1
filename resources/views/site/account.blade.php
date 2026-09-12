@@ -25,7 +25,7 @@
                 <nav class="account-menu">
                     <a class="is-active" href="{{ route('account.dashboard') }}"><x-icon name="home" /> <span>Dashboard</span></a>
                     <a href="{{ route('account.section', 'orders') }}"><x-icon name="package" /> <span>My Orders</span></a>
-                    <a href="{{ route('account.section', 'designs') }}"><x-icon name="pencil" /> <span>My Designs</span></a>
+                    <a href="{{ route('account.section', 'returns') }}"><x-icon name="refresh" /> <span>Returns &amp; Exchanges</span><b>{{ $returnsCount }}</b></a>
                     <a href="{{ route('account.section', 'addresses') }}"><x-icon name="home" /> <span>Address Book</span></a>
                     <a href="{{ route('account.section', 'payments') }}"><x-icon name="credit-card" /> <span>Payment Methods</span></a>
                     <a href="{{ route('account.section', 'profile') }}"><x-icon name="user" /> <span>Account Details</span></a>
@@ -57,8 +57,8 @@
                 @endif
 
                 <div class="account-kpis">
-                    <a href="{{ route('account.section', 'orders') }}"><span class="account-kpi-icon"><x-icon name="package" /></span><strong>{{ $orders->count() }}</strong><small>Orders</small><em>View all orders <x-icon name="arrow-right" /></em></a>
-                    <a href="{{ route('account.section', 'designs') }}"><span class="account-kpi-icon"><x-icon name="pencil" /></span><strong>0</strong><small>Custom Designs</small><em>View my designs <x-icon name="arrow-right" /></em></a>
+                    <a href="{{ route('account.section', 'orders') }}"><span class="account-kpi-icon"><x-icon name="package" /></span><strong>{{ $ordersCount }}</strong><small>Orders</small><em>View all orders <x-icon name="arrow-right" /></em></a>
+                    <a href="{{ route('account.section', 'returns') }}"><span class="account-kpi-icon"><x-icon name="refresh" /></span><strong>{{ $returnsCount }}</strong><small>Returns &amp; Exchanges</small><em>View return requests <x-icon name="arrow-right" /></em></a>
                     <a href="{{ route('account.section', 'wishlist') }}"><span class="account-kpi-icon"><x-icon name="heart" /></span><strong>{{ $wishlistCount }}</strong><small>Wishlist Items</small><em>View wishlist <x-icon name="arrow-right" /></em></a>
                     <a href="{{ route('account.section', 'rewards') }}"><span class="account-kpi-icon"><x-icon name="star" /></span><strong>{{ $rewards }}</strong><small>Reward Points</small><em>View rewards <x-icon name="arrow-right" /></em></a>
                 </div>

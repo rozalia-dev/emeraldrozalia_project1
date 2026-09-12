@@ -16,6 +16,8 @@
     $product->media->whereIn('type', ['image', 'gallery'])->each(fn ($media) => $imageCandidates->push($mediaUrl($media)));
     $galleryImages = $imageCandidates->filter()->unique()->values()->all();
     $spinImages = collect($spinFrames ?? [])->filter()->values()->all();
+    $has360 = count($spinImages) >= 2;
+    $spinSource = $spinViewerData ? 'managed' : ($has360 ? 'legacy' : 'none');
     $thumbnailImages = collect($galleryImages ?: $spinImages)->values()->all();
     $firstImage = $galleryImages[0] ?? $spinImages[0] ?? null;
     $activeVariants = $product->variants->where('is_active', true)->values();
@@ -60,6 +62,7 @@
      data-product-id="{{ $product->id }}"
      data-product-price="{{ number_format($basePrice, 2, '.', '') }}"
      data-product-stock="{{ $stock }}"
+     data-product-spin-source="{{ $spinSource }}"
      data-variant-payload='@json($variantPayload)'>
     <nav class="product-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ route('home') }}">Home</a><x-icon name="chevron-right" size="14" />
@@ -81,20 +84,22 @@
             </div>
 
             <div class="product-viewer" data-product-viewer
-                 data-spin-frames='@json($spinImages)'
+                 data-spin-frames='@json($has360 ? $spinImages : [])'
                  data-gallery-frames='@json($galleryImages)'
+                 data-spin-source="{{ $spinSource }}"
+                 @if($spinViewerData) data-spin-uuid="{{ $spinViewerData['uuid'] }}" data-spin-title="{{ $spinViewerData['title'] }}" @endif
                  data-initial-image="{{ $firstImage }}">
                 <div class="product-viewer-toolbar">
                     <div class="viewer-switcher" role="tablist" aria-label="Product media">
-                        <button type="button" class="is-active" data-product-mode="spin" role="tab" aria-selected="true"><x-icon name="rotate-ccw" size="15" /> 360° VIEW</button>
-                        <button type="button" data-product-mode="gallery" role="tab" aria-selected="false"><x-icon name="image" size="15" /> PHOTOS</button>
+                        <button type="button" class="@if($has360) is-active @endif" data-product-mode="spin" role="tab" aria-selected="{{ $has360 ? 'true' : 'false' }}" @if(!$has360) disabled aria-disabled="true" @endif><x-icon name="rotate-ccw" size="15" /> 360° VIEW</button>
+                        <button type="button" class="@if(!$has360) is-active @endif" data-product-mode="gallery" role="tab" aria-selected="{{ $has360 ? 'false' : 'true' }}"><x-icon name="image" size="15" /> PHOTOS</button>
                     </div>
                     <div class="viewer-toolbar-actions">
                         <button class="icon-button" type="button" data-media-zoom aria-label="Zoom product image"><x-icon name="search" size="17" /></button>
                         <button class="icon-button" type="button" data-media-fullscreen aria-label="Open full screen product viewer"><x-icon name="arrow-up" size="17" /></button>
                     </div>
                 </div>
-                <div class="product-stage" data-product-stage tabindex="0" aria-label="Interactive product viewer. Drag or swipe to rotate.">
+                <div class="product-stage" data-product-stage tabindex="0" aria-label="{{ $has360 ? 'Interactive 360° product viewer. Drag or swipe to rotate.' : 'Product image viewer. Select Photos to browse approved product images.' }}">
                     @if($firstImage)<img data-product-stage-image src="{{ $firstImage }}" alt="{{ $product->name }}" draggable="false">@else<div class="product-placeholder" data-product-placeholder><div><x-icon name="image" size="34" /><br>Product imagery will appear here when approved in Product Media Manager.</div></div>@endif
                     <div class="product-stage-overlay"><button class="stage-arrow" type="button" data-rotate-prev aria-label="Previous angle"><x-icon name="arrow-left" size="18" /></button><button class="stage-arrow" type="button" data-rotate-next aria-label="Next angle"><x-icon name="arrow-right" size="18" /></button></div>
                     <div class="stage-loading" data-stage-loading aria-hidden="true"><span></span></div>
@@ -106,7 +111,7 @@
                     <div class="rotation-help"><span>0°</span><span>Drag, swipe or use arrow keys</span><span>360°</span></div>
                 </div>
                 <div class="product-media-features">
-                    <div class="media-feature"><x-icon name="rotate-ccw" size="22" /><div><strong>360° VIEW</strong><small>Explore every angle</small></div></div>
+                    <div class="media-feature"><x-icon name="rotate-ccw" size="22" /><div><strong>360° VIEW</strong><small>{{ $has360 ? 'Explore every angle' : 'Available when approved' }}</small></div></div>
                     <div class="media-feature"><x-icon name="search" size="22" /><div><strong>ZOOM</strong><small>Inspect the details</small></div></div>
                     <div class="media-feature"><x-icon name="arrow-up" size="22" /><div><strong>FULL SCREEN</strong><small>Close-up experience</small></div></div>
                 </div>
@@ -180,16 +185,6 @@
     </div>
 </section>
 @endif
-@php($productSpins = \App\Models\ProductSpin::where('product_id',$product->id)->with('product')->where('status','published')->where('visibility','public')->get()->filter(fn($spin)=>$spin->isPublic()))
-@if($productSpins->isNotEmpty())
-<link rel="stylesheet" href="/css/spins.css">
-<section class="product-details" style="padding:24px" aria-label="Interactive 360° product views">
-<h2>Explore in 360°</h2>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:24px">
-@foreach($productSpins as $spin)<article><h3>{{ $spin->title }}</h3><x-spin-viewer :spin="$spin" /></article>@endforeach
-</div></section>
-<script src="/js/spin-viewer.js" defer></script>
-@endif
 @endsection
 
 @push('scripts')
@@ -211,7 +206,7 @@
     const normalize = (value) => { if (!value) return ''; if (/^(https?:)?\//.test(value)) return value; if (/^storage\//.test(value)) return '/' + value; return '/storage/' + value.replace(/^\/+/, ''); };
     const spinFrames = parse('data-spin-frames', []).map(normalize).filter(Boolean);
     const galleryFrames = parse('data-gallery-frames', []).map(normalize).filter(Boolean);
-    let mode = spinFrames.length ? 'spin' : 'gallery';
+    let mode = spinFrames.length >= 2 ? 'spin' : 'gallery';
     let index = 0;
     let zoomed = false;
     let dragStart = null;
@@ -241,14 +236,14 @@
         updateThumbs();
     };
     const step = (amount) => { const list = frames(); if (!list.length) return; index = (index + amount + list.length) % list.length; render(); };
-    const setMode = (nextMode) => { mode = nextMode === 'spin' && spinFrames.length ? 'spin' : 'gallery'; index = Math.min(index, Math.max(frames().length - 1, 0)); page.querySelectorAll('[data-product-mode]').forEach((button) => { const active = button.dataset.productMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-selected', active ? 'true' : 'false'); }); render(); };
+    const setMode = (nextMode) => { mode = nextMode === 'spin' && spinFrames.length >= 2 ? 'spin' : 'gallery'; index = Math.min(index, Math.max(frames().length - 1, 0)); page.querySelectorAll('[data-product-mode]').forEach((button) => { const active = button.dataset.productMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-selected', active ? 'true' : 'false'); }); render(); };
     page.querySelectorAll('[data-product-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.productMode)));
     page.querySelectorAll('[data-rotate-prev]').forEach((button) => button.addEventListener('click', () => step(-1)));
     page.querySelectorAll('[data-rotate-next]').forEach((button) => button.addEventListener('click', () => step(1)));
-    page.querySelectorAll('[data-product-thumb]').forEach((button) => button.addEventListener('click', () => { index = Number(button.dataset.index) || 0; if (mode === 'spin' && !spinFrames.length) mode = 'gallery'; render(); }));
+    page.querySelectorAll('[data-product-thumb]').forEach((button) => button.addEventListener('click', () => { index = Number(button.dataset.index) || 0; if (mode === 'spin' && spinFrames.length < 2) mode = 'gallery'; render(); }));
     slider?.addEventListener('input', (event) => { const list = frames(); if (!list.length) return; index = Math.round((Number(event.target.value) / 360) * list.length) % list.length; render(false); });
     stage?.addEventListener('pointerdown', (event) => { dragStart = event.clientX; dragMoved = false; stage.classList.add('is-dragging'); stage.setPointerCapture?.(event.pointerId); });
-    stage?.addEventListener('pointermove', (event) => { if (dragStart === null || mode !== 'spin' || !spinFrames.length) return; const delta = event.clientX - dragStart; if (Math.abs(delta) > 8) { dragMoved = true; step(delta > 0 ? -1 : 1); dragStart = event.clientX; } });
+    stage?.addEventListener('pointermove', (event) => { if (dragStart === null || mode !== 'spin' || spinFrames.length < 2) return; const delta = event.clientX - dragStart; if (Math.abs(delta) > 8) { dragMoved = true; step(delta > 0 ? -1 : 1); dragStart = event.clientX; } });
     stage?.addEventListener('pointerup', (event) => { dragStart = null; stage.classList.remove('is-dragging'); stage.releasePointerCapture?.(event.pointerId); });
     stage?.addEventListener('pointercancel', () => { dragStart = null; stage.classList.remove('is-dragging'); });
     stage?.addEventListener('keydown', (event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1); } if (event.key === 'ArrowRight') { event.preventDefault(); step(1); } if (event.key === 'Home') { index = 0; render(); } if (event.key === 'End') { index = Math.max(frames().length - 1, 0); render(); } if (event.key === 'Escape' && document.fullscreenElement) document.exitFullscreen?.(); });

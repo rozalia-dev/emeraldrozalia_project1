@@ -254,15 +254,30 @@ class SiteController extends Controller
     public function product(Product $product)
     {
         abort_unless($product->is_active, 404);
-        $product->load(['variants', 'reviews.user', 'category', 'media']);
-        $spinFrames = collect($product->spin_images ?? [])
-            ->merge($product->media->where('type', 'spin_360')->map(fn ($media) => Storage::disk($media->disk)->url($media->path)))
-            ->filter()->values()->all();
+        $product->load([
+            'variants',
+            'reviews.user',
+            'category',
+            'media',
+            'spins' => fn ($query) => $query
+                ->where('status', 'published')
+                ->where('visibility', 'public')
+                ->latest('updated_at'),
+        ]);
+        $managedSpin = $product->latestPublicSpin();
+        $spinViewerData = $managedSpin?->viewerData();
+        $spinFrames = collect($spinViewerData['frames'] ?? ($product->spin_images ?? []));
+        if (! $managedSpin) {
+            $spinFrames = $spinFrames->merge($product->media
+                ->where('type', 'spin_360')
+                ->map(fn ($media) => Storage::disk($media->disk)->url($media->path)));
+        }
+        $spinFrames = $spinFrames->filter()->unique()->values()->all();
         $related = Product::where('is_active', true)
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
             ->limit(4)->get();
-        return view('site.product', compact('product', 'related', 'spinFrames'));
+        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData'));
     }
 
     public function page(string $page)
