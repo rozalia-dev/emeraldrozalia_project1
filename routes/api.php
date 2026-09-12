@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CommunicationWebhookController;
+use App\Http\Controllers\Admin\CommunicationTemplateController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,3 +15,17 @@ Route::prefix('api/v1')->middleware(['web', 'throttle:60,1'])->name('api.v1.')->
     Route::get('/products/{product:slug}', [CatalogController::class, 'product'])->name('products.show');
     Route::get('/banners', [CatalogController::class, 'banners'])->name('banners.index');
 });
+
+Route::prefix('api/v1/communication/templates')
+    ->middleware(['web', 'auth', 'admin', 'throttle:60,1'])
+    ->name('api.v1.communication.templates.')
+    ->group(function (): void {
+        Route::get('/', [CommunicationTemplateController::class, 'apiIndex'])->name('index');
+        Route::post('/', [CommunicationTemplateController::class, 'apiStore'])->name('store');
+        Route::get('/{template:uuid}', [CommunicationTemplateController::class, 'apiShow'])->name('show');
+        Route::patch('/{template:uuid}', [CommunicationTemplateController::class, 'apiUpdate'])->name('update');
+        Route::delete('/{template:uuid}', [CommunicationTemplateController::class, 'apiDelete'])->name('destroy');
+        Route::post('/{template:uuid}/actions/{action}', [CommunicationTemplateController::class, 'apiAction'])
+            ->where('action', 'activate|archive|duplicate|restore|submit_for_approval')
+            ->name('action');
+    });

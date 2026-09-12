@@ -7,8 +7,10 @@ use App\Models\AdminRecord;
 use App\Models\AuditLog;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\CommunicationTemplate;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\CommunicationTemplateService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -43,7 +45,6 @@ class CommunicationCenterController extends Controller
     ];
 
     private const RECORD_SECTIONS = [
-        'email-templates',
         'approval-center',
         'action-follow-ups',
         'alerts-notifications',
@@ -91,6 +92,21 @@ class CommunicationCenterController extends Controller
                 'records' => null,
                 'activities' => $activities,
                 'auditUsers' => $auditUsers,
+            ]);
+        }
+
+        if ($section === 'email-templates') {
+            $query = $this->templateQuery();
+            $this->applyTemplateFilters($query, $request, $config);
+            $records = $query->paginate(10)->withQueryString();
+
+            return view('admin.communication-center.dashboard', $common + [
+                'metrics' => $this->templateMetrics(),
+                'report' => $this->templateSummary(),
+                'conversations' => null,
+                'selected' => null,
+                'records' => $records,
+                'activities' => null,
             ]);
         }
 
@@ -178,21 +194,6 @@ class CommunicationCenterController extends Controller
         abort_unless($config && in_array($section, self::RECORD_SECTIONS, true), 404);
         $this->guardRecord($section, $record);
 
-        if ($action === 'duplicate' && $section === 'email-templates') {
-            // A public UUID is unique across admin records. Never carry it to
-            // a duplicated template; the model event will generate a fresh one.
-            $copy = $record->replicate(['reference', 'public_uuid']);
-            $copy->title = 'Copy of '.$record->title;
-            $copy->reference = null;
-            $copy->record_date = now()->toDateString();
-            $copy->user_id = auth()->id();
-            $copy->save();
-            $copy->update(['reference' => $this->referenceFor($section, $copy->id)]);
-            AuditTrail::record('communication.email-template.duplicated', $copy, null, $copy->fresh()->toArray());
-
-            return back()->with('success', 'Template duplicated.');
-        }
-
         $nextStatus = match ([$section, $action]) {
             ['approval-center', 'approve'] => 'approved',
             ['approval-center', 'reject'] => 'rejected',
@@ -200,7 +201,6 @@ class CommunicationCenterController extends Controller
             ['action-follow-ups', 'reopen'] => 'pending',
             ['alerts-notifications', 'acknowledge'] => 'acknowledged',
             ['alerts-notifications', 'resolve'] => 'resolved',
-            ['email-templates', 'archive'] => 'archived',
             default => null,
         };
         abort_unless($nextStatus, 404);
@@ -251,6 +251,33 @@ class CommunicationCenterController extends Controller
                 }
                 fclose($handle);
             }, 'communication-report-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
+        }
+
+        if ($section === 'email-templates') {
+            $query = $this->templateQuery();
+            $this->applyTemplateFilters($query, $request, $config);
+            $rows = $query->limit(10000)->get();
+            AuditTrail::record('communication.email-template.exported', null, null, ['count' => $rows->count()]);
+
+            return response()->streamDownload(function () use ($rows): void {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['UUID', 'Name', 'Subject', 'Channel', 'Category', 'Language', 'Status', 'Version', 'Body', 'Updated']);
+                foreach ($rows as $row) {
+                    fputcsv($handle, [
+                        $row->uuid,
+                        $row->name,
+                        $row->subject,
+                        $row->channel,
+                        data_get($row->variables, 'category', 'General'),
+                        data_get($row->variables, 'language', 'English'),
+                        $row->status,
+                        $row->version,
+                        $row->body,
+                        optional($row->updated_at)->toDateTimeString(),
+                    ]);
+                }
+                fclose($handle);
+            }, 'email-templates-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
         }
 
         if (in_array($section, self::CONVERSATION_SECTIONS, true)) {
@@ -370,6 +397,43 @@ class CommunicationCenterController extends Controller
         }
     }
 
+    private function templateQuery(): Builder
+    {
+        return CommunicationTemplate::query()
+            ->forCurrentCompany()
+            ->where('channel', 'email')
+            ->latest('updated_at')
+            ->latest('id');
+    }
+
+    private function applyTemplateFilters(Builder $query, Request $request, array $config): void
+    {
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $needle = '%'.$search.'%';
+                $builder->where('name', 'like', $needle)
+                    ->orWhere('subject', 'like', $needle)
+                    ->orWhere('uuid', 'like', $needle);
+            });
+        }
+
+        $status = (string) $request->query('status', '');
+        $tab = (string) $request->query('tab', 'all');
+        if ($status === '' && isset($config['statuses'][$tab])) {
+            $status = $tab;
+        }
+        if (in_array($status, CommunicationTemplateService::STATUSES, true)) {
+            $query->where('status', $status);
+        }
+
+        foreach (['category', 'language'] as $field) {
+            if ($request->filled($field)) {
+                $query->where('variables->'.$field, $request->query($field));
+            }
+        }
+    }
+
     private function applyAuditFilters(Builder $query, Request $request): void
     {
         $search = trim((string) $request->query('q', ''));
@@ -465,19 +529,12 @@ class CommunicationCenterController extends Controller
 
     private function recordMetrics(string $section): array
     {
+        if ($section === 'email-templates') {
+            return $this->templateMetrics();
+        }
+
         $rows = AdminRecord::query()->where('module', $section)->get();
         $count = fn (string ...$statuses) => $rows->whereIn('status', $statuses)->count();
-
-        if ($section === 'email-templates') {
-            return [
-                $this->metric('Total Templates', $rows->count(), 'mail', 'green', 'Reusable templates'),
-                $this->metric('Sent (This Month)', $this->sumMeta($rows, 'sent_count'), 'message', 'blue', 'Recorded sends'),
-                $this->metric('Opened', $this->sumMeta($rows, 'opened_count'), 'mail', 'orange', 'Tracked opens'),
-                $this->metric('Clicked', $this->sumMeta($rows, 'clicked_count'), 'message', 'purple', 'Tracked clicks'),
-                $this->metric('Replied', $this->sumMeta($rows, 'replied_count'), 'star', 'green', 'Template replies'),
-                $this->metric('Bounced', $this->sumMeta($rows, 'bounced_count'), 'alert', 'red', 'Delivery bounces'),
-            ];
-        }
 
         if ($section === 'approval-center') {
             return [
@@ -650,6 +707,10 @@ class CommunicationCenterController extends Controller
 
     private function recordSummary(string $section): array
     {
+        if ($section === 'email-templates') {
+            return $this->templateSummary();
+        }
+
         $rows = AdminRecord::query()->where('module', $section)->latest('id')->get();
 
         return [
@@ -660,6 +721,39 @@ class CommunicationCenterController extends Controller
             'source_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'source', 'Communication Center'))->map->count()->sortDesc()->take(7),
             'priority_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'priority', 'normal'))->map->count()->sortDesc(),
             'severity_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'severity', 'low'))->map->count()->sortDesc(),
+        ];
+    }
+
+    private function templateMetrics(): array
+    {
+        $query = CommunicationTemplate::query()->forCurrentCompany()->where('channel', 'email');
+        $total = (clone $query)->count();
+        $withVariables = (clone $query)->whereNotNull('variables')->get(['variables'])
+            ->filter(fn (CommunicationTemplate $template): bool => is_array($template->variables) && $template->variables !== [])
+            ->count();
+
+        return [
+            $this->metric('Total Templates', $total, 'mail', 'green', 'Durable email templates'),
+            $this->metric('Active', (clone $query)->where('status', 'active')->count(), 'check', 'blue', 'Available to send'),
+            $this->metric('Draft', (clone $query)->where('status', 'draft')->count(), 'file-text', 'orange', 'Still being edited'),
+            $this->metric('Approval Required', (clone $query)->where('status', 'pending_approval')->count(), 'briefcase', 'purple', 'Awaiting review'),
+            $this->metric('Archived', (clone $query)->where('status', 'archived')->count(), 'folder', 'red', 'Retained but inactive'),
+            $this->metric('With Variables', $withVariables, 'settings', 'teal', 'Locale and merge metadata'),
+        ];
+    }
+
+    private function templateSummary(): array
+    {
+        $rows = $this->templateQuery()->get();
+
+        return [
+            'total' => $rows->count(),
+            'recent' => $rows->take(5),
+            'status_counts' => $rows->groupBy('status')->map->count()->sortDesc(),
+            'category_counts' => $rows->groupBy(fn (CommunicationTemplate $row) => (string) data_get($row->variables, 'category', 'General'))->map->count()->sortDesc()->take(7),
+            'source_counts' => $rows->groupBy(fn (CommunicationTemplate $row) => (string) data_get($row->variables, 'language', 'English'))->map->count()->sortDesc()->take(7),
+            'priority_counts' => collect(),
+            'severity_counts' => collect(),
         ];
     }
 
@@ -919,8 +1013,8 @@ class CommunicationCenterController extends Controller
                 'variant' => 'records',
                 'singular' => 'Template',
                 'create_label' => 'Create Template',
-                'statuses' => ['active' => 'Active', 'draft' => 'Draft', 'archived' => 'Archived'],
-                'tabs' => ['all' => 'All Templates', 'active' => 'Active', 'draft' => 'Custom Templates', 'archived' => 'Archived'],
+                'statuses' => ['active' => 'Active', 'draft' => 'Draft', 'pending_approval' => 'Approval Required', 'archived' => 'Archived'],
+                'tabs' => ['all' => 'All Templates', 'active' => 'Active', 'draft' => 'Custom Templates', 'pending_approval' => 'Approval Required', 'archived' => 'Archived'],
             ],
             'approval-center' => [
                 'title' => 'Approval Center',

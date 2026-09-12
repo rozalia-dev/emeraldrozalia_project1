@@ -10,6 +10,20 @@ class AuditTrail {
             $requestId = (string) Str::uuid();
         }
 
-        AuditLog::create(['user_id'=>auth()->id(),'action'=>$action,'subject_type'=>$subject?->getMorphClass(),'subject_id'=>$subject?->getKey(),'request_id'=>$requestId,'ip_address'=>request()->ip(),'before'=>$before,'after'=>$after]);
+        $actor = auth()->user();
+        $subjectUuid = $subject?->getAttribute('uuid') ?: $subject?->getAttribute('public_uuid');
+
+        AuditLog::create([
+            'user_id' => $actor?->getKey(),
+            'actor_uuid' => $actor?->getAttribute('public_uuid') ?: $actor?->getAttribute('uuid'),
+            'action' => $action,
+            'subject_type' => $subject?->getMorphClass(),
+            'subject_id' => $subject?->getKey(),
+            'subject_uuid' => $subjectUuid,
+            'request_id' => $requestId,
+            'ip_address' => request()->ip(),
+            'before' => $before,
+            'after' => $after,
+        ]);
     }
 }

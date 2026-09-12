@@ -9,6 +9,8 @@
 
 GitHub Actions run #318 (workflow “Validate and deploy production”) completed successfully for merged release `b8b9db1d1f9313bb3a3f49a3051c38cd321cbbf3` on 12 September 2026.
 
+The Email Templates durable contract is the next implementation candidate described in [Email Templates contract evidence](PROJECT1-COMMUNICATION-TEMPLATE-EVIDENCE.md); it is not included in the current verified SHA until its GitHub PR, merge and deployment gates complete.
+
 | Job | Current evidence | Guide completion meaning |
 |---|---|---|
 | PostgreSQL validation | Passed in run #318, including 195 tests, 2,141 assertions and full rollback/re-run | Green release baseline; does not cover all guide contracts |
@@ -31,8 +33,8 @@ GitHub Actions run #318 (workflow “Validate and deploy production”) complete
 | UI tokens | Geometry, typography, spacing, responsive and published theme version | Contract captured; measurements/runtime publisher unverified |
 | Visual diffs | Exact supplied-reference screenshots at approved viewports | Not run for all 167 entries; current foundation spec covers four public routes only |
 | Browser/accessibility | Desktop/tablet/mobile journeys, keyboard, focus, labels, contrast, overflow | Missing broad suite |
-| API/contracts | /api/v1, Form Requests, API Resources, Policies, OpenAPI | Versioned catalog contracts are feature-tested; broader guide/API coverage remains partial |
-| Async/provider | Jobs, events/listeners, queue/retry/idempotency, email/WhatsApp/payment/webhook contracts | Communication reply queue/retry/idempotency and signed email/WhatsApp/chat callback ledger are feature-tested; real provider adapters, callback schemas and live delivery remain unconfigured |
+| API/contracts | /api/v1, Form Requests, API Resources, Policies, OpenAPI | Versioned catalog contracts are feature-tested; the candidate Email Templates API adds dedicated requests/resources/policy and UUID routes; broader guide/API coverage remains partial |
+| Async/provider | Jobs, events/listeners, queue/retry/idempotency, email/WhatsApp/payment/webhook contracts | Communication reply queue/retry/idempotency and signed email/WhatsApp/chat callback ledger are feature-tested; the candidate template event/idempotency boundary is added; real provider adapters, callback schemas and live delivery remain unconfigured |
 | PostgreSQL | migrate/seed/route/feature suite | Passed in run #318; 195 tests/2,141 assertions plus rollback, re-migrate, seed and status are now rehearsed |
 | Container/release | Docker image, storage, Nginx, worker/scheduler rehearsal | Passed in run #318 |
 | Backup/restore/rollback | Actual restore drill and rollback rehearsal | Release backup and rollback/re-run passed in the release workflow; independent restore remains not evidenced |
@@ -51,6 +53,6 @@ Local PHP, Composer and Docker are unavailable in this workspace. Local evidence
 2. Attach the missing ordered guide archive/manifest or record an approved exception.
 3. Add strict visual, responsive and accessibility suites.
 4. Configure and verify real email/WhatsApp/chat adapters, signed callback schemas and worker operations.
-5. Replace generic communication template/approval/follow-up/alert records with their durable domain contracts and connect reports/analytics to reconciled read models.
+5. Connect the durable Email Templates aggregate to approvals/provider rendering, then replace generic approval/follow-up/alert records and connect reports/analytics to reconciled read models.
 6. Complete explicit settings approval/activation/rollback policies and broaden public consumers beyond the shared shell.
 7. Add strict visual/browser/accessibility evidence, direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.
