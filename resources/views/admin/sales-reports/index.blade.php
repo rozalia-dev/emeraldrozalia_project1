@@ -34,10 +34,11 @@
     $categoryDonut = $donut($categoryRows);
     $channelDonut = $donut($channelRows);
     $paymentDonut = $donut($paymentRows);
+    $insights = $insights ?? ['discounts' => 0, 'discountedOrders' => 0, 'discountRate' => '—', 'averageDiscount' => '—', 'returnRate' => '—', 'refundedOrders' => 0, 'refundImpact' => '—'];
 @endphp
 
 @section('content')
-<div class="sales-report-page" data-sales-report-root>
+<div class="sales-report-page" data-sales-report-root data-empty="{{ $isEmpty ? '1' : '0' }}">
     <div class="sales-report-breadcrumb">
         <a href="{{ route('admin.dashboard') }}">Project 1 Control Panel (cPanel)</a>
         <x-icon name="chevron-right" size="12" />
@@ -56,7 +57,7 @@
             <div>
                 <span>Date Range</span>
                 <strong>{{ $filters['from_label'] }} - {{ $filters['to_label'] }}</strong>
-                <small>vs 01 Mar 2025 - 31 Mar 2025</small>
+                <small>Comparison data is shown when available</small>
             </div>
             <x-icon name="chevron-down" size="14" />
         </div>
@@ -71,7 +72,7 @@
                         <div class="sales-report-kpi-copy">
                             <span>{{ $metric['label'] }}</span>
                             <strong>{{ $metric['kind'] === 'money' ? $money($metric['value']) : $integer($metric['value']) }}</strong>
-                            <small><i>↑ {{ $metric['change'] }}</i> {{ $metric['caption'] }}</small>
+                            <small>@if($metric['change'] !== '—')<i>↑ {{ $metric['change'] }}</i>@endif {{ $metric['caption'] }}</small>
                         </div>
                     </article>
                 @endforeach
@@ -104,6 +105,10 @@
                 <a class="sales-report-reset" href="{{ route('admin.sales-reports.dashboard') }}"><x-icon name="refresh" size="13" /> Reset</a>
             </form>
 
+            @if($isEmpty)
+                <div class="sales-report-empty-state" role="status"><strong>No matching orders</strong><span>Adjust the report filters or add orders to populate this dashboard.</span></div>
+            @endif
+
             <div class="sales-report-card-grid">
                 <article class="sales-report-card sales-report-card--trend">
                     <div class="sales-report-card-head"><div><h2>Sales Over Time</h2><span class="sales-report-card-subtitle">Current Period <i class="sales-report-dot sales-report-dot--green"></i> Previous Period <i class="sales-report-dot sales-report-dot--gray"></i></span></div><select aria-label="Sales trend interval"><option>Daily</option><option>Weekly</option><option>Monthly</option></select></div>
@@ -118,7 +123,7 @@
                         </svg>
                         <div class="sales-report-x-labels">@foreach($trend['labels'] as $label)<span>{{ $label }}</span>@endforeach</div>
                     </div>
-                    <div class="sales-report-trend-summary"><div><span>Total (Current)</span><strong>{{ $money($metrics[0]['value']) }}</strong></div><div><span>Total (Previous)</span><strong>€1,052,003.20</strong></div><div><span>Change</span><strong class="sales-report-positive">↑ 18.72%</strong></div></div>
+                    <div class="sales-report-trend-summary"><div><span>Total (Current)</span><strong>{{ $money($trend['currentTotal']) }}</strong></div><div><span>Total (Previous)</span><strong>{{ $money($trend['previousTotal']) }}</strong></div><div><span>Change</span><strong class="{{ $trend['change'] === '—' ? '' : 'sales-report-positive' }}">{{ $trend['change'] === '—' ? '—' : '↑ '.$trend['change'] }}</strong></div></div>
                 </article>
 
                 <article class="sales-report-card sales-report-card--category">
@@ -159,13 +164,13 @@
 
                 <article class="sales-report-card sales-report-card--impact">
                     <div class="sales-report-card-head"><h2>Discounts Impact</h2></div>
-                    <dl class="sales-report-stats-list"><div><dt>Discounts Given</dt><dd>€82,765.40</dd></div><div><dt>Orders with Discount</dt><dd>2,154 <small>(24.98%)</small></dd></div><div><dt>Avg. Discount per Order</dt><dd>€38.40</dd></div><div><dt>Revenue Impact</dt><dd>€82,765.40 <small>(6.62%)</small></dd></div></dl>
+                    <dl class="sales-report-stats-list"><div><dt>Discounts Given</dt><dd>{{ $money($insights['discounts']) }}</dd></div><div><dt>Orders with Discount</dt><dd>{{ $integer($insights['discountedOrders']) }} <small>({{ $insights['discountRate'] }})</small></dd></div><div><dt>Avg. Discount per Order</dt><dd>{{ $insights['averageDiscount'] }}</dd></div><div><dt>Revenue Impact</dt><dd>{{ $money($insights['discounts']) }}</dd></div></dl>
                     <a class="sales-report-card-link" href="{{ route('admin.sales-reports.dashboard', array_merge($query, ['tab' => 'discounts'])) }}">View Discounts Report <x-icon name="arrow-right" size="14" /></a>
                 </article>
 
                 <article class="sales-report-card sales-report-card--impact">
                     <div class="sales-report-card-head"><h2>Returns Impact</h2></div>
-                    <dl class="sales-report-stats-list"><div><dt>Return &amp; Refunds</dt><dd>{{ $money($metrics[4]['value']) }}</dd></div><div><dt>Return Rate (Orders)</dt><dd>2.74%</dd></div><div><dt>Refunded Orders</dt><dd>658</dd></div><div><dt>Revenue Impact</dt><dd>{{ $money($metrics[4]['value']) }} <small>(6.90%)</small></dd></div></dl>
+                    <dl class="sales-report-stats-list"><div><dt>Return &amp; Refunds</dt><dd>{{ $money($metrics[4]['value']) }}</dd></div><div><dt>Return Rate (Orders)</dt><dd>{{ $insights['returnRate'] }}</dd></div><div><dt>Refunded Orders</dt><dd>{{ $integer($insights['refundedOrders']) }}</dd></div><div><dt>Revenue Impact</dt><dd>{{ $money($metrics[4]['value']) }} <small>({{ $insights['refundImpact'] }})</small></dd></div></dl>
                     <a class="sales-report-card-link" href="{{ route('admin.sales-reports.dashboard', array_merge($query, ['tab' => 'returns-refunds'])) }}">View Returns Report <x-icon name="arrow-right" size="14" /></a>
                 </article>
 

@@ -58,20 +58,14 @@ class SalesReportController extends Controller
         $excel = $format === 'excel';
         $filename = 'emerald-rozalia-sales-report-'.now()->format('Ymd-His').'.'.($excel ? 'xls' : 'csv');
 
-        if ($orders->isEmpty()) {
-            $rows = collect($this->previewCategoryRows())->map(fn (array $row): array => [
-                $row['label'], $row['orders'], $row['amount'], $row['share'].'%', $filters['from_label'].' - '.$filters['to_label'],
-            ]);
-        } else {
-            $rows = $orders->map(fn (Order $order): array => [
-                $order->number, self::ORDER_TYPES[$order->order_type]['label'] ?? Str::headline((string) $order->order_type),
-                $order->status, $order->payment_status, $order->currency ?: 'EUR', number_format((float) $order->total, 2, '.', ''), optional($order->created_at)->toDateTimeString(),
-            ]);
-        }
+        $rows = $orders->map(fn (Order $order): array => [
+            $order->number, self::ORDER_TYPES[$order->order_type]['label'] ?? Str::headline((string) $order->order_type),
+            $order->status, $order->payment_status, $order->currency ?: 'EUR', number_format((float) $order->total, 2, '.', ''), optional($order->created_at)->toDateTimeString(),
+        ]);
 
         return response()->streamDownload(static function () use ($rows, $excel): void {
             $out = fopen('php://output', 'w');
-            fputcsv($out, $excel ? ['Order / Category', 'Orders', 'Sales (Net)', '% Share', 'Report Window'] : ['Order Number', 'Order Category', 'Status', 'Payment Status', 'Currency', 'Sales (Net)', 'Created At'], $excel ? "\t" : ',');
+            fputcsv($out, ['Order Number', 'Order Category', 'Status', 'Payment Status', 'Currency', 'Sales (Net)', 'Created At'], $excel ? "\t" : ',');
             foreach ($rows as $row) fputcsv($out, $row, $excel ? "\t" : ',');
             fclose($out);
         }, $filename, ['Content-Type' => $excel ? 'application/vnd.ms-excel' : 'text/csv']);
@@ -102,7 +96,8 @@ class SalesReportController extends Controller
             'q' => trim((string) $read('q', '')), 'category' => $this->allowed((string) $read('category', 'all'), array_merge(['all'], array_keys(self::ORDER_TYPES)), 'all'),
             'channel' => (string) $read('channel', 'all'), 'franchise' => (string) $read('franchise', 'all'), 'store' => (string) $read('store', 'all'),
             'country' => (string) $read('country', 'all'), 'customer_group' => (string) $read('customer_group', 'all'), 'payment' => (string) $read('payment', 'all'),
-            'fulfillment' => (string) $read('fulfillment', 'all'), 'currency' => (string) $read('currency', 'all'), 'group_by' => (string) $read('group_by', 'none'), 'breakdown' => (string) $read('breakdown', 'day'),
+            'fulfillment' => $this->allowed((string) $read('fulfillment', 'all'), array_merge(['all'], self::FULFILLMENT_STATUSES), 'all'),
+            'currency' => (string) $read('currency', 'all'), 'group_by' => $this->allowed((string) $read('group_by', 'none'), ['none', 'category', 'channel', 'customer_group', 'country'], 'none'), 'breakdown' => $this->allowed((string) $read('breakdown', 'day'), ['day', 'week', 'month'], 'day'),
             'include_tax' => $request->boolean('include_tax'), 'compare' => $request->boolean('compare'),
             'from' => $from, 'to' => $to, 'from_value' => $from->toDateString(), 'to_value' => $to->toDateString(),
             'from_label' => $from->format('d M Y'), 'to_label' => $to->format('d M Y'),
@@ -121,8 +116,8 @@ class SalesReportController extends Controller
 
         return $orders->filter(function (Order $order) use ($filters): bool {
             $address = (array) ($order->shipping_address ?: []);
-            $channel = $this->orderChannel($order); $country = (string) ($address['country_name'] ?? $address['country'] ?? 'Ireland');
-            $franchise = (string) ($address['franchise'] ?? $this->orderFranchise($order)); $store = (string) ($address['store'] ?? 'Limerick Flagship'); $group = $this->customerGroup($order);
+            $channel = $this->orderChannel($order); $country = (string) ($address['country_name'] ?? $address['country'] ?? 'Unknown');
+            $franchise = (string) ($address['franchise'] ?? $this->orderFranchise($order)); $store = (string) ($address['store'] ?? 'Unknown'); $group = $this->customerGroup($order);
             return ($filters['channel'] === 'all' || $channel === $filters['channel']) && ($filters['country'] === 'all' || $country === $filters['country'])
                 && ($filters['franchise'] === 'all' || $franchise === $filters['franchise']) && ($filters['store'] === 'all' || $store === $filters['store'])
                 && ($filters['customer_group'] === 'all' || $group === $filters['customer_group']);
@@ -131,19 +126,22 @@ class SalesReportController extends Controller
 
     private function analytics(Collection $orders, array $filters): array
     {
-        $preview = $orders->isEmpty();
+        $metrics = $this->actualMetrics($orders, $filters);
+        $trend = $this->trend($orders, $filters);
         return [
-            'metrics' => $preview ? $this->previewMetrics() : $this->actualMetrics($orders, $filters),
-            'categoryRows' => $preview ? $this->previewCategoryRows() : $this->categoryRows($orders),
-            'channelRows' => $preview ? $this->previewChannelRows() : $this->channelRows($orders),
-            'productRows' => $preview ? $this->previewProductRows() : $this->productRows($orders),
-            'customerRows' => $preview ? $this->previewCustomerRows() : $this->customerRows($orders),
-            'franchiseRows' => $preview ? $this->previewFranchiseRows() : $this->franchiseRows($orders),
-            'paymentRows' => $preview ? $this->previewPaymentRows() : $this->paymentRows($orders),
-            'countryRows' => $preview ? $this->previewCountryRows() : $this->countryRows($orders),
-            'summaryRows' => $preview ? $this->previewSummaryRows() : $this->summaryRows($this->actualMetrics($orders, $filters), $orders),
-            'trend' => $this->trend($orders, $filters, $preview), 'filters' => $filters, 'options' => $this->filterOptions($orders),
-            'recentReports' => $this->recentReports(), 'savedViews' => AdminRecord::query()->where('module', 'sales-report-views')->where('status', 'active')->latest('id')->limit(5)->get(), 'isPreview' => $preview,
+            'metrics' => $metrics,
+            'categoryRows' => $this->categoryRows($orders),
+            'channelRows' => $this->channelRows($orders),
+            'productRows' => $this->productRows($orders),
+            'customerRows' => $this->customerRows($orders),
+            'franchiseRows' => $this->franchiseRows($orders),
+            'paymentRows' => $this->paymentRows($orders),
+            'countryRows' => $this->countryRows($orders),
+            'summaryRows' => $this->summaryRows($metrics, $orders),
+            'trend' => $trend, 'filters' => $filters, 'options' => $this->filterOptions($orders),
+            'recentReports' => $this->recentReports(), 'savedViews' => AdminRecord::query()->where('module', 'sales-report-views')->where('status', 'active')->latest('id')->limit(5)->get(),
+            'isEmpty' => $orders->isEmpty(), 'dataNote' => $orders->isEmpty() ? 'No orders found for the selected filters.' : 'Live PostgreSQL data · '.$orders->count().' orders in this report window',
+            'insights' => $this->impactMetrics($orders, $filters),
         ];
     }
 
@@ -151,18 +149,38 @@ class SalesReportController extends Controller
     {
         $sales = round((float) $orders->sum(fn (Order $order): float => (float) $order->total), 2);
         $discounts = round((float) $orders->sum(fn (Order $order): float => (float) ($order->discount ?: 0)), 2);
-        $returns = ReturnRequest::query()->whereBetween('created_at', [$filters['from'], $filters['to']])->with('order')->get();
+        $returns = ReturnRequest::query()->whereIn('order_id', $orders->pluck('id'))->whereBetween('created_at', [$filters['from'], $filters['to']])->with('order')->get();
         $refunds = round((float) $returns->sum(fn (ReturnRequest $return): float => (float) ($return->order?->total ?: 0)), 2);
         $customers = $orders->map(fn (Order $order): string => (string) ($order->user_id ?: strtolower((string) $order->email)))->filter()->unique()->count();
         $count = $orders->count();
         return [
-            ['label' => 'Total Sales (Net)', 'value' => $sales, 'kind' => 'money', 'change' => '18.72%', 'icon' => 'chart', 'tone' => 'green', 'caption' => 'vs last 31 days'],
-            ['label' => 'Total Orders', 'value' => $count, 'kind' => 'number', 'change' => '15.43%', 'icon' => 'shopping-bag', 'tone' => 'blue', 'caption' => 'vs last 31 days'],
-            ['label' => 'Avg. Order Value', 'value' => $count ? round($sales / $count, 2) : 0, 'kind' => 'money', 'change' => '2.84%', 'icon' => 'package', 'tone' => 'orange', 'caption' => 'vs last 31 days'],
-            ['label' => 'Total Customers', 'value' => $customers, 'kind' => 'number', 'change' => '12.16%', 'icon' => 'users', 'tone' => 'purple', 'caption' => 'vs last 31 days'],
-            ['label' => 'Return & Refunds', 'value' => $refunds, 'kind' => 'money', 'change' => '15.81%', 'icon' => 'refresh', 'tone' => 'teal', 'caption' => 'vs last 31 days'],
-            ['label' => 'Discounts Given', 'value' => $discounts, 'kind' => 'money', 'change' => '18.64%', 'icon' => 'percent', 'tone' => 'red', 'caption' => 'vs last 31 days'],
-            ['label' => 'Net Revenue', 'value' => round($sales - $refunds, 2), 'kind' => 'money', 'change' => '18.22%', 'icon' => 'credit-card', 'tone' => 'green', 'caption' => 'vs last 31 days'],
+            ['label' => 'Total Sales (Net)', 'value' => $sales, 'kind' => 'money', 'change' => '—', 'icon' => 'chart', 'tone' => 'green', 'caption' => 'No comparison loaded'],
+            ['label' => 'Total Orders', 'value' => $count, 'kind' => 'number', 'change' => '—', 'icon' => 'shopping-bag', 'tone' => 'blue', 'caption' => 'No comparison loaded'],
+            ['label' => 'Avg. Order Value', 'value' => $count ? round($sales / $count, 2) : 0, 'kind' => 'money', 'change' => '—', 'icon' => 'package', 'tone' => 'orange', 'caption' => 'No comparison loaded'],
+            ['label' => 'Total Customers', 'value' => $customers, 'kind' => 'number', 'change' => '—', 'icon' => 'users', 'tone' => 'purple', 'caption' => 'No comparison loaded'],
+            ['label' => 'Return & Refunds', 'value' => $refunds, 'kind' => 'money', 'change' => '—', 'icon' => 'refresh', 'tone' => 'teal', 'caption' => 'No comparison loaded'],
+            ['label' => 'Discounts Given', 'value' => $discounts, 'kind' => 'money', 'change' => '—', 'icon' => 'percent', 'tone' => 'red', 'caption' => 'No comparison loaded'],
+            ['label' => 'Net Revenue', 'value' => round($sales - $refunds, 2), 'kind' => 'money', 'change' => '—', 'icon' => 'credit-card', 'tone' => 'green', 'caption' => 'No comparison loaded'],
+        ];
+    }
+
+    private function impactMetrics(Collection $orders, array $filters): array
+    {
+        $sales = round((float) $orders->sum(fn (Order $order): float => (float) $order->total), 2);
+        $discounted = $orders->filter(fn (Order $order): bool => (float) ($order->discount ?: 0) > 0);
+        $discounts = round((float) $discounted->sum(fn (Order $order): float => (float) ($order->discount ?: 0)), 2);
+        $returns = ReturnRequest::query()->whereIn('order_id', $orders->pluck('id'))->whereBetween('created_at', [$filters['from'], $filters['to']])->with('order')->get();
+        $refunds = round((float) $returns->sum(fn (ReturnRequest $return): float => (float) ($return->order?->total ?: 0)), 2);
+        $count = $orders->count();
+
+        return [
+            'discounts' => $discounts,
+            'discountedOrders' => $discounted->count(),
+            'discountRate' => $count ? number_format(($discounted->count() / $count) * 100, 2).'%' : '—',
+            'averageDiscount' => $discounted->count() ? $this->money($discounts / $discounted->count()) : '—',
+            'returnRate' => $count ? number_format(($returns->count() / $count) * 100, 2).'%' : '—',
+            'refundedOrders' => $returns->where('status', 'refunded')->count(),
+            'refundImpact' => $sales ? number_format(($refunds / $sales) * 100, 2).'%' : '—',
         ];
     }
 
@@ -182,13 +200,13 @@ class SalesReportController extends Controller
             $amount = round((float) $matches->sum(fn (Order $order): float => (float) $order->total), 2);
             return ['label' => $channel, 'amount' => $amount, 'orders' => $matches->count(), 'share' => round(($amount / $total) * 100, 2), 'color' => $this->channelColor($channel)];
         })->sortByDesc('amount')->values()->all();
-        return $rows ?: $this->previewChannelRows();
+        return $rows;
     }
 
     private function productRows(Collection $orders): array
     {
         $items = $orders->isEmpty() ? collect() : OrderItem::query()->whereIn('order_id', $orders->pluck('id')->all())->get();
-        if ($items->isEmpty()) return $this->previewProductRows();
+        if ($items->isEmpty()) return [];
         $total = max(0.01, (float) $items->sum(fn (OrderItem $item): float => (float) $item->total));
         return $items->groupBy('name')->map(function (Collection $matches, string $name) use ($total): array {
             $amount = round((float) $matches->sum(fn (OrderItem $item): float => (float) $item->total), 2);
@@ -208,7 +226,7 @@ class SalesReportController extends Controller
     private function franchiseRows(Collection $orders): array
     {
         $franchiseOrders = $orders->filter(fn (Order $order): bool => in_array($order->order_type, ['franchise', 'franchise_retail'], true));
-        if ($franchiseOrders->isEmpty()) return $this->previewFranchiseRows();
+        if ($franchiseOrders->isEmpty()) return [];
         return $franchiseOrders->groupBy(fn (Order $order): string => $this->orderFranchise($order))->map(fn (Collection $matches, string $name): array => ['label' => $name, 'amount' => round((float) $matches->sum(fn (Order $order): float => (float) $order->total), 2), 'orders' => $matches->count(), 'stores' => $matches->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'store', $name))->unique()->count()])->sortByDesc('amount')->take(5)->values()->all();
     }
 
@@ -224,7 +242,7 @@ class SalesReportController extends Controller
     private function countryRows(Collection $orders): array
     {
         $total = max(0.01, (float) $orders->sum(fn (Order $order): float => (float) $order->total));
-        return $orders->groupBy(fn (Order $order): string => (string) data_get($order->shipping_address, 'country_name', data_get($order->shipping_address, 'country', 'Ireland')))->map(function (Collection $matches, string $country) use ($total): array {
+        return $orders->groupBy(fn (Order $order): string => (string) data_get($order->shipping_address, 'country_name', data_get($order->shipping_address, 'country', 'Unknown')))->map(function (Collection $matches, string $country) use ($total): array {
             $amount = round((float) $matches->sum(fn (Order $order): float => (float) $order->total), 2);
             return ['label' => $country, 'amount' => $amount, 'share' => round(($amount / $total) * 100, 2)];
         })->sortByDesc('amount')->take(6)->values()->all();
@@ -232,45 +250,60 @@ class SalesReportController extends Controller
 
     private function summaryRows(array $metrics, Collection $orders): array
     {
-        $gross = round((float) $orders->sum(fn (Order $order): float => (float) $order->subtotal + (float) $order->shipping), 2);
+        $gross = round((float) $orders->sum(fn (Order $order): float => (float) $order->subtotal + (float) $order->shipping + (float) ($order->discount ?: 0)), 2);
         $discounts = round((float) $orders->sum(fn (Order $order): float => (float) ($order->discount ?: 0)), 2); $refunds = (float) ($metrics[4]['value'] ?? 0); $net = (float) ($metrics[0]['value'] ?? 0);
-        $tax = round($gross * 0.13, 2); $shipping = round((float) $orders->sum(fn (Order $order): float => (float) ($order->shipping ?: 0)), 2);
-        return [['label' => 'Gross Sales (Incl. Tax)', 'value' => $gross], ['label' => 'Total Discounts', 'value' => $discounts], ['label' => 'Net Sales (Before Returns)', 'value' => $net], ['label' => 'Returns & Refunds', 'value' => $refunds], ['label' => 'Net Sales (After Returns)', 'value' => max(0, $net - $refunds)], ['label' => 'Taxes Collected', 'value' => $tax], ['label' => 'Shipping Revenue', 'value' => $shipping], ['label' => 'Net Revenue', 'value' => max(0, $net - $refunds - $tax)]];
+        $shipping = round((float) $orders->sum(fn (Order $order): float => (float) ($order->shipping ?: 0)), 2);
+        return [['label' => 'Gross Sales (Recorded)', 'value' => $gross], ['label' => 'Total Discounts', 'value' => $discounts], ['label' => 'Net Sales (Before Returns)', 'value' => $net], ['label' => 'Returns & Refunds', 'value' => $refunds], ['label' => 'Net Sales (After Returns)', 'value' => max(0, $net - $refunds)], ['label' => 'Taxes Collected (not recorded)', 'value' => 0], ['label' => 'Shipping Revenue', 'value' => $shipping], ['label' => 'Net Revenue', 'value' => max(0, $net - $refunds)]];
     }
 
-    private function trend(Collection $orders, array $filters, bool $preview): array
+    private function trend(Collection $orders, array $filters): array
     {
-        if ($preview) return ['labels' => ['1 Apr', '6 Apr', '11 Apr', '16 Apr', '21 Apr', '26 Apr', '1 May'], 'current' => [28, 48, 59, 53, 72, 70, 84], 'previous' => [14, 30, 39, 34, 47, 43, 51]];
         $days = max(1, $filters['from']->diffInDays($filters['to'])); $current = []; $labels = [];
+        $previousFrom = $filters['from']->copy()->subDays($days + 1); $previousTo = $filters['from']->copy()->subSecond();
+        $previousFilters = $filters; $previousFilters['from'] = $previousFrom; $previousFilters['to'] = $previousTo;
+        $previousOrders = $this->orders($previousFilters);
+        $previous = [];
         foreach (range(0, 6) as $bucket) {
             $start = $filters['from']->copy()->addDays((int) floor($days * $bucket / 7)); $end = $bucket === 6 ? $filters['to'] : $filters['from']->copy()->addDays((int) floor($days * ($bucket + 1) / 7));
-            $current[] = round((float) $orders->filter(fn (Order $order): bool => $order->created_at?->between($start, $end))->sum(fn (Order $order): float => (float) $order->total)); $labels[] = $start->format('j M');
+            $previousStart = $previousFrom->copy()->addDays((int) floor($days * $bucket / 7)); $previousEnd = $bucket === 6 ? $previousTo : $previousFrom->copy()->addDays((int) floor($days * ($bucket + 1) / 7));
+            $current[] = round((float) $orders->filter(fn (Order $order): bool => $order->created_at?->between($start, $end))->sum(fn (Order $order): float => (float) $order->total));
+            $previous[] = round((float) $previousOrders->filter(fn (Order $order): bool => $order->created_at?->between($previousStart, $previousEnd))->sum(fn (Order $order): float => (float) $order->total)); $labels[] = $start->format('j M');
         }
-        $max = max(1, ...$current); return ['labels' => $labels, 'current' => array_map(fn (float|int $value): float => round(($value / $max) * 84, 2), $current), 'previous' => array_map(fn (float|int $value): float => round(($value / $max) * 60, 2), $current)];
+        $max = max(1, ...$current, ...$previous); $currentTotal = array_sum($current); $previousTotal = array_sum($previous);
+        return ['labels' => $labels, 'current' => array_map(fn (float|int $value): float => round(($value / $max) * 84, 2), $current), 'previous' => array_map(fn (float|int $value): float => round(($value / $max) * 84, 2), $previous), 'currentTotal' => $currentTotal, 'previousTotal' => $previousTotal, 'change' => $previousTotal > 0 ? number_format((($currentTotal - $previousTotal) / $previousTotal) * 100, 2).'%' : '—'];
     }
 
     private function filterOptions(Collection $orders): array
     {
-        $countries = $orders->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'country_name', data_get($order->shipping_address, 'country', 'Ireland')))->filter()->unique()->values()->all();
+        $countries = $orders->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'country_name', data_get($order->shipping_address, 'country', 'Unknown')))->filter()->unique()->values()->all();
         $payments = $orders->map(fn (Order $order): string => (string) ($order->payment_method ?: 'Other'))->filter()->unique()->values()->all();
-        return ['categories' => collect(self::ORDER_TYPES)->mapWithKeys(fn (array $meta, string $key): array => [$key => $meta['label']])->all(), 'channels' => ['Website', 'Mobile App', 'Franchise Portal', 'Marketplace'], 'franchises' => ['Emerald Rozalia UK', 'Emerald Rozalia USA', 'Emerald Rozalia Canada', 'Emerald Rozalia Australia', 'Emerald Rozalia Germany'], 'stores' => ['Limerick Flagship', 'Dublin City', 'London Central', 'New York Soho'], 'countries' => array_values(array_unique(array_merge(['Ireland', 'United Kingdom', 'United States', 'Canada', 'Germany'], $countries))), 'customer_groups' => ['Retail Customers', 'Franchise Customers', 'Corporate Customers', 'Wholesale / Bulk Buyers'], 'payments' => array_values(array_unique(array_merge(['Credit / Debit Card', 'Bank Transfer', 'PayPal', 'Apple Pay', 'Other Wallets'], $payments))), 'fulfillment' => self::FULFILLMENT_STATUSES, 'currencies' => ['EUR', 'GBP', 'USD']];
+        return ['categories' => collect(self::ORDER_TYPES)->mapWithKeys(fn (array $meta, string $key): array => [$key => $meta['label']])->all(), 'channels' => $orders->map(fn (Order $order): string => $this->orderChannel($order))->unique()->values()->all(), 'franchises' => $orders->map(fn (Order $order): string => $this->orderFranchise($order))->unique()->values()->all(), 'stores' => $orders->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'store', 'Unknown'))->unique()->values()->all(), 'countries' => $countries, 'customer_groups' => $orders->map(fn (Order $order): string => $this->customerGroup($order))->unique()->values()->all(), 'payments' => $payments, 'fulfillment' => $orders->pluck('fulfillment_status')->filter()->unique()->values()->all(), 'currencies' => $orders->pluck('currency')->filter()->unique()->values()->all()];
     }
 
     private function recentReports(): array
     {
-        return [['name' => 'Daily Sales Summary', 'when' => '10 min ago', 'icon' => 'file-text'], ['name' => 'Sales by Products', 'when' => '1 hour ago', 'icon' => 'package'], ['name' => 'Franchise Sales Performance', 'when' => 'Today, 08:15 AM', 'icon' => 'users'], ['name' => 'Store Sales Summary', 'when' => 'Today, 07:30 AM', 'icon' => 'home'], ['name' => 'Monthly Sales Overview', 'when' => 'Yesterday, 11:45 PM', 'icon' => 'chart']];
+        return AdminRecord::query()->whereIn('module', ['report-runs', 'sales-report-views'])->where('status', '!=', 'deleted')->latest('record_date')->latest('id')->limit(5)->get()->map(fn (AdminRecord $record): array => [
+            'name' => $record->title,
+            'when' => optional($record->record_date)->diffForHumans() ?: 'Date unavailable',
+            'icon' => str_contains((string) $record->module, 'sales') ? 'chart' : 'file-text',
+        ])->all();
     }
 
     private function orderChannel(Order $order): string
     {
-        $channel = (string) data_get($order->shipping_address, 'channel', ''); if ($channel !== '') return $channel;
-        return match ($order->order_type) {'franchise', 'franchise_retail' => 'Franchise Portal', 'buyer' => 'Marketplace', default => 'Website'};
+        $channel = strtolower((string) data_get($order->shipping_address, 'channel', ''));
+        if (str_contains($channel, 'mobile')) return 'Mobile App';
+        if (str_contains($channel, 'portal')) return 'Franchise Portal';
+        if (str_contains($channel, 'market')) return 'Marketplace';
+        if (in_array($channel, ['website', 'web'], true)) return 'Website';
+        if ($channel !== '') return 'Other Integrations';
+        return 'Unattributed';
     }
 
     private function orderFranchise(Order $order): string
     {
         $franchise = (string) data_get($order->shipping_address, 'franchise', ''); if ($franchise !== '') return $franchise;
-        return match ($order->order_type) {'franchise', 'franchise_retail' => 'Emerald Rozalia UK', default => 'Direct Sales'};
+        return 'Unassigned';
     }
 
     private function customerGroup(Order $order): string
@@ -280,7 +313,7 @@ class SalesReportController extends Controller
 
     private function channelColor(string $channel): string
     {
-        return match ($channel) {'Website' => '#2676cc', 'Mobile App' => '#f08a14', 'Franchise Portal' => '#a33c98', default => '#a21f58'};
+        return match ($channel) {'Website' => '#2676cc', 'Mobile App' => '#f08a14', 'Franchise Portal' => '#a33c98', 'Marketplace' => '#087b72', 'Unattributed' => '#7b8790', default => '#a21f58'};
     }
 
     private function paymentColor(string $payment): string
@@ -298,48 +331,4 @@ class SalesReportController extends Controller
         return [...Arr::only($filters, ['category', 'channel', 'franchise', 'store', 'country', 'customer_group', 'payment', 'fulfillment', 'currency', 'group_by', 'breakdown', 'include_tax', 'compare']), 'from' => $filters['from_value'], 'to' => $filters['to_value']];
     }
 
-    private function previewMetrics(): array
-    {
-        return [['label' => 'Total Sales (Net)', 'value' => 1248765.50, 'kind' => 'money', 'change' => '18.72%', 'icon' => 'chart', 'tone' => 'green', 'caption' => 'vs last 31 days'], ['label' => 'Total Orders', 'value' => 8624, 'kind' => 'number', 'change' => '15.43%', 'icon' => 'shopping-bag', 'tone' => 'blue', 'caption' => 'vs last 31 days'], ['label' => 'Avg. Order Value', 'value' => 144.73, 'kind' => 'money', 'change' => '2.84%', 'icon' => 'package', 'tone' => 'orange', 'caption' => 'vs last 31 days'], ['label' => 'Total Customers', 'value' => 5832, 'kind' => 'number', 'change' => '12.16%', 'icon' => 'users', 'tone' => 'purple', 'caption' => 'vs last 31 days'], ['label' => 'Return & Refunds', 'value' => 86245.60, 'kind' => 'money', 'change' => '15.81%', 'icon' => 'refresh', 'tone' => 'teal', 'caption' => 'vs last 31 days'], ['label' => 'Discounts Given', 'value' => 82765.40, 'kind' => 'money', 'change' => '18.64%', 'icon' => 'percent', 'tone' => 'red', 'caption' => 'vs last 31 days'], ['label' => 'Net Revenue', 'value' => 1079754.50, 'kind' => 'money', 'change' => '18.22%', 'icon' => 'credit-card', 'tone' => 'green', 'caption' => 'vs last 31 days']];
-    }
-
-    private function previewCategoryRows(): array
-    {
-        return [['label' => 'Online Orders', 'amount' => 612430.20, 'share' => 49.01, 'orders' => 4156, 'color' => '#2676cc'], ['label' => 'Corporate Orders', 'amount' => 189750.60, 'share' => 15.20, 'orders' => 1024, 'color' => '#f08a14'], ['label' => 'Bulk Orders', 'amount' => 156340.75, 'share' => 12.52, 'orders' => 856, 'color' => '#f2b20d'], ['label' => 'Franchise Orders', 'amount' => 113400.09, 'share' => 9.04, 'orders' => 732, 'color' => '#a33c98'], ['label' => 'Franchise Retail Orders', 'amount' => 108645.30, 'share' => 8.70, 'orders' => 698, 'color' => '#087b72'], ['label' => 'Buyer Orders', 'amount' => 68708.26, 'share' => 5.53, 'orders' => 558, 'color' => '#1b7065']];
-    }
-
-    private function previewChannelRows(): array
-    {
-        return [['label' => 'Website', 'amount' => 862145.30, 'share' => 69.01, 'orders' => 0, 'color' => '#2676cc'], ['label' => 'Mobile App', 'amount' => 278442.60, 'share' => 22.30, 'orders' => 0, 'color' => '#f08a14'], ['label' => 'Franchise Portal', 'amount' => 86245.60, 'share' => 6.90, 'orders' => 0, 'color' => '#a33c98'], ['label' => 'Marketplace', 'amount' => 21932.00, 'share' => 1.75, 'orders' => 0, 'color' => '#a21f58']];
-    }
-
-    private function previewProductRows(): array
-    {
-        return [['label' => 'ER Classic Fedora Hat', 'amount' => 85420.00, 'share' => 6.84, 'quantity' => 642], ['label' => 'Emerald Premium Cap', 'amount' => 72360.50, 'share' => 5.79, 'quantity' => 934], ['label' => 'Royal Trilby Hat', 'amount' => 61245.75, 'share' => 4.90, 'quantity' => 512], ['label' => 'Luxury Wide Brim Hat', 'amount' => 48765.30, 'share' => 3.90, 'quantity' => 318], ['label' => 'Emerald Snapback Cap', 'amount' => 44980.10, 'share' => 3.60, 'quantity' => 876]];
-    }
-
-    private function previewCustomerRows(): array
-    {
-        return [['label' => 'Retail Customers', 'amount' => 682410.50, 'share' => 54.66, 'customers' => 4421], ['label' => 'Franchise Customers', 'amount' => 356245.80, 'share' => 28.54, 'customers' => 1023], ['label' => 'Corporate Customers', 'amount' => 142740.20, 'share' => 11.43, 'customers' => 280], ['label' => 'Wholesale / Bulk Buyers', 'amount' => 67369.00, 'share' => 5.39, 'customers' => 108]];
-    }
-
-    private function previewFranchiseRows(): array
-    {
-        return [['label' => 'Emerald Rozalia UK', 'amount' => 118450.60, 'orders' => 812, 'stores' => 24], ['label' => 'Emerald Rozalia USA', 'amount' => 96230.40, 'orders' => 654, 'stores' => 18], ['label' => 'Emerald Rozalia Canada', 'amount' => 71645.30, 'orders' => 512, 'stores' => 12], ['label' => 'Emerald Rozalia Australia', 'amount' => 58760.20, 'orders' => 421, 'stores' => 10], ['label' => 'Emerald Rozalia Germany', 'amount' => 44220.10, 'orders' => 305, 'stores' => 8]];
-    }
-
-    private function previewPaymentRows(): array
-    {
-        return [['label' => 'Credit / Debit Card', 'amount' => 742965.00, 'share' => 59.46, 'color' => '#2676cc'], ['label' => 'Bank Transfer', 'amount' => 231400.20, 'share' => 18.53, 'color' => '#f08a14'], ['label' => 'PayPal', 'amount' => 142785.60, 'share' => 11.43, 'color' => '#a33c98'], ['label' => 'Apple Pay', 'amount' => 88230.90, 'share' => 6.90, 'color' => '#087b72'], ['label' => 'Other Wallets', 'amount' => 44944.20, 'share' => 3.60, 'color' => '#6c7b83']];
-    }
-
-    private function previewCountryRows(): array
-    {
-        return [['label' => 'Ireland', 'amount' => 268450.20, 'share' => 22.93], ['label' => 'United Kingdom', 'amount' => 254720.40, 'share' => 20.40], ['label' => 'United States', 'amount' => 212564.30, 'share' => 17.02], ['label' => 'Canada', 'amount' => 98765.50, 'share' => 7.91], ['label' => 'Germany', 'amount' => 64540.20, 'share' => 5.17], ['label' => 'Other Countries', 'amount' => 131725.00, 'share' => 10.57]];
-    }
-
-    private function previewSummaryRows(): array
-    {
-        return [['label' => 'Gross Sales (Incl. Tax)', 'value' => 1373850.90], ['label' => 'Total Discounts', 'value' => 82765.40], ['label' => 'Net Sales (Before Returns)', 'value' => 1291085.50], ['label' => 'Returns & Refunds', 'value' => 86245.60], ['label' => 'Net Sales (After Returns)', 'value' => 1204839.90], ['label' => 'Taxes Collected', 'value' => 168715.30], ['label' => 'Shipping Revenue', 'value' => 74920.30], ['label' => 'Net Revenue', 'value' => 1079754.50]];
-    }
 }

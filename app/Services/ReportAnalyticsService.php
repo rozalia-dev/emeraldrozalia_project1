@@ -15,9 +15,8 @@ use Illuminate\Support\Str;
 /**
  * Server-first data provider for the reference Reports dashboards.
  *
- * The UI deliberately keeps the reference snapshot useful on an empty
- * installation, but every filter and headline switches to PostgreSQL data as
- * soon as the relevant domain records exist.
+ * The UI preserves the reference layout on an empty installation, while every
+ * filter and headline is derived from PostgreSQL domain records.
  */
 class ReportAnalyticsService
 {
@@ -137,13 +136,17 @@ class ReportAnalyticsService
             'from' => $from, 'to' => $to,
             'from_value' => $from->toDateString(), 'to_value' => $to->toDateString(),
             'from_label' => $from->format('d M Y'), 'to_label' => $to->format('d M Y'),
-            'compare_label' => $from->copy()->subMonth()->format('d M Y').' - '.$to->copy()->subMonth()->format('d M Y'),
+            'compare_label' => 'No comparison loaded',
             'order_type' => $this->allowed((string) $read('order_type', 'all'), array_merge(['all'], array_keys(self::ORDER_TYPES)), 'all'),
-            'channel' => (string) $read('channel', 'all'),
-            'status' => (string) $read('status', 'all'),
-            'segment' => (string) $read('segment', 'all'),
-            'breakdown' => (string) $read('breakdown', 'day'),
-            'customer_type' => (string) $read('customer_type', 'all'),
+            'channel' => $this->allowed((string) $read('channel', 'all'), $report === 'order'
+                ? ['all', 'website', 'mobile', 'portal', 'other', 'unattributed']
+                : ($report === 'communication' ? ['all', 'web', 'chat', 'whatsapp', 'email', 'phone', 'system'] : ['all']), 'all'),
+            'status' => $this->allowed((string) $read('status', 'all'), $report === 'order'
+                ? ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled']
+                : ($report === 'communication' ? ['all', 'new', 'open', 'pending', 'closed'] : ['all']), 'all'),
+            'segment' => $this->allowed((string) $read('segment', 'all'), ['all', 'new', 'repeat', 'vip', 'at-risk'], 'all'),
+            'breakdown' => $this->allowed((string) $read('breakdown', 'day'), ['day', 'week', 'month'], 'day'),
+            'customer_type' => $this->allowed((string) $read('customer_type', 'all'), ['all', 'individual', 'business', 'franchise'], 'all'),
         ];
     }
 
@@ -167,7 +170,7 @@ class ReportAnalyticsService
         return match ($report) {
             'order' => [
                 'order_type' => array_merge(['all' => 'All Order Types'], collect(self::ORDER_TYPES)->mapWithKeys(fn (array $meta, string $key): array => [$key => $meta['label']])->all()),
-                'channel' => ['all' => 'All Channels', 'website' => 'Website', 'mobile' => 'Mobile App', 'portal' => 'Customer Portal', 'pos' => 'In-Store (POS)', 'other' => 'Other Integrations'],
+                'channel' => ['all' => 'All Channels', 'website' => 'Website', 'mobile' => 'Mobile App', 'portal' => 'Customer Portal', 'other' => 'Other Integrations', 'unattributed' => 'Unattributed'],
                 'status' => ['all' => 'All Statuses', 'pending' => 'Pending', 'processing' => 'Processing', 'shipped' => 'Shipped', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled'],
             ],
             'communication' => [
@@ -190,8 +193,6 @@ class ReportAnalyticsService
             ->latest()->get();
         $orders = $orders->filter(fn (Order $order): bool => $filters['channel'] === 'all' || $this->orderChannel($order) === $filters['channel']);
 
-        if ($orders->isEmpty() && !Order::query()->exists()) return $this->orderPreview();
-
         $sales = round((float) $orders->sum(fn (Order $order): float => (float) $order->total), 2);
         $returns = ReturnRequest::query()->whereIn('order_id', $orders->pluck('id'))->with('order')->get();
         $items = (int) OrderItem::query()->whereIn('order_id', $orders->pluck('id'))->sum('quantity');
@@ -200,16 +201,16 @@ class ReportAnalyticsService
         $refundValue = round((float) $returns->sum(fn (ReturnRequest $return): float => (float) ($return->order?->total ?: 0)), 2);
 
         return [
-            'isPreview' => false,
-            'dataNote' => 'Live PostgreSQL data · '.$count.' orders in this report window',
+            'isEmpty' => $count === 0,
+            'dataNote' => $count === 0 ? 'No orders found for the selected filters.' : 'Live PostgreSQL data · '.$count.' orders in this report window',
             'metrics' => [
                 $this->metric('Total Orders', number_format($count), '—', 'green', 'shopping-bag'),
                 $this->metric('Total Order Value (EUR)', $this->money($sales), '—', 'blue', 'credit-card'),
                 $this->metric('Avg. Order Value (EUR)', $this->money($count ? $sales / $count : 0), '—', 'orange', 'package'),
                 $this->metric('Items Ordered', number_format($items), '—', 'purple', 'tag'),
-                $this->metric('Return Rate', number_format($returnRate, 2).'%', '—', 'teal', 'refresh'),
-                $this->metric('Refund Rate', number_format($count ? ($returns->where('status', 'refunded')->count() / $count) * 100 : 0, 2).'%', '—', 'red', 'percent'),
-                $this->metric('Customer Satisfaction', '4.68 / 5', '—', 'green', 'star'),
+                $this->metric('Return Rate', $count ? number_format($returnRate, 2).'%' : '—', '—', 'teal', 'refresh'),
+                $this->metric('Refund Rate', $count ? number_format(($returns->where('status', 'refunded')->count() / $count) * 100, 2).'%' : '—', '—', 'red', 'percent'),
+                $this->metric('Customer Satisfaction', '—', '—', 'green', 'star'),
             ],
             'orderTypes' => $this->groupOrders($orders, 'order_type'),
             'channels' => $this->groupOrdersByChannel($orders),
@@ -219,8 +220,11 @@ class ReportAnalyticsService
             'regions' => $this->regionRows($orders),
             'topCustomers' => $this->orderTopCustomers($orders),
             'timeSeries' => $this->timeSeries($orders, $filters['from'], $filters['to'], 'orders'),
-            'alerts' => $this->orderAlerts($returns),
+            'alerts' => $this->orderAlerts($orders, $returns),
             'refundValue' => $this->money($refundValue),
+            'returnsCount' => $returns->count(),
+            'returnRateLabel' => $count ? number_format($returnRate, 2).'%' : '—',
+            'avgReturnProcessing' => '—',
         ];
     }
 
@@ -230,29 +234,33 @@ class ReportAnalyticsService
             ->when($filters['channel'] !== 'all', fn ($query) => $query->where('channel', $filters['channel']))
             ->when($filters['status'] !== 'all', fn ($query) => $query->where('status', $filters['status']))
             ->when($filters['q'] !== '', fn ($query) => $query->where(fn ($inner) => $inner->where('contact', 'like', '%'.$filters['q'].'%')->orWhere('subject', 'like', '%'.$filters['q'].'%')))
-            ->latest()->get();
-
-        if ($conversations->isEmpty() && !Conversation::query()->exists()) return $this->communicationPreview();
+            ->with('assignee')->latest()->get();
 
         $count = $conversations->count();
         $channels = $this->conversationChannels($conversations);
         $statuses = $this->conversationStatuses($conversations);
-        $agents = $conversations->groupBy('assigned_to')->map(function (Collection $rows, $assignedTo): array {
-            $user = $assignedTo ? User::find($assignedTo) : null;
-            return ['name' => $user?->name ?: 'Unassigned', 'conversations' => $rows->count(), 'csat' => '4.68', 'sla' => '92.68%'];
+        $agents = $conversations->groupBy('assigned_to')->map(function (Collection $rows): array {
+            $user = $rows->first()?->assignee;
+            $csat = $this->csatSummary($rows);
+            $sla = $this->slaSummary($rows);
+            return ['name' => $user?->name ?: 'Unassigned', 'conversations' => $rows->count(), 'csat' => $csat['score'] ?? '—', 'sla' => $sla['rate']];
         })->sortByDesc('conversations')->values()->take(5)->all();
+        $firstResponse = $this->formatDuration($conversations, 'first_response_seconds');
+        $resolution = $this->formatDuration($conversations, 'resolution_seconds');
+        $sla = $this->slaSummary($conversations);
+        $csat = $this->csatSummary($conversations);
 
         return [
-            'isPreview' => false,
-            'dataNote' => 'Live PostgreSQL data · '.$count.' conversations in this report window',
+            'isEmpty' => $count === 0,
+            'dataNote' => $count === 0 ? 'No conversations found for the selected filters.' : 'Live PostgreSQL data · '.$count.' conversations in this report window',
             'metrics' => [
                 $this->metric('Total Conversations', number_format($count), '—', 'green', 'message'),
                 $this->metric('New Conversations', number_format($conversations->where('status', 'new')->count()), '—', 'blue', 'plus'),
                 $this->metric('Closed Conversations', number_format($conversations->where('status', 'closed')->count()), '—', 'orange', 'check'),
-                $this->metric('Avg. First Response Time', '18m 42s', '—', 'purple', 'clock'),
-                $this->metric('Avg. Resolution Time', '2h 18m', '—', 'teal', 'refresh'),
-                $this->metric('SLA Compliance', '92.68%', '—', 'green', 'shield'),
-                $this->metric('Customer Satisfaction', '4.68 / 5', '—', 'green', 'star'),
+                $this->metric('Avg. First Response Time', $firstResponse, '—', 'purple', 'clock'),
+                $this->metric('Avg. Resolution Time', $resolution, '—', 'teal', 'refresh'),
+                $this->metric('SLA Compliance', $sla['rate'], '—', 'green', 'shield'),
+                $this->metric('Customer Satisfaction', $csat['value'], '—', 'green', 'star'),
             ],
             'channels' => $channels, 'statuses' => $statuses, 'agents' => $agents,
             'categories' => $this->conversationCategories($conversations),
@@ -260,6 +268,11 @@ class ReportAnalyticsService
             'timeSeries' => $this->timeSeries($conversations, $filters['from'], $filters['to'], 'conversations'),
             'topics' => $conversations->take(5)->map(fn (Conversation $conversation): array => ['topic' => $conversation->subject ?: 'Customer enquiry', 'volume' => 1, 'change' => 'New'])->all(),
             'alerts' => [['label' => 'Unassigned conversations', 'value' => (string) $conversations->whereNull('assigned_to')->count(), 'tone' => 'orange'], ['label' => 'Follow-ups due', 'value' => (string) $conversations->whereNotNull('follow_up_at')->count(), 'tone' => 'red']],
+            'slaRate' => $sla['rate'], 'slaWithin' => $sla['within'], 'slaBreached' => $sla['breached'],
+            'avgCsat' => $csat['value'], 'csatScore' => $csat['score'], 'csatChange' => '—',
+            'firstResponse' => $firstResponse, 'resolution' => $resolution,
+            'hasResponseTiming' => $this->metadataNumbers($conversations, 'first_response_seconds')->isNotEmpty() || $this->metadataNumbers($conversations, 'resolution_seconds')->isNotEmpty(),
+            'hasCsatData' => $csat['score'] !== '—',
         ];
     }
 
@@ -267,52 +280,63 @@ class ReportAnalyticsService
     {
         $customers = User::query()->where('is_admin', false)->whereBetween('created_at', [$filters['from'], $filters['to']])
             ->when($filters['q'] !== '', fn ($query) => $query->where(fn ($inner) => $inner->where('name', 'like', '%'.$filters['q'].'%')->orWhere('email', 'like', '%'.$filters['q'].'%')))
-            ->when($filters['customer_type'] !== 'all' && $filters['customer_type'] === 'individual', fn ($query) => $query->whereNull('department'))
-            ->withCount('orders')->latest()->get();
+            ->withCount(['orders as orders_count' => fn ($query) => $query->whereBetween('created_at', [$filters['from'], $filters['to']])])
+            ->with('customerProfile.primaryGroup')->latest()->get();
         $customers = $customers->filter(function (User $customer) use ($filters): bool {
+            $groupType = strtolower((string) ($customer->customerProfile?->primaryGroup?->type ?? 'individual'));
+            $typeMatches = match ($filters['customer_type']) {
+                'business' => str_contains($groupType, 'business') || str_contains($groupType, 'corporate') || str_contains($groupType, 'wholesale'),
+                'franchise' => str_contains($groupType, 'franchise'),
+                'individual' => !str_contains($groupType, 'business') && !str_contains($groupType, 'corporate') && !str_contains($groupType, 'wholesale') && !str_contains($groupType, 'franchise'),
+                default => true,
+            };
+            if (! $typeMatches) return false;
             return match ($filters['segment']) {
                 'new' => $customer->orders_count === 0,
                 'repeat' => $customer->orders_count > 1,
-                'vip' => $customer->orders_count >= 5,
-                'at-risk' => ($customer->status ?? 'active') !== 'active',
+                'vip' => (bool) ($customer->customerProfile?->is_vip) || $customer->orders_count >= 5,
+                'at-risk' => ($customer->customerProfile?->account_status ?? $customer->status ?? 'active') !== 'active',
                 default => true,
             };
         })->values();
 
-        if ($customers->isEmpty() && !User::query()->where('is_admin', false)->exists()) return $this->customerPreview();
-
         $customerIds = $customers->pluck('id');
         $orders = Order::query()->whereIn('user_id', $customerIds)->whereBetween('created_at', [$filters['from'], $filters['to']])->get();
         $revenue = round((float) $orders->sum(fn (Order $order): float => (float) $order->total), 2);
+        $new = $customers->where('orders_count', 0)->count();
         $repeat = $customers->where('orders_count', '>', 1)->count();
-        $active = $customers->filter(fn (User $customer): bool => ($customer->status ?? 'active') === 'active')->count();
+        $vip = $customers->filter(fn (User $customer): bool => (bool) ($customer->customerProfile?->is_vip) || $customer->orders_count >= 5)->count();
+        $active = $customers->filter(fn (User $customer): bool => ($customer->customerProfile?->account_status ?? $customer->status ?? 'active') === 'active')->count();
         $topCustomers = $customers->map(function (User $customer) use ($orders): array {
             $rows = $orders->where('user_id', $customer->id);
             return ['name' => $customer->name, 'email' => $customer->email, 'revenue' => $this->money((float) $rows->sum('total')), 'orders' => $rows->count(), 'segment' => $rows->count() > 1 ? 'Repeat' : 'New'];
         })->sortByDesc(fn (array $row): float => (float) str_replace([',', '€'], '', $row['revenue']))->values()->take(6)->all();
 
         return [
-            'isPreview' => false,
-            'dataNote' => 'Live PostgreSQL data · '.$customers->count().' customers in this report window',
+            'isEmpty' => $customers->count() === 0,
+            'dataNote' => $customers->count() === 0 ? 'No customers found for the selected filters.' : 'Live PostgreSQL data · '.$customers->count().' customers in this report window',
             'metrics' => [
                 $this->metric('Total Customers', number_format($customers->count()), '—', 'green', 'users'),
-                $this->metric('New Customers', number_format($customers->count()), '—', 'blue', 'user'),
+                $this->metric('New Customers', number_format($new), '—', 'blue', 'user'),
                 $this->metric('Active Customers', number_format($active), '—', 'orange', 'eye'),
                 $this->metric('Repeat Customers', number_format($repeat), '—', 'purple', 'refresh'),
                 $this->metric('Total Revenue (EUR)', $this->money($revenue), '—', 'teal', 'credit-card'),
                 $this->metric('Avg. Revenue per Customer', $this->money($customers->count() ? $revenue / $customers->count() : 0), '—', 'green', 'chart'),
-                $this->metric('Retention Rate', number_format($customers->count() ? ($repeat / $customers->count()) * 100 : 0, 2).'%', '—', 'blue', 'shield'),
-                $this->metric('Avg. Satisfaction', '4.68 / 5', '—', 'green', 'star'),
+                $this->metric('Retention Rate', $customers->count() ? number_format(($repeat / $customers->count()) * 100, 2).'%' : '—', '—', 'blue', 'shield'),
+                $this->metric('Avg. Satisfaction', '—', '—', 'green', 'star'),
             ],
             'segments' => $this->customerSegments($customers),
             'channels' => $this->customerChannels($customers),
             'revenueSegments' => $this->customerRevenueSegments($orders),
             'topCustomers' => $topCustomers,
-            'valueSummary' => [['label' => 'High Value Customers', 'value' => number_format(max(0, (int) floor($repeat * .28)), '0'), 'detail' => '€1,000+ revenue'], ['label' => 'Average Order Value', 'value' => $this->money($orders->count() ? $revenue / $orders->count() : 0), 'detail' => 'Across customer orders'], ['label' => 'Purchase Frequency', 'value' => number_format($customers->count() ? $orders->count() / $customers->count() : 0, 1), 'detail' => 'Orders per customer'], ['label' => 'Churn Risk', 'value' => number_format(max(0, $customers->count() - $active)), 'detail' => 'Customers to re-engage']],
-            'rfmRows' => [['label' => 'Champions', 'count' => max(1, (int) floor($repeat * .23)), 'color' => '#087943'], ['label' => 'Loyal Customers', 'count' => max(1, (int) floor($repeat * .35)), 'color' => '#2676cc'], ['label' => 'Potential Loyalists', 'count' => max(1, (int) floor($repeat * .21)), 'color' => '#f08a14'], ['label' => 'At Risk', 'count' => max(1, (int) floor($repeat * .12)), 'color' => '#df3e52']],
+            'valueSummary' => [['label' => 'High Value Customers', 'value' => number_format($customers->map(fn (User $customer): float => (float) $orders->where('user_id', $customer->id)->sum('total'))->filter(fn (float $value): bool => $value >= 1000)->count()), 'detail' => '€1,000+ revenue'], ['label' => 'Average Order Value', 'value' => $this->money($orders->count() ? $revenue / $orders->count() : 0), 'detail' => 'Across customer orders'], ['label' => 'Purchase Frequency', 'value' => number_format($customers->count() ? $orders->count() / $customers->count() : 0, 1), 'detail' => 'Orders per customer'], ['label' => 'Churn Risk', 'value' => number_format(max(0, $customers->count() - $active)), 'detail' => 'Customers to re-engage']],
+            'rfmRows' => $this->rfmRows($customers, $orders),
             'regions' => $this->customerRegions($customers),
             'timeSeries' => $this->timeSeries($customers, $filters['from'], $filters['to'], 'customers'),
             'alerts' => [['label' => 'Customers at risk', 'value' => number_format(max(0, $customers->count() - $active)), 'tone' => 'orange'], ['label' => 'New customers without an order', 'value' => number_format(max(0, $customers->count() - $orders->pluck('user_id')->unique()->count())), 'tone' => 'red']],
+            'totalRevenueLabel' => $this->money($revenue), 'customerTotalLabel' => number_format($customers->count()),
+            'retentionRate' => $customers->count() ? number_format(($repeat / $customers->count()) * 100, 2).'%' : '—',
+            'satisfactionLabel' => '—', 'satisfactionChange' => '—', 'vipCount' => $vip,
         ];
     }
 
@@ -344,8 +368,8 @@ class ReportAnalyticsService
     {
         $meta = [
             'website' => ['label' => 'Website', 'color' => '#2676cc'], 'mobile' => ['label' => 'Mobile App', 'color' => '#f08a14'],
-            'portal' => ['label' => 'Customer Portal', 'color' => '#087943'], 'pos' => ['label' => 'In-Store (POS)', 'color' => '#a33c98'],
-            'other' => ['label' => 'Other Integrations', 'color' => '#7b8790'],
+            'portal' => ['label' => 'Customer Portal', 'color' => '#087943'], 'other' => ['label' => 'Other Integrations', 'color' => '#a33c98'],
+            'unattributed' => ['label' => 'Unattributed', 'color' => '#7b8790'],
         ];
         $total = $orders->count();
         return collect($meta)->map(function (array $row, string $channel) use ($orders, $total): array {
@@ -359,9 +383,9 @@ class ReportAnalyticsService
         $value = strtolower((string) data_get($order->shipping_address, 'channel', ''));
         if (str_contains($value, 'mobile')) return 'mobile';
         if (str_contains($value, 'portal')) return 'portal';
-        if (str_contains($value, 'pos') || str_contains($value, 'store')) return 'pos';
         if (in_array($value, ['website', 'web'], true)) return 'website';
-        return $value !== '' ? 'other' : 'website';
+        if (str_contains($value, 'pos') || str_contains($value, 'store')) return 'other';
+        return $value !== '' ? 'other' : 'unattributed';
     }
 
     private function groupSimple(Collection $groups, callable $callback): array
@@ -388,7 +412,7 @@ class ReportAnalyticsService
     private function regionRows(Collection $orders): array
     {
         $total = $orders->count();
-        return $orders->groupBy(fn (Order $order): string => (string) (data_get($order->shipping_address, 'country_name') ?: data_get($order->shipping_address, 'country') ?: 'Ireland'))->map(fn (Collection $rows, string $country): array => ['label' => $country, 'orders' => $rows->count(), 'value' => $this->money((float) $rows->sum('total')), 'share' => $this->share($rows->count(), $total).'%' ])->sortByDesc('orders')->values()->take(6)->all();
+        return $orders->groupBy(fn (Order $order): string => (string) (data_get($order->shipping_address, 'country_name') ?: data_get($order->shipping_address, 'country') ?: 'Unknown'))->map(fn (Collection $rows, string $country): array => ['label' => $country, 'orders' => $rows->count(), 'value' => $this->money((float) $rows->sum('total')), 'share' => $this->share($rows->count(), $total).'%' ])->sortByDesc('orders')->values()->take(6)->all();
     }
 
     private function orderTopCustomers(Collection $orders): array
@@ -407,7 +431,7 @@ class ReportAnalyticsService
             $date = $from->copy()->addDays((int) round(($span * $index) / 6));
             $next = $from->copy()->addDays((int) round(($span * ($index + 1)) / 6));
             $value = $rows->filter(fn ($row): bool => optional($row->created_at)->between($date->startOfDay(), $next->endOfDay(), true))->count();
-            $points[] = ['label' => $date->format('d M'), 'value' => $value, 'secondary' => $kind === 'customers' ? $value : max(0, (int) round($value * .76))];
+            $points[] = ['label' => $date->format('d M'), 'value' => $value];
         }
         return $points;
     }
@@ -438,82 +462,115 @@ class ReportAnalyticsService
 
     private function customerSegments(Collection $customers): array
     {
-        $repeat = max(0, $customers->where('orders_count', '>', 1)->count());
-        $new = max(0, $customers->count() - $repeat);
-        return [['label' => 'New Customers', 'value' => $new, 'share' => $this->share($new, $customers->count()), 'color' => '#2676cc'], ['label' => 'Repeat Customers', 'value' => $repeat, 'share' => $this->share($repeat, $customers->count()), 'color' => '#087943'], ['label' => 'VIP Customers', 'value' => max(0, (int) floor($repeat * .12)), 'share' => $this->share(max(0, (int) floor($repeat * .12)), $customers->count()), 'color' => '#f08a14']];
+        $atRisk = $customers->filter(fn (User $customer): bool => ($customer->customerProfile?->account_status ?? $customer->status ?? 'active') !== 'active')->count();
+        $vip = $customers->filter(fn (User $customer): bool => ($customer->customerProfile?->account_status ?? $customer->status ?? 'active') === 'active' && ((bool) ($customer->customerProfile?->is_vip) || $customer->orders_count >= 5))->count();
+        $repeat = $customers->filter(fn (User $customer): bool => ($customer->customerProfile?->account_status ?? $customer->status ?? 'active') === 'active' && ! ((bool) ($customer->customerProfile?->is_vip) || $customer->orders_count >= 5) && $customer->orders_count > 1)->count();
+        $new = max(0, $customers->count() - $atRisk - $vip - $repeat);
+        return [
+            ['label' => 'New Customers', 'value' => $new, 'share' => $this->share($new, $customers->count()), 'color' => '#2676cc'],
+            ['label' => 'Repeat Customers', 'value' => $repeat, 'share' => $this->share($repeat, $customers->count()), 'color' => '#087943'],
+            ['label' => 'VIP Customers', 'value' => $vip, 'share' => $this->share($vip, $customers->count()), 'color' => '#f08a14'],
+            ['label' => 'At Risk', 'value' => $atRisk, 'share' => $this->share($atRisk, $customers->count()), 'color' => '#df3e52'],
+        ];
     }
 
     private function customerChannels(Collection $customers): array
     {
+        $meta = [
+            'website' => ['label' => 'Website', 'color' => '#2676cc'],
+            'mobile' => ['label' => 'Mobile App', 'color' => '#f08a14'],
+            'referral' => ['label' => 'Referral', 'color' => '#087943'],
+            'unattributed' => ['label' => 'Unattributed', 'color' => '#7b8790'],
+        ];
         $total = $customers->count();
-        return [['label' => 'Website', 'value' => $customers->count(), 'share' => $this->share($customers->count(), $total), 'color' => '#2676cc'], ['label' => 'Mobile App', 'value' => 0, 'share' => '0.00', 'color' => '#f08a14'], ['label' => 'Referral', 'value' => 0, 'share' => '0.00', 'color' => '#087943']];
+        $counts = array_fill_keys(array_keys($meta), 0);
+        foreach ($customers as $customer) {
+            $tags = (array) ($customer->customerProfile?->tags ?: []);
+            $source = strtolower((string) ($tags['acquisition_channel'] ?? $tags['source'] ?? ''));
+            $channel = str_contains($source, 'mobile') ? 'mobile' : (str_contains($source, 'referr') ? 'referral' : (in_array($source, ['website', 'web'], true) ? 'website' : 'unattributed'));
+            $counts[$channel]++;
+        }
+        return collect($meta)->map(fn (array $row, string $channel): array => $row + ['value' => $counts[$channel], 'share' => $this->share($counts[$channel], $total)])->values()->all();
     }
 
     private function customerRevenueSegments(Collection $orders): array
     {
+        $groups = $orders->groupBy(fn (Order $order): string => (string) ($order->user_id ?: 'guest:'.strtolower((string) $order->email)));
+        $rows = $groups->map(function (Collection $matches): array {
+            return ['segment' => $matches->count() > 1 ? 'Repeat Customers' : 'New Customers', 'amount' => (float) $matches->sum('total')];
+        })->groupBy('segment')->map(fn (Collection $matches, string $segment): array => ['label' => $segment, 'amount' => (float) $matches->sum('amount')]);
         $total = (float) $orders->sum('total');
-        return [['label' => 'Repeat Customers', 'value' => $this->money($total), 'share' => '100.00', 'color' => '#087943'], ['label' => 'New Customers', 'value' => $this->money(0), 'share' => '0.00', 'color' => '#2676cc']];
+        $colors = ['Repeat Customers' => '#087943', 'New Customers' => '#2676cc'];
+        return $rows->map(fn (array $row): array => ['label' => $row['label'], 'value' => $this->money($row['amount']), 'share' => $this->share($row['amount'], $total), 'color' => $colors[$row['label']] ?? '#7b8790'])->values()->all();
     }
 
     private function customerRegions(Collection $customers): array
     {
-        return $customers->groupBy(fn (User $customer): string => (string) ($customer->customerProfile?->country ?: 'Ireland'))->map(fn (Collection $rows, string $country): array => ['label' => $country, 'customers' => $rows->count(), 'share' => $this->share($rows->count(), $customers->count()).'%'])->sortByDesc('customers')->values()->take(6)->all();
+        return $customers->groupBy(fn (User $customer): string => (string) ($customer->customerProfile?->country ?: 'Unknown'))->map(fn (Collection $rows, string $country): array => ['label' => $country, 'customers' => $rows->count(), 'share' => $this->share($rows->count(), $customers->count()).'%'])->sortByDesc('customers')->values()->take(6)->all();
     }
 
-    private function orderAlerts(Collection $returns): array
+    private function orderAlerts(Collection $orders, Collection $returns): array
     {
-        return [['label' => 'Orders awaiting fulfilment', 'value' => '128', 'tone' => 'orange'], ['label' => 'Returns needing review', 'value' => number_format($returns->whereIn('status', ['requested', 'pending'])->count()), 'tone' => 'red'], ['label' => 'Orders without tracking', 'value' => '42', 'tone' => 'blue']];
+        $awaiting = $orders->filter(fn (Order $order): bool => in_array(strtolower((string) $order->status), ['pending', 'processing', 'shipped'], true))->count();
+        $withoutTracking = $orders->filter(fn (Order $order): bool => blank(data_get($order->shipping_address, 'tracking_number')))->count();
+        return [['label' => 'Orders awaiting fulfilment', 'value' => number_format($awaiting), 'tone' => 'orange'], ['label' => 'Returns needing review', 'value' => number_format($returns->whereIn('status', ['requested', 'pending'])->count()), 'tone' => 'red'], ['label' => 'Orders without tracking', 'value' => number_format($withoutTracking), 'tone' => 'blue']];
     }
 
-    private function orderPreview(): array
+    private function metadataNumbers(Collection $rows, string $key): Collection
     {
-        return [
-            'isPreview' => true, 'dataNote' => 'Reference dashboard data · ready for live PostgreSQL records',
-            'metrics' => [
-                $this->metric('Total Orders', '3,856', '18.73%', 'green', 'shopping-bag'), $this->metric('Total Order Value (EUR)', '€2,845,671.00', '15.42%', 'blue', 'credit-card'), $this->metric('Avg. Order Value (EUR)', '€287.45', '8.62%', 'orange', 'package'), $this->metric('Items Ordered', '12,568', '21.15%', 'purple', 'tag'), $this->metric('Return Rate', '2.48%', '0.32%', 'teal', 'refresh'), $this->metric('Refund Rate', '1.25%', '0.18%', 'red', 'percent'), $this->metric('Customer Satisfaction', '4.68 / 5', '4.12%', 'green', 'star'),
-            ],
-            'orderTypes' => [['label' => 'Online Orders', 'value' => 856, 'share' => '22.19', 'color' => '#2676cc'], ['label' => 'Corporate Orders', 'value' => 426, 'share' => '11.04', 'color' => '#f08a14'], ['label' => 'Bulk Orders', 'value' => 215, 'share' => '5.57', 'color' => '#f2b20d'], ['label' => 'Franchise Orders', 'value' => 128, 'share' => '3.31', 'color' => '#a33c98'], ['label' => 'Franchise Retail Orders', 'value' => 2145, 'share' => '55.63', 'color' => '#087b72'], ['label' => 'Buyer Orders', 'value' => 86, 'share' => '2.23', 'color' => '#1b7065']],
-            'channels' => [['label' => 'Website', 'value' => 1862, 'share' => '48.34', 'color' => '#2676cc'], ['label' => 'Mobile App', 'value' => 1129, 'share' => '29.28', 'color' => '#f08a14'], ['label' => 'Customer Portal', 'value' => 512, 'share' => '13.28', 'color' => '#087943'], ['label' => 'In-Store (POS)', 'value' => 205, 'share' => '5.32', 'color' => '#a33c98'], ['label' => 'Other Integrations', 'value' => 148, 'share' => '3.84', 'color' => '#7b8790']],
-            'statuses' => [['label' => 'Delivered', 'value' => 2372, 'share' => '61.52', 'color' => '#087943'], ['label' => 'Processing', 'value' => 684, 'share' => '17.74', 'color' => '#2676cc'], ['label' => 'Shipped', 'value' => 498, 'share' => '12.92', 'color' => '#f08a14'], ['label' => 'Pending', 'value' => 214, 'share' => '5.55', 'color' => '#a33c98'], ['label' => 'Cancelled', 'value' => 88, 'share' => '2.28', 'color' => '#df3e52']],
-            'orderSummary' => [['type' => 'Online Orders', 'orders' => 856, 'value' => '€862,145.30', 'avg' => '€273.18', 'status' => 'Delivered'], ['type' => 'Corporate Orders', 'orders' => 426, 'value' => '€524,690.40', 'avg' => '€284.12', 'status' => 'Delivered'], ['type' => 'Bulk Orders', 'orders' => 215, 'value' => '€418,245.70', 'avg' => '€312.45', 'status' => 'Processing'], ['type' => 'Franchise Orders', 'orders' => 128, 'value' => '€266,820.80', 'avg' => '€297.52', 'status' => 'Shipped'], ['type' => 'Franchise Retail Orders', 'orders' => 2145, 'value' => '€625,730.10', 'avg' => '€291.48', 'status' => 'Delivered'], ['type' => 'Buyer Orders', 'orders' => 86, 'value' => '€148,038.70', 'avg' => '€286.14', 'status' => 'Delivered']],
-            'categories' => [['label' => 'Clothing & Apparel', 'value' => 942, 'percent' => '34.1%', 'color' => '#2676cc'], ['label' => 'Accessories', 'value' => 714, 'percent' => '25.8%', 'color' => '#087943'], ['label' => 'Headwear', 'value' => 558, 'percent' => '20.2%', 'color' => '#f08a14'], ['label' => 'Gift Sets', 'value' => 386, 'percent' => '14.0%', 'color' => '#a33c98'], ['label' => 'Other', 'value' => 164, 'percent' => '5.9%', 'color' => '#7b8790']],
-            'regions' => [['label' => 'Ireland', 'orders' => 1428, 'value' => '€1,065,410.20', 'share' => '37.1%'], ['label' => 'United Kingdom', 'orders' => 984, 'value' => '€724,120.40', 'share' => '25.6%'], ['label' => 'United States', 'orders' => 562, 'value' => '€418,964.30', 'share' => '14.6%'], ['label' => 'Canada', 'orders' => 286, 'value' => '€208,765.50', 'share' => '7.4%'], ['label' => 'Germany', 'orders' => 198, 'value' => '€164,520.20', 'share' => '5.1%'], ['label' => 'Other Countries', 'orders' => 398, 'value' => '€263,890.40', 'share' => '10.2%']],
-            'topCustomers' => [['name' => 'Michael O’Connor', 'revenue' => '€28,450.20', 'orders' => 42, 'channel' => 'Website'], ['name' => 'Emerald Rozalia UK', 'revenue' => '€24,680.40', 'orders' => 36, 'channel' => 'Corporate'], ['name' => 'Sarah Kelly', 'revenue' => '€18,920.80', 'orders' => 29, 'channel' => 'Mobile App'], ['name' => 'Liam Murphy', 'revenue' => '€16,745.30', 'orders' => 26, 'channel' => 'Website'], ['name' => 'Global Wholesale Inc.', 'revenue' => '€14,820.10', 'orders' => 19, 'channel' => 'Buyer']],
-            'timeSeries' => [['label' => '01 Apr', 'value' => 410, 'secondary' => 320], ['label' => '06 Apr', 'value' => 520, 'secondary' => 410], ['label' => '11 Apr', 'value' => 480, 'secondary' => 372], ['label' => '16 Apr', 'value' => 610, 'secondary' => 465], ['label' => '21 Apr', 'value' => 584, 'secondary' => 442], ['label' => '26 Apr', 'value' => 692, 'secondary' => 518], ['label' => '01 May', 'value' => 560, 'secondary' => 458]],
-            'alerts' => [['label' => 'Orders awaiting fulfilment', 'value' => '128', 'tone' => 'orange'], ['label' => 'Returns needing review', 'value' => '42', 'tone' => 'red'], ['label' => 'Orders without tracking', 'value' => '42', 'tone' => 'blue']], 'refundValue' => '€70,849.80',
+        return $rows->map(fn ($row): mixed => data_get($row->metadata, $key))
+            ->filter(fn (mixed $value): bool => is_numeric($value))
+            ->map(fn (mixed $value): float => (float) $value)
+            ->values();
+    }
+
+    private function formatDuration(Collection $rows, string $key): string
+    {
+        $values = $this->metadataNumbers($rows, $key);
+        if ($values->isEmpty()) return '—';
+
+        $seconds = (int) round((float) $values->avg());
+        if ($seconds >= 3600) return intdiv($seconds, 3600).'h '.intdiv($seconds % 3600, 60).'m';
+        if ($seconds >= 60) return intdiv($seconds, 60).'m '.($seconds % 60).'s';
+        return $seconds.'s';
+    }
+
+    private function slaSummary(Collection $rows): array
+    {
+        $values = $rows->map(fn ($row): mixed => data_get($row->metadata, 'sla_met'))
+            ->map(function (mixed $value): ?bool {
+                if (is_bool($value)) return $value;
+                if (in_array($value, [0, 1, '0', '1', 'false', 'true'], true)) return filter_var($value, FILTER_VALIDATE_BOOL);
+                return null;
+            })->filter(fn (?bool $value): bool => $value !== null)->values();
+        if ($values->isEmpty()) return ['rate' => '—', 'within' => '—', 'breached' => '—'];
+
+        $within = $values->filter()->count();
+        return ['rate' => number_format(($within / $values->count()) * 100, 2).'%', 'within' => number_format($within), 'breached' => number_format($values->count() - $within)];
+    }
+
+    private function csatSummary(Collection $rows): array
+    {
+        $values = $this->metadataNumbers($rows, 'csat')->filter(fn (float $value): bool => $value >= 0 && $value <= 5)->values();
+        if ($values->isEmpty()) return ['value' => '—', 'score' => '—'];
+
+        $score = number_format((float) $values->avg(), 2);
+        return ['value' => $score.' / 5', 'score' => $score];
+    }
+
+    private function rfmRows(Collection $customers, Collection $orders): array
+    {
+        $profiles = $customers->map(function (User $customer) use ($orders): array {
+            $customerOrders = $orders->where('user_id', $customer->id);
+            return ['customer' => $customer, 'orders' => $customerOrders->count(), 'revenue' => (float) $customerOrders->sum('total')];
+        });
+        $groups = [
+            ['label' => 'Champions', 'color' => '#087943', 'rows' => $profiles->filter(fn (array $row): bool => ((bool) ($row['customer']->customerProfile?->is_vip) || $row['orders'] >= 5) && $row['revenue'] >= 1000)],
+            ['label' => 'Loyal Customers', 'color' => '#2676cc', 'rows' => $profiles->filter(fn (array $row): bool => $row['orders'] >= 2 && $row['orders'] < 5)],
+            ['label' => 'Potential Loyalists', 'color' => '#f08a14', 'rows' => $profiles->filter(fn (array $row): bool => $row['orders'] === 1)],
+            ['label' => 'At Risk', 'color' => '#df3e52', 'rows' => $profiles->filter(fn (array $row): bool => ($row['customer']->customerProfile?->account_status ?? $row['customer']->status ?? 'active') !== 'active')],
         ];
+        return collect($groups)->map(fn (array $group): array => ['label' => $group['label'], 'count' => $group['rows']->count(), 'color' => $group['color']])->all();
     }
 
-    private function communicationPreview(): array
-    {
-        return [
-            'isPreview' => true, 'dataNote' => 'Reference dashboard data · ready for live PostgreSQL records',
-            'metrics' => [$this->metric('Total Conversations', '12,842', '18.73%', 'green', 'message'), $this->metric('New Conversations', '8,675', '15.42%', 'blue', 'plus'), $this->metric('Closed Conversations', '8,167', '12.36%', 'orange', 'check'), $this->metric('Avg. First Response Time', '18m 42s', '8.62%', 'purple', 'clock'), $this->metric('Avg. Resolution Time', '2h 18m', '5.12%', 'teal', 'refresh'), $this->metric('SLA Compliance', '92.68%', '3.42%', 'green', 'shield'), $this->metric('Customer Satisfaction', '4.68 / 5', '4.12%', 'green', 'star')],
-            'channels' => [['label' => 'Web Chat', 'value' => 4620, 'share' => '35.98', 'color' => '#2676cc'], ['label' => 'WhatsApp', 'value' => 3285, 'share' => '25.58', 'color' => '#087943'], ['label' => 'Email', 'value' => 2145, 'share' => '16.70', 'color' => '#f08a14'], ['label' => 'Phone', 'value' => 1684, 'share' => '13.11', 'color' => '#a33c98'], ['label' => 'Live Chat', 'value' => 1108, 'share' => '8.63', 'color' => '#1b7065']],
-            'statuses' => [['label' => 'Closed', 'value' => 8167, 'share' => '63.60', 'color' => '#087943'], ['label' => 'Open', 'value' => 2684, 'share' => '20.90', 'color' => '#2676cc'], ['label' => 'Pending', 'value' => 1254, 'share' => '9.77', 'color' => '#f08a14'], ['label' => 'New', 'value' => 737, 'share' => '5.74', 'color' => '#a33c98']],
-            'agents' => [['name' => 'Sarah Kelly', 'conversations' => 642, 'csat' => '4.92', 'sla' => '98.4%'], ['name' => 'Michael O’Connor', 'conversations' => 588, 'csat' => '4.86', 'sla' => '96.8%'], ['name' => 'Liam Murphy', 'conversations' => 524, 'csat' => '4.78', 'sla' => '94.2%'], ['name' => 'Aoife Walsh', 'conversations' => 486, 'csat' => '4.71', 'sla' => '91.6%'], ['name' => 'Conor Gallagher', 'conversations' => 442, 'csat' => '4.65', 'sla' => '90.1%']],
-            'categories' => [['label' => 'Order Support', 'value' => 3824, 'percent' => '29.8%', 'color' => '#2676cc'], ['label' => 'Product Questions', 'value' => 2642, 'percent' => '20.6%', 'color' => '#087943'], ['label' => 'Returns & Refunds', 'value' => 2187, 'percent' => '17.0%', 'color' => '#f08a14'], ['label' => 'Franchise Support', 'value' => 1648, 'percent' => '12.8%', 'color' => '#a33c98'], ['label' => 'Approvals & Accounts', 'value' => 1342, 'percent' => '10.5%', 'color' => '#1b7065'], ['label' => 'Other', 'value' => 1199, 'percent' => '9.3%', 'color' => '#7b8790']],
-            'linkedRows' => [['topic' => 'Where is my order?', 'contact' => 'Emma Walsh', 'channel' => 'WhatsApp', 'status' => 'Open'], ['topic' => 'Bulk order quotation', 'contact' => 'Global Wholesale Inc.', 'channel' => 'Email', 'status' => 'Closed'], ['topic' => 'Approval status request', 'contact' => 'Emerald Rozalia UK', 'channel' => 'Web Chat', 'status' => 'Pending'], ['topic' => 'Return request', 'contact' => 'James Byrne', 'channel' => 'Phone', 'status' => 'Closed'], ['topic' => 'Franchise onboarding', 'contact' => 'Sarah Kelly', 'channel' => 'Live Chat', 'status' => 'Closed']],
-            'timeSeries' => [['label' => '01 Apr', 'value' => 1480, 'secondary' => 20], ['label' => '06 Apr', 'value' => 1710, 'secondary' => 18], ['label' => '11 Apr', 'value' => 1650, 'secondary' => 19], ['label' => '16 Apr', 'value' => 1960, 'secondary' => 16], ['label' => '21 Apr', 'value' => 1850, 'secondary' => 17], ['label' => '26 Apr', 'value' => 2200, 'secondary' => 15], ['label' => '01 May', 'value' => 1992, 'secondary' => 14]],
-            'topics' => [['topic' => 'Delivery updates', 'volume' => '1,284', 'change' => '+18.4%'], ['topic' => 'Returns & refunds', 'volume' => '946', 'change' => '+12.8%'], ['topic' => 'Product availability', 'volume' => '782', 'change' => '+9.1%'], ['topic' => 'Franchise enquiries', 'volume' => '654', 'change' => '+7.6%']],
-            'alerts' => [['label' => 'SLA breaches today', 'value' => '18', 'tone' => 'red'], ['label' => 'Unassigned conversations', 'value' => '42', 'tone' => 'orange'], ['label' => 'Follow-ups due', 'value' => '36', 'tone' => 'blue']],
-        ];
-    }
-
-    private function customerPreview(): array
-    {
-        return [
-            'isPreview' => true, 'dataNote' => 'Reference dashboard data · ready for live PostgreSQL records',
-            'metrics' => [$this->metric('Total Customers', '18,742', '18.73%', 'green', 'users'), $this->metric('New Customers', '2,156', '15.42%', 'blue', 'user'), $this->metric('Active Customers', '9,846', '12.36%', 'orange', 'eye'), $this->metric('Repeat Customers', '6,321', '8.62%', 'purple', 'refresh'), $this->metric('Total Revenue (EUR)', '€2,845,671.00', '21.15%', 'teal', 'credit-card'), $this->metric('Avg. Revenue per Customer', '€152.01', '5.12%', 'green', 'chart'), $this->metric('Retention Rate', '38.62%', '3.42%', 'blue', 'shield'), $this->metric('Avg. Satisfaction', '4.68 / 5', '4.12%', 'green', 'star')],
-            'segments' => [['label' => 'Repeat Customers', 'value' => 6321, 'share' => '33.73', 'color' => '#087943'], ['label' => 'New Customers', 'value' => 2156, 'share' => '11.50', 'color' => '#2676cc'], ['label' => 'Active Customers', 'value' => 9846, 'share' => '52.54', 'color' => '#f08a14'], ['label' => 'At Risk', 'value' => 419, 'share' => '2.24', 'color' => '#df3e52']],
-            'channels' => [['label' => 'Website', 'value' => 8462, 'share' => '45.15', 'color' => '#2676cc'], ['label' => 'Mobile App', 'value' => 5210, 'share' => '27.80', 'color' => '#f08a14'], ['label' => 'Referral', 'value' => 3216, 'share' => '17.16', 'color' => '#087943'], ['label' => 'In-Store', 'value' => 1854, 'share' => '9.89', 'color' => '#a33c98']],
-            'revenueSegments' => [['label' => 'Repeat Customers', 'value' => '€1,488,245.30', 'share' => '52.30', 'color' => '#087943'], ['label' => 'VIP Customers', 'value' => '€684,120.40', 'share' => '24.04', 'color' => '#f08a14'], ['label' => 'New Customers', 'value' => '€524,690.50', 'share' => '18.44', 'color' => '#2676cc'], ['label' => 'At Risk', 'value' => '€148,614.80', 'share' => '5.22', 'color' => '#df3e52']],
-            'topCustomers' => [['name' => 'Michael O’Connor', 'email' => 'michael@example.ie', 'revenue' => '€28,450.20', 'orders' => 42, 'segment' => 'VIP'], ['name' => 'Sarah Kelly', 'email' => 'sarah@example.ie', 'revenue' => '€24,680.40', 'orders' => 36, 'segment' => 'Repeat'], ['name' => 'Liam Murphy', 'email' => 'liam@example.ie', 'revenue' => '€18,920.80', 'orders' => 29, 'segment' => 'Repeat'], ['name' => 'Aoife Walsh', 'email' => 'aoife@example.ie', 'revenue' => '€16,745.30', 'orders' => 26, 'segment' => 'Repeat'], ['name' => 'Conor Gallagher', 'email' => 'conor@example.ie', 'revenue' => '€14,820.10', 'orders' => 19, 'segment' => 'New']],
-            'valueSummary' => [['label' => 'High Value Customers', 'value' => '2,846', 'detail' => '€1,000+ revenue'], ['label' => 'Average Order Value', 'value' => '€287.45', 'detail' => 'Across all customer orders'], ['label' => 'Purchase Frequency', 'value' => '3.4', 'detail' => 'Orders per customer'], ['label' => 'Churn Risk', 'value' => '1,284', 'detail' => 'Customers to re-engage']],
-            'rfmRows' => [['label' => 'Champions', 'count' => 2846, 'color' => '#087943'], ['label' => 'Loyal Customers', 'count' => 3984, 'color' => '#2676cc'], ['label' => 'Potential Loyalists', 'count' => 3268, 'color' => '#f08a14'], ['label' => 'At Risk', 'count' => 1284, 'color' => '#df3e52']],
-            'regions' => [['label' => 'Ireland', 'customers' => 8246, 'share' => '44.0%'], ['label' => 'United Kingdom', 'customers' => 4682, 'share' => '25.0%'], ['label' => 'United States', 'customers' => 2184, 'share' => '11.7%'], ['label' => 'Canada', 'customers' => 1428, 'share' => '7.6%'], ['label' => 'Germany', 'customers' => 986, 'share' => '5.3%'], ['label' => 'Other Countries', 'customers' => 1216, 'share' => '6.4%']],
-            'timeSeries' => [['label' => '01 Apr', 'value' => 1480, 'secondary' => 112], ['label' => '06 Apr', 'value' => 1710, 'secondary' => 146], ['label' => '11 Apr', 'value' => 1650, 'secondary' => 139], ['label' => '16 Apr', 'value' => 1960, 'secondary' => 164], ['label' => '21 Apr', 'value' => 1850, 'secondary' => 153], ['label' => '26 Apr', 'value' => 2200, 'secondary' => 182], ['label' => '01 May', 'value' => 1992, 'secondary' => 168]],
-            'alerts' => [['label' => 'Customers at risk', 'value' => '1,284', 'tone' => 'orange'], ['label' => 'New customers without an order', 'value' => '486', 'tone' => 'red'], ['label' => 'VIP customers to contact', 'value' => '128', 'tone' => 'blue']],
-        ];
-    }
 }

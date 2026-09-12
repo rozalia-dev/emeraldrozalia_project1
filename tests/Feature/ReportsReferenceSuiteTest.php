@@ -104,4 +104,39 @@ class ReportsReferenceSuiteTest extends TestCase
         $this->actingAs($admin)->get(route('admin.reports.export', ['name' => 'order-reports', 'analytics' => 'order'] + $window))
             ->assertOk()->assertDownload();
     }
+
+    public function test_report_dashboards_show_explicit_empty_states_without_reference_fixtures(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $window = ['from' => '2040-01-01', 'to' => '2040-01-31', 'q' => 'no-records-for-this-window'];
+
+        $this->actingAs($admin)->get(route('admin.reports.order', $window))
+            ->assertOk()->assertSeeText('No matching records')->assertSeeText('No orders found for the selected filters.')
+            ->assertDontSee('3,856', false)->assertDontSee('€2,845,671.00', false);
+
+        $this->actingAs($admin)->get(route('admin.reports.communication', $window))
+            ->assertOk()->assertSeeText('No matching records')->assertSeeText('No conversations found for the selected filters.')
+            ->assertDontSee('12,842', false)->assertDontSee('92.68%', false);
+
+        $this->actingAs($admin)->get(route('admin.reports.customer', $window))
+            ->assertOk()->assertSeeText('No matching records')->assertSeeText('No customers found for the selected filters.')
+            ->assertDontSee('18,742', false)->assertDontSee('€2.84M', false);
+
+        $this->actingAs($admin)->get(route('admin.sales-reports.dashboard', $window))
+            ->assertOk()->assertSeeText('No matching orders')->assertSeeText('No orders found for the selected filters.')
+            ->assertDontSee('€1,052,003.20', false)->assertDontSee('€82,765.40', false);
+    }
+
+    public function test_communication_metrics_use_recorded_metadata_when_available(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        Conversation::create([
+            'channel' => 'email', 'contact' => 'metrics@example.ie', 'subject' => 'Recorded metrics', 'status' => 'closed',
+            'metadata' => ['first_response_seconds' => 120, 'resolution_seconds' => 3600, 'sla_met' => true, 'csat' => 4],
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.reports.communication', [
+            'from' => now()->subDay()->toDateString(), 'to' => now()->addDay()->toDateString(), 'q' => 'Recorded metrics',
+        ]))->assertOk()->assertSeeText('2m 0s')->assertSeeText('1h 0m')->assertSeeText('100.00%')->assertSeeText('4.00 / 5');
+    }
 }
