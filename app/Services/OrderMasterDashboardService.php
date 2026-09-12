@@ -64,7 +64,7 @@ class OrderMasterDashboardService
 
         return $orders->filter(function (Order $order) use ($search, $status, $paymentStatus, $paymentMethod, $fulfillment, $selector, $meta, $tab, $from, $to): bool {
             $address = (array) ($order->shipping_address ?: []);
-            $name = (string) ($order->user?->name ?: data_get($address, 'name', 'Guest Customer'));
+            $name = (string) (data_get($address, 'name') ?: $order->user?->name ?: 'Guest Customer');
             $haystack = Str::lower(implode(' ', [$order->number, $order->email, $order->phone, $name, data_get($address, 'company', ''), data_get($address, 'store', ''), data_get($address, 'franchise', '')]));
             $pendingTab = $meta['pending_label'] === 'Pending Payment' ? in_array($order->payment_status, ['unpaid', 'pending', 'failed'], true) : $order->status === 'pending';
             $tabMatch = match ($tab) {
