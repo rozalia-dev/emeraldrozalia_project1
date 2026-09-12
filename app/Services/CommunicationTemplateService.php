@@ -18,7 +18,7 @@ class CommunicationTemplateService
     {
         $payload = $this->normalize($attributes);
         $requestHash = $this->requestHash($payload);
-        $this->validateIdempotencyKey($idempotencyKey);
+        $this->assertIdempotencyKey($idempotencyKey);
         $template = null;
         $replayed = false;
 
