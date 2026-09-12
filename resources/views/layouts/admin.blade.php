@@ -100,7 +100,6 @@
                 ['slug'=>'approval-center','label'=>'Approval Center','icon'=>'check','active'=>'admin/resource/approval-center*','badge'=>['value'=>$sidebarCounts['approvals'],'tone'=>'orange']],
                 ['slug'=>'action-follow-ups','label'=>'Action / Follow-ups','icon'=>'clock','active'=>'admin/resource/action-follow-ups*','badge'=>['value'=>$sidebarCounts['followups'],'tone'=>'orange']],
                 ['slug'=>'alerts-notifications','label'=>'Alerts & Notifications','icon'=>'bell','active'=>'admin/resource/alerts-notifications*','badge'=>['value'=>$sidebarCounts['alerts'],'tone'=>'red']],
-                ['slug'=>'communication-reports','label'=>'Communication Reports','icon'=>'file-text','active'=>'admin/resource/communication-reports*'],
                 ['slug'=>'communication-history','label'=>'Communication History (Log)','icon'=>'file-text','active'=>'admin/resource/communication-history*'],
             ],
         ],
@@ -141,13 +140,13 @@
         <details class="admin-nav-group" open>
             <summary><span>REPORTS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
-                <a class="{{request()->routeIs('admin.reports.overview')?'active':''}}" href="{{route('admin.reports.overview')}}"><span class="admin-nav-item-label"><x-icon name="chart" size="14" /><span>General Reporting / Report Center</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.approvals')?'active':''}}" href="{{route('admin.reports.approvals')}}"><span class="admin-nav-item-label"><x-icon name="check" size="14" /><span>Approval Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.custom')?'active':''}}" href="{{route('admin.reports.custom')}}"><span class="admin-nav-item-label"><x-icon name="settings" size="14" /><span>Custom Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.scheduler')?'active':''}}" href="{{route('admin.reports.scheduler')}}"><span class="admin-nav-item-label"><x-icon name="calendar" size="14" /><span>Schedule Report</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.history')?'active':''}}" href="{{route('admin.reports.history')}}"><span class="admin-nav-item-label"><x-icon name="clock" size="14" /><span>Report History</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.returns')?'active':''}}" href="{{route('admin.reports.returns')}}"><span class="admin-nav-item-label"><x-icon name="refresh" size="14" /><span>Returns &amp; Refund Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.roles')?'active':''}}" href="{{route('admin.reports.roles')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>User Roles &amp; Permissions</span></span></a>
+                <a class="{{request()->is('admin/resource/franchise-management*')?'active':''}}" href="{{route('admin.resource','franchise-management')}}"><span class="admin-nav-item-label"><x-icon name="briefcase" size="14" /><span>Franchise Reports</span></span></a>
+                <a class="{{request()->is('admin/resource/franchise-retail-stores*')?'active':''}}" href="{{route('admin.resource','franchise-retail-stores')}}"><span class="admin-nav-item-label"><x-icon name="shopping-bag" size="14" /><span>Franchise Retail Store Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.order')?'active':''}}" href="{{route('admin.reports.order')}}"><span class="admin-nav-item-label"><x-icon name="shopping-bag" size="14" /><span>Order Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.sales-reports.*')?'active':''}}" href="{{route('admin.sales-reports.dashboard')}}"><span class="admin-nav-item-label"><x-icon name="chart" size="14" /><span>Product &amp; Sales Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.customer')?'active':''}}" href="{{route('admin.reports.customer')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Customer Reports</span></span></a>
+                <a class="{{request()->routeIs('admin.reports.communication')?'active':''}}" href="{{route('admin.reports.communication')}}"><span class="admin-nav-item-label"><x-icon name="message" size="14" /><span>Communication Reports</span></span></a>
+                <a class="{{request()->is('admin/resource/website-products*')?'active':''}}" href="{{route('admin.resource','website-products')}}"><span class="admin-nav-item-label"><x-icon name="globe" size="14" /><span>Website Analytics</span></span></a>
             </div>
         </details>
         <details class="admin-nav-group" open>
@@ -211,6 +210,8 @@
             <form class="admin-search" method="get" action="{{route('admin.seo.dashboard')}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search SEO, pages, meta, keywords..." aria-label="Search SEO, pages, meta, keywords"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @elseif(request()->routeIs('admin.banners.*'))
             <form class="admin-search" method="get" action="{{route('admin.banners.index')}}"><input type="hidden" name="tab" value="{{request('tab','all')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search banners, sliders..." aria-label="Search banners, sliders"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
+        @elseif(request()->routeIs('admin.reports.order') || request()->routeIs('admin.reports.communication') || request()->routeIs('admin.reports.customer'))
+            <form class="admin-search" method="get" action="{{url()->current()}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><input type="hidden" name="from" value="{{request('from','2025-04-01')}}"><input type="hidden" name="to" value="{{request('to','2025-05-01')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search report data..." aria-label="Search report data"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @else
             <form class="admin-search" method="get" action="{{ route('admin.search') }}"><x-icon name="search" /><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Search anything..." aria-label="Search anything"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @endif

@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin/resource/reports')->middleware(['auth', 'admin'])->name('admin.reports.')->group(function (): void {
     Route::get('/', [ReportController::class, 'overview'])->name('overview');
+    Route::get('/order', [ReportController::class, 'order'])->name('order');
+    Route::get('/communication', [ReportController::class, 'communication'])->name('communication');
+    Route::get('/customer', [ReportController::class, 'customer'])->name('customer');
     Route::get('/approvals', fn (\Illuminate\Http\Request $request) => app(ReportController::class)->page($request, 'approvals'))->name('approvals');
     Route::get('/custom', fn (\Illuminate\Http\Request $request) => app(ReportController::class)->page($request, 'custom'))->name('custom');
     Route::get('/history', fn (\Illuminate\Http\Request $request) => app(ReportController::class)->page($request, 'history'))->name('history');
