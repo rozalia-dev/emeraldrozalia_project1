@@ -63,6 +63,9 @@ class CommunicationCenterController extends Controller
             'status' => (string) $request->query('status', ''),
             'priority' => (string) $request->query('priority', ''),
             'tab' => (string) $request->query('tab', $section === 'communication-reports' ? 'overview' : 'all'),
+            'date_from' => $this->displayDate($request->query('date_from'), now()->subDays(30)->toDateString()),
+            'date_to' => $this->displayDate($request->query('date_to'), now()->toDateString()),
+            'date_filtered' => $request->filled('date_from') || $request->filled('date_to'),
             'admins' => User::query()->where('is_admin', true)->orderBy('name')->get(['id', 'name']),
         ];
 
@@ -115,10 +118,13 @@ class CommunicationCenterController extends Controller
             $this->applyConversationFilters($query, $request);
             $conversations = $query->paginate($section === 'communication-center' ? 8 : 10)->withQueryString();
 
-            $selectedId = (int) $request->query('conversation', 0);
-            $selected = $selectedId > 0
-                ? $this->conversationQuery($section)->whereKey($selectedId)->first()
-                : $conversations->getCollection()->first();
+            $selectedKey = (string) $request->query('conversation', '');
+            $selected = $section === 'email' && $selectedKey !== ''
+                ? $this->conversationQuery($section)->where('uuid', $selectedKey)->first()
+                : ((int) $selectedKey > 0
+                    ? $this->conversationQuery($section)->whereKey((int) $selectedKey)->first()
+                    : null);
+            $selected ??= $conversations->getCollection()->first();
 
             return view('admin.communication-center.dashboard', $common + [
                 'metrics' => $this->conversationMetrics($section),
@@ -329,8 +335,10 @@ class CommunicationCenterController extends Controller
     private function conversationQuery(string $section): Builder
     {
         $query = Conversation::query()
-            ->with(['messages' => fn ($messages) => $messages->oldest('id'), 'assignee'])
-            ->latest('id');
+            ->forCurrentCompany()
+            ->with(['messages' => fn ($messages) => $messages->oldest('id'), 'assignee', 'customer', 'order'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
 
         return $this->scopeConversationChannel($query, $section);
     }
@@ -347,13 +355,24 @@ class CommunicationCenterController extends Controller
 
     private function applyConversationFilters(Builder $query, Request $request): void
     {
+        $isEmail = $request->is('admin/resource/email')
+            || $request->is('admin/communication-center/email/export')
+            || $request->route('section') === 'email';
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
-            $query->where(function (Builder $builder) use ($search): void {
-                $builder->where('contact', 'like', '%'.$search.'%')
-                    ->orWhere('subject', 'like', '%'.$search.'%')
-                    ->orWhere('uuid', 'like', '%'.$search.'%');
-            });
+            if ($isEmail) {
+                $this->applyEmailSearch($query, $search);
+            } else {
+                $query->where(function (Builder $builder) use ($search): void {
+                    $builder->where('contact', 'like', '%'.$search.'%')
+                        ->orWhere('subject', 'like', '%'.$search.'%')
+                        ->orWhere('uuid', 'like', '%'.$search.'%');
+                });
+            }
+        }
+
+        if ($isEmail) {
+            $this->applyEmailFieldFilters($query, $request);
         }
 
         $status = (string) $request->query('status', '');
@@ -370,6 +389,94 @@ class CommunicationCenterController extends Controller
         if (in_array($channel, ['email', 'whatsapp', 'chat', 'web', 'phone', 'system'], true)) {
             $query->where('channel', $channel);
         }
+    }
+
+    private function applyEmailSearch(Builder $query, string $search): void
+    {
+        $like = '%'.$search.'%';
+        $query->where(function (Builder $builder) use ($like): void {
+            $builder->where('contact', 'like', $like)
+                ->orWhere('subject', 'like', $like)
+                ->orWhere('uuid', 'like', $like)
+                ->orWhereHas('messages', fn (Builder $messages) => $messages
+                    ->where('body', 'like', $like)
+                    ->orWhere('uuid', 'like', $like))
+                ->orWhereHas('customer', fn (Builder $customer) => $customer
+                    ->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('public_uuid', 'like', $like))
+                ->orWhereHas('order', fn (Builder $order) => $order
+                    ->where('number', 'like', $like)
+                    ->orWhere('public_uuid', 'like', $like));
+            $this->orWhereConversationMetadata($builder, $like);
+        });
+    }
+
+    private function applyEmailFieldFilters(Builder $query, Request $request): void
+    {
+        foreach (['customer', 'order', 'uid'] as $field) {
+            $value = trim((string) $request->query($field, ''));
+            if ($value === '') {
+                continue;
+            }
+
+            $like = '%'.$value.'%';
+            $query->where(function (Builder $builder) use ($field, $like): void {
+                if ($field === 'customer') {
+                    $builder->where('contact', 'like', $like)
+                        ->orWhereHas('customer', fn (Builder $customer) => $customer
+                            ->where('name', 'like', $like)
+                            ->orWhere('email', 'like', $like)
+                            ->orWhere('public_uuid', 'like', $like));
+                } elseif ($field === 'order') {
+                    $builder->whereHas('order', fn (Builder $order) => $order
+                        ->where('number', 'like', $like)
+                        ->orWhere('public_uuid', 'like', $like));
+                    $this->orWhereConversationMetadata($builder, $like);
+                } else {
+                    $builder->where('uuid', 'like', $like)
+                        ->orWhereHas('messages', fn (Builder $messages) => $messages->where('uuid', 'like', $like));
+                    $this->orWhereConversationMetadata($builder, $like);
+                }
+            });
+        }
+
+        if ($from = $this->dateFilter($request->query('date_from'))) {
+            $query->where('created_at', '>=', $from->startOfDay());
+        }
+        if ($to = $this->dateFilter($request->query('date_to'))) {
+            $query->where('created_at', '<=', $to->endOfDay());
+        }
+    }
+
+    private function orWhereConversationMetadata(Builder $query, string $like): void
+    {
+        $column = $query->getModel()->getTable().'.metadata';
+        if ($query->getConnection()->getDriverName() === 'pgsql') {
+            $query->orWhereRaw($column.'::text ILIKE ?', [$like]);
+        } elseif ($query->getConnection()->getDriverName() === 'mysql') {
+            $query->orWhereRaw('CAST('.$column.' AS CHAR) LIKE ?', [$like]);
+        } else {
+            $query->orWhere($column, 'like', $like);
+        }
+    }
+
+    private function dateFilter(mixed $value): ?Carbon
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d', trim($value));
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function displayDate(mixed $value, string $fallback): string
+    {
+        return ($date = $this->dateFilter($value))?->toDateString() ?? $fallback;
     }
 
     private function applyRecordFilters(Builder $query, Request $request, array $config): void
@@ -500,18 +607,20 @@ class CommunicationCenterController extends Controller
         }
 
         if ($section === 'email') {
+            $currentMonth = fn () => $base()->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
             $sent = ConversationMessage::query()
                 ->where('direction', 'outbound')
-                ->whereHas('conversation', fn (Builder $query) => $this->scopeConversationChannel($query, $section))
+                ->whereHas('conversation', fn (Builder $query) => $this->scopeConversationChannel($query, $section)
+                    ->whereBetween('conversations.created_at', [now()->startOfMonth(), now()->endOfMonth()]))
                 ->count();
-            $replied = $base()->whereHas('messages', fn (Builder $query) => $query->where('direction', 'outbound'))->count();
+            $replied = $currentMonth()->whereHas('messages', fn (Builder $query) => $query->where('direction', 'outbound'))->count();
 
             return [
-                $this->metric('Emails (This Month)', $total, 'mail', 'green', 'Tracked email threads'),
+                $this->metric('Emails (This Month)', $currentMonth()->count(), 'mail', 'green', 'Tracked email threads'),
                 $this->metric('Inbox', $open + $pending, 'briefcase', 'blue', 'Open email work'),
                 $this->metric('Sent', $sent, 'message', 'orange', 'Outbound messages'),
                 $this->metric('Replied', $replied, 'refresh', 'purple', 'Threads with replies'),
-                $this->metric('Resolved', $closed, 'check', 'green', 'Closed email threads'),
+                $this->metric('Resolved', $currentMonth()->where('status', 'closed')->count(), 'check', 'green', 'Closed email threads'),
                 $this->metric('SLA Breaches', $urgent, 'alert', 'red', 'Urgent unresolved'),
             ];
         }

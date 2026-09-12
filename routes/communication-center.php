@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CommunicationCenterController;
+use App\Http\Controllers\Admin\CommunicationEmailController;
 use App\Http\Controllers\Admin\CommunicationTemplateController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,13 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($c
     Route::get('/communication-center/{section}/export', [CommunicationCenterController::class, 'export'])
         ->where('section', $communicationSectionPattern)
         ->name('admin.communication-center.export');
+
+    Route::post('/communication-center/email/{conversation:uuid}/actions/{action}', [CommunicationEmailController::class, 'webAction'])
+        ->where('action', 'resolve|reopen|escalate')
+        ->name('admin.communication-center.email.action');
+
+    Route::get('/communication-center/email/{conversation:uuid}/audit/export', [CommunicationEmailController::class, 'exportAudit'])
+        ->name('admin.communication-center.email.audit.export');
 
     Route::post('/communication-center/email-templates/templates', [CommunicationTemplateController::class, 'store'])
         ->name('admin.communication-center.templates.store');

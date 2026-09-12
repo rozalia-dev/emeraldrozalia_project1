@@ -50,7 +50,7 @@
         </div>
         <div class="cc-date-card">
             <x-icon name="calendar" size="22" />
-            <span><small>Date Range</small><strong>{{ now()->subDays(30)->format('d M Y') }} - {{ now()->format('d M Y') }}</strong><em>vs previous 30 days</em></span>
+            <span><small>Date Range</small><strong>{{ date('d M Y', strtotime($date_from)) }} - {{ date('d M Y', strtotime($date_to)) }}</strong><em>{{ $date_filtered ? 'filtered email activity' : 'last 30 days' }}</em></span>
         </div>
     </header>
 
@@ -238,8 +238,15 @@
         </nav>
 
         <form class="cc-filterbar" method="get" action="{{ $pageUrl($section) }}">
-            <label class="cc-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search {{ $section === 'email' ? 'emails' : 'conversations' }}..."><x-icon name="search" size="14" /></label>
-            <select name="status"><option value="">All Statuses</option>@foreach(['new'=>'New','open'=>'Open','pending'=>'Pending','closed'=>'Closed'] as $key=>$label)<option value="{{ $key }}" @selected($status===$key)>{{ $label }}</option>@endforeach</select>
+            <label class="cc-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search {{ $section === 'email' ? 'customers, orders, messages or UID' : 'conversations' }}..."><x-icon name="search" size="14" /></label>
+            @if($section === 'email')
+                <label class="cc-filter-field"><span>Customer</span><input type="search" name="customer" value="{{ request('customer') }}" placeholder="Name or email"></label>
+                <label class="cc-filter-field"><span>Order</span><input type="search" name="order" value="{{ request('order') }}" placeholder="Order number or UUID"></label>
+                <label class="cc-filter-field"><span>UID</span><input type="search" name="uid" value="{{ request('uid') }}" placeholder="Conversation/message UID"></label>
+                <label class="cc-filter-field"><span>From</span><input type="date" name="date_from" value="{{ request('date_from') }}"></label>
+                <label class="cc-filter-field"><span>To</span><input type="date" name="date_to" value="{{ request('date_to') }}"></label>
+            @endif
+            <select name="status"><option value="">All Statuses</option>@foreach($config['statuses'] as $key=>$label)<option value="{{ $key }}" @selected($status===$key)>{{ $label }}</option>@endforeach</select>
             <select name="priority"><option value="">All Priorities</option>@foreach(['low','normal','high','urgent'] as $key)<option value="{{ $key }}" @selected($priority===$key)>{{ \Illuminate\Support\Str::headline($key) }}</option>@endforeach</select>
             @if($section === 'inbox')<select name="channel"><option value="">All Channels</option>@foreach(['email'=>'Email','whatsapp'=>'WhatsApp','chat'=>'Chat 24/7','web'=>'Inbox (Tickets)','phone'=>'Phone','system'=>'System'] as $key=>$label)<option value="{{ $key }}" @selected(request('channel')===$key)>{{ $label }}</option>@endforeach</select>@endif
             <button type="submit" class="cc-btn cc-btn-light"><x-icon name="filter" size="13" /> Filters</button>
@@ -252,8 +259,8 @@
                 <header><h2>{{ $section === 'email' ? 'Emails' : 'Conversations' }} ({{ number_format($conversations->total()) }})</h2><span>Sort: Newest⌄</span></header>
                 <div class="cc-thread-scroll">
                     @forelse($conversations as $conversation)
-                        @php $conversationUrl = $pageUrl($section, array_merge(request()->except('page','conversation'), ['conversation' => $conversation->id])); @endphp
-                        <a class="cc-thread-item {{ $selected?->id === $conversation->id ? 'active' : '' }}" href="{{ $conversationUrl }}">
+                        @php $conversationKey = $section === 'email' ? $conversation->uuid : $conversation->id; $conversationUrl = $pageUrl($section, array_merge(request()->except('page','conversation'), ['conversation' => $conversationKey])); @endphp
+                        <a class="cc-thread-item {{ ($section === 'email' ? $selected?->uuid === $conversation->uuid : $selected?->id === $conversation->id) ? 'active' : '' }}" href="{{ $conversationUrl }}">
                             <span class="cc-avatar">{{ strtoupper(substr((string)$conversationName($conversation),0,2)) }}</span>
                             <span class="cc-thread-copy">
                                 <span class="cc-thread-top"><b>{{ str($conversationName($conversation))->limit(24) }}</b><em>{{ optional($conversation->updated_at)->format('h:i A') }}</em></span>
@@ -280,16 +287,27 @@
                 @if($selected)
                     @php
                         $selectedMeta = $selected->metadata ?? [];
-                        $orderId = data_get($selectedMeta,'order_id',data_get($selectedMeta,'order_reference'));
+                        $orderId = $selected->order?->number ?: data_get($selectedMeta,'order_id',data_get($selectedMeta,'order_reference'));
                         $tracking = data_get($selectedMeta,'tracking_number');
                         $customerName = $conversationName($selected);
                     @endphp
                     <header class="cc-conversation-head">
                         <div><span class="cc-avatar">{{ strtoupper(substr((string)$customerName,0,2)) }}</span><span><h2>{{ $customerName }}</h2><small>{{ $selected->contact }} · Customer since {{ optional($selected->created_at)->format('d M Y') }}</small></span></div>
-                        <span class="cc-badge cc-badge-{{ $statusTone($selected->status) }}">{{ \Illuminate\Support\Str::headline($selected->status) }}</span>
+                        <span class="cc-badge cc-badge-{{ $statusTone($selected->status) }}">{{ $config['statuses'][$selected->status] ?? \Illuminate\Support\Str::headline($selected->status) }}</span>
                     </header>
-                    @if($orderId || $tracking)
-                        <div class="cc-order-strip">@if($orderId)<span>Order ID: <b>{{ $orderId }}</b></span>@endif @if($tracking)<span>Status: <b>{{ data_get($selectedMeta,'order_status','Linked') }}</b></span><span>Tracking: <b>{{ $tracking }}</b></span>@endif</div>
+                    @if($section === 'email')
+                        <div class="cc-conversation-actions">
+                            <a class="cc-btn cc-btn-light" href="{{ route('admin.communication-center.email.audit.export', $selected) }}"><x-icon name="download" size="13" /> Export Audit</a>
+                            @if($selected->status !== 'closed')
+                                <form method="post" action="{{ route('admin.communication-center.email.action', [$selected, 'resolve']) }}">@csrf<button class="cc-btn cc-btn-light" type="submit"><x-icon name="check" size="13" /> Resolve</button></form>
+                            @else
+                                <form method="post" action="{{ route('admin.communication-center.email.action', [$selected, 'reopen']) }}">@csrf<button class="cc-btn cc-btn-light" type="submit"><x-icon name="refresh" size="13" /> Reopen</button></form>
+                            @endif
+                            <form method="post" action="{{ route('admin.communication-center.email.action', [$selected, 'escalate']) }}">@csrf<button class="cc-btn cc-btn-light" type="submit"><x-icon name="alert" size="13" /> Escalate</button></form>
+                        </div>
+                    @endif
+                    @if($orderId || $tracking || $selected->consent_captured_at)
+                        <div class="cc-order-strip">@if($orderId)<span>Order ID: <b>{{ $orderId }}</b></span>@endif @if($tracking)<span>Status: <b>{{ data_get($selectedMeta,'order_status','Linked') }}</b></span><span>Tracking: <b>{{ $tracking }}</b></span>@endif @if($selected->consent_captured_at)<span>Consent: <b>{{ $selected->consent_version ?: 'Captured' }}</b></span>@endif</div>
                     @endif
                     <div class="cc-messages">
                         @forelse($selected->messages as $message)
@@ -323,7 +341,7 @@
                     <section class="cc-side-card">
                         <header><h2>Conversation Properties</h2><span></span></header>
                         <form method="post" action="{{ route('admin.communication.update',$selected) }}" class="cc-properties">@csrf @method('PATCH')
-                            <label>Status<select name="status">@foreach(['new','open','pending','closed'] as $value)<option value="{{ $value }}" @selected($selected->status===$value)>{{ \Illuminate\Support\Str::headline($value) }}</option>@endforeach</select></label>
+                            <label>Status<select name="status">@foreach($config['statuses'] as $value=>$label)<option value="{{ $value }}" @selected($selected->status===$value)>{{ $label }}</option>@endforeach</select></label>
                             <label>Priority<select name="priority">@foreach(['low','normal','high','urgent'] as $value)<option value="{{ $value }}" @selected($selected->priority===$value)>{{ \Illuminate\Support\Str::headline($value) }}</option>@endforeach</select></label>
                             <label>Assigned Agent<select name="assigned_to"><option value="">Unassigned</option>@foreach($admins as $admin)<option value="{{ $admin->id }}" @selected($selected->assigned_to===$admin->id)>{{ $admin->name }}</option>@endforeach</select></label>
                             <label>Follow-up<input type="datetime-local" name="follow_up_at" value="{{ $selected->follow_up_at?->format('Y-m-d\TH:i') }}"></label>

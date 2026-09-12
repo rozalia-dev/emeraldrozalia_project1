@@ -4,13 +4,16 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Conversation extends Model
 {
     use BelongsToTenant;
+    use SoftDeletes;
 
     protected $guarded = [];
 
@@ -66,5 +69,26 @@ class Conversation extends Model
     public function franchiseApplication(): BelongsTo
     {
         return $this->belongsTo(FranchiseApplication::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    public function scopeForCurrentCompany(Builder $query): Builder
+    {
+        $companyId = session('company_id');
+
+        return $companyId
+            ? $query->where($query->getModel()->getTable().'.company_id', (int) $companyId)
+            : $query;
+    }
+
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        return $this->scopeForCurrentCompany(
+            parent::resolveRouteBindingQuery($query, $value, $field),
+        );
     }
 }
