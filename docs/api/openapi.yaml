@@ -1,0 +1,104 @@
+openapi: 3.1.0
+info:
+  title: Emerald Rozalia Project 1 API
+  version: 1.0.0
+  description: Versioned public catalog and published-banner contract for Project 1.
+servers:
+  - url: /
+paths:
+  /api/v1/products:
+    get:
+      operationId: listProducts
+      summary: List published products
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: category, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, price_low, price_high, name] } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 48, default: 12 } }
+      responses:
+        '200':
+          description: Paginated product collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedProducts' }
+  /api/v1/products/{slug}:
+    get:
+      operationId: showProduct
+      summary: Show one published product
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Product
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductResponse' }
+        '404': { description: Product not found or not published }
+  /api/v1/banners:
+    get:
+      operationId: listPublishedBanners
+      summary: List currently published banners
+      parameters:
+        - { name: position, in: query, schema: { type: string } }
+        - { name: device, in: query, schema: { type: string, enum: [desktop, tablet, mobile] } }
+      responses:
+        '200':
+          description: Paginated banner collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedBanners' }
+components:
+  schemas:
+    Product:
+      type: object
+      required: [public_uuid, slug, name, sku, price, currency, stock_status]
+      properties:
+        public_uuid: { type: string, format: uuid }
+        slug: { type: string }
+        name: { type: string }
+        sku: { type: string }
+        description: { type: [string, 'null'] }
+        price: { type: [string, 'null'] }
+        compare_price: { type: [string, 'null'] }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        image_url: { type: [string, 'null'], format: uri-reference }
+        stock_status: { type: string, enum: [in_stock, out_of_stock] }
+    Banner:
+      type: object
+      required: [public_uuid, title, type, position, priority]
+      properties:
+        public_uuid: { type: string, format: uuid }
+        title: { type: string }
+        subtitle: { type: [string, 'null'] }
+        type: { type: string }
+        position: { type: string }
+        target_url: { type: [string, 'null'], format: uri-reference }
+        target_type: { type: [string, 'null'] }
+        image_url: { type: [string, 'null'], format: uri-reference }
+        alt_text: { type: [string, 'null'] }
+        aria_label: { type: [string, 'null'] }
+        starts_at: { type: [string, 'null'], format: date-time }
+        ends_at: { type: [string, 'null'], format: date-time }
+        priority: { type: integer }
+        device_visibility: { type: array, items: { type: string } }
+    Pagination:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+    PaginatedProducts:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Product' } }
+        meta: { $ref: '#/components/schemas/Pagination' }
+    ProductResponse:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/Product' }
+    PaginatedBanners:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Banner' } }
+        meta: { $ref: '#/components/schemas/Pagination' }

@@ -365,10 +365,10 @@
                 </div>
                 <div class="rr-date-info">
                     <span>Today</span>
-                    <strong>Thursday, 1 May 2025</strong>
+                    <strong>{{ now(config('app.timezone'))->format('l, j F Y') }}</strong>
                 </div>
             </div>
-            <div class="rr-time">11:45 AM</div>
+            <div class="rr-time">{{ now(config('app.timezone'))->format('g:i A') }}</div>
         </div>
     </div>
 
@@ -378,40 +378,40 @@
             <div class="rr-kpi-icon bg-green"><x-icon name="star" /></div>
             <div class="rr-kpi-content">
                 <h3>Average Rating</h3>
-                <p class="rr-kpi-val">4.7 <span style="font-size:14px;color:var(--text-muted);font-weight:400;">/ 5</span></p>
-                <div class="rr-kpi-trend up"><x-icon name="arrow-up" size="12" /> 0.2 <span>vs last 30 days</span></div>
+                <p class="rr-kpi-val">{{ number_format($stats['average_rating'], 1) }} <span style="font-size:14px;color:var(--text-muted);font-weight:400;">/ 5</span></p>
+                <div class="rr-kpi-trend"><span>Live review data</span></div>
             </div>
         </div>
         <div class="rr-kpi-card">
             <div class="rr-kpi-icon bg-purple"><x-icon name="message-square" /></div>
             <div class="rr-kpi-content">
                 <h3>Total Reviews</h3>
-                <p class="rr-kpi-val">2,458</p>
-                <div class="rr-kpi-trend up"><x-icon name="arrow-up" size="12" /> 18.6% <span>vs last 30 days</span></div>
+                <p class="rr-kpi-val">{{ number_format($stats['total']) }}</p>
+                <div class="rr-kpi-trend"><span>All statuses</span></div>
             </div>
         </div>
         <div class="rr-kpi-card">
             <div class="rr-kpi-icon bg-orange"><x-icon name="archive" /></div>
             <div class="rr-kpi-content">
                 <h3>Pending Reviews</h3>
-                <p class="rr-kpi-val">42</p>
-                <div class="rr-kpi-trend down"><x-icon name="arrow-down" size="12" /> 12.5% <span>vs last 30 days</span></div>
+                <p class="rr-kpi-val">{{ number_format($stats['pending']) }}</p>
+                <div class="rr-kpi-trend"><span>Awaiting moderation</span></div>
             </div>
         </div>
         <div class="rr-kpi-card">
             <div class="rr-kpi-icon bg-blue"><x-icon name="check-circle" /></div>
             <div class="rr-kpi-content">
                 <h3>Approved Reviews</h3>
-                <p class="rr-kpi-val">2,316</p>
-                <div class="rr-kpi-trend up"><x-icon name="arrow-up" size="12" /> 20.3% <span>vs last 30 days</span></div>
+                <p class="rr-kpi-val">{{ number_format($stats['approved']) }}</p>
+                <div class="rr-kpi-trend"><span>Published reviews</span></div>
             </div>
         </div>
         <div class="rr-kpi-card">
             <div class="rr-kpi-icon bg-emerald"><x-icon name="shield" /></div>
             <div class="rr-kpi-content">
                 <h3>Flagged / Reported</h3>
-                <p class="rr-kpi-val">18</p>
-                <div class="rr-kpi-trend down"><x-icon name="arrow-down" size="12" /> 10.0% <span>vs last 30 days</span></div>
+                <p class="rr-kpi-val">{{ number_format($stats['flagged']) }}</p>
+                <div class="rr-kpi-trend"><span>Flagged or reported</span></div>
             </div>
         </div>
     </div>
@@ -432,18 +432,26 @@
             </div>
 
             <!-- Toolbar -->
-            <div class="rr-toolbar">
+            <form class="rr-toolbar" method="get" action="{{ route('admin.resource', ['module' => 'reviews-ratings']) }}">
                 <div class="rr-search">
                     <x-icon name="search" />
-                    <input type="text" placeholder="Search reviews...">
+                    <input type="search" name="q" value="{{ $search }}" placeholder="Search reviews..." aria-label="Search reviews">
                 </div>
-                <button class="rr-filter-btn"><x-icon name="filter" size="14" /> Filters</button>
-                <select class="rr-select"><option>All Products</option></select>
-                <select class="rr-select"><option>All Ratings</option></select>
-                <select class="rr-select"><option>All Statuses</option></select>
-                <select class="rr-select"><option>All Sources</option></select>
-                <button class="rr-reset-btn"><x-icon name="refresh-cw" size="12" /> Reset</button>
-            </div>
+                <button class="rr-filter-btn" type="submit"><x-icon name="filter" size="14" /> Apply filters</button>
+                <select class="rr-select" name="rating" aria-label="Filter by rating">
+                    <option value="">All Ratings</option>
+                    @for($stars = 5; $stars >= 1; $stars--)
+                        <option value="{{ $stars }}" @selected($rating === $stars)>{{ $stars }} Star{{ $stars === 1 ? '' : 's' }}</option>
+                    @endfor
+                </select>
+                <select class="rr-select" name="status" aria-label="Filter by status">
+                    <option value="">All Statuses</option>
+                    @foreach(['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', 'flagged' => 'Flagged'] as $statusValue => $statusLabel)
+                        <option value="{{ $statusValue }}" @selected($status === $statusValue)>{{ $statusLabel }}</option>
+                    @endforeach
+                </select>
+                <a class="rr-reset-btn" href="{{ route('admin.resource', ['module' => 'reviews-ratings']) }}"><x-icon name="refresh-cw" size="12" /> Reset</a>
+            </form>
 
             <!-- Table -->
             <div class="rr-table-wrap">
@@ -462,7 +470,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($reviews as $review)
+                        @forelse($reviews as $review)
                         <tr>
                             <td><input type="checkbox"></td>
                             <td class="rr-td-review">
@@ -470,7 +478,11 @@
                                 <p>{{ $review->comment }}</p>
                             </td>
                             <td class="rr-td-product">
-                                <div class="rr-product-img"></div>
+                                @if($review->image)
+                                    <img class="rr-product-img" src="{{ $review->image }}" alt="{{ $review->product_name }}">
+                                @else
+                                    <div class="rr-product-img" role="img" aria-label="No product image"></div>
+                                @endif
                                 <div>
                                     <strong>{{ $review->product_name }}</strong>
                                     <span>SKU: {{ $review->sku }}</span>
@@ -496,7 +508,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="rr-badge {{ strtolower($review->status) }}">{{ $review->status }}</span>
+                                <span class="rr-badge {{ $review->status_key }}">{{ $review->status }}</span>
                             </td>
                             <td class="rr-date">
                                 <strong>{{ $review->date }}</strong>
@@ -511,24 +523,34 @@
                                 </div>
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr>
+                            <td colspan="9" style="padding:32px; text-align:center; color:var(--text-muted);">No reviews match the current filters.</td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
 
             <!-- Pagination -->
             <div class="rr-pagination">
-                <div>Showing 1 to 8 of 2,458 reviews</div>
+                <div>Showing {{ $reviews->firstItem() ?: 0 }} to {{ $reviews->lastItem() ?: 0 }} of {{ number_format($reviews->total()) }} reviews</div>
                 <div class="rr-page-controls">
-                    <button class="rr-page-btn"><x-icon name="chevron-left" size="14" /></button>
-                    <button class="rr-page-btn active">1</button>
-                    <button class="rr-page-btn">2</button>
-                    <button class="rr-page-btn">3</button>
-                    <span>...</span>
-                    <button class="rr-page-btn">308</button>
-                    <button class="rr-page-btn"><x-icon name="chevron-right" size="14" /></button>
+                    @if($reviews->onFirstPage())
+                        <span class="rr-page-btn" aria-disabled="true"><x-icon name="chevron-left" size="14" /></span>
+                    @else
+                        <a class="rr-page-btn" href="{{ $reviews->previousPageUrl() }}" aria-label="Previous page"><x-icon name="chevron-left" size="14" /></a>
+                    @endif
+                    @foreach($reviews->getUrlRange(max(1, $reviews->currentPage() - 2), min($reviews->lastPage(), $reviews->currentPage() + 2)) as $page => $url)
+                        <a class="rr-page-btn {{ $page === $reviews->currentPage() ? 'active' : '' }}" href="{{ $url }}">{{ $page }}</a>
+                    @endforeach
+                    @if($reviews->hasMorePages())
+                        <a class="rr-page-btn" href="{{ $reviews->nextPageUrl() }}" aria-label="Next page"><x-icon name="chevron-right" size="14" /></a>
+                    @else
+                        <span class="rr-page-btn" aria-disabled="true"><x-icon name="chevron-right" size="14" /></span>
+                    @endif
                 </div>
-                <select class="rr-select"><option>8 / page</option></select>
+                <span class="rr-select" aria-label="Reviews per page">{{ $perPage }} / page</span>
             </div>
 
             <!-- Bottom Widgets -->
@@ -539,23 +561,23 @@
                     <div class="rr-analytics-stats">
                         <div>
                             <span>New Reviews</span>
-                            <strong>386</strong>
-                            <small>↑ 18.6%</small>
+                            <strong>{{ number_format($analytics['new_reviews']) }}</strong>
+                            <small>Recorded in the last 30 days</small>
                         </div>
                         <div>
                             <span>Average Rating</span>
-                            <strong>4.7 <span style="font-size:12px;font-weight:normal;color:var(--text-muted)">/5</span></strong>
-                            <small>↑ 0.2</small>
+                            <strong>{{ number_format($analytics['average_rating'], 1) }} <span style="font-size:12px;font-weight:normal;color:var(--text-muted)">/5</span></strong>
+                            <small>Last 30 days</small>
                         </div>
                         <div>
                             <span>Review Views</span>
-                            <strong>12,845</strong>
-                            <small>↑ 22.1%</small>
+                            <strong>{{ $analytics['review_views'] }}</strong>
+                            <small>Telemetry not connected</small>
                         </div>
                         <div>
                             <span>Conversion from Reviews</span>
-                            <strong>8.3%</strong>
-                            <small>↑ 0.9%</small>
+                            <strong>{{ $analytics['conversion'] }}</strong>
+                            <small>Telemetry not connected</small>
                         </div>
                     </div>
                     <!-- Placeholder Chart SVG -->
@@ -626,34 +648,24 @@
                 <!-- Top Products -->
                 <div class="rr-widget">
                     <h3>Top Reviewed Products</h3>
-                    <div class="rr-top-product">
-                        <div class="rr-product-img"></div>
-                        <div>
-                            <h4>Emerald Signature Cap</h4>
-                            <div class="rr-top-product-rating">
-                                <x-icon name="star" /> 4.8 <span style="font-size:10px;">(150 reviews)</span>
+                    @forelse($topProducts as $topProduct)
+                        <div class="rr-top-product">
+                            @if($topProduct->product?->image)
+                                <img class="rr-product-img" src="{{ \Illuminate\Support\Str::startsWith($topProduct->product->image, ['http://', 'https://', '/']) ? $topProduct->product->image : \Illuminate\Support\Facades\Storage::disk('public')->url($topProduct->product->image) }}" alt="{{ $topProduct->product->name }}">
+                            @else
+                                <div class="rr-product-img" role="img" aria-label="No product image"></div>
+                            @endif
+                            <div>
+                                <h4>{{ $topProduct->product?->name ?: 'Deleted product' }}</h4>
+                                <div class="rr-top-product-rating">
+                                    <x-icon name="star" /> {{ number_format((float) $topProduct->average_rating, 1) }} <span style="font-size:10px;">({{ number_format((int) $topProduct->reviews_count) }} reviews)</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="rr-top-product">
-                        <div class="rr-product-img"></div>
-                        <div>
-                            <h4>Luxury Baseball Cap</h4>
-                            <div class="rr-top-product-rating">
-                                <x-icon name="star" /> 4.7 <span style="font-size:10px;">(98 reviews)</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="rr-top-product">
-                        <div class="rr-product-img"></div>
-                        <div>
-                            <h4>Premium Bucket Hat</h4>
-                            <div class="rr-top-product-rating">
-                                <x-icon name="star" /> 4.6 <span style="font-size:10px;">(75 reviews)</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="rr-manage-btn">View All Product Reviews</button>
+                    @empty
+                        <p style="font-size:12px; color:var(--text-muted);">No product reviews yet.</p>
+                    @endforelse
+                    <a class="rr-manage-btn" href="{{ route('admin.resource', ['module' => 'reviews-ratings']) }}">View All Product Reviews</a>
                 </div>
             </div>
         </div>
@@ -664,37 +676,19 @@
             <div>
                 <h3>RATINGS BREAKDOWN</h3>
                 <div style="display:flex; align-items:end; gap:8px; margin-bottom:12px;">
-                    <span style="font-size:32px; font-weight:700;">4.7</span>
+                    <span style="font-size:32px; font-weight:700;">{{ number_format($stats['average_rating'], 1) }}</span>
                     <div>
                         <div style="color:var(--star-gold); margin-bottom:4px;">★★★★★</div>
-                        <div style="font-size:11px; color:var(--text-muted);">Based on 2,458 reviews</div>
+                        <div style="font-size:11px; color:var(--text-muted);">Based on {{ number_format($stats['total']) }} reviews</div>
                     </div>
                 </div>
-                <div class="rr-breakdown-row">
-                    <div class="rr-breakdown-label">5 Stars</div>
-                    <div class="rr-breakdown-bar"><div class="rr-breakdown-fill" style="width:70.9%; background:#059669;"></div></div>
-                    <div class="rr-breakdown-val">1,742 (70.9%)</div>
-                </div>
-                <div class="rr-breakdown-row">
-                    <div class="rr-breakdown-label">4 Stars</div>
-                    <div class="rr-breakdown-bar"><div class="rr-breakdown-fill" style="width:20.3%; background:#059669;"></div></div>
-                    <div class="rr-breakdown-val">498 (20.3%)</div>
-                </div>
-                <div class="rr-breakdown-row">
-                    <div class="rr-breakdown-label">3 Stars</div>
-                    <div class="rr-breakdown-bar"><div class="rr-breakdown-fill" style="width:5.8%; background:var(--star-gold);"></div></div>
-                    <div class="rr-breakdown-val">142 (5.8%)</div>
-                </div>
-                <div class="rr-breakdown-row">
-                    <div class="rr-breakdown-label">2 Stars</div>
-                    <div class="rr-breakdown-bar"><div class="rr-breakdown-fill" style="width:2.0%; background:#059669;"></div></div>
-                    <div class="rr-breakdown-val">48 (2.0%)</div>
-                </div>
-                <div class="rr-breakdown-row">
-                    <div class="rr-breakdown-label">1 Star</div>
-                    <div class="rr-breakdown-bar"><div class="rr-breakdown-fill" style="width:1.0%; background:#059669;"></div></div>
-                    <div class="rr-breakdown-val">28 (1.0%)</div>
-                </div>
+                @foreach($ratingBreakdown as $stars => $breakdown)
+                    <div class="rr-breakdown-row">
+                        <div class="rr-breakdown-label">{{ $stars }} Star{{ $stars === 1 ? '' : 's' }}</div>
+                        <div class="rr-breakdown-bar"><div class="rr-breakdown-fill" style="width:{{ $breakdown['percentage'] }}%; background:{{ $stars >= 4 ? '#059669' : ($stars === 3 ? 'var(--star-gold)' : '#3b82f6') }};"></div></div>
+                        <div class="rr-breakdown-val">{{ number_format($breakdown['count']) }} ({{ number_format($breakdown['percentage'], 1) }}%)</div>
+                    </div>
+                @endforeach
             </div>
 
             <!-- Sources -->
@@ -704,27 +698,11 @@
                     <div class="rr-sources-list" style="flex:1;">
                         <div class="rr-source-item">
                             <div class="rr-source-label"><div class="rr-source-dot" style="background:#059669;"></div> Website</div>
-                            <div style="color:var(--text-muted);">1,682 (68.5%)</div>
-                        </div>
-                        <div class="rr-source-item">
-                            <div class="rr-source-label"><div class="rr-source-dot" style="background:#3b82f6;"></div> Google</div>
-                            <div style="color:var(--text-muted);">512 (20.9%)</div>
-                        </div>
-                        <div class="rr-source-item">
-                            <div class="rr-source-label"><div class="rr-source-dot" style="background:#f97316;"></div> WhatsApp</div>
-                            <div style="color:var(--text-muted);">156 (6.3%)</div>
-                        </div>
-                        <div class="rr-source-item">
-                            <div class="rr-source-label"><div class="rr-source-dot" style="background:#8b5cf6;"></div> Email</div>
-                            <div style="color:var(--text-muted);">78 (3.2%)</div>
-                        </div>
-                        <div class="rr-source-item">
-                            <div class="rr-source-label"><div class="rr-source-dot" style="background:#9ca3af;"></div> Other</div>
-                            <div style="color:var(--text-muted);">30 (1.1%)</div>
+                            <div style="color:var(--text-muted);">{{ number_format($stats['total']) }} (100%)</div>
                         </div>
                     </div>
                     <div style="width:80px; height:80px; border-radius:50%; border:12px solid #059669; border-top-color:#3b82f6; border-right-color:#f97316; display:flex; align-items:center; justify-content:center; flex-direction:column; position:relative;">
-                        <span style="font-weight:700; font-size:14px; position:absolute;">2,458</span>
+                        <span style="font-weight:700; font-size:14px; position:absolute;">{{ number_format($stats['total']) }}</span>
                         <span style="font-size:9px; color:var(--text-muted); position:absolute; bottom:12px;">Total</span>
                     </div>
                 </div>
@@ -732,16 +710,12 @@
 
             <!-- Quick Actions -->
             <div>
-                <h3>QUICK ACTIONS</h3>
+                <h3>REVIEW WORKFLOWS</h3>
                 <div class="rr-quick-actions">
-                    <a href="#" class="rr-action-link"><x-icon name="check-circle" /> Approve Selected Reviews</a>
-                    <a href="#" class="rr-action-link"><x-icon name="x-circle" /> Disapprove Selected Reviews</a>
-                    <a href="#" class="rr-action-link"><x-icon name="message-square" /> Reply to Selected Reviews</a>
-                    <a href="#" class="rr-action-link"><x-icon name="refresh-cw" /> Bulk Update Status</a>
-                    <a href="#" class="rr-action-link"><x-icon name="download" /> Export Reviews</a>
-                    <a href="#" class="rr-action-link"><x-icon name="upload" /> Import Reviews</a>
-                    <a href="#" class="rr-action-link"><x-icon name="file-text" /> Review Guidelines</a>
-                    <a href="#" class="rr-action-link"><x-icon name="settings" /> Review Settings</a>
+                    <a href="{{ route('admin.resource', ['module' => 'reviews-ratings', 'status' => 'approved']) }}" class="rr-action-link"><x-icon name="check-circle" /> View approved reviews</a>
+                    <a href="{{ route('admin.resource', ['module' => 'reviews-ratings', 'status' => 'pending']) }}" class="rr-action-link"><x-icon name="archive" /> Review pending moderation</a>
+                    <a href="{{ route('admin.resource', ['module' => 'reviews-ratings', 'status' => 'flagged']) }}" class="rr-action-link"><x-icon name="flag" /> Review flagged items</a>
+                    <a href="{{ route('admin.resource', ['module' => 'reviews-ratings']) }}" class="rr-action-link"><x-icon name="refresh-cw" /> Reset review filters</a>
                 </div>
             </div>
 
@@ -750,10 +724,10 @@
                 <h3>UUID TRACEABILITY</h3>
                 <p class="rr-uuid-text">Every review is assigned a unique UUID for full traceability.</p>
                 <div style="font-size:11px; font-weight:600; margin-bottom:4px;">Last Review UUID</div>
-                <div class="rr-uuid-code">3a2f6c78-91d5-4bd2-b5f0-0e2d7a9c1e3a <x-icon name="copy" size="12" style="cursor:pointer; color:var(--text-muted); margin-left:4px;" /></div>
-                <button class="rr-manage-btn" style="display:flex; justify-content:space-between; align-items:center;">
-                    View Reviews Audit Log <x-icon name="chevron-right" size="14" />
-                </button>
+                <div class="rr-uuid-code">{{ $lastReviewUuid ?: '—' }}</div>
+                <a class="rr-manage-btn" style="display:flex; justify-content:space-between; align-items:center;" href="{{ route('admin.resource', ['module' => 'audit-logs']) }}">
+                    View Audit Log Records <x-icon name="chevron-right" size="14" />
+                </a>
             </div>
         </div>
     </div>

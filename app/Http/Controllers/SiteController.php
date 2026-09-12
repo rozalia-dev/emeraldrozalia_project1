@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Category,ContentPage,Conversation,FranchiseApplication,Inquiry,Product};
+use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,Inquiry,Product};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -17,6 +19,7 @@ class SiteController extends Controller
         return view('site.home', [
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
             'newProducts' => Product::where('is_active', true)->where('is_new', true)->latest()->limit(8)->get(),
+            'banners' => Banner::query()->publishedFor('Home - Main Slider')->orderByDesc('priority')->orderBy('id')->get(),
         ]);
     }
 
@@ -302,9 +305,42 @@ class SiteController extends Controller
         $country = $d['country'] ?? null;
         unset($d['meeting_date'], $d['meeting_time'], $d['consent'], $d['country']);
         $d['meta'] = ['source' => 'public_'.$d['type'].'_form', 'meeting' => $meeting ?: null, 'country' => $country];
-        DB::transaction(function () use ($d, $meeting) {
-            Inquiry::create($d);
-            if ($d['type'] === 'franchise') FranchiseApplication::create([
+
+        $idempotencyKey = trim((string) $r->header('Idempotency-Key', ''));
+        if ($idempotencyKey !== '' && ! preg_match('/\A[A-Za-z0-9._:-]{1,100}\z/D', $idempotencyKey)) {
+            throw ValidationException::withMessages([
+                'Idempotency-Key' => 'Use up to 100 letters, numbers, dots, underscores, colons or hyphens.',
+            ]);
+        }
+
+        $correlationId = (string) ($r->attributes->get('correlation_id') ?: Str::uuid());
+        $requestHash = hash('sha256', (string) json_encode([
+            'payload' => $d,
+            'meeting' => $meeting,
+        ], JSON_UNESCAPED_SLASHES));
+
+        if ($idempotencyKey !== '') {
+            $existing = Inquiry::query()->where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                if (! hash_equals((string) $existing->request_hash, $requestHash)) {
+                    abort(409, 'The Idempotency-Key was already used for a different enquiry.');
+                }
+
+                return back()->with('success', 'This enquiry was already received and is in our Communication Centre.');
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($d, $meeting, $correlationId, $idempotencyKey, $requestHash): void {
+                $inquiry = Inquiry::create(array_merge($d, [
+                    'correlation_id' => $correlationId,
+                    'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
+                    'request_hash' => $requestHash,
+                ]));
+
+                $application = null;
+                if ($d['type'] === 'franchise') {
+                    $application = FranchiseApplication::create([
                 'applicant_name' => $d['name'],
                 'email' => $d['email'],
                 'phone' => $d['phone'] ?? null,
@@ -313,13 +349,20 @@ class SiteController extends Controller
                 'business_experience' => $d['message'] ?? null,
                 'status' => 'new',
                 'data' => ['source' => 'public_franchise_form'],
-            ]);
-            $conversation = Conversation::create([
+                        'correlation_id' => $correlationId,
+                        'inquiry_id' => $inquiry->id,
+                    ]);
+                }
+
+                $conversation = Conversation::create([
                 'channel' => 'web',
                 'contact' => $d['email'],
                 'subject' => $d['subject'] ?? str($d['type'])->headline(),
                 'priority' => $d['type'] === 'franchise' ? 'high' : 'normal',
                 'status' => 'new',
+                'correlation_id' => $correlationId,
+                'inquiry_id' => $inquiry->id,
+                'franchise_application_id' => $application?->id,
                 'metadata' => [
                     'type' => $d['type'],
                     'name' => $d['name'],
@@ -328,11 +371,24 @@ class SiteController extends Controller
                     'country' => $d['meta']['country'] ?? null,
                     'meeting' => $meeting ?: null,
                 ],
-            ]);
-            $body = $d['message'] ?? 'Public form submission';
-            if ($meeting) $body .= "\n\nMeeting requested: {$meeting['date']} at {$meeting['time']} (Europe/Dublin).";
-            $conversation->messages()->create(['direction' => 'inbound', 'body' => $body, 'delivery_status' => 'stored', 'sent_at' => now()]);
-        });
+                ]);
+                $body = $d['message'] ?? 'Public form submission';
+                if ($meeting) $body .= "\n\nMeeting requested: {$meeting['date']} at {$meeting['time']} (Europe/Dublin).";
+                $conversation->messages()->create(['direction' => 'inbound', 'body' => $body, 'delivery_status' => 'stored', 'sent_at' => now()]);
+            });
+        } catch (QueryException $exception) {
+            if ($idempotencyKey === '') {
+                throw $exception;
+            }
+
+            $existing = Inquiry::query()->where('idempotency_key', $idempotencyKey)->first();
+            if ($existing && hash_equals((string) $existing->request_hash, $requestHash)) {
+                return back()->with('success', 'This enquiry was already received and is in our Communication Centre.');
+            }
+
+            throw $exception;
+        }
+
         return back()->with('success', 'Thank you. Your enquiry is now in our Communication Centre.');
     }
 }

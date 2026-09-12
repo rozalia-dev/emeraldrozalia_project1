@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -64,5 +65,21 @@ class Banner extends Model
         }
 
         return Storage::disk($this->image_disk ?: 'public')->url($this->image_path);
+    }
+
+    public function scopePublishedFor(Builder $query, ?string $position = null): Builder
+    {
+        $now = now();
+
+        return $query
+            ->where('status', 'published')
+            ->when($position, fn (Builder $builder) => $builder->where('position', $position))
+            ->where(fn (Builder $builder) => $builder->whereNull('starts_at')->orWhere('starts_at', '<=', $now))
+            ->where(fn (Builder $builder) => $builder->whereNull('ends_at')->orWhere('ends_at', '>=', $now))
+            ->where(fn (Builder $builder) => $builder
+                ->whereNull('specific_pages')
+                ->orWhereJsonLength('specific_pages', 0)
+                ->orWhereJsonContains('specific_pages', 'home')
+                ->orWhereJsonContains('specific_pages', 'Home'));
     }
 }

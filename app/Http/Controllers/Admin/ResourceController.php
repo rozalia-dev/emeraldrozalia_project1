@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Services\AuditTrail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 class ResourceController extends Controller {
@@ -40,18 +42,109 @@ class ResourceController extends Controller {
         $records=$query->latest()->paginate(25)->withQueryString();$statuses=self::GENERIC_STATUSES;$title=$this->titleFor($module);$description=$this->descriptionFor($module);
         return view('admin.resources.index',compact('module','records','statuses','title','description','search','status','dateFrom','dateTo'));
     }
-    private function reviewsRatings(Request $request){
-        $reviews = collect([
-            (object)['id'=>1,'title'=>'Excellent quality!','comment'=>'The cap quality is outstanding. Very comfortable and stylish.','product_name'=>'Emerald Signature Cap','sku'=>'ER-CAP-001','rating'=>5.0,'customer'=>'Michael O\'Connor','verified'=>true,'source'=>'Website','source_icon'=>'globe','status'=>'Approved','date'=>'01 May 2025','time'=>'10:30 AM','image'=>'assets/products/cap.jpg'],
-            (object)['id'=>2,'title'=>'Great fit and design','comment'=>'Love the premium feel and the adjustable strap.','product_name'=>'Luxury Baseball Cap','sku'=>'ER-CAP-013','rating'=>4.0,'customer'=>'Sarah Kelly','verified'=>true,'source'=>'Website','source_icon'=>'globe','status'=>'Approved','date'=>'01 May 2025','time'=>'09:15 AM','image'=>'assets/products/cap2.jpg'],
-            (object)['id'=>3,'title'=>'Very happy with purchase','comment'=>'Perfect for everyday wear. Will buy again!','product_name'=>'Premium Bucket Hat','sku'=>'ER-HAT-021','rating'=>5.0,'customer'=>'James Byrne','verified'=>true,'source'=>'WhatsApp','source_icon'=>'message-circle','status'=>'Approved','date'=>'30 Apr 2025','time'=>'08:20 PM','image'=>'assets/products/hat.jpg'],
-            (object)['id'=>4,'title'=>'Colour slightly different','comment'=>'The color is a bit lighter than shown in the pictures.','product_name'=>'Classic Snapback Cap','sku'=>'ER-CAP-007','rating'=>3.0,'customer'=>'Aoife Walsh','verified'=>false,'source'=>'Website','source_icon'=>'globe','status'=>'Pending','date'=>'30 Apr 2025','time'=>'05:45 PM','image'=>'assets/products/cap3.jpg'],
-            (object)['id'=>5,'title'=>'Amazing product!','comment'=>'Top notch quality and fast delivery.','product_name'=>'Emerald Trucker Cap','sku'=>'ER-CAP-009','rating'=>5.0,'customer'=>'Liam Murphy','verified'=>false,'source'=>'Google','source_icon'=>'search','status'=>'Approved','date'=>'30 Apr 2025','time'=>'02:10 PM','image'=>'assets/products/cap4.jpg'],
-            (object)['id'=>6,'title'=>'Not as expected','comment'=>'The material feels cheap for the price.','product_name'=>'Urban Street Cap','sku'=>'ER-CAP-015','rating'=>2.0,'customer'=>'Declan Brown','verified'=>true,'source'=>'Website','source_icon'=>'globe','status'=>'Flagged','date'=>'29 Apr 2025','time'=>'11:05 AM','image'=>'assets/products/cap5.jpg'],
-            (object)['id'=>7,'title'=>'Worth every penny','comment'=>'Excellent craftsmanship and premium packaging.','product_name'=>'Signature Wool Hat','sku'=>'ER-HAT-008','rating'=>5.0,'customer'=>'Niamh O\'Reilly','verified'=>false,'source'=>'Email','source_icon'=>'mail','status'=>'Approved','date'=>'29 Apr 2025','time'=>'10:20 AM','image'=>'assets/products/hat2.jpg'],
-            (object)['id'=>8,'title'=>'Good but delivery was slow','comment'=>'Product is good, but took longer than expected to arrive.','product_name'=>'Flex Fit Cap','sku'=>'ER-CAP-003','rating'=>4.0,'customer'=>'Conor Gallagher','verified'=>true,'source'=>'Website','source_icon'=>'globe','status'=>'Approved','date'=>'28 Apr 2025','time'=>'04:30 PM','image'=>'assets/products/cap6.jpg'],
-        ]);
-        return view('admin.reviews-ratings.index', compact('reviews'));
+    private function reviewsRatings(Request $request): View
+    {
+        $search = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', '');
+        $status = in_array($status, ['pending', 'approved', 'rejected', 'flagged'], true) ? $status : '';
+        $rating = (int) $request->query('rating', 0);
+        $rating = $rating >= 1 && $rating <= 5 ? $rating : 0;
+        $perPage = in_array((int) $request->query('per_page', 8), [8, 16, 32], true) ? (int) $request->query('per_page', 8) : 8;
+
+        $query = Review::query()->with(['product', 'user'])->latest('created_at')->latest('id');
+        if ($search !== '') {
+            $query->where(function ($reviews) use ($search): void {
+                $needle = '%'.$search.'%';
+                $reviews->where('title', 'like', $needle)
+                    ->orWhere('body', 'like', $needle)
+                    ->orWhereHas('product', fn ($product) => $product->where('name', 'like', $needle)->orWhere('sku', 'like', $needle))
+                    ->orWhereHas('user', fn ($user) => $user->where('name', 'like', $needle)->orWhere('email', 'like', $needle));
+            });
+        }
+        if ($status !== '') $query->where('status', $status);
+        if ($rating > 0) $query->where('rating', $rating);
+
+        $reviews = $query->paginate($perPage)->withQueryString();
+        $reviews->setCollection($reviews->getCollection()->map(function (Review $review): object {
+            $statusKey = strtolower((string) ($review->status ?: 'pending'));
+            $statusKey = $statusKey === 'in_review' ? 'pending' : $statusKey;
+            $image = $review->product?->image;
+            if (filled($image) && ! Str::startsWith((string) $image, ['http://', 'https://', '/'])) {
+                $image = Storage::disk('public')->url($image);
+            }
+
+            return (object) [
+                'id' => $review->id,
+                'uuid' => $review->public_uuid,
+                'title' => $review->title ?: 'Untitled review',
+                'comment' => $review->body ?: 'No written comment.',
+                'product_name' => $review->product?->name ?: 'Deleted product',
+                'sku' => $review->product?->sku ?: '—',
+                'rating' => (float) $review->rating,
+                'customer' => $review->user?->name ?: 'Customer',
+                'verified' => false,
+                'source' => 'Website',
+                'source_icon' => 'globe',
+                'status' => Str::headline($statusKey),
+                'status_key' => $statusKey,
+                'date' => $review->created_at?->timezone(config('app.timezone'))->format('d M Y') ?: '—',
+                'time' => $review->created_at?->timezone(config('app.timezone'))->format('h:i A') ?: '—',
+                'image' => $image,
+            ];
+        }));
+
+        $totalReviews = (int) Review::query()->count();
+        $stats = [
+            'average_rating' => round((float) (Review::query()->avg('rating') ?? 0), 1),
+            'total' => $totalReviews,
+            'pending' => (int) Review::query()->whereIn('status', ['pending', 'in_review'])->count(),
+            'approved' => (int) Review::query()->where('status', 'approved')->count(),
+            'flagged' => (int) Review::query()->whereIn('status', ['flagged', 'reported'])->count(),
+        ];
+
+        $last30 = Review::query()->where('created_at', '>=', now()->subDays(30));
+        $analytics = [
+            'new_reviews' => (int) $last30->count(),
+            'average_rating' => round((float) (Review::query()->where('created_at', '>=', now()->subDays(30))->avg('rating') ?? 0), 1),
+            'review_views' => '—',
+            'conversion' => '—',
+        ];
+
+        $ratingBreakdown = [];
+        for ($stars = 5; $stars >= 1; $stars--) {
+            $count = (int) Review::query()->where('rating', $stars)->count();
+            $percentage = $totalReviews > 0 ? round(($count / $totalReviews) * 100, 1) : 0;
+            $ratingBreakdown[$stars] = [
+                'count' => $count,
+                'percentage' => $percentage,
+            ];
+        }
+
+        $topProducts = Review::query()
+            ->with('product')
+            ->select('product_id')
+            ->selectRaw('COUNT(*) AS reviews_count')
+            ->selectRaw('AVG(rating) AS average_rating')
+            ->whereNotNull('product_id')
+            ->groupBy('product_id')
+            ->orderByDesc('reviews_count')
+            ->limit(3)
+            ->get();
+
+        $lastReviewUuid = Review::query()->latest('created_at')->value('public_uuid');
+
+        return view('admin.reviews-ratings.index', compact(
+            'reviews',
+            'stats',
+            'analytics',
+            'ratingBreakdown',
+            'topProducts',
+            'lastReviewUuid',
+            'search',
+            'status',
+            'rating',
+            'perPage',
+        ));
     }
     private function communicationCenter(Request $request,string $module):View {$status=(string)$request->query('status','');$search=trim((string)$request->query('q',''));$query=Conversation::with(['messages'=>fn($messages)=>$messages->oldest(),'assignee'])->latest();if(in_array($status,['new','open','pending','closed'],true))$query->where('status',$status);if($search!=='')$query->where(fn($conversations)=>$conversations->where('contact','like','%'.$search.'%')->orWhere('subject','like','%'.$search.'%'));$conversations=$query->paginate(25)->withQueryString();$admins=User::query()->where('is_admin',true)->orderBy('name')->get(['id','name']);return view('admin.communication-center.index',compact('module','conversations','status','search','admins'));}
     private function productManager(Request $request){

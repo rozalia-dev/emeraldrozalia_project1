@@ -6,4 +6,5 @@ require __DIR__.'/settings.php';
 require __DIR__.'/sales-reports.php';
 require __DIR__.'/reports.php';
 require __DIR__.'/banners.php';
+require __DIR__.'/api.php';
 require __DIR__.'/web.php';

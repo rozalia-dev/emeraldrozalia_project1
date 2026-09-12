@@ -45,6 +45,23 @@
     </div>
 </section>
 
+@if(isset($banners) && $banners->isNotEmpty())
+<section class="home-published-banners" aria-label="Published Emerald Rozalia banners">
+    @foreach($banners as $banner)
+        @php($bannerTarget = filled($banner->target_url) ? $banner->target_url : null)
+        @if($bannerTarget)<a class="home-published-banner" href="{{ $bannerTarget }}" data-banner-public-uuid="{{ $banner->public_uuid }}">@else<div class="home-published-banner" data-banner-public-uuid="{{ $banner->public_uuid }}">@endif
+            @if($banner->imageUrl())
+                <img src="{{ $banner->imageUrl() }}" alt="{{ $banner->alt_text ?: $banner->title }}" @if($banner->title_text) title="{{ $banner->title_text }}" @endif>
+            @endif
+            <div class="home-published-banner__copy">
+                @if($banner->title)<strong>{{ $banner->title }}</strong>@endif
+                @if($banner->subtitle)<span>{{ $banner->subtitle }}</span>@endif
+            </div>
+        @if($bannerTarget)</a>@else</div>@endif
+    @endforeach
+</section>
+@endif
+
 <section class="home-benefits" aria-label="Emerald Rozalia benefits">
     <div><span class="home-benefit-icon"><x-icon name="clover" size="42" /></span><span class="home-benefit-copy"><b>MADE IN LIMERICK</b><small>Proudly designing &amp;<br>manufacturing in Ireland.</small></span></div>
     <div><span class="home-benefit-icon"><x-icon name="star" size="42" /></span><span class="home-benefit-copy"><b>PREMIUM QUALITY</b><small>Built to last with the<br>finest materials.</small></span></div>
