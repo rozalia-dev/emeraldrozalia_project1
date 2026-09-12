@@ -136,9 +136,15 @@ return new class extends Migration
             DB::statement('ALTER TABLE approvals DROP CONSTRAINT IF EXISTS approvals_status_check');
         }
 
+        foreach (['approvals_reference_unique', 'approvals_idempotency_key_unique'] as $index) {
+            if (Schema::hasIndex('approvals', $index)) {
+                Schema::table('approvals', function (Blueprint $table) use ($index): void {
+                    $table->dropUnique($index);
+                });
+            }
+        }
+
         foreach ([
-            'approvals_reference_unique',
-            'approvals_idempotency_key_unique',
             'approvals_company_status_index',
             'approvals_company_priority_index',
             'approvals_company_due_at_index',
