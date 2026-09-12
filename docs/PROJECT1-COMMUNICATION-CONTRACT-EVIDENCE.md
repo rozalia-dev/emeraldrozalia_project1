@@ -1,6 +1,6 @@
 # Project 1 Communication Center contract evidence
 
-**Scope:** Communication Center source-of-truth and delivery boundary follow-up, plus the Email Templates contract candidate
+**Scope:** Communication Center source-of-truth and delivery boundary follow-up, plus the deployed Email Templates contract
 **Guide references:** pages 417–419 (Communication Audit Dashboard) and pages 436–438 (Email Templates Dashboard)
 **Audit requirement:** one shared cPanel conversation path for web, chat, WhatsApp and email; durable correlation, idempotency, provider, queue, retry, callback, consent, redaction and audit contracts
 
@@ -42,4 +42,4 @@ Until an adapter is installed and a signed callback is tested, outbound messages
 
 ## Release interpretation
 
-Local PHP, Composer and Docker are unavailable in this workspace. `git diff --check` is the local static gate; PostgreSQL migrations, PHPUnit, container rehearsal, deployment and post-deploy health are authoritative GitHub workflow gates. Merged main release `b8b9db1d1f9313bb3a3f49a3051c38cd321cbbf3` passed all of those gates in [GitHub Actions run #318](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34716793864), including 195 tests/2,141 assertions, container rehearsal and the exact-SHA Hetzner health check. The release backup was recorded as `20260912T202507Z-b8b9db1d1f93`.
+Local PHP, Composer and Docker are unavailable in this workspace. `git diff --check` is the local static gate; PostgreSQL migrations, PHPUnit, container rehearsal, deployment and post-deploy health are authoritative GitHub workflow gates. Merged main release `aef4fc3e42155f5fca76790356bc9e5f0008dc14` passed all of those gates in [GitHub Actions run #323](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34718804955), including 197 tests/2,169 assertions, migration rollback/re-run, container rehearsal and the exact-SHA Hetzner health check. The release backup was recorded as `20260912T210618Z-aef4fc3e4215`.

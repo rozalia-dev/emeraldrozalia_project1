@@ -2,7 +2,8 @@
 
 **Scope:** Communication Center Email Templates Dashboard (Visual 141)
 **Guide references:** narrative pages 436–438; ordered visual row 141, pages 429–431
-**Status:** bounded implementation candidate; not a completion claim for the 519-page guide or 167-reference visual set
+**Status:** deployed bounded implementation slice; not a completion claim for the 519-page guide or 167-reference visual set
+**Deployed release:** `aef4fc3e42155f5fca76790356bc9e5f0008dc14` via [GitHub Actions run #323](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34718804955); backup `20260912T210618Z-aef4fc3e4215`
 
 ## Source of truth
 
