@@ -1,6 +1,6 @@
 # Project 1 public/private synchronization matrix
 
-**Baseline:** Batch 7 deployed `main` release `16c4e8097a7ba647df0e1b1278574a7a9fb37038`
+**Baseline:** Batch 8 deployed `main` release `093e451df45e4ed1665204003591f86833913d81`
 **Rule:** “connected” means a traceable shared model/query path exists; it does not mean the complete production workflow is proven.
 
 | Public surface | Public read/write path | Private consumer | Current result | Required next contract |
