@@ -63,6 +63,8 @@
         </div>
     </div>
 
+    <div class="sales-report-data-note" role="status">{{ $dataNote }}</div>
+
     <div class="sales-report-layout">
         <main class="sales-report-main">
             <section class="sales-report-kpis" aria-label="Sales report metrics">
