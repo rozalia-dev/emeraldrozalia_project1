@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CommunicationWebhookController;
+use App\Http\Controllers\Admin\CommunicationEmailController;
 use App\Http\Controllers\Admin\CommunicationTemplateController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use Illuminate\Support\Facades\Route;
@@ -28,4 +29,15 @@ Route::prefix('api/v1/communication/templates')
         Route::post('/{template:uuid}/actions/{action}', [CommunicationTemplateController::class, 'apiAction'])
             ->where('action', 'activate|archive|duplicate|restore|submit_for_approval')
             ->name('action');
+    });
+
+Route::prefix('api/v1/communication/email')
+    ->middleware(['web', 'auth', 'admin', 'throttle:60,1'])
+    ->name('api.v1.communication.email.')
+    ->group(function (): void {
+        Route::get('/', [CommunicationEmailController::class, 'index'])->name('index');
+        Route::get('/{conversation:uuid}', [CommunicationEmailController::class, 'show'])->name('show');
+        Route::patch('/{conversation:uuid}', [CommunicationEmailController::class, 'update'])->name('update');
+        Route::post('/{conversation:uuid}/messages', [CommunicationEmailController::class, 'reply'])->name('messages.store');
+        Route::get('/{conversation:uuid}/audit', [CommunicationEmailController::class, 'audit'])->name('audit');
     });

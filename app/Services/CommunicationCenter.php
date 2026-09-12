@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\CommunicationConversationChanged;
 use App\Jobs\DeliverCommunicationMessage;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
@@ -30,6 +31,7 @@ class CommunicationCenter
 
         DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
             $lockedConversation = Conversation::query()
+                ->forCurrentCompany()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -94,6 +96,7 @@ class CommunicationCenter
 
         DB::transaction(function () use (&$updated, $conversation, $data): void {
             $lockedConversation = Conversation::query()
+                ->forCurrentCompany()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -124,6 +127,8 @@ class CommunicationCenter
                 $this->conversationState($updated),
             );
         });
+
+        $this->dispatchChanged($updated, 'updated');
 
         return $updated;
     }
@@ -173,7 +178,7 @@ class CommunicationCenter
             'channel' => $conversation->channel,
             'status' => $conversation->status,
             'priority' => $conversation->priority,
-            'assigned_to' => $conversation->assigned_to,
+            'assigned_to_uuid' => $conversation->assignee?->public_uuid ?: $conversation->assignee?->uuid,
             'follow_up_at' => optional($conversation->follow_up_at)->toISOString(),
             'correlation_id' => $conversation->correlation_id,
         ];
@@ -186,5 +191,18 @@ class CommunicationCenter
         return is_string($candidate) && Str::isUuid($candidate)
             ? $candidate
             : (string) Str::uuid();
+    }
+
+    private function dispatchChanged(?Conversation $conversation, string $action): void
+    {
+        if (! $conversation) {
+            return;
+        }
+
+        event(new CommunicationConversationChanged(
+            $conversation,
+            $action,
+            (string) ($conversation->correlation_id ?: $this->correlationId()),
+        ));
     }
 }
