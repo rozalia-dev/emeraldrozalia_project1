@@ -10,6 +10,7 @@ use App\Models\ReturnRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\ReportAnalyticsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -67,6 +68,21 @@ class ReportController extends Controller
         ]);
     }
 
+    public function order(Request $request, ReportAnalyticsService $analytics): View
+    {
+        return view('admin.reports.analytics', $analytics->build('order', $request));
+    }
+
+    public function communication(Request $request, ReportAnalyticsService $analytics): View
+    {
+        return view('admin.reports.analytics', $analytics->build('communication', $request));
+    }
+
+    public function customer(Request $request, ReportAnalyticsService $analytics): View
+    {
+        return view('admin.reports.analytics', $analytics->build('customer', $request));
+    }
+
     public function run(Request $request): RedirectResponse
     {
         $data = $request->validate(['report' => ['required', 'string', 'max:180'], 'module' => ['nullable', 'string', 'max:120']]);
@@ -79,11 +95,14 @@ class ReportController extends Controller
         return back()->with('success', 'Report “'.$data['report'].'” ran successfully and was added to history.');
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, ReportAnalyticsService $analytics): StreamedResponse
     {
         $format = (string) $request->query('format', 'csv');
         $name = Str::slug((string) $request->query('name', 'report-center'));
-        $rows = $this->exportRows($request);
+        $analyticsReport = (string) $request->query('analytics', '');
+        $rows = in_array($analyticsReport, ReportAnalyticsService::REPORTS, true)
+            ? $analytics->exportRows($analyticsReport, $request)
+            : $this->exportRows($request);
         $filename = 'emerald-rozalia-'.$name.'-'.now()->format('Ymd-His').'.'.($format === 'json' ? 'json' : 'csv');
 
         if ($format === 'json') {

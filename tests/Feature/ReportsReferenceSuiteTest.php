@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AdminRecord;
+use App\Models\Conversation;
+use App\Models\Order;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -53,5 +55,53 @@ class ReportsReferenceSuiteTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $this->actingAs($admin)->get(route('admin.reports.export', ['name' => 'history']))->assertOk()->assertDownload();
+    }
+
+    public function test_order_communication_and_customer_dashboards_render_from_the_shared_reports_menu(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $pages = [
+            'order' => ['Order Reports', 'Online Orders', 'Orders by Type'],
+            'communication' => ['Communication Reports', 'Conversations by Channel', 'SLA Performance'],
+            'customer' => ['Customer Reports', 'Customers by Segment', 'Top Customers by Revenue'],
+        ];
+
+        foreach ($pages as $page => $content) {
+            $this->actingAs($admin)->get(route('admin.reports.'.$page))
+                ->assertOk()
+                ->assertSee($content, false)
+                ->assertSee('Order Reports', false)
+                ->assertSee('Communication Reports', false)
+                ->assertSee('Customer Reports', false)
+                ->assertSee('/css/reports-analytics-reference.css?v=20260912-1', false)
+                ->assertSee('/js/reports-analytics-reference.js?v=20260912-1', false)
+                ->assertSee('data-report-analytics-root', false);
+        }
+    }
+
+    public function test_report_dashboards_use_postgresql_records_when_the_reference_window_is_filtered(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $customer = User::factory()->create(['name' => 'Live Report Customer', 'is_admin' => false]);
+        $order = Order::create([
+            'user_id' => $customer->id, 'number' => 'LIVE-REPORT-001', 'order_type' => 'online', 'status' => 'delivered',
+            'payment_status' => 'paid', 'fulfillment_status' => 'delivered', 'subtotal' => 321.50, 'shipping' => 0,
+            'discount' => 0, 'total' => 321.50, 'currency' => 'EUR', 'email' => $customer->email,
+            'shipping_address' => ['country_name' => 'Ireland', 'channel' => 'website'],
+        ]);
+        Conversation::create([
+            'channel' => 'whatsapp', 'contact' => $customer->email, 'subject' => 'Live report conversation',
+            'status' => 'open', 'metadata' => ['name' => 'Live Report Customer', 'category' => 'Order Support'],
+        ]);
+
+        $window = ['from' => now()->subDay()->toDateString(), 'to' => now()->addDay()->toDateString()];
+        $this->actingAs($admin)->get(route('admin.reports.order', $window + ['q' => $order->number]))
+            ->assertOk()->assertSee('€321.50', false)->assertSee('Live PostgreSQL data', false);
+        $this->actingAs($admin)->get(route('admin.reports.communication', $window + ['q' => 'Live report']))
+            ->assertOk()->assertSee('Live report conversation', false)->assertSee('Live PostgreSQL data', false);
+        $this->actingAs($admin)->get(route('admin.reports.customer', $window + ['q' => 'Live Report Customer']))
+            ->assertOk()->assertSee('Live Report Customer', false)->assertSee('Live PostgreSQL data', false);
+        $this->actingAs($admin)->get(route('admin.reports.export', ['name' => 'order-reports', 'analytics' => 'order'] + $window))
+            ->assertOk()->assertDownload();
     }
 }
