@@ -89,7 +89,7 @@ Treat each item below as open until a later task closes it with evidence.
 - The cart Blade view expects the CartService shape (items, subtotal, key, price, options), but the route currently points at the incompatible controller implementation.
 - The 360° JavaScript looks for data-spin, while the product view exposes data-spin-viewer/data-images; the feature is not verified functional.
 - Product media has a migration table but no ProductMedia model or dedicated media-manager workflow. The virtual try-on currently uses a placeholder badge asset instead of a product-specific transparent hat asset.
-- The Page Manager has basic lifecycle persistence, but the public page view does not render the managed page/sections, and there is no complete edit, preview, builder, template, navigation, restore-revision or bulk workflow.
+- The Page Manager now renders published managed body/sections through a controlled public/preview renderer and enforces visibility/login settings; complete edit, template, navigation, restore-revision and bulk workflows remain open.
 - Many cPanel links resolve to generic AdminRecord pages. The dashboard quick links for /admin/module/products and /admin/module/collections do not match the reviewed AdminController allow-list.
 - Communication, franchise stores/milestones, reports, integrations, automation, backup/recovery and maintenance have schema/foundation pieces but lack their dedicated workflows, permissions, adapters and acceptance tests.
 

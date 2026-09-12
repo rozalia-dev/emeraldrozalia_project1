@@ -274,6 +274,15 @@ class SiteController extends Controller
             ->where('status', 'published')
             ->where(fn ($q) => $q->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
             ->first();
+
+        if ($managedPage && ! $managedPage->isPublic()) {
+            abort(404);
+        }
+
+        if ($managedPage?->requiresLogin() && ! auth()->check()) {
+            return redirect()->guest(route('login'));
+        }
+
         abort_unless($managedPage || in_array($page, $allowed, true), 404);
         return view('site.page', compact('page', 'managedPage'));
     }

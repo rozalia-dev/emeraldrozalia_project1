@@ -86,6 +86,8 @@ final class SeoMetadata
             ->where('locale', app()->getLocale())
             ->where('status', 'published')
             ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
-            ->first();
+            ->get()
+            ->first(fn (ContentPage $page): bool => $page->isPublic()
+                && (! $page->requiresLogin() || auth()->check()));
     }
 }
