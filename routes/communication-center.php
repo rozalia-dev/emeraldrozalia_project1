@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CommunicationCenterController;
+use App\Http\Controllers\Admin\CommunicationApprovalController;
 use App\Http\Controllers\Admin\CommunicationEmailController;
 use App\Http\Controllers\Admin\CommunicationTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,22 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($c
     Route::post('/communication-center/email-templates/templates/{template:uuid}/{action}', [CommunicationTemplateController::class, 'action'])
         ->where('action', 'activate|archive|duplicate|restore|submit_for_approval')
         ->name('admin.communication-center.templates.action');
+
+    Route::post('/communication-center/approval-center/requests', [CommunicationApprovalController::class, 'store'])
+        ->name('admin.communication-center.approvals.store');
+
+    Route::patch('/communication-center/approval-center/requests/{approval:uuid}', [CommunicationApprovalController::class, 'update'])
+        ->name('admin.communication-center.approvals.update');
+
+    Route::delete('/communication-center/approval-center/requests/{approval:uuid}', [CommunicationApprovalController::class, 'destroy'])
+        ->name('admin.communication-center.approvals.destroy');
+
+    Route::post('/communication-center/approval-center/requests/{approval:uuid}/actions/{action}', [CommunicationApprovalController::class, 'action'])
+        ->where('action', 'approve|reject|escalate|reopen|cancel')
+        ->name('admin.communication-center.approvals.action');
+
+    Route::get('/communication-center/approval-center/requests/{approval:uuid}/audit/export', [CommunicationApprovalController::class, 'exportAudit'])
+        ->name('admin.communication-center.approvals.audit.export');
 
     Route::post('/communication-center/{section}/records', [CommunicationCenterController::class, 'storeRecord'])
         ->where('section', 'approval-center|action-follow-ups|alerts-notifications')
