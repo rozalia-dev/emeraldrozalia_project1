@@ -57,8 +57,6 @@
         [
             'label'=>'ONLINE SALES',
             'items'=>[
-                ['route'=>'admin.order-master.overview','label'=>'Order Master Overview','icon'=>'shopping-bag','active'=>'admin/order-master*'],
-                ...$orderItems,
                 [
                     'route'=>'admin.customers.index','label'=>'Customers','icon'=>'users','active'=>'admin/customers*',
                     'children'=>[
@@ -71,6 +69,13 @@
                 ['slug'=>'payments','label'=>'Payments','icon'=>'credit-card','active'=>'admin/resource/payments*'],
                 ['slug'=>'discounts-coupons','label'=>'Discounts & Coupons','icon'=>'star','active'=>'admin/resource/discounts-coupons*'],
                 ['route'=>'admin.sales-reports.dashboard','label'=>'Sales Reports','icon'=>'chart','active'=>'admin/resource/sales-reports*'],
+            ],
+        ],
+        [
+            'label'=>'ORDER MANAGEMENT (6 CATEGORIES)',
+            'items'=>[
+                ['route'=>'admin.order-master.overview','label'=>'Order Master Overview','icon'=>'shopping-bag','active'=>'admin/order-master*'],
+                ...$orderItems,
             ],
         ],
         [
@@ -110,7 +115,7 @@
     <a href="{{route('admin.dashboard')}}" class="admin-logo"><img class="admin-logo-image" src="{{asset('assets/logo/logo_two_line.png')}}" alt="Emerald Rozalia Limited"></a>
     <a class="admin-nav-home {{request()->routeIs('admin.dashboard')?'active':''}}" href="{{route('admin.dashboard')}}"><x-icon name="home" /> Dashboard</a>
     @foreach($groups as $group)
-        <details class="admin-nav-group" open>
+        <details class="admin-nav-group" data-admin-nav-group="{{\Illuminate\Support\Str::slug($group['label'])}}" open>
             <summary><span>{{$group['label']}}</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
                 @foreach($group['items'] as $item)
@@ -137,7 +142,7 @@
         </details>
     @endforeach
     <nav class="admin-nav-utility" aria-label="Administration">
-        <details class="admin-nav-group" open>
+        <details class="admin-nav-group" data-admin-nav-group="reports" open>
             <summary><span>REPORTS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
                 <a class="{{request()->is('admin/resource/franchise-management*')?'active':''}}" href="{{route('admin.resource','franchise-management')}}"><span class="admin-nav-item-label"><x-icon name="briefcase" size="14" /><span>Franchise Reports</span></span></a>
@@ -149,7 +154,7 @@
                 <a class="{{request()->is('admin/resource/website-products*')?'active':''}}" href="{{route('admin.resource','website-products')}}"><span class="admin-nav-item-label"><x-icon name="globe" size="14" /><span>Website Analytics</span></span></a>
             </div>
         </details>
-        <details class="admin-nav-group" open>
+        <details class="admin-nav-group" data-admin-nav-group="users-roles" open>
             <summary><span>USERS &amp; ROLES</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
                 <a class="{{request()->routeIs('admin.user-system.users')?'active':''}}" href="{{route('admin.user-system.users')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Users Management</span></span></a>
@@ -161,28 +166,15 @@
                 <a class="{{request()->routeIs('admin.user-system.activity')?'active':''}}" href="{{route('admin.user-system.activity')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Activity &amp; Security Log</span></span></a>
             </div>
         </details>
-        <details class="admin-nav-group" open>
+        <details class="admin-nav-group" data-admin-nav-group="settings" open>
             <summary><span>SETTINGS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items admin-settings-nav-items">
                 @php
                     $settingsNav = [
-                        ['slug' => null, 'label' => 'Settings Overview', 'icon' => 'grid', 'active' => request()->routeIs('admin.settings.overview')],
-                        ['slug' => 'general-configuration', 'label' => 'General Configuration', 'icon' => 'settings'],
-                        ['slug' => 'company-branding', 'label' => 'Company & Branding', 'icon' => 'briefcase'],
-                        ['slug' => 'email-notifications', 'label' => 'Email & Notifications', 'icon' => 'mail'],
-                        ['slug' => 'whatsapp-messaging', 'label' => 'WhatsApp & Messaging', 'icon' => 'message'],
-                        ['slug' => 'payment-gateways', 'label' => 'Payment Gateways', 'icon' => 'credit-card'],
-                        ['slug' => 'localization', 'label' => 'Localization', 'icon' => 'globe'],
-                        ['slug' => 'security-access', 'label' => 'Security & Access', 'icon' => 'check'],
-                        ['slug' => 'api-roles', 'label' => 'Users & Roles Settings', 'icon' => 'users'],
-                        ['slug' => 'application-settings', 'label' => 'Application Settings', 'icon' => 'settings'],
-                        ['slug' => 'document-storage', 'label' => 'Document & Storage', 'icon' => 'file-text'],
-                        ['slug' => 'integrations', 'label' => 'Integrations', 'icon' => 'refresh'],
-                        ['slug' => 'automations', 'label' => 'Automations', 'icon' => 'refresh'],
-                        ['slug' => 'backup-recovery', 'label' => 'Backup & Recovery', 'icon' => 'download'],
+                        ['slug' => null, 'label' => 'Settings', 'icon' => 'settings', 'active' => request()->routeIs('admin.settings.overview')],
                         ['slug' => 'audit-logs', 'label' => 'Audit & Logs', 'icon' => 'file-text'],
-                        ['slug' => 'system-maintenance', 'label' => 'System Maintenance', 'icon' => 'refresh'],
-                        ['slug' => 'other-settings', 'label' => 'Other Settings', 'icon' => 'dots'],
+                        ['slug' => 'integrations', 'label' => 'Integrations', 'icon' => 'refresh'],
+                        ['slug' => 'backup-recovery', 'label' => 'Data Management', 'icon' => 'download'],
                     ];
                 @endphp
                 @foreach($settingsNav as $item)

@@ -1,6 +1,6 @@
 # Project 1 navigation map
 
-**Baseline:** c54e933e36c68f2951e5e05afb32119ea02ea467
+**Baseline:** Batch 6 deployed `main` release `dfeb04dac54982bc420b537384cdc5eedf28abf5`
 **Canonical owner:** one unified Project 1 cPanel and the public/customer website
 **Reference sources:** guide v3, cPanel/Settings/Orders/Reports references, resources/views/layouts/admin.blade.php
 
@@ -41,7 +41,6 @@ The following is the canonical structure to reconcile against the supplied cPane
   - Reviews & Ratings
 
 - ONLINE SALES
-  - Orders (6 Categories)
   - Customers
     - Customer Management
     - Customer Groups
@@ -52,6 +51,7 @@ The following is the canonical structure to reconcile against the supplied cPane
   - Sales Reports
 
 - ORDER MANAGEMENT (6 CATEGORIES)
+  - Order Master Overview
   - Online Orders
   - Corporate Orders
   - Bulk Orders
@@ -117,21 +117,25 @@ The current shared shell in resources/views/layouts/admin.blade.php defines:
 |---|---:|---|
 | Dashboard | 1 | Named admin.dashboard route |
 | Website & Products | 5 top-level, 11 Products children | Real product/media/page/SEO/resource links |
-| Online Sales | 12 top-level, 3 Customers children | Six order links are direct children of Online Sales |
+| Online Sales | 5 top-level, 3 Customers children | Customer, cart, payment, discount and sales-report links; order categories are isolated below |
+| Order Management | 1 overview, 6 category links | Dedicated six-category group backed by the shared Order Master routes |
 | Franchise Management | 10 | Dedicated and generic franchise resource links |
 | Communication Center | 10 | Dedicated CommunicationCenter sections |
 | Reports utility | 7 | Utility links are separate from report routes |
 | Users & Roles utility | 7 | UserSystemController routes |
-| Settings utility | 17 | SettingsController section links |
-| All expanded source entries | 68 | Audit count; 81 clickable destinations including nested leaves |
+| Settings utility | 4 | Compact reference shell; detailed SettingsController sections remain reachable from the Settings overview |
+| All expanded source entries | 55 | Audit count; 68 clickable destinations including nested leaves |
 
-## Definite mismatches to resolve in the next shell task
+## Resolved in Batch 7
 
-1. The source has no separate ORDER MANAGEMENT (6 CATEGORIES) group. The six order links sit directly in ONLINE SALES.
-2. The supplied reference shows the compact four-item SETTINGS shell; the current source exposes 17 Settings entries. Detailed Settings pages still need to remain reachable through the compact shell design.
-3. The reference uses a compact black shell. Current CSS contains a 245px sidebar, a later 208px override, a generic approximately 70px top area, and page-specific overrides. Exact geometry is not yet measured by screenshot diff.
-4. Reports utility links and report pages are not yet a single canonical route/menu contract.
-5. The public navigation and footer-only contact rule must remain separate from the admin shell.
+1. The six order links now sit under a dedicated ORDER MANAGEMENT (6 CATEGORIES) group while the shared Order Master engine remains one domain.
+2. The sidebar now exposes the compact four-item Settings shell: Settings, Audit & Logs, Integrations and Data Management. Detailed SettingsController sections remain reachable through the Settings overview and direct canonical routes.
+
+## Remaining shell gaps
+
+1. The reference uses a compact black shell. Current CSS contains a 245px sidebar, a later 208px override, a generic approximately 70px top area, and page-specific overrides. Exact geometry is not yet measured by screenshot diff.
+2. Reports utility links and report pages are not yet a single canonical route/menu contract.
+3. The public navigation and footer-only contact rule must remain separate from the admin shell.
 
 ## Route ownership index
 
