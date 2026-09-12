@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Emerald Rozalia Project 1 API
   version: 1.0.0
-  description: Versioned public catalog and published-banner contract for Project 1.
+  description: Versioned public catalog, published-banner and authenticated Communication Center Email Dashboard contract for Project 1.
 servers:
   - url: /
 paths:
@@ -47,7 +47,112 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PaginatedBanners' }
+  /api/v1/communication/email:
+    get:
+      operationId: listCommunicationEmailConversations
+      summary: List tenant-scoped email conversations
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: customer, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: order, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: uid, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: date_from, in: query, schema: { type: string, format: date } }
+        - { name: date_to, in: query, schema: { type: string, format: date } }
+        - { name: status, in: query, schema: { type: string, enum: [new, open, pending, closed] } }
+        - { name: priority, in: query, schema: { type: string, enum: [low, normal, high, urgent] } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Paginated tenant-scoped email conversations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedCommunicationConversations' }
+        '401': { description: Authentication required }
+        '403': { description: Administrator permission required }
+  /api/v1/communication/email/{conversation}:
+    parameters:
+      - { name: conversation, in: path, required: true, description: Conversation UUID, schema: { type: string, format: uuid } }
+    get:
+      operationId: showCommunicationEmailConversation
+      summary: Show one email conversation and message history
+      security: [{ adminSession: [] }]
+      responses:
+        '200':
+          description: Email conversation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunicationConversationResponse' }
+        '404': { description: Email conversation not found in the active company }
+    patch:
+      operationId: updateCommunicationEmailConversation
+      summary: Update email conversation state
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [new, open, pending, closed] }
+                priority: { type: string, enum: [low, normal, high, urgent] }
+                assigned_to: { type: [integer, 'null'] }
+                follow_up_at: { type: [string, 'null'], format: date-time }
+      responses:
+        '200':
+          description: Updated email conversation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunicationConversationResponse' }
+        '422': { description: Validation error }
+        '403': { description: Administrator permission required }
+  /api/v1/communication/email/{conversation}/messages:
+    parameters:
+      - { name: conversation, in: path, required: true, description: Conversation UUID, schema: { type: string, format: uuid } }
+    post:
+      operationId: replyToCommunicationEmailConversation
+      summary: Queue an email conversation reply
+      security: [{ adminSession: [] }]
+      parameters:
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 120 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, maxLength: 10000 }
+      responses:
+        '200':
+          description: Queued message
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunicationMessageResponse' }
+        '422': { description: Validation error }
+        '403': { description: Administrator permission required }
+  /api/v1/communication/email/{conversation}/audit:
+    parameters:
+      - { name: conversation, in: path, required: true, description: Conversation UUID, schema: { type: string, format: uuid } }
+    get:
+      operationId: listCommunicationEmailAudit
+      summary: List redacted audit entries for an email conversation
+      security: [{ adminSession: [] }]
+      responses:
+        '200':
+          description: Paginated redacted audit entries
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedCommunicationAudit' }
+        '403': { description: Administrator permission required }
 components:
+  securitySchemes:
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: session
   schemas:
     Product:
       type: object
@@ -101,4 +206,74 @@ components:
       type: object
       properties:
         data: { type: array, items: { $ref: '#/components/schemas/Banner' } }
+        meta: { $ref: '#/components/schemas/Pagination' }
+    CommunicationConversation:
+      type: object
+      required: [uuid, channel, status, priority]
+      properties:
+        uuid: { type: string, format: uuid }
+        channel: { type: string, const: email }
+        contact: { type: [string, 'null'] }
+        subject: { type: [string, 'null'] }
+        status: { type: string, enum: [new, open, pending, closed] }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        consent:
+          type: object
+          properties:
+            captured_at: { type: [string, 'null'], format: date-time }
+            version: { type: [string, 'null'] }
+        customer: { type: [object, 'null'], additionalProperties: true }
+        order: { type: [object, 'null'], additionalProperties: true }
+        assigned_agent: { type: [object, 'null'], additionalProperties: true }
+        follow_up_at: { type: [string, 'null'], format: date-time }
+        metadata: { type: object, additionalProperties: true }
+        message_count: { type: [integer, 'null'], minimum: 0 }
+        messages: { type: array, items: { $ref: '#/components/schemas/CommunicationMessage' } }
+        created_at: { type: [string, 'null'], format: date-time }
+        updated_at: { type: [string, 'null'], format: date-time }
+    CommunicationMessage:
+      type: object
+      required: [uuid, direction, delivery_status]
+      properties:
+        uuid: { type: string, format: uuid }
+        conversation_uuid: { type: [string, 'null'], format: uuid }
+        direction: { type: string, enum: [inbound, outbound] }
+        body: { type: [string, 'null'] }
+        delivery_status: { type: [string, 'null'] }
+        provider_message_id: { type: [string, 'null'] }
+        delivery_attempts: { type: integer, minimum: 0 }
+        sent_at: { type: [string, 'null'], format: date-time }
+        delivered_at: { type: [string, 'null'], format: date-time }
+        failed_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: [string, 'null'], format: date-time }
+    CommunicationAudit:
+      type: object
+      required: [uuid, action, subject_uuid]
+      properties:
+        uuid: { type: string, format: uuid }
+        actor_uuid: { type: [string, 'null'], format: uuid }
+        action: { type: string }
+        subject_uuid: { type: [string, 'null'], format: uuid }
+        request_id: { type: [string, 'null'] }
+        ip_address: { type: [string, 'null'] }
+        before: { type: [object, 'null'], additionalProperties: true }
+        after: { type: [object, 'null'], additionalProperties: true }
+        created_at: { type: [string, 'null'], format: date-time }
+    CommunicationConversationResponse:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/CommunicationConversation' }
+    CommunicationMessageResponse:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/CommunicationMessage' }
+    PaginatedCommunicationConversations:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CommunicationConversation' } }
+        meta: { $ref: '#/components/schemas/Pagination' }
+    PaginatedCommunicationAudit:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CommunicationAudit' } }
         meta: { $ref: '#/components/schemas/Pagination' }

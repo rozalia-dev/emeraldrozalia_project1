@@ -1,7 +1,7 @@
 # Project 1 Communication Center contract evidence
 
-**Scope:** Communication Center source-of-truth and delivery boundary follow-up, plus the deployed Email Templates contract
-**Guide references:** pages 417–419 (Communication Audit Dashboard) and pages 436–438 (Email Templates Dashboard)
+**Scope:** Communication Center source-of-truth and delivery boundary follow-up, plus the deployed Email Templates and Email Dashboard contracts
+**Guide references:** pages 417–419 (Communication Audit Dashboard), pages 436–438 (Email Templates Dashboard) and pages 439–441 (Email Dashboard)
 **Audit requirement:** one shared cPanel conversation path for web, chat, WhatsApp and email; durable correlation, idempotency, provider, queue, retry, callback, consent, redaction and audit contracts
 
 This is a bounded implementation slice. It does not claim completion of the 519-page guide or the 167-reference visual acceptance set.
@@ -18,6 +18,7 @@ This is a bounded implementation slice. It does not claim completion of the 519-
 | Duplicate/privacy boundary | `(provider, external_event_id)` is unique. Webhook payloads are redacted recursively for body/message/content/email/phone/token/secret/authorization and related contact keys before persistence. | `communication_webhook_events` migration; redaction assertions in `CommunicationContractTest` |
 | Audit/correlation | Public submission, reply creation, conversation updates, delivery changes, retries, failures and webhook processing write audit entries containing identifiers/statuses without message bodies or webhook secrets. | `AuditTrail` calls in the communication service/job/webhook service |
 | Email Templates | The Email Templates page now reads the durable UUID-keyed `CommunicationTemplate` aggregate with tenant scope, named web/API routes, request validation, resources, version/idempotency checks, lifecycle actions and redacted audit state. | [Email Templates contract evidence](PROJECT1-COMMUNICATION-TEMPLATE-EVIDENCE.md); `CommunicationTemplateContractTest` |
+| Email Dashboard | The Email page now reads the tenant-scoped UUID-keyed `Conversation` aggregate with customer/order/message/UID/date search, URL-persisted filters, resolve/reopen/escalate actions, UUID-safe API resources, idempotent replies, soft deletion and redacted audit export. | [Email Dashboard contract evidence](PROJECT1-COMMUNICATION-EMAIL-DASHBOARD-EVIDENCE.md); `CommunicationEmailDashboardContractTest` |
 
 ## Required runtime configuration
 
@@ -37,9 +38,9 @@ Until an adapter is installed and a signed callback is tested, outbound messages
 - No production email, WhatsApp or chat adapter is enabled or verified in this slice.
 - Approval, action/follow-up and alert surfaces still use their existing generic `AdminRecord` workflow; their durable domain contracts are not yet complete.
 - Communication reports/analytics still require the later reports and integrations contract, including removal of fixture fallbacks and export reconciliation.
-- The guide’s exact screenshot archive, ordered 167-row visual acceptance, responsive browser journeys and accessibility evidence remain incomplete.
+- The guide’s exact screenshot archive, ordered 167-row visual acceptance, responsive browser journeys and accessibility evidence remain incomplete, including Archive 063 for the Email Dashboard.
 - Provider-specific callback schemas, MFA/policy coverage, real queue-worker operations and a production restore drill remain open.
 
 ## Release interpretation
 
-Local PHP, Composer and Docker are unavailable in this workspace. `git diff --check` is the local static gate; PostgreSQL migrations, PHPUnit, container rehearsal, deployment and post-deploy health are authoritative GitHub workflow gates. Merged main release `aef4fc3e42155f5fca76790356bc9e5f0008dc14` passed all of those gates in [GitHub Actions run #323](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34718804955), including 197 tests/2,169 assertions, migration rollback/re-run, container rehearsal and the exact-SHA Hetzner health check. The release backup was recorded as `20260912T210618Z-aef4fc3e4215`.
+Local PHP, Composer and Docker are unavailable in this workspace. `git diff --check` is the local static gate; PostgreSQL migrations, PHPUnit, container rehearsal, deployment and post-deploy health are authoritative GitHub workflow gates. Merged main release `96da0731a516c4ee652534df44bc2b3c1590ee74` passed all of those gates in [GitHub Actions run #328](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34720557324), including 201 tests/2,211 assertions, migration rollback/re-run, media browser acceptance, container rehearsal and the exact-SHA Hetzner health check. The release backup was recorded as `20260912T214342Z-96da0731a516`.
