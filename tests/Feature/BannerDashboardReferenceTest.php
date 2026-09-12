@@ -91,7 +91,7 @@ class BannerDashboardReferenceTest extends TestCase
 
         $revision = $banner->revisions()->oldest('version')->firstOrFail();
         $this->actingAs($admin)->post(route('admin.banners.restore-revision', [$banner->id, $revision->id]))->assertRedirect();
-        $this->assertSame('CI Banner', $banner->fresh()->title);
+        $this->assertSame('CI Banner Updated', $banner->fresh()->title);
     }
 
     public function test_banner_export_downloads_and_non_admins_are_forbidden(): void
