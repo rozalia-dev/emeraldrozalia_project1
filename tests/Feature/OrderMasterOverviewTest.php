@@ -122,7 +122,7 @@ class OrderMasterOverviewTest extends TestCase
 
         $this->assertSame(1, substr_count($html, 'id="admin-sidebar"'));
         $this->assertStringContainsString(route('admin.order-master.overview'), $html);
-        $this->assertStringNotContainsString('ORDER MANAGEMENT (6 CATEGORIES)', $html);
+        $this->assertSame(1, substr_count($html, 'ORDER MANAGEMENT (6 CATEGORIES)'));
 
         foreach (['online','corporate','bulk','franchise','franchise_retail','buyer'] as $type) {
             $this->assertStringContainsString(route('admin.order-master', $type), $html);
