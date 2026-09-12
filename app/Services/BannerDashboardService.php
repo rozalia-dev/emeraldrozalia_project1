@@ -228,8 +228,11 @@ class BannerDashboardService
         $selectedValue = trim((string) $request->query('selected', ''));
         if ($selectedValue !== '') {
             $selected = Banner::withTrashed()->where(function (Builder $query) use ($selectedValue): void {
-                $query->where('id', ctype_digit($selectedValue) ? (int) $selectedValue : 0)
-                    ->orWhere('public_uuid', $selectedValue);
+                if (ctype_digit($selectedValue)) {
+                    $query->whereKey((int) $selectedValue);
+                } else {
+                    $query->where('public_uuid', $selectedValue);
+                }
             })->first();
         }
 

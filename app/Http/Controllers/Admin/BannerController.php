@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\{Banner, BannerRevision};
 use App\Services\{AuditTrail, BannerDashboardService};
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\{RedirectResponse, Request, StreamedResponse};
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\{Rule, ValidationException};
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BannerController extends Controller
 {
@@ -121,7 +122,11 @@ class BannerController extends Controller
         abort_unless(in_array($action, ['publish', 'unpublish', 'schedule', 'archive', 'trash', 'restore'], true), 404);
 
         $banner = Banner::withTrashed()->where(function (Builder $query) use ($banner): void {
-            $query->whereKey(ctype_digit($banner) ? (int) $banner : 0)->orWhere('public_uuid', $banner);
+            if (ctype_digit($banner)) {
+                $query->whereKey((int) $banner);
+            } else {
+                $query->where('public_uuid', $banner);
+            }
         })->firstOrFail();
         $before = $this->snapshot($banner);
 
@@ -276,10 +281,18 @@ class BannerController extends Controller
     public function restoreRevision(string $banner, string $revision): RedirectResponse
     {
         $banner = Banner::withTrashed()->where(function (Builder $query) use ($banner): void {
-            $query->whereKey(ctype_digit($banner) ? (int) $banner : 0)->orWhere('public_uuid', $banner);
+            if (ctype_digit($banner)) {
+                $query->whereKey((int) $banner);
+            } else {
+                $query->where('public_uuid', $banner);
+            }
         })->firstOrFail();
         $revision = BannerRevision::where('banner_id', $banner->id)->where(function (Builder $query) use ($revision): void {
-            $query->whereKey(ctype_digit($revision) ? (int) $revision : 0)->orWhere('uuid', $revision);
+            if (ctype_digit($revision)) {
+                $query->whereKey((int) $revision);
+            } else {
+                $query->where('uuid', $revision);
+            }
         })->firstOrFail();
         $before = $this->snapshot($banner);
         $snapshot = (array) $revision->snapshot;
@@ -436,7 +449,11 @@ class BannerController extends Controller
     private function findBanner(string $value): Banner
     {
         return Banner::query()->where(function (Builder $query) use ($value): void {
-            $query->whereKey(ctype_digit($value) ? (int) $value : 0)->orWhere('public_uuid', $value);
+            if (ctype_digit($value)) {
+                $query->whereKey((int) $value);
+            } else {
+                $query->where('public_uuid', $value);
+            }
         })->firstOrFail();
     }
 
