@@ -56,7 +56,7 @@ class Project1Batch1FoundationTest extends TestCase
         $this->assertSame($banner->title, $bannerData['title']);
         $this->assertArrayNotHasKey('id', $bannerData);
 
-        $this->get('/')->assertOk()->assertSee('Foundation Home Banner')->assertSee('data-banner-public-uuid="'.$banner->public_uuid.'"');
+        $this->get('/')->assertOk()->assertSee('Foundation Home Banner')->assertSee('data-banner-public-uuid="'.$banner->public_uuid.'"', false);
     }
 
     public function test_admin_reviews_page_reads_live_reviews_and_dynamic_metrics(): void
