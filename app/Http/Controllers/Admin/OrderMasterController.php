@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\{Order, PaymentTransaction};
 use App\Services\AuditTrail;
+use App\Services\OrderMasterDashboardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -25,37 +26,7 @@ class OrderMasterController extends Controller
     public function index(Request $request, string $type): View
     {
         $this->ensureType($type);
-        $base = Order::query()->where('order_type', $type);
-        $orders = (clone $base)
-            ->with(['user', 'payments'])
-            ->withCount('returns')
-            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
-            ->when($request->filled('payment_status'), fn ($query) => $query->where('payment_status', $request->string('payment_status')->toString()))
-            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('created_at', '>=', $request->date_from))
-            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('created_at', '<=', $request->date_to))
-            ->when($request->filled('q'), fn ($query) => $query->where(function ($search) use ($request): void {
-                $term = $request->string('q')->toString();
-                $search->where('number', 'like', '%'.$term.'%')
-                    ->orWhere('email', 'like', '%'.$term.'%');
-            }))
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
-
-        $metrics = [
-            'total' => (clone $base)->count(),
-            'open' => (clone $base)->whereIn('status', ['pending', 'approved', 'processing'])->count(),
-            'paid' => (clone $base)->where('payment_status', 'paid')->count(),
-            'revenue' => (float) (clone $base)->where('payment_status', 'paid')->sum('total'),
-            'returns' => (clone $base)->whereHas('returns', fn ($query) => $query->whereIn('status', ['requested', 'approved', 'received', 'inspecting']))->count(),
-        ];
-
-        return view('admin.orders.index', [
-            'orders' => $orders,
-            'type' => $type,
-            'label' => self::LABELS[$type],
-            'metrics' => $metrics,
-        ]);
+        return view('admin.orders.index', app(OrderMasterDashboardService::class)->build($request, $type));
     }
 
     public function show(string $type, Order $order): View
