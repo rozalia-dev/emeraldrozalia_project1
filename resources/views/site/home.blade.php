@@ -46,7 +46,7 @@
 </section>
 
 @if(isset($banners) && $banners->isNotEmpty())
-<section class="home-published-banners" aria-label="Published Emerald Rozalia banners">
+<section class="home-published-banners" data-public-source="published-banner-records" data-banner-position="Home - Main Slider" aria-label="Published Emerald Rozalia banners">
     @foreach($banners as $banner)
         @php($bannerTarget = filled($banner->target_url) ? $banner->target_url : null)
         @if($bannerTarget)<a class="home-published-banner" href="{{ $bannerTarget }}" data-banner-public-uuid="{{ $banner->public_uuid }}">@else<div class="home-published-banner" data-banner-public-uuid="{{ $banner->public_uuid }}">@endif

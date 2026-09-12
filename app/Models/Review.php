@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -20,6 +21,14 @@ class Review extends Model
         static::creating(function (Review $review): void {
             $review->public_uuid ??= (string) Str::uuid();
         });
+    }
+
+    /**
+     * Limit a review query to records that are allowed on public product pages.
+     */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('status', 'approved');
     }
 
     public function user(): BelongsTo

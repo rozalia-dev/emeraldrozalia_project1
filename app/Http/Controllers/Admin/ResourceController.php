@@ -9,6 +9,7 @@ use App\Models\Conversation;
 use App\Models\User;
 use App\Services\AuditTrail;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -146,6 +147,18 @@ class ResourceController extends Controller {
             'perPage',
         ));
     }
+    public function updateReviewStatus(Request $request, Review $review): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'approved', 'rejected', 'flagged'])],
+        ]);
+        $before = $review->toArray();
+        $review->update(['status' => $data['status']]);
+        AuditTrail::record('review.status.updated', $review, $before, $review->fresh()->toArray());
+
+        return back()->with('success', 'Review status updated.');
+    }
+
     private function communicationCenter(Request $request,string $module):View {$status=(string)$request->query('status','');$search=trim((string)$request->query('q',''));$query=Conversation::with(['messages'=>fn($messages)=>$messages->oldest(),'assignee'])->latest();if(in_array($status,['new','open','pending','closed'],true))$query->where('status',$status);if($search!=='')$query->where(fn($conversations)=>$conversations->where('contact','like','%'.$search.'%')->orWhere('subject','like','%'.$search.'%'));$conversations=$query->paginate(25)->withQueryString();$admins=User::query()->where('is_admin',true)->orderBy('name')->get(['id','name']);return view('admin.communication-center.index',compact('module','conversations','status','search','admins'));}
     private function productManager(Request $request){
         $tabs=['all'=>'All Products','published'=>'Published','draft'=>'Draft','hidden'=>'Hidden','out_of_stock'=>'Out of Stock','low_stock'=>'Low Stock','featured'=>'Featured','top_rated'=>'Top Rated'];
@@ -178,7 +191,7 @@ class ResourceController extends Controller {
             'hidden'=>$hiddenCount,
             'out_of_stock'=>(int)Product::query()->where('stock','<=',0)->count(),
             'total_value'=>(float)(Product::query()->selectRaw('COALESCE(SUM(price * stock), 0) AS aggregate')->value('aggregate')??0),
-            'average_rating'=>(float)(Review::query()->where('status','approved')->whereHas('product')->avg('rating')??0),
+            'average_rating'=>(float)(Review::query()->approved()->whereHas('product')->avg('rating')??0),
         ];
         $categories=Category::query()->where('is_active',true)->orderBy('sort_order')->orderBy('name')->get(['id','name']);
         return view('admin.product-manager.index',compact('products','categories','stats','tabs','tab','search','categoryId','minPrice','maxPrice','rating','featured'));
