@@ -2,22 +2,23 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class ConversationMessage extends Model
+class CommunicationWebhookEvent extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded = [];
 
     protected function casts(): array
     {
         return [
             'payload' => 'array',
-            'sent_at' => 'datetime',
-            'delivered_at' => 'datetime',
-            'failed_at' => 'datetime',
-            'delivery_attempts' => 'integer',
+            'attempts' => 'integer',
+            'processed_at' => 'datetime',
         ];
     }
 
@@ -26,13 +27,8 @@ class ConversationMessage extends Model
         static::creating(fn (self $row): string => $row->uuid ??= Str::uuid()->toString());
     }
 
-    public function conversation(): BelongsTo
+    public function message(): BelongsTo
     {
-        return $this->belongsTo(Conversation::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(ConversationMessage::class, 'message_uuid', 'uuid');
     }
 }

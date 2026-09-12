@@ -9,6 +9,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\AuditTrail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -338,6 +339,11 @@ class SiteController extends Controller
         }
 
         $correlationId = (string) ($r->attributes->get('correlation_id') ?: Str::uuid());
+        $customerId = $r->user()?->id;
+        $messageIdempotencyKey = $idempotencyKey !== ''
+            ? hash('sha256', 'public-inbound:'.$idempotencyKey)
+            : null;
+        $consentCapturedAt = $requiresConsent ? now() : null;
         $requestHash = hash('sha256', (string) json_encode([
             'payload' => $d,
             'meeting' => $meeting,
@@ -355,7 +361,7 @@ class SiteController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($d, $meeting, $correlationId, $idempotencyKey, $requestHash): void {
+            DB::transaction(function () use ($d, $meeting, $correlationId, $idempotencyKey, $requestHash, $customerId, $messageIdempotencyKey, $consentCapturedAt): void {
                 $inquiry = Inquiry::create(array_merge($d, [
                     'correlation_id' => $correlationId,
                     'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
@@ -379,12 +385,18 @@ class SiteController extends Controller
                 }
 
                 $conversation = Conversation::create([
+                'company_id' => $inquiry->company_id,
+                'customer_id' => $customerId,
                 'channel' => 'web',
                 'contact' => $d['email'],
                 'subject' => $d['subject'] ?? str($d['type'])->headline(),
                 'priority' => $d['type'] === 'franchise' ? 'high' : 'normal',
                 'status' => 'new',
                 'correlation_id' => $correlationId,
+                'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
+                'request_hash' => $requestHash,
+                'consent_captured_at' => $consentCapturedAt,
+                'consent_version' => $consentCapturedAt ? 'public-enquiry-v1' : null,
                 'inquiry_id' => $inquiry->id,
                 'franchise_application_id' => $application?->id,
                 'metadata' => [
@@ -398,7 +410,26 @@ class SiteController extends Controller
                 ]);
                 $body = $d['message'] ?? 'Public form submission';
                 if ($meeting) $body .= "\n\nMeeting requested: {$meeting['date']} at {$meeting['time']} (Europe/Dublin).";
-                $conversation->messages()->create(['direction' => 'inbound', 'body' => $body, 'delivery_status' => 'stored', 'sent_at' => now()]);
+                $message = $conversation->messages()->create([
+                    'direction' => 'inbound',
+                    'body' => $body,
+                    'delivery_status' => 'stored',
+                    'idempotency_key' => $messageIdempotencyKey,
+                    'payload' => [
+                        'source' => 'public_'.$d['type'].'_form',
+                        'correlation_id' => $correlationId,
+                        'consent_captured' => (bool) $consentCapturedAt,
+                    ],
+                    'sent_at' => now(),
+                ]);
+                AuditTrail::record('communication.public_submission.created', $conversation, null, [
+                    'uuid' => (string) $conversation->uuid,
+                    'channel' => $conversation->channel,
+                    'correlation_id' => $correlationId,
+                    'idempotency_key' => $conversation->idempotency_key,
+                    'consent_captured' => (bool) $consentCapturedAt,
+                    'message_uuid' => (string) $message->uuid,
+                ]);
             });
         } catch (QueryException $exception) {
             if ($idempotencyKey === '') {
