@@ -28,12 +28,26 @@ class TenantContext
 
     public function locale(): string
     {
-        return session('locale', $this->company()?->default_locale ?? config('app.locale'));
+        if (session()->has('locale')) {
+            return (string) session('locale');
+        }
+
+        $company = $this->company();
+        return (string) (app(PublishedSiteSettings::class)->forCompany($company)['localization']['default_language']
+            ?? $company?->default_locale
+            ?? config('app.locale'));
     }
 
     public function currency(): string
     {
-        return session('currency', $this->company()?->base_currency ?? 'EUR');
+        if (session()->has('currency')) {
+            return (string) session('currency');
+        }
+
+        $company = $this->company();
+        return (string) (app(PublishedSiteSettings::class)->forCompany($company)['localization']['default_currency']
+            ?? $company?->base_currency
+            ?? 'EUR');
     }
 
     public function convert(float $amount, string $from = 'EUR', ?string $to = null): float

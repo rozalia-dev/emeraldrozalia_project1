@@ -14,12 +14,15 @@ use App\Models\Language;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\PublishedSiteSettings;
+use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\StreamedResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -152,9 +155,11 @@ class SettingsController extends Controller
                 $data[$key] = $request->has($key) ? ($validated[$key] ?? $request->input($key)) : ($current[$key] ?? $default);
             }
         }
-        $this->persistSetting($section, $data, $record);
-        $this->syncCompany($section, $data);
-        $this->syncConnection($section, $data);
+        DB::transaction(function () use ($section, $data, $record): void {
+            $this->persistSetting($section, $data, $record);
+            $this->syncCompany($section, $data);
+            $this->syncConnection($section, $data);
+        });
         $query = $request->filled('tab') ? ['tab' => $request->string('tab')->toString()] : [];
         return redirect()->route('admin.settings.page', ['section' => $section, ...$query])->with('success', $this->catalog()[$section]['title'].' settings saved.');
     }
@@ -310,6 +315,14 @@ class SettingsController extends Controller
         $record->fill(['module' => 'system-settings', 'reference' => $section, 'title' => $this->catalog()[$section]['title'], 'status' => 'configured', 'record_date' => now(), 'user_id' => auth()->id()]);
         $record->data = $data;
         $record->save();
+        $published = app(PublishedSiteSettings::class)->publish($section, $data);
+        if ($published) {
+            AuditTrail::record('settings.'.$section.'.published', $published, null, [
+                'version' => $published->version,
+                'company_id' => $published->company_id,
+                'published_at' => $published->published_at?->toIso8601String(),
+            ]);
+        }
         AuditTrail::record('settings.'.$section.'.updated', $record, $before, $record->fresh()->data ?? $data);
         return $record;
     }
@@ -317,7 +330,7 @@ class SettingsController extends Controller
     private function syncCompany(string $section, array $data): void
     {
         if (!in_array($section, ['general-configuration', 'company-branding', 'localization'], true)) return;
-        $company = Company::query()->first();
+        $company = app(TenantContext::class)->company() ?? Company::query()->first();
         if (!$company) return;
         $before = $company->toArray();
         $updates = match ($section) {

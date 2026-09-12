@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="{{str_replace('_','-',app()->getLocale())}}">
+@php($siteBranding = data_get($siteSettings ?? [], 'company-branding', []))
+<html lang="{{str_replace('_','-',app()->getLocale())}}" data-public-settings-source="{{ data_get($siteSettings ?? [], 'meta.source', 'company-fallback') }}" data-public-settings-version="{{ data_get($siteSettings ?? [], 'meta.version', 0) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -15,7 +16,7 @@
     <link rel="stylesheet" href="/css/app.css?v=20260905-public-header-type">
     @stack('styles')
 </head>
-<body class="site-body @yield('body-class')">
+<body class="site-body @yield('body-class')" style="--site-brand-primary: {{ data_get($siteBranding, 'brand_primary', '#075b2f') }}; --site-brand-secondary: {{ data_get($siteBranding, 'brand_secondary', '#0b1711') }}; --site-brand-accent: {{ data_get($siteBranding, 'brand_accent', '#7fbd42') }};">
 <div class="topline">
     <span><x-icon name="clover" size="14" /> Proudly Manufacturing in Limerick, Ireland</span>
     <strong>Irish Made. Limerick Born. <em>Worn Everywhere.</em></strong>
@@ -34,7 +35,7 @@
 </div>
 <header class="site-header">
     <a href="/" class="brand">
-        <img class="brand-logo-image" src="{{asset('assets/logo/logo_one_line.png')}}" alt="Emerald Rozalia Limited">
+        <img class="brand-logo-image" src="{{asset(data_get($siteBranding, 'header_logo_path', '/assets/logo/logo_one_line.png'))}}" alt="{{ data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited') }}">
     </a>
     <button class="nav-toggle" data-nav-toggle aria-label="Open menu"><x-icon name="menu" size="22" /></button>
     <nav data-nav aria-label="Primary">
@@ -53,13 +54,13 @@
 @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif
 <main>@yield('content')</main>
 <footer class="site-footer">
-    <div class="footer-brand"><img class="brand-logo-image" src="{{asset('assets/logo/logo_two_line.png')}}" alt="Emerald Rozalia Limited"><p>Proudly manufacturing<br>hats and caps in Limerick, Ireland.</p><div class="socials"><x-icon name="facebook" label="Facebook" /><x-icon name="instagram" label="Instagram" /><x-icon name="music" label="TikTok" /><x-icon name="linkedin" label="LinkedIn" /><x-icon name="youtube" label="YouTube" /></div></div>
+    <div class="footer-brand"><img class="brand-logo-image" src="{{asset(data_get($siteBranding, 'footer_logo_path', '/assets/logo/logo_two_line.png'))}}" alt="{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}"><p>{{ data_get($siteBranding, 'description', 'Proudly manufacturing hats and caps in Limerick, Ireland.') }}</p><div class="socials"><x-icon name="facebook" label="Facebook" /><x-icon name="instagram" label="Instagram" /><x-icon name="music" label="TikTok" /><x-icon name="linkedin" label="LinkedIn" /><x-icon name="youtube" label="YouTube" /></div></div>
     <div><h4>SHOP</h4><a href="/shop">All Products</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/category/snapbacks">Snapbacks</a><a href="/irish-traditional">Flat Caps</a></div>
     <div><h4>COLLECTIONS</h4><a href="/irish-traditional">Irish Traditional</a><a href="/irish-heritage">Irish Heritage</a><a href="/new-arrivals">New Arrivals</a><a href="/collections">Premium Collection</a></div>
     <div><h4>CUSTOMER CARE</h4><a href="/factory">Size Guide</a><a href="/factory">Shipping & Delivery</a><a href="/factory">Returns & Refunds</a><a href="/contact">Contact Us</a></div>
     <div><h4>COMPANY</h4><a href="/factory">Our Story</a><a href="/factory">Manufacturing</a><a href="/global-network">Sustainability</a><a href="/careers">Careers</a>@foreach($footerPages ?? [] as $footerPage)<a href="{{ route('content.page', ['page' => $footerPage->slug]) }}">{{ $footerPage->title }}</a>@endforeach</div>
     <div class="newsletter"><h4>NEWSLETTER</h4><p>Stay updated with new arrivals and offers.</p><form><input type="email" placeholder="Your email address" aria-label="Your email address"><button class="btn" type="button" aria-label="Subscribe"><x-icon name="arrow-right" /></button></form><p class="payments">VISA &nbsp; Mastercard &nbsp; PayPal &nbsp; Apple Pay &nbsp; Google Pay</p></div>
-    <div class="footer-bottom"><span>© 2024 Emerald Rozalia Limited. All rights reserved.</span><span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in Limerick, Ireland</span><span><a href="/factory">Privacy Policy</a> &nbsp; <a href="/factory">Terms &amp; Conditions</a></span></div>
+    <div class="footer-bottom"><span>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }}</span><span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in {{ data_get($siteBranding, 'city', 'Limerick') }}, {{ data_get($siteBranding, 'country', 'Ireland') }}</span><span><a href="/factory">Privacy Policy</a> &nbsp; <a href="/factory">Terms &amp; Conditions</a></span></div>
 </footer>
 @stack('scripts')
 <script src="/js/app.js?v=20260905-scheduler"></script>

@@ -1,6 +1,7 @@
 <?php
 namespace Database\Seeders;
 use App\Models\{AdminRecord,Category,Company,ContentPage,Currency,Discount,IntegrationConnection,Language,Permission,Product,ProductCollection,ProductVariant,Role,SeoSetting,ShippingMethod,User};
+use App\Services\PublishedSiteSettings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder {
@@ -27,6 +28,7 @@ class DatabaseSeeder extends Seeder {
   ShippingMethod::updateOrCreate(['code'=>'IE_STANDARD'],['company_id'=>$company->id,'name'=>'Ireland Standard Delivery','country'=>'IE','price'=>6.95,'free_over'=>100,'is_active'=>true]); Discount::updateOrCreate(['code'=>'WELCOME10'],['company_id'=>$company->id,'type'=>'percent','value'=>10,'minimum_order'=>50,'is_active'=>true]);
   throw_if(blank(env('ADMIN_EMAIL'))||blank(env('ADMIN_PASSWORD')),\RuntimeException::class,'ADMIN_EMAIL and ADMIN_PASSWORD must be set before seeding.');
   $admin=User::updateOrCreate(['email'=>env('ADMIN_EMAIL')],['name'=>env('ADMIN_NAME','Project Owner'),'password'=>Hash::make(env('ADMIN_PASSWORD')),'is_admin'=>true,'email_verified_at'=>now()]); $company->users()->syncWithoutDetaching([$admin->id=>['role'=>'owner','is_default'=>true]]);
+  app(PublishedSiteSettings::class)->bootstrap($company,$admin);
   foreach(['website','products','pages','online_sales','orders','customers','franchise','communications','reports','users','integrations','settings','audit','automation','backup','maintenance'] as $group)foreach(['view','create','update','delete','approve','export'] as $action)Permission::firstOrCreate(['name'=>"$group.$action"],['group'=>$group]);
   $owner=Role::firstOrCreate(['name'=>'owner'],['label'=>'Owner']);$owner->permissions()->sync(Permission::pluck('id'));$admin->roles()->syncWithoutDetaching([$owner->id]); foreach(['admin'=>'Administrator','manager'=>'Manager','editor'=>'Website Editor','support'=>'Communication Support','franchise'=>'Franchise Manager','reporting'=>'Reporting Analyst'] as $name=>$label)Role::firstOrCreate(['name'=>$name],['label'=>$label]);
   foreach(['payment','whatsapp','social','shipping','try_on','product_360'] as $service)IntegrationConnection::updateOrCreate(['service'=>$service],['enabled'=>false,'health'=>'not_configured']);
