@@ -306,6 +306,11 @@ class SalesReportController extends Controller
         return 'Unassigned';
     }
 
+    private function money(float $amount): string
+    {
+        return '€'.number_format($amount, 2);
+    }
+
     private function customerGroup(Order $order): string
     {
         return match ($order->order_type) {'corporate' => 'Corporate Customers', 'bulk' => 'Wholesale / Bulk Buyers', 'franchise', 'franchise_retail' => 'Franchise Customers', default => 'Retail Customers'};
