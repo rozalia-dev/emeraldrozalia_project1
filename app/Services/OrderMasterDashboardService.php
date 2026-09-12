@@ -148,7 +148,7 @@ class OrderMasterDashboardService
     {
         $meta = self::META[$type];
         if ($orders->isEmpty()) return $this->previewEntities($type);
-        $rows = $orders->groupBy(fn (Order $order): string => $this->selectorValue($order, $meta))->map(function (Collection $matches, string $label) use ($meta): array {
+        $rows = $orders->groupBy(fn (Order $order): string => $this->selectorValue($order, $meta))->map(function (Collection $matches, string $label) use ($meta, $orders): array {
             $secondary = $meta['entity_mode'] === 'franchise' ? $matches->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'store', 'Store'))->unique()->count().' stores' : null;
             return ['label' => $label, 'amount' => round((float) $matches->sum(fn (Order $order): float => (float) $order->total), 2), 'orders' => $matches->count(), 'secondary' => $secondary, 'share' => round(($matches->count() / max(1, $orders->count())) * 100, 1)];
         })->sortByDesc('amount')->take(5)->values()->all();
