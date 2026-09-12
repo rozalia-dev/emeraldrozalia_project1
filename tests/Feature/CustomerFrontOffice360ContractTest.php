@@ -42,7 +42,7 @@ class CustomerFrontOffice360ContractTest extends TestCase
 
         $content = $this->get(route('product', $product))->assertOk()->getContent();
 
-        $this->assertSame(1, substr_count($content, 'data-product-viewer'));
+        $this->assertSame(1, preg_match_all('/\sdata-product-viewer(?:\s|>)/', $content));
         $this->assertSame(0, substr_count($content, 'data-spin-widget'));
         $this->assertStringContainsString('data-spin-source="managed"', $content);
         $this->assertStringContainsString('data-spin-uuid="'.$spin->uuid.'"', $content);
