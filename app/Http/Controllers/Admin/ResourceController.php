@@ -8,6 +8,7 @@ use App\Models\Review;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\CommunicationCenter;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -196,8 +197,29 @@ class ResourceController extends Controller {
         $categories=Category::query()->where('is_active',true)->orderBy('sort_order')->orderBy('name')->get(['id','name']);
         return view('admin.product-manager.index',compact('products','categories','stats','tabs','tab','search','categoryId','minPrice','maxPrice','rating','featured'));
     }
-    public function updateConversation(Request $request,Conversation $conversation){$data=$request->validate(['status'=>['required',Rule::in(['new','open','pending','closed'])],'priority'=>['required',Rule::in(['low','normal','high','urgent'])],'assigned_to'=>['nullable','integer',Rule::exists('users','id')->where('is_admin',true)],'follow_up_at'=>['nullable','date']]);$before=$conversation->toArray();$conversation->update([...$data,'follow_up_at'=>filled($data['follow_up_at']??null)?Carbon::parse($data['follow_up_at']):null]);AuditTrail::record('communication.updated',$conversation,$before,$conversation->fresh()->toArray());return back()->with('success','Conversation updated.');}
-    public function storeMessage(Request $request,Conversation $conversation){$data=$request->validate(['body'=>['required','string','max:5000']]);$message=$conversation->messages()->create(['user_id'=>auth()->id(),'direction'=>'outbound','body'=>$data['body'],'delivery_status'=>'stored','sent_at'=>now()]);$conversation->update(['status'=>'open']);AuditTrail::record('communication.message.created',$message,null,$message->toArray());return back()->with('success','Reply saved to Communication Center.');}
+    public function updateConversation(Request $request, Conversation $conversation)
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['new', 'open', 'pending', 'closed'])],
+            'priority' => ['required', Rule::in(['low', 'normal', 'high', 'urgent'])],
+            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_admin', true)],
+            'follow_up_at' => ['nullable', 'date'],
+        ]);
+
+        app(CommunicationCenter::class)->updateConversation($conversation, $data);
+
+        return back()->with('success', 'Conversation updated.');
+    }
+
+    public function storeMessage(Request $request, Conversation $conversation)
+    {
+        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $idempotencyKey = $request->header('Idempotency-Key');
+
+        app(CommunicationCenter::class)->sendReply($conversation, $data['body'], is_string($idempotencyKey) ? $idempotencyKey : null);
+
+        return back()->with('success', 'Reply queued in Communication Center.');
+    }
     public function store(Request $r,string $module){$this->valid($module);$d=$this->data($r);$record=AdminRecord::create(['module'=>$module,'title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'user_id'=>auth()->id(),'data'=>['notes'=>$d['notes']??null]]);AuditTrail::record($module.'.created',$record,null,$record->toArray());return back()->with('success','Record created.');}
     public function update(Request $r,string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);$before=$record->toArray();$d=$this->data($r);$record->update(['title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'data'=>array_merge($record->data??[],['notes'=>$d['notes']??null])]);AuditTrail::record($module.'.updated',$record,$before,$record->fresh()->toArray());return back()->with('success','Record updated.');}
     public function destroy(string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);$before=$record->toArray();AuditTrail::record($module.'.deleted',$record,$before,null);$record->delete();return back()->with('success','Record deleted.');}

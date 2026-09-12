@@ -25,14 +25,14 @@ GitHub Actions run #314 (workflow “Validate and deploy production”) complete
 | Navigation | Target hierarchy and source-to-route map | Captured; source mismatch remains open |
 | Asset register | Hash, dimensions, source/archive mapping, exact-logo review | 33 local references registered; 132 archive references missing; two brand PNG verification failures |
 | Public page matrix | Route/data/form/consumer/evidence per public row | Captured; visual/live content proof remains partial |
-| Synchronization | Public write/read to private/admin/report consumers | Captured; Batch 8 closes the banner/review boundary and Batch 9 adds versioned tenant-scoped public settings; lifecycle/report gaps remain |
+| Synchronization | Public write/read to private/admin/report consumers | Captured; Batch 8 closes the banner/review boundary, Batch 9 adds versioned tenant-scoped public settings, and the Communication Center contract adds durable correlation/idempotency, queued delivery and signed callback state; lifecycle/report gaps remain |
 | Order engine | One engine with six category projections | Captured; conversion/transition/reconciliation evidence remains partial |
 | Franchise lifecycle | Application→approval→agreement→onboarding→store→retail→renewal | Captured; complete transition/policy evidence remains partial |
 | UI tokens | Geometry, typography, spacing, responsive and published theme version | Contract captured; measurements/runtime publisher unverified |
 | Visual diffs | Exact supplied-reference screenshots at approved viewports | Not run for all 167 entries; current foundation spec covers four public routes only |
 | Browser/accessibility | Desktop/tablet/mobile journeys, keyboard, focus, labels, contrast, overflow | Missing broad suite |
 | API/contracts | /api/v1, Form Requests, API Resources, Policies, OpenAPI | Versioned catalog contracts are feature-tested; broader guide/API coverage remains partial |
-| Async/provider | Jobs, events/listeners, queue/retry/idempotency, email/WhatsApp/payment/webhook contracts | Not found or incomplete |
+| Async/provider | Jobs, events/listeners, queue/retry/idempotency, email/WhatsApp/payment/webhook contracts | Communication reply queue/retry/idempotency and signed email/WhatsApp/chat callback ledger are feature-tested; real provider adapters, callback schemas and live delivery remain unconfigured |
 | PostgreSQL | migrate/seed/route/feature suite | Passed in run #314; rollback, re-migrate, seed and status are now rehearsed |
 | Container/release | Docker image, storage, Nginx, worker/scheduler rehearsal | Passed in run #314 |
 | Backup/restore/rollback | Actual restore drill and rollback rehearsal | Rollback/re-run passed in run #297; backup/restore remains not independently evidenced |
@@ -43,13 +43,14 @@ GitHub Actions run #314 (workflow “Validate and deploy production”) complete
 
 A main push triggers validation and, only when the main workflow is green, the Deploy to Hetzner job. The server checks that origin/main equals the exact GitHub SHA, fast-forwards main, runs deploy/docker-deploy.sh, and checks health. Never deploy a dirty worktree or a SHA that was not the completed workflow head.
 
-Local PHP, Composer and Docker are unavailable in this workspace. The local evidence for this Batch 9 commit is therefore limited to source/static checks and documentation validation; CI must remain the runtime authority.
+Local PHP, Composer and Docker are unavailable in this workspace. Local evidence for the Communication Center contract is limited to source/static checks and documentation validation; CI must remain the runtime authority for migrations, PHPUnit, containers and deployment.
 
 ## Next gates
 
 1. Reconcile the canonical navigation tree and screenshot dimensions.
 2. Attach the missing ordered guide archive/manifest or record an approved exception.
 3. Add strict visual, responsive and accessibility suites.
-4. Complete explicit settings approval/activation/rollback policies and broaden public consumers beyond the shared shell.
-5. Define remaining domain contracts, policies, UUID/tenant/money/idempotency and provider boundaries.
-6. Add direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.
+4. Configure and verify real email/WhatsApp/chat adapters, signed callback schemas and worker operations.
+5. Replace generic communication template/approval/follow-up/alert records with their durable domain contracts and connect reports/analytics to reconciled read models.
+6. Complete explicit settings approval/activation/rollback policies and broaden public consumers beyond the shared shell.
+7. Add strict visual/browser/accessibility evidence, direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.
