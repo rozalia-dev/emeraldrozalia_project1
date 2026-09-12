@@ -1,7 +1,7 @@
 # Project 1 public/private synchronization matrix
 
-**Current verified release:** Communication Center Email Dashboard contract deployed `main` release `96da0731a516c4ee652534df44bc2b3c1590ee74`
-**Current batch:** Communication Center delivery/webhook, Email Templates and Email Dashboard durable contracts
+**Current verified release:** Reports integrity slice deployed `main` release `f0dd61f32d3541067787c5b282985ea036ea77a7` (GitHub Actions run #337)
+**Current batch:** Reports analytics and Sales Reports live-data/empty-state integrity contract
 **Rule:** “connected” means a traceable shared model/query path exists; it does not mean the complete production workflow is proven.
 
 | Public surface | Public read/write path | Private consumer | Current result | Required next contract |

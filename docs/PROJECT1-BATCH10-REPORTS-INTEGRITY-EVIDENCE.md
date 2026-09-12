@@ -26,6 +26,8 @@ This bounded slice covers the Reports analytics dashboards and the Sales Reports
 
 ## Verification boundary
 
-Local static checks passed for whitespace and both affected JavaScript assets. PHP, Composer and Docker are not installed in this workspace, so migrations, PostgreSQL feature tests, Blade compilation, container rehearsal and deployment remain GitHub Actions gates. Exact release SHA, workflow run and deployment backup are recorded in `PROJECT1-CI-GATE-MATRIX.md` after the main workflow completes.
+Local static checks passed for whitespace and both affected JavaScript assets. GitHub Actions run [#337](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34724229368) passed 206 tests/2,288 assertions, migration rollback/re-run, media browser acceptance and the container release rehearsal. The deploy job fast-forwarded Hetzner to `f0dd61f32d3541067787c5b282985ea036ea77a7`, recorded backup `20260912T230453Z-f0dd61f32d35`, and reported healthy app, database, Redis and Nginx containers.
+
+PHP, Composer and Docker are not installed in this workspace; GitHub Actions remains the runtime authority for those gates. The deployment evidence confirms the tested SHA reached the server, but does not replace visual, accessibility, independent restore or broad post-deploy data evidence.
 
 The following remain intentionally open and are not implied by this batch: full 167-reference screenshot proof, broad browser/accessibility coverage, paginated/versioned analytical read models, independent backup/restore evidence, provider enablement and complete 519-page guide acceptance.
