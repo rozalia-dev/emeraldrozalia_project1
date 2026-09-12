@@ -32,19 +32,28 @@ class Product extends Model
     public function tryOnAssets() { return $this->hasMany(TryOnAsset::class); }
     public function collections() { return $this->belongsToMany(ProductCollection::class, 'collection_product', 'product_id', 'collection_id')->withPivot('sort_order'); }
 
-    public function getSpinImagesAttribute($value): array
+    public function latestPublicSpin(): ?ProductSpin
     {
-        if ($this->exists) {
-            $managed = $this->spins()
+        $spins = $this->relationLoaded('spins')
+            ? $this->spins
+            : $this->spins()
                 ->where('status', 'published')
                 ->where('visibility', 'public')
                 ->latest('updated_at')
-                ->get()
-                ->first(fn (ProductSpin $spin) => count($spin->frames ?? []) >= 2);
+                ->get();
 
-            if ($managed) {
-                return $managed->viewerData()['frames'];
-            }
+        return $spins
+            ->filter(fn (ProductSpin $spin): bool => $spin->status === 'published'
+                && $spin->visibility === 'public'
+                && count($spin->frames ?? []) >= 2)
+            ->sortByDesc(fn (ProductSpin $spin): int => $spin->updated_at?->getTimestamp() ?? 0)
+            ->first();
+    }
+
+    public function getSpinImagesAttribute($value): array
+    {
+        if ($this->exists && ($managed = $this->latestPublicSpin())) {
+            return $managed->viewerData()['frames'];
         }
 
         if (is_array($value)) {

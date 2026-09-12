@@ -15,10 +15,14 @@ class AccountController extends Controller
 {
     public function dashboard(): View
     {
+        $user = auth()->user();
+
         return view('site.account', [
-            'orders' => auth()->user()->orders()->with('items')->latest()->limit(8)->get(),
-            'rewards' => auth()->user()->rewards()->sum('points'),
-            'wishlistCount' => auth()->user()->wishlistItems()->count(),
+            'orders' => $user->orders()->with('items')->latest()->limit(8)->get(),
+            'ordersCount' => $user->orders()->count(),
+            'rewards' => $user->rewards()->sum('points'),
+            'wishlistCount' => $user->wishlistItems()->count(),
+            'returnsCount' => ReturnRequest::query()->where('user_id', $user->id)->count(),
         ]);
     }
 

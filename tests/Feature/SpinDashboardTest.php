@@ -75,7 +75,9 @@ class SpinDashboardTest extends TestCase
     public function test_product_integration_and_sitemap_exclude_private_views():void
     {
         $p=$this->product();$public=$this->spin($p);$private=$this->spin($p,['visibility'=>'private','title'=>'Private hidden spin']);
-        $this->get('/product/'.$p->slug)->assertOk()->assertSee('Explore in 360°')->assertDontSee('Private hidden spin');
+        $this->get('/product/'.$p->slug)->assertOk()
+            ->assertSee(['data-product-viewer', 'data-spin-source="managed"', '/360/'.$public->uuid.'/frames/0'], false)
+            ->assertDontSee('Private hidden spin');
         $this->get('/360-sitemap.xml')->assertOk()->assertSee($public->uuid)->assertDontSee($private->uuid);
     }
     public function test_updates_preserve_uuid_and_replace_files():void

@@ -1,4 +1,4 @@
-# Product detail evidence (P3.2)
+# Product detail evidence (P3.2 / Batch 6)
 
 The product detail screen now uses the current commerce contract:
 
@@ -9,11 +9,20 @@ The product detail screen now uses the current commerce contract:
 - breadcrumbs, wishlist, review and related-product sections are present
 - add-to-cart continues through the tested `CartController`/`CartService` contract
 
-The 360° drag/viewer interaction remains a separate P3.4 task; this checkpoint keeps the existing viewer hook without claiming that interaction is complete.
+Batch 6 closes the product-detail 360 integration gap:
 
-Verification on 2026-09-02:
+- `SiteController::product()` eager-loads only published/public managed spins and selects the latest spin with at least two frames
+- the selected managed spin is the authoritative frame source for the primary product hero, including its UUID-backed frame routes
+- legacy `spin_images` and approved `spin_360` Product Media remain the fallback when no managed spin is public
+- the hero contains the single product 360/photo switcher; the former duplicate standalone spin widget is not rendered on product detail
+- when fewer than two approved frames exist, the 360 tab is disabled and the approved photo gallery remains available
+
+Verification scope on 2026-09-12:
 
 ```text
-artisan view:cache  -> Blade templates cached successfully.
-artisan test       -> 13 passed (80 assertions)
+CustomerFrontOffice360ContractTest -> managed source, single viewer, private/legacy fallback, customer counts
+ProductManagedSpinIntegrationTest  -> managed/public and private/legacy integration
+ProjectScopeTest                   -> existing product, media and customer account contracts
 ```
+
+PHP/Composer are not installed in this workspace; the GitHub pull-request gate is the authoritative execution environment for the full Laravel suite.
