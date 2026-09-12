@@ -1,1 +1,25 @@
-<?php namespace App\Http\Controllers; use App\Models\{Product,Review}; use Illuminate\Http\Request; class ReviewController extends Controller {public function store(Request $r,Product $product){$d=$r->validate(['rating'=>'required|integer|min:1|max:5','title'=>'nullable|max:120','body'=>'nullable|max:2000']);Review::updateOrCreate(['user_id'=>auth()->id(),'product_id'=>$product->id],$d+['status'=>'approved']);return back()->with('success','Review saved.');}}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\{Product, Review};
+use Illuminate\Http\Request;
+
+class ReviewController extends Controller
+{
+    public function store(Request $request, Product $product)
+    {
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'title' => ['nullable', 'max:120'],
+            'body' => ['nullable', 'max:2000'],
+        ]);
+
+        Review::updateOrCreate(
+            ['user_id' => auth()->id(), 'product_id' => $product->id],
+            $data + ['status' => 'pending'],
+        );
+
+        return back()->with('success', 'Review submitted for approval.');
+    }
+}

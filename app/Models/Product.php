@@ -26,7 +26,7 @@ class Product extends Model
     public function category() { return $this->belongsTo(Category::class); }
     public function variants() { return $this->hasMany(ProductVariant::class); }
     public function media() { return $this->hasMany(ProductMedia::class)->where('active', true)->where('disk', 'public')->orderBy('sort_order'); }
-    public function reviews() { return $this->hasMany(Review::class)->where('status', 'approved'); }
+    public function reviews() { return $this->hasMany(Review::class)->approved(); }
     public function inventoryMovements() { return $this->hasMany(InventoryMovement::class); }
     public function spins() { return $this->hasMany(ProductSpin::class); }
     public function tryOnAssets() { return $this->hasMany(TryOnAsset::class); }

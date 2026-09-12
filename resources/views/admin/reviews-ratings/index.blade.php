@@ -273,6 +273,7 @@
 .rr-date strong { display: block; color: var(--text-main); font-weight:500;}
 
 .rr-actions { display: flex; gap: 8px; }
+.rr-action-form { display: flex; margin: 0; }
 .rr-btn-icon { width: 28px; height: 28px; border: 1px solid var(--btn-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #fff; cursor: pointer; color: var(--text-muted); }
 .rr-btn-icon:hover { background: var(--hover-bg); }
 .rr-btn-icon svg { width: 14px; height: 14px; }
@@ -351,7 +352,7 @@
 .rr-uuid-code { font-size: 12px; font-family: monospace; word-break: break-all; margin-bottom: 12px; }
 </style>
 
-<div class="rr-dashboard">
+<div class="rr-dashboard" data-review-source="review-records">
     <!-- Header -->
     <div class="rr-header">
         <div class="rr-header-left">
@@ -516,10 +517,28 @@
                             </td>
                             <td>
                                 <div class="rr-actions">
-                                    <button class="rr-btn-icon"><x-icon name="eye" /></button>
-                                    <button class="rr-btn-icon"><x-icon name="message-square" /></button>
-                                    <button class="rr-btn-icon"><x-icon name="flag" /></button>
-                                    <button class="rr-btn-icon"><x-icon name="more-vertical" /></button>
+                                    <button class="rr-btn-icon" type="button" aria-label="View review"><x-icon name="eye" /></button>
+                                    @if($review->status_key !== 'approved')
+                                        <form class="rr-action-form" method="post" action="{{ route('admin.reviews.status', $review->id) }}">
+                                            @csrf @method('PATCH')
+                                            <input type="hidden" name="status" value="approved">
+                                            <button class="rr-btn-icon" type="submit" aria-label="Approve review"><x-icon name="check-circle" /></button>
+                                        </form>
+                                    @endif
+                                    @if($review->status_key !== 'rejected')
+                                        <form class="rr-action-form" method="post" action="{{ route('admin.reviews.status', $review->id) }}">
+                                            @csrf @method('PATCH')
+                                            <input type="hidden" name="status" value="rejected">
+                                            <button class="rr-btn-icon" type="submit" aria-label="Reject review"><x-icon name="x-circle" /></button>
+                                        </form>
+                                    @endif
+                                    @if($review->status_key !== 'flagged')
+                                        <form class="rr-action-form" method="post" action="{{ route('admin.reviews.status', $review->id) }}">
+                                            @csrf @method('PATCH')
+                                            <input type="hidden" name="status" value="flagged">
+                                            <button class="rr-btn-icon" type="submit" aria-label="Flag review"><x-icon name="flag" /></button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
