@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
     @stack('styles')
 </head>
-<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -48,7 +48,7 @@
                         ['slug'=>'variants','label'=>'Variants','icon'=>'users','active'=>'admin/resource/variants*'],
                     ],
                 ],
-                ['slug'=>'banners-sliders','label'=>'Banners & Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
+                ['route'=>'admin.banners.index','label'=>'Banners / Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
                 ['route'=>'admin.pages','label'=>'Pages','icon'=>'file-text','active'=>'admin/pages*'],
                 ['route'=>'admin.seo.dashboard','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/seo*'],
                 ['slug'=>'reviews-ratings','label'=>'Reviews & Ratings','icon'=>'star','active'=>'admin/resource/reviews-ratings*'],
@@ -209,6 +209,8 @@
             <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
             @if(request()->routeIs('admin.seo.*'))
             <form class="admin-search" method="get" action="{{route('admin.seo.dashboard')}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search SEO, pages, meta, keywords..." aria-label="Search SEO, pages, meta, keywords"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
+        @elseif(request()->routeIs('admin.banners.*'))
+            <form class="admin-search" method="get" action="{{route('admin.banners.index')}}"><input type="hidden" name="tab" value="{{request('tab','all')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search banners, sliders..." aria-label="Search banners, sliders"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @else
             <form class="admin-search" method="get" action="{{ route('admin.search') }}"><x-icon name="search" /><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Search anything..." aria-label="Search anything"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @endif
