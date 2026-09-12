@@ -76,6 +76,13 @@ jobs:
           php artisan route:list
           vendor/bin/phpunit --configuration phpunit.pgsql.xml --display-warnings --fail-on-warning
 
+      - name: Rehearse migration rollback and re-run
+        run: |
+          php artisan migrate:rollback --step=999 --force
+          php artisan migrate --force
+          php artisan db:seed --force
+          php artisan migrate:status --no-ansi
+
       - name: Media browser acceptance
         if: github.ref == 'refs/heads/main'
         env:
