@@ -2,7 +2,14 @@
 
 **Scope:** public page rendering, canonical public navigation and Page Manager access behavior  
 **Source basis:** Emerald Rozalia Project 1 Developer Guide, version 3, 519 pages; audit dated 12 September 2026  
-**Status:** bounded implementation candidate; guide-wide completion is not claimed
+**Status:** deployed on `main`; guide-wide completion is not claimed
+
+## Release evidence
+
+- PR #72 passed its PostgreSQL gate in [GitHub Actions run #296](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34709149267) on the exact head `d932e07afdbb78ee44a1e801ce42042fd1d0bf91`.
+- The merged `main` release is `ba2cefb111f0b3838acd1ba331ab9dedea1d042b`.
+- The main validation, release rehearsal and Hetzner deployment all passed in [GitHub Actions run #297](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34709314668).
+- Production reported `Nothing to migrate`, saved `/var/backups/emerald-rozalia/20260912T175254Z-ba2cefb111f0`, and passed app, PostgreSQL, Redis and Nginx health checks.
 
 ## Implemented slice
 
