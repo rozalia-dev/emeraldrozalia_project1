@@ -62,12 +62,14 @@ class Project1Batch2ContractsTest extends TestCase
 
     private function roleWithPermission(string $permissionName): Role
     {
-        $permission = Permission::create([
-            'name' => $permissionName,
-            'group' => 'Users & Roles',
-            'module' => 'Users & Roles',
-            'action' => str_ends_with($permissionName, '.view') ? 'view' : 'edit',
-        ]);
+        $permission = Permission::firstOrCreate(
+            ['name' => $permissionName],
+            [
+                'group' => 'Users & Roles',
+                'module' => 'Users & Roles',
+                'action' => str_ends_with($permissionName, '.view') ? 'view' : 'edit',
+            ],
+        );
         $role = Role::create([
             'name' => 'Batch 2 Role '.uniqid(),
             'label' => 'Batch 2 Role',

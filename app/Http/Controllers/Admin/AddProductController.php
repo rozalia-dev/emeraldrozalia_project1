@@ -8,6 +8,7 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -19,19 +20,19 @@ class AddProductController extends Controller
 
     public function create(): View
     {
-        $this->authorize('create', Product::class);
+        Gate::authorize('create', Product::class);
         return view('admin.add-product', ['categories' => $this->categories(), 'product' => null]);
     }
 
     public function edit(Product $product): View
     {
-        $this->authorize('update', $product);
+        Gate::authorize('update', $product);
         return view('admin.add-product', ['categories' => $this->categories(), 'product' => $product]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorize('create', Product::class);
+        Gate::authorize('create', Product::class);
         $data = $this->validated($request);
         $product = $this->saveProduct($request, $data);
 
@@ -40,7 +41,7 @@ class AddProductController extends Controller
 
     public function update(Request $request, Product $product): RedirectResponse
     {
-        $this->authorize('update', $product);
+        Gate::authorize('update', $product);
         $data = $this->validated($request, $product);
         $this->saveProduct($request, $data, $product);
 
