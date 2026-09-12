@@ -617,10 +617,10 @@ class CommunicationCenterController extends Controller
 
             return [
                 $this->metric('Emails (This Month)', $currentMonth()->count(), 'mail', 'green', 'Tracked email threads'),
-                $this->metric('Inbox', $open + $pending, 'briefcase', 'blue', 'Open email work'),
+                $this->metric('Open', $open, 'briefcase', 'blue', 'Open email work'),
                 $this->metric('Sent', $sent, 'message', 'orange', 'Outbound messages'),
                 $this->metric('Replied', $replied, 'refresh', 'purple', 'Threads with replies'),
-                $this->metric('Resolved', $currentMonth()->where('status', 'closed')->count(), 'check', 'green', 'Closed email threads'),
+                $this->metric('Resolved', $currentMonth()->where('status', 'closed')->count(), 'check', 'green', 'Resolved email threads'),
                 $this->metric('SLA Breaches', $urgent, 'alert', 'red', 'Urgent unresolved'),
             ];
         }
@@ -1108,12 +1108,12 @@ class CommunicationCenterController extends Controller
             ],
             'email' => [
                 'title' => 'Email',
-                'subtitle' => 'Send, receive and manage emails across all channels.',
+                'subtitle' => 'Manage customer email conversations, assignments, approvals and follow-ups from the shared cPanel.',
                 'icon' => 'mail',
                 'variant' => 'conversation',
                 'singular' => 'Email',
-                'statuses' => ['new' => 'Inbox', 'open' => 'Inbox', 'pending' => 'Snoozed', 'closed' => 'Resolved'],
-                'tabs' => ['all' => 'All Emails', 'new' => 'Inbox', 'open' => 'Sent', 'pending' => 'Drafts', 'closed' => 'Resolved'],
+                'statuses' => ['new' => 'New', 'open' => 'Open', 'pending' => 'Approval Required', 'closed' => 'Resolved'],
+                'tabs' => ['all' => 'All Emails', 'new' => 'New', 'open' => 'Open', 'pending' => 'Approval Required', 'closed' => 'Resolved'],
             ],
             'email-templates' => [
                 'title' => 'Email Templates',
