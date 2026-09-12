@@ -1,7 +1,7 @@
 # Project 1 public/private synchronization matrix
 
-**Baseline:** Batch 8 deployed `main` release `093e451df45e4ed1665204003591f86833913d81`
-**Next batch:** Batch 9 settings/public-branding synchronization
+**Current verified release:** Batch 9 deployed `main` release `cba21d6474c3ab2d78a17aecc7175ca6dbaf2072`
+**Current batch:** Settings/public-branding synchronization
 **Rule:** “connected” means a traceable shared model/query path exists; it does not mean the complete production workflow is proven.
 
 | Public surface | Public read/write path | Private consumer | Current result | Required next contract |
