@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Approval;
 use App\Models\AdminRecord;
 use App\Models\AuditLog;
 use App\Models\Conversation;
@@ -10,8 +11,10 @@ use App\Models\ConversationMessage;
 use App\Models\CommunicationTemplate;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\ApprovalRequestService;
 use App\Services\CommunicationTemplateService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -136,6 +139,21 @@ class CommunicationCenterController extends Controller
             ]);
         }
 
+        if ($section === 'approval-center') {
+            $query = $this->approvalQuery();
+            $this->applyApprovalFilters($query, $request, $config);
+            $records = $query->paginate(10)->withQueryString();
+
+            return view('admin.communication-center.dashboard', $common + [
+                'metrics' => $this->approvalMetrics(),
+                'report' => $this->approvalSummary(),
+                'conversations' => null,
+                'selected' => null,
+                'records' => $records,
+                'activities' => null,
+            ]);
+        }
+
         $query = AdminRecord::query()->where('module', $section);
         $this->applyRecordFilters($query, $request, $config);
         $records = $query->latest('id')->paginate(10)->withQueryString();
@@ -156,6 +174,9 @@ class CommunicationCenterController extends Controller
         abort_unless($config && in_array($section, self::RECORD_SECTIONS, true), 404);
 
         $data = $this->validatedRecord($request, $config);
+        if ($section === 'approval-center') {
+            return $this->storeApprovalCompatibility($data, $config);
+        }
         $record = AdminRecord::create($this->recordAttributes($section, $data));
         if (blank($record->reference)) {
             $record->update(['reference' => $this->referenceFor($section, $record->id)]);
@@ -172,6 +193,22 @@ class CommunicationCenterController extends Controller
         abort_unless($config && in_array($section, self::RECORD_SECTIONS, true), 404);
         $this->guardRecord($section, $record);
 
+        if ($section === 'approval-center') {
+            $data = $this->validatedRecord($request, $config);
+            $approval = $this->approvalForShadow($record);
+            if ($approval) {
+                app(ApprovalRequestService::class)->update($approval, $data);
+                $record->update([
+                    'title' => $data['title'],
+                    'status' => $data['status'],
+                    'record_date' => $data['record_date'] ?? $record->record_date,
+                    'data' => array_merge($record->data ?? [], $this->approvalShadowData($approval->fresh())),
+                ]);
+
+                return back()->with('success', $config['singular'].' updated.');
+            }
+        }
+
         $before = $record->toArray();
         $data = $this->validatedRecord($request, $config);
         $record->update($this->recordAttributes($section, $data, $record));
@@ -187,6 +224,13 @@ class CommunicationCenterController extends Controller
         abort_unless($config && in_array($section, self::RECORD_SECTIONS, true), 404);
         $this->guardRecord($section, $record);
 
+        if ($section === 'approval-center') {
+            $approval = $this->approvalForShadow($record);
+            if ($approval) {
+                app(ApprovalRequestService::class)->delete($approval);
+            }
+        }
+
         $before = $record->toArray();
         AuditTrail::record('communication.'.$section.'.deleted', $record, $before, null);
         $record->delete();
@@ -199,6 +243,25 @@ class CommunicationCenterController extends Controller
         $config = $this->config($section);
         abort_unless($config && in_array($section, self::RECORD_SECTIONS, true), 404);
         $this->guardRecord($section, $record);
+
+        if ($section === 'approval-center') {
+            $approval = $this->approvalForShadow($record);
+            if ($approval) {
+                $decisionAction = match ($action) {
+                    'approve' => 'approve',
+                    'reject' => 'reject',
+                    default => null,
+                };
+                abort_unless($decisionAction, 404);
+                $updated = app(ApprovalRequestService::class)->decide($approval, $decisionAction);
+                $record->update([
+                    'status' => $updated->status,
+                    'data' => array_merge($record->data ?? [], $this->approvalShadowData($updated)),
+                ]);
+
+                return back()->with('success', Str::headline($action).' completed.');
+            }
+        }
 
         $nextStatus = match ([$section, $action]) {
             ['approval-center', 'approve'] => 'approved',
@@ -309,6 +372,33 @@ class CommunicationCenterController extends Controller
                 }
                 fclose($handle);
             }, $section.'-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
+        }
+
+        if ($section === 'approval-center') {
+            $query = $this->approvalQuery();
+            $this->applyApprovalFilters($query, $request, $config);
+            $rows = $query->limit(10000)->get();
+
+            return response()->streamDownload(function () use ($rows): void {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['UUID', 'Reference', 'Type', 'Title', 'Status', 'Priority', 'Requested By', 'Approver', 'Entity', 'Due By', 'Created']);
+                foreach ($rows as $row) {
+                    fputcsv($handle, [
+                        $row->uuid,
+                        $row->reference,
+                        $row->request_type,
+                        $row->title,
+                        $row->status,
+                        $row->priority,
+                        $row->requester_name ?: $row->requestedBy?->name,
+                        $row->approver_name ?: $row->approver?->name,
+                        $row->entity,
+                        optional($row->due_at)->toDateTimeString(),
+                        optional($row->created_at)->toDateTimeString(),
+                    ]);
+                }
+                fclose($handle);
+            }, 'approval-center-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
         }
 
         $query = AdminRecord::query()->where('module', $section);
@@ -479,6 +569,58 @@ class CommunicationCenterController extends Controller
         return ($date = $this->dateFilter($value))?->toDateString() ?? $fallback;
     }
 
+    private function approvalQuery(): Builder
+    {
+        return Approval::query()
+            ->forCurrentCompany()
+            ->with(['requestedBy', 'approver', 'decidedBy'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
+    }
+
+    private function applyApprovalFilters(Builder $query, Request $request, array $config): void
+    {
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function (Builder $builder) use ($like): void {
+                $builder->where('uuid', 'like', $like)
+                    ->orWhere('reference', 'like', $like)
+                    ->orWhere('title', 'like', $like)
+                    ->orWhere('description', 'like', $like)
+                    ->orWhere('entity', 'like', $like)
+                    ->orWhere('source', 'like', $like)
+                    ->orWhereHas('requestedBy', fn (Builder $user) => $user->where('name', 'like', $like))
+                    ->orWhereHas('approver', fn (Builder $user) => $user->where('name', 'like', $like));
+            });
+        }
+
+        $status = (string) $request->query('status', '');
+        $tab = (string) $request->query('tab', 'all');
+        if ($status === '' && isset($config['statuses'][$tab])) {
+            $status = $tab;
+        }
+        if (isset($config['statuses'][$status])) {
+            $query->where('status', $status);
+        }
+
+        $priority = Str::lower((string) $request->query('priority', ''));
+        if (in_array($priority, ['low', 'medium', 'normal', 'high', 'urgent'], true)) {
+            $query->where('priority', $priority);
+        }
+
+        $type = trim((string) $request->query('type', ''));
+        if ($type !== '') {
+            $query->where('request_type', $type);
+        }
+        if ($from = $this->dateFilter($request->query('date_from'))) {
+            $query->where('record_date', '>=', $from->toDateString());
+        }
+        if ($to = $this->dateFilter($request->query('date_to'))) {
+            $query->where('record_date', '<=', $to->toDateString());
+        }
+    }
+
     private function applyRecordFilters(Builder $query, Request $request, array $config): void
     {
         $search = trim((string) $request->query('q', ''));
@@ -565,7 +707,7 @@ class CommunicationCenterController extends Controller
         $followUps = $base()->whereNotNull('follow_up_at')->where('status', '!=', 'closed')->count();
 
         if ($section === 'communication-center') {
-            $approvals = AdminRecord::query()->where('module', 'approval-center')->whereIn('status', ['pending', 'in-progress'])->count();
+            $approvals = Approval::query()->forCurrentCompany()->whereIn('status', ['pending', 'in-progress'])->count();
             $alerts = AdminRecord::query()->where('module', 'alerts-notifications')->whereIn('status', ['unread', 'in-progress', 'escalated'])->count();
 
             return [
@@ -636,10 +778,33 @@ class CommunicationCenterController extends Controller
         ];
     }
 
+    private function approvalMetrics(): array
+    {
+        $query = Approval::query()->forCurrentCompany();
+        $resolved = (clone $query)->whereIn('status', ['approved', 'rejected'])->whereNotNull('decided_at')->get(['created_at', 'decided_at']);
+        $durations = $resolved->map(fn (Approval $approval) => $approval->created_at && $approval->decided_at
+            ? $approval->created_at->diffInSeconds($approval->decided_at)
+            : null)->filter(fn ($seconds): bool => is_numeric($seconds));
+        $average = $durations->isEmpty() ? '—' : $this->durationLabel((int) round((float) $durations->average()));
+
+        return [
+            $this->metric('Total Requests', (clone $query)->count(), 'briefcase', 'blue', 'Durable approval requests'),
+            $this->metric('Pending', (clone $query)->where('status', 'pending')->count(), 'briefcase', 'orange', 'Awaiting approval'),
+            $this->metric('In Progress', (clone $query)->whereIn('status', ['in-progress', 'escalated'])->count(), 'briefcase', 'purple', 'Being reviewed'),
+            $this->metric('Approved', (clone $query)->where('status', 'approved')->count(), 'check', 'green', 'Approved requests'),
+            $this->metric('Rejected', (clone $query)->where('status', 'rejected')->count(), 'alert', 'red', 'Rejected requests'),
+            $this->metric('Avg. Approval Time', $average, 'clock', 'dark', 'Stored decision duration'),
+        ];
+    }
+
     private function recordMetrics(string $section): array
     {
         if ($section === 'email-templates') {
             return $this->templateMetrics();
+        }
+
+        if ($section === 'approval-center') {
+            return $this->approvalMetrics();
         }
 
         $rows = AdminRecord::query()->where('module', $section)->get();
@@ -795,7 +960,7 @@ class CommunicationCenterController extends Controller
             'open' => Conversation::query()->whereIn('status', ['new', 'open', 'pending'])->count(),
             'closed' => Conversation::query()->where('status', 'closed')->count(),
             'recent' => Conversation::query()->latest('id')->limit(5)->get(),
-            'approval_recent' => AdminRecord::query()->where('module', 'approval-center')->latest('id')->limit(5)->get(),
+            'approval_recent' => Approval::query()->forCurrentCompany()->with(['requestedBy', 'approver'])->latest('id')->limit(5)->get(),
             'alert_recent' => AdminRecord::query()->where('module', 'alerts-notifications')->latest('id')->limit(5)->get(),
         ];
     }
@@ -820,6 +985,10 @@ class CommunicationCenterController extends Controller
             return $this->templateSummary();
         }
 
+        if ($section === 'approval-center') {
+            return $this->approvalSummary();
+        }
+
         $rows = AdminRecord::query()->where('module', $section)->latest('id')->get();
 
         return [
@@ -830,6 +999,90 @@ class CommunicationCenterController extends Controller
             'source_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'source', 'Communication Center'))->map->count()->sortDesc()->take(7),
             'priority_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'priority', 'normal'))->map->count()->sortDesc(),
             'severity_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'severity', 'low'))->map->count()->sortDesc(),
+        ];
+    }
+
+    private function approvalSummary(): array
+    {
+        $rows = $this->approvalQuery()->latest('id')->limit(5000)->get();
+
+        return [
+            'total' => $rows->count(),
+            'recent' => $rows->take(5),
+            'status_counts' => $rows->groupBy('status')->map->count()->sortDesc(),
+            'category_counts' => $rows->groupBy(fn (Approval $row) => (string) ($row->request_type ?: 'General'))->map->count()->sortDesc()->take(7),
+            'source_counts' => $rows->groupBy(fn (Approval $row) => (string) ($row->source ?: 'Communication Center'))->map->count()->sortDesc()->take(7),
+            'priority_counts' => $rows->groupBy(fn (Approval $row) => (string) ($row->priority ?: 'normal'))->map->count()->sortDesc(),
+            'severity_counts' => collect(),
+        ];
+    }
+
+    private function storeApprovalCompatibility(array $data, array $config): RedirectResponse
+    {
+        $approval = app(ApprovalRequestService::class)->create([
+            'title' => $data['title'],
+            'reference' => $data['reference'] ?? null,
+            'type' => $data['type'] ?? null,
+            'description' => $data['description'] ?? null,
+            'priority' => $data['priority'] ?? 'normal',
+            'requested_by' => $data['requested_by'] ?? null,
+            'approver' => $data['approver'] ?? null,
+            'entity' => $data['entity'] ?? null,
+            'source' => 'Communication Center',
+            'due_at' => $data['due_at'] ?? null,
+            'status' => $data['status'] ?? 'pending',
+            'record_date' => $data['record_date'] ?? now()->toDateString(),
+        ]);
+
+        $record = AdminRecord::create([
+            'module' => 'approval-center',
+            'title' => $approval->title,
+            'reference' => $approval->reference,
+            'status' => $approval->status,
+            'record_date' => $approval->record_date,
+            'user_id' => auth()->id(),
+            'data' => $this->approvalShadowData($approval),
+        ]);
+
+        AuditTrail::record('communication.approval.compatibility-shadow.created', $record, null, [
+            'approval_uuid' => $approval->uuid,
+            'reference' => $approval->reference,
+        ]);
+
+        return back()->with('success', $config['singular'].' created.');
+    }
+
+    private function approvalForShadow(AdminRecord $record): ?Approval
+    {
+        $uuid = data_get($record->data, 'approval_uuid');
+        $query = Approval::withTrashed()->withoutGlobalScopes();
+        $approval = $uuid
+            ? $query->where('uuid', $uuid)->first()
+            : $query->where('reference', $record->reference)->first();
+
+        if (! $approval) {
+            return null;
+        }
+
+        if (session('company_id') && (int) $approval->company_id !== (int) session('company_id')) {
+            abort(404);
+        }
+
+        return $approval;
+    }
+
+    private function approvalShadowData(Approval $approval): array
+    {
+        return [
+            'approval_uuid' => $approval->uuid,
+            'type' => $approval->request_type,
+            'description' => $approval->description,
+            'priority' => $approval->priority,
+            'requested_by' => $approval->requester_name ?: $approval->requestedBy?->name,
+            'approver' => $approval->approver_name ?: $approval->approver?->name,
+            'entity' => $approval->entity,
+            'source' => $approval->source,
+            'due_at' => $approval->due_at?->toIso8601String(),
         ];
     }
 
@@ -1132,8 +1385,8 @@ class CommunicationCenterController extends Controller
                 'variant' => 'records',
                 'singular' => 'Approval request',
                 'create_label' => 'New Approval Request',
-                'statuses' => ['pending' => 'Pending', 'in-progress' => 'In Progress', 'approved' => 'Approved', 'rejected' => 'Rejected', 'escalated' => 'Escalated'],
-                'tabs' => ['all' => 'All Requests', 'pending' => 'Pending', 'in-progress' => 'In Progress', 'approved' => 'Approved', 'rejected' => 'Rejected', 'escalated' => 'Escalated'],
+                'statuses' => ['pending' => 'Pending', 'in-progress' => 'In Progress', 'approved' => 'Approved', 'rejected' => 'Rejected', 'escalated' => 'Escalated', 'cancelled' => 'Cancelled'],
+                'tabs' => ['all' => 'All Requests', 'pending' => 'Pending', 'in-progress' => 'In Progress', 'approved' => 'Approved', 'rejected' => 'Rejected', 'escalated' => 'Escalated', 'cancelled' => 'Cancelled'],
             ],
             'action-follow-ups' => [
                 'title' => 'Action / Follow-ups',

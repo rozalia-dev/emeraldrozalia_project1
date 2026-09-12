@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CommunicationWebhookController;
 use App\Http\Controllers\Admin\CommunicationEmailController;
+use App\Http\Controllers\Admin\CommunicationApprovalController;
 use App\Http\Controllers\Admin\CommunicationTemplateController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use Illuminate\Support\Facades\Route;
@@ -40,4 +41,19 @@ Route::prefix('api/v1/communication/email')
         Route::patch('/{conversation:uuid}', [CommunicationEmailController::class, 'update'])->name('update');
         Route::post('/{conversation:uuid}/messages', [CommunicationEmailController::class, 'reply'])->name('messages.store');
         Route::get('/{conversation:uuid}/audit', [CommunicationEmailController::class, 'audit'])->name('audit');
+    });
+
+Route::prefix('api/v1/communication/approvals')
+    ->middleware(['web', 'auth', 'admin', 'throttle:60,1'])
+    ->name('api.v1.communication.approvals.')
+    ->group(function (): void {
+        Route::get('/', [CommunicationApprovalController::class, 'apiIndex'])->name('index');
+        Route::post('/', [CommunicationApprovalController::class, 'apiStore'])->name('store');
+        Route::get('/{approval:uuid}', [CommunicationApprovalController::class, 'apiShow'])->name('show');
+        Route::patch('/{approval:uuid}', [CommunicationApprovalController::class, 'apiUpdate'])->name('update');
+        Route::delete('/{approval:uuid}', [CommunicationApprovalController::class, 'apiDelete'])->name('destroy');
+        Route::post('/{approval:uuid}/actions/{action}', [CommunicationApprovalController::class, 'apiAction'])
+            ->where('action', 'approve|reject|escalate|reopen|cancel')
+            ->name('action');
+        Route::get('/{approval:uuid}/audit', [CommunicationApprovalController::class, 'audit'])->name('audit');
     });

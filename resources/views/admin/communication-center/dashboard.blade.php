@@ -441,10 +441,10 @@
                                     <td>{{ optional($record->created_at)->format('d M Y H:i') }}</td>
                                 @endif
                                 <td class="cc-actions">
-                                    <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ $section === 'email-templates' ? $record->uuid : $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
+                                    <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ in_array($section, ['email-templates','approval-center'], true) ? $record->uuid : $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
                                     @if($section === 'approval-center' && !in_array($record->status,['approved','rejected'],true))
-                                        <form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'approve']) }}">@csrf<button title="Approve"><x-icon name="check" size="14" /></button></form>
-                                        <form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'reject']) }}">@csrf<button title="Reject">×</button></form>
+                                        <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'approve']) }}">@csrf<button title="Approve"><x-icon name="check" size="14" /></button></form>
+                                        <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'reject']) }}">@csrf<button title="Reject">×</button></form>
                                     @elseif($section === 'action-follow-ups')
                                         @if($record->status !== 'completed')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'complete']) }}">@csrf<button title="Complete"><x-icon name="check" size="14" /></button></form>@else<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'reopen']) }}">@csrf<button title="Reopen"><x-icon name="refresh" size="14" /></button></form>@endif
                                     @elseif($section === 'alerts-notifications')
@@ -457,7 +457,7 @@
                                             <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'archive']) }}">@csrf<button title="Archive"><x-icon name="folder" size="14" /></button></form>
                                         @endif
                                     @endif
-                                    <form method="post" action="{{ $section === 'email-templates' ? route('admin.communication-center.templates.destroy', $record) : route('admin.communication-center.record.destroy',[$section,$record]) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button title="Delete"><x-icon name="trash" size="14" /></button></form>
+                                    <form method="post" action="{{ $section === 'email-templates' ? route('admin.communication-center.templates.destroy', $record) : ($section === 'approval-center' ? route('admin.communication-center.approvals.destroy', $record) : route('admin.communication-center.record.destroy',[$section,$record])) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button title="Delete"><x-icon name="trash" size="14" /></button></form>
                                 </td>
                             </tr>
                         @empty
@@ -531,8 +531,12 @@
 
         <dialog class="cc-dialog" data-cc-dialog>
             @php
-                $recordStoreUrl = $section === 'email-templates' ? route('admin.communication-center.templates.store') : route('admin.communication-center.record.store', $section);
-                $recordUpdateUrl = $section === 'email-templates' ? route('admin.communication-center.templates.update', ['template' => '__id__']) : route('admin.communication-center.record.update', [$section, '__id__']);
+                $recordStoreUrl = $section === 'email-templates'
+                    ? route('admin.communication-center.templates.store')
+                    : ($section === 'approval-center' ? route('admin.communication-center.approvals.store') : route('admin.communication-center.record.store', $section));
+                $recordUpdateUrl = $section === 'email-templates'
+                    ? route('admin.communication-center.templates.update', ['template' => '__id__'])
+                    : ($section === 'approval-center' ? route('admin.communication-center.approvals.update', ['approval' => '__id__']) : route('admin.communication-center.record.update', [$section, '__id__']));
             @endphp
             <form method="post" action="{{ $recordStoreUrl }}" data-cc-form data-store-url="{{ $recordStoreUrl }}" data-update-template="{{ $recordUpdateUrl }}">
                 @csrf
