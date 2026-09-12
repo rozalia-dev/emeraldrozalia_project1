@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\ApplySeoRedirects;
 use App\Http\Middleware\AttachRequestCorrelation;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\ResolveTenantContext;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -23,7 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', 'REMOTE_ADDR'));
         $middleware->appendToGroup('web', ResolveTenantContext::class);
         $middleware->appendToGroup('web', AttachRequestCorrelation::class);
-        $middleware->alias(['admin' => EnsureAdmin::class]);
+        $middleware->alias([
+            'admin' => EnsureAdmin::class,
+            'permission' => EnsurePermission::class,
+        ]);
         $middleware->appendToGroup('web', ApplySeoRedirects::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {})
