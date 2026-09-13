@@ -28,12 +28,12 @@
         $heroMedia = $heroSection && is_array($homeMedia ?? null) && filled($heroSection->media_uuid)
             ? ($homeMedia[$heroSection->media_uuid] ?? null)
             : null;
+        // The approved reference artwork is a layout blueprint only. It must
+        // never be rendered as the hero image. Use managed hero media first,
+        // then a real product image, otherwise keep an explicit placeholder.
         $heroVisual = is_array($heroMedia)
             ? $heroMedia
-            : (is_array($fallbackProductDescriptor)
-                ? $fallbackProductDescriptor
-                : (is_array($homeHeroReferenceMedia ?? null) ? $homeHeroReferenceMedia : null));
-        $heroVisualIsReference = ! is_array($heroMedia) && ! is_array($fallbackProductDescriptor) && is_array($heroVisual);
+            : (is_array($fallbackProductDescriptor) ? $fallbackProductDescriptor : null);
         $heroVisualUrl = is_array($heroVisual) ? ($heroVisual['url'] ?? null) : null;
         $heroVisualAlt = is_array($heroVisual) ? ($heroVisual['alt'] ?? 'Emerald Rozalia hat') : 'Emerald Rozalia hat';
         $heroId = $heroSection ? 'home-section-' . ($heroSection->uuid ?: $heroSection->id) : 'home-hero';
@@ -63,7 +63,7 @@
                         </div>
                     </div>
 
-                    <div class="home-hero-structured-product @if($heroVisualIsReference) is-reference-crop @endif" data-public-media-state="{{ is_array($heroMedia) ? 'approved' : (is_array($fallbackProductDescriptor) ? 'product-media' : ($heroVisualUrl ? 'reference-crop' : 'awaiting-approved-media')) }}">
+                    <div class="home-hero-structured-product" data-public-media-state="{{ is_array($heroMedia) ? 'approved' : (is_array($fallbackProductDescriptor) ? 'product-media' : 'awaiting-approved-media') }}">
                         @if($heroVisualUrl)
                             <img src="{{ $heroVisualUrl }}" alt="{{ $heroVisualAlt }}" fetchpriority="high">
                         @else
