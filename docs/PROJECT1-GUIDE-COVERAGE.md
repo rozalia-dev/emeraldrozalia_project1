@@ -3,8 +3,8 @@
 **Baseline date:** 12 September 2026
 **Guide:** Emerald-Rozalia-Project-1-Developer-Guide.pdf, version 3, 519 pages
 **Audited release baseline:** c54e933e36c68f2951e5e05afb32119ea02ea467
-**Current verified release:** 96da0731a516c4ee652534df44bc2b3c1590ee74
-**Scope:** Batches 0–9 plus the Communication Center delivery, webhook, Email Templates and Email Dashboard contract slices — baseline, evidence, and synchronized implementation slices
+**Current verified release:** 841e74972e325f7d88f972cc4283125fc11d38b2
+**Scope:** Batches 0–10 plus the Banner Management integrity follow-up, Communication Center delivery, webhook, Email Templates and Email Dashboard contract slices — baseline, evidence, and synchronized implementation slices
 
 This is the ordered implementation matrix for every guide visual/build entry. A route, menu label, view, fixture, or README statement is not treated as completion evidence by itself.
 
@@ -99,8 +99,8 @@ The status column below is intentionally conservative. Every row remains open fo
 | 044 | 138–140 | Phase 02 | Video Dashboard | Archive 158 | Not tracked locally · Archive 158 | /admin/resource/videos · VideoController | Partial | Dedicated or generic admin route/view/test evidence exists; live-domain, contract and visual proof remain partial. |
 | 045 | 141–143 | Phase 02 | Virtual Try-On Dashboard | Archive 047 | Not tracked locally · Archive 047 | /admin/resource/virtual-try-on · TryOnController | Partial | Dedicated or generic admin route/view/test evidence exists; live-domain, contract and visual proof remain partial. |
 | 046 | 144–146 | Phase 02 | Virtual Try-On Dashboard | Archive 160 | Not tracked locally · Archive 160 | /admin/resource/virtual-try-on · TryOnController | Partial | Dedicated or generic admin route/view/test evidence exists; live-domain, contract and visual proof remain partial. |
-| 047 | 147–149 | Phase 02 | Banner Management Dashboard | Archive 040 | Not tracked locally · Archive 040 | /admin/resource/banners-sliders · BannerController | Partial | Banner CRUD/revision routes and live public `Banner::publishedFor()` delivery exist; Batch 8 covers homepage/API lifecycle filtering. Media approval, visual and browser proof remain partial. |
-| 048 | 150–152 | Phase 02 | Banner Management Dashboard | Archive 153 | Not tracked locally · Archive 153 | /admin/resource/banners-sliders · BannerController | Partial | Banner CRUD/revision routes and live public `Banner::publishedFor()` delivery exist; Batch 8 covers homepage/API lifecycle filtering. Media approval, visual and browser proof remain partial. |
+| 047 | 147–149 | Phase 02 | Banner Management Dashboard | Archive 040 | Not tracked locally · Archive 040 | /admin/resource/banners-sliders · BannerController | Partial | Banner CRUD/revision routes, live public `Banner::publishedFor()` delivery, and explicit dashboard empty/data-source states exist; Banner integrity follow-up removes fixture campaigns and KPI values. Media approval, visual and browser proof remain partial. |
+| 048 | 150–152 | Phase 02 | Banner Management Dashboard | Archive 153 | Not tracked locally · Archive 153 | /admin/resource/banners-sliders · BannerController | Partial | Banner CRUD/revision routes, live public `Banner::publishedFor()` delivery, and explicit dashboard empty/data-source states exist; Banner integrity follow-up removes fixture campaigns and KPI values. Media approval, visual and browser proof remain partial. |
 | 049 | 153–155 | Phase 02 | Pages Dashboard | Archive 041 | Not tracked locally · Archive 041 | /admin/pages · PageManagerController | Partial | Dedicated or generic admin route/view/test evidence exists; live-domain, contract and visual proof remain partial. |
 | 050 | 156–158 | Phase 02 | Pages Dashboard | Archive 154 | Not tracked locally · Archive 154 | /admin/pages · PageManagerController | Partial | Dedicated or generic admin route/view/test evidence exists; live-domain, contract and visual proof remain partial. |
 | 051 | 159–161 | Phase 02 | SEO Dashboard | Archive 042 | Not tracked locally · Archive 042 | /admin/seo · SeoController | Partial | Dedicated or generic admin route/view/test evidence exists; live-domain, contract and visual proof remain partial. |

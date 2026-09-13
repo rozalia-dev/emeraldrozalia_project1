@@ -2,7 +2,7 @@
 
 **Scope:** Banner / Slider Management and its public homepage read path.  
 **Guide mapping:** Phase 02, build visuals 047–048; public/private synchronization contract.  
-**Implementation state:** Candidate change from the current verified `main` release; release SHA and CI evidence are recorded after promotion.
+**Implementation state:** Verified and deployed in `main` release `841e74972e325f7d88f972cc4283125fc11d38b2` through [GitHub Actions run #339](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/34742279764). The deployment backup is `20260913T061943Z-841e74972e32`.
 
 ## Problem closed
 
@@ -25,7 +25,7 @@
 | Saved banner dashboard | `data-empty="false"`, saved banner appears, source note names `Banner` records, no reference campaign names |
 | KPI comparisons | `No comparison loaded`; no hard-coded reference trend percentages |
 | Public homepage/API | Existing published-banner synchronization tests continue to read only eligible `Banner` records |
-| Runtime gate | PostgreSQL feature suite, container validation and same-SHA deployment must pass before this evidence is promoted to verified |
+| Runtime gate | PostgreSQL validation, container/release validation and same-SHA Hetzner deployment passed in run #339; app, database, Redis and Nginx health checks passed |
 
 ## Remaining boundary
 
