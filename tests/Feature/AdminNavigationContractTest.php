@@ -49,22 +49,16 @@ class AdminNavigationContractTest extends TestCase
         }
 
         foreach ([
-            'Settings' => 'Settings',
-            'Audit & Logs' => 'Audit &amp; Logs',
-            'Integrations' => 'Integrations',
-            'Data Management' => 'Data Management',
-        ] as $label => $escapedLabel) {
-            $this->assertSame(1, substr_count($sidebar, '<span>'.$escapedLabel.'</span>'), "Missing compact Settings item: {$label}");
+            'Settings', 'General Configuration', 'Company &amp; Branding', 'Theme Manager',
+            'Email &amp; Notifications', 'WhatsApp &amp; Messaging', 'Payment Gateways',
+            'Localization', 'Security &amp; Access', 'Users &amp; Roles / API Roles',
+            'Application Settings', 'Document &amp; Storage', 'Integrations', 'Automations',
+            'Backup &amp; Recovery', 'Audit &amp; Logs', 'System Maintenance', 'Other Settings',
+        ] as $label) {
+            $this->assertStringContainsString('<span>'.$label.'</span>', $sidebar, "Missing Settings item: {$label}");
         }
 
-        foreach ([
-            'Settings Overview', 'General Configuration', 'Company &amp; Branding',
-            'Email &amp; Notifications', 'Payment Gateways', 'Localization',
-            'Application Settings', 'Document &amp; Storage', 'Automations',
-            'Backup &amp; Recovery', 'System Maintenance', 'Other Settings',
-        ] as $legacyItem) {
-            $this->assertStringNotContainsString($legacyItem, $sidebar);
-        }
+        $this->assertStringNotContainsString('<span>Data Management</span>', $sidebar);
 
         foreach (['Production', 'Finance', 'Payroll', 'HR', 'POS', 'Franchise Portal'] as $excludedArea) {
             $this->assertStringNotContainsString($excludedArea, $sidebar);

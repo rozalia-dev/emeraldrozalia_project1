@@ -63,21 +63,16 @@ class SettingsController extends Controller
 
         $recentActivity = $this->activity();
         $latestAudit = AuditLog::query()->where('action', 'like', 'settings.%')->latest('created_at')->first();
-        $updatedBy = $latestAudit?->user_id ? (User::find($latestAudit->user_id)?->name ?? 'Admin User') : 'Admin User';
+        $updatedBy = $latestAudit?->user_id ? (User::find($latestAudit->user_id)?->name ?? 'System') : 'System defaults';
+        $overviewStats = $this->overviewStats($catalog);
 
         return view('admin.settings.dashboard', [
             'isOverview' => true, 'section' => null, 'category' => null, 'catalog' => $catalog,
             'categories' => $categories->values(), 'search' => $search, 'status' => $status,
             'recentActivity' => $recentActivity, 'updatedBy' => $updatedBy,
-            'lastUpdated' => $latestAudit?->created_at?->format('d M Y') ?? '01 May 2025',
-            'metrics' => [
-                ['label' => 'Total Settings', 'value' => '186', 'tone' => 'green', 'icon' => 'settings'],
-                ['label' => 'Configured', 'value' => '152', 'tone' => 'blue', 'icon' => 'check'],
-                ['label' => 'Needs Attention', 'value' => '12', 'tone' => 'orange', 'icon' => 'alert'],
-                ['label' => 'Not Configured', 'value' => '22', 'tone' => 'red', 'icon' => 'clock'],
-                ['label' => 'Last Updated', 'value' => $latestAudit?->created_at?->format('d M Y') ?? '01 May 2025', 'tone' => 'purple', 'icon' => 'calendar'],
-                ['label' => 'Updated By', 'value' => $updatedBy, 'tone' => 'teal', 'icon' => 'user'],
-            ],
+            'lastUpdated' => $latestAudit?->created_at?->format('d M Y') ?? 'Not recorded',
+            'metrics' => $this->metricsForOverview($overviewStats, $latestAudit, $updatedBy),
+            'overviewStats' => $overviewStats,
             'activeTab' => null, 'tabs' => [], 'values' => [], 'fields' => [],
             'connections' => collect(), 'languages' => collect(), 'currencies' => collect(),
             'apiRoles' => collect(), 'automations' => collect(), 'backups' => collect(), 'roles' => collect(),
@@ -96,7 +91,7 @@ class SettingsController extends Controller
         $record = AdminRecord::query()->where('module', 'system-settings')->where('reference', $section)->latest('id')->first();
         $defaults = $this->defaults()[$section] ?? [];
         $values = array_merge($defaults, $record?->data ?? []);
-        $updatedBy = $record?->user_id ? (User::find($record->user_id)?->name ?? 'Admin User') : 'Admin User';
+        $updatedBy = $record?->user_id ? (User::find($record->user_id)?->name ?? 'System') : 'System defaults';
         $connections = IntegrationConnection::query()->orderBy('service')->get();
         $languages = Language::query()->where('active', true)->orderBy('name')->get();
         $currencies = Currency::query()->where('active', true)->orderBy('code')->get();
@@ -105,34 +100,12 @@ class SettingsController extends Controller
         $backups = BackupRun::query()->latest('started_at')->limit(12)->get();
         $roles = Role::query()->withCount('users')->orderBy('name')->limit(12)->get();
 
-        if ($apiRoles->isEmpty()) {
-            $apiRoles = collect([
-                (object) ['id' => null, 'title' => 'Integration API', 'status' => 'active', 'reference' => 'integration-api', 'data' => ['description' => 'Core integration access', 'scopes' => ['read:products', 'read:orders'], 'calls' => 12840, 'last_used' => 'Today, 10:42 AM']],
-                (object) ['id' => null, 'title' => 'Reporting Service', 'status' => 'active', 'reference' => 'reporting-service', 'data' => ['description' => 'Read-only reporting access', 'scopes' => ['read:reports', 'read:orders'], 'calls' => 8420, 'last_used' => 'Today, 09:18 AM']],
-                (object) ['id' => null, 'title' => 'Legacy Warehouse', 'status' => 'revoked', 'reference' => 'legacy-warehouse', 'data' => ['description' => 'Retired warehouse connector', 'scopes' => ['read:inventory'], 'calls' => 0, 'last_used' => '28 Apr 2025']],
-            ]);
-        }
-        if ($automations->isEmpty()) {
-            $automations = collect([
-                (object) ['id' => null, 'name' => 'New order confirmation', 'event' => 'order.created', 'enabled' => true, 'actions' => ['Send email', 'Create notification'], 'updated_at' => now()],
-                (object) ['id' => null, 'name' => 'Low stock alert', 'event' => 'inventory.low', 'enabled' => true, 'actions' => ['Send WhatsApp'], 'updated_at' => now()->subHours(3)],
-                (object) ['id' => null, 'name' => 'Franchise follow-up', 'event' => 'application.pending', 'enabled' => false, 'actions' => ['Create task'], 'updated_at' => now()->subDay()],
-            ]);
-        }
-        if ($backups->isEmpty()) {
-            $backups = collect([
-                (object) ['id' => null, 'type' => 'Full', 'status' => 'completed', 'location' => 'S3 · emerald-prod', 'size_bytes' => 2684354560, 'started_at' => now()->subHours(2), 'completed_at' => now()->subHours(1)->subMinutes(58)],
-                (object) ['id' => null, 'type' => 'Database', 'status' => 'completed', 'location' => 'Local encrypted', 'size_bytes' => 524288000, 'started_at' => now()->subDay(), 'completed_at' => now()->subDay()->addMinutes(4)],
-                (object) ['id' => null, 'type' => 'Files', 'status' => 'completed', 'location' => 'S3 · emerald-prod', 'size_bytes' => 2147483648, 'started_at' => now()->subDays(2), 'completed_at' => now()->subDays(2)->addMinutes(12)],
-            ]);
-        }
-
         $latestAudit = $record?->updated_at ?? AuditLog::query()->where('action', 'like', 'settings.'.$section.'%')->latest('created_at')->value('created_at');
         return view('admin.settings.dashboard', [
             'isOverview' => false, 'section' => $section, 'category' => $category, 'catalog' => $catalog,
             'categories' => collect($catalog)->map(fn (array $item, string $slug) => [...$item, 'slug' => $slug])->values(),
             'search' => '', 'status' => '', 'recentActivity' => $this->activity($section), 'updatedBy' => $updatedBy,
-            'lastUpdated' => $latestAudit ? Carbon::parse($latestAudit)->format('d M Y') : '01 May 2025',
+            'lastUpdated' => $latestAudit ? Carbon::parse($latestAudit)->format('d M Y') : 'Not recorded',
             'metrics' => $this->metricsFor($category, $latestAudit, $updatedBy), 'activeTab' => $activeTab,
             'tabs' => $tabs, 'values' => $values, 'fields' => $this->fieldDefinitions($section),
             'connections' => $connections, 'languages' => $languages, 'currencies' => $currencies,
@@ -369,7 +342,7 @@ class SettingsController extends Controller
         $query = AuditLog::query()->where('action', 'like', 'settings.%')->latest('created_at')->limit(6);
         if ($section) $query->where('action', 'like', 'settings.'.$section.'%');
         return $query->get()->map(function (AuditLog $entry): array {
-            return ['action' => Str::headline(str_replace('settings.', '', $entry->action)), 'description' => $entry->action, 'user' => $entry->user_id ? (User::find($entry->user_id)?->name ?? 'Admin User') : 'System', 'date' => $entry->created_at?->format('d M Y, H:i') ?? 'Just now', 'tone' => Str::contains($entry->action, ['failed', 'revoked']) ? 'red' : 'green'];
+            return ['action' => Str::headline(str_replace('settings.', '', $entry->action)), 'description' => $entry->action, 'user' => $entry->user_id ? (User::find($entry->user_id)?->name ?? 'System') : 'System', 'date' => $entry->created_at?->format('d M Y, H:i') ?? 'Not recorded', 'tone' => Str::contains($entry->action, ['failed', 'revoked']) ? 'red' : 'green'];
         });
     }
 
@@ -380,30 +353,66 @@ class SettingsController extends Controller
             ['label' => 'Configured', 'value' => (string) $category['configured'], 'tone' => 'blue', 'icon' => 'check'],
             ['label' => 'Needs Attention', 'value' => (string) $category['attention'], 'tone' => 'orange', 'icon' => 'alert'],
             ['label' => 'Not Configured', 'value' => (string) $category['not_configured'], 'tone' => 'red', 'icon' => 'clock'],
-            ['label' => 'Last Updated', 'value' => $latestAudit ? Carbon::parse($latestAudit)->format('d M Y') : '01 May 2025', 'tone' => 'purple', 'icon' => 'calendar'],
+            ['label' => 'Last Updated', 'value' => $latestAudit ? Carbon::parse($latestAudit)->format('d M Y') : 'Not recorded', 'tone' => 'purple', 'icon' => 'calendar'],
             ['label' => 'Updated By', 'value' => $updatedBy, 'tone' => 'teal', 'icon' => 'user'],
         ];
     }
 
     private function catalog(): array
     {
+        $metadata = [
+            'general-configuration' => ['title' => 'General Configuration', 'subtitle' => 'Basic system information and core preferences', 'icon' => 'settings', 'tone' => 'green'],
+            'company-branding' => ['title' => 'Company & Branding', 'subtitle' => 'Company information, branding and visual identity', 'icon' => 'briefcase', 'tone' => 'purple'],
+            'email-notifications' => ['title' => 'Email & Notifications', 'subtitle' => 'Email delivery, templates and notification channels', 'icon' => 'mail', 'tone' => 'blue'],
+            'whatsapp-messaging' => ['title' => 'WhatsApp & Messaging', 'subtitle' => 'WhatsApp API, message templates and workflows', 'icon' => 'message', 'tone' => 'teal'],
+            'payment-gateways' => ['title' => 'Payment Gateways', 'subtitle' => 'Payment providers, currencies and transaction rules', 'icon' => 'credit-card', 'tone' => 'orange'],
+            'localization' => ['title' => 'Localization', 'subtitle' => 'Languages, regional formats and currencies', 'icon' => 'globe', 'tone' => 'blue'],
+            'security-access' => ['title' => 'Security & Access', 'subtitle' => 'Authentication, access control and security policies', 'icon' => 'check', 'tone' => 'red'],
+            'api-roles' => ['title' => 'Users & Roles', 'subtitle' => 'Users, API roles and permission governance', 'icon' => 'users', 'tone' => 'purple'],
+            'application-settings' => ['title' => 'Application Settings', 'subtitle' => 'Features, performance, caching and maintenance', 'icon' => 'settings', 'tone' => 'green'],
+            'document-storage' => ['title' => 'Document & Storage', 'subtitle' => 'Files, documents, upload limits and storage providers', 'icon' => 'file-text', 'tone' => 'orange'],
+            'integrations' => ['title' => 'Integrations', 'subtitle' => 'External services and connection health', 'icon' => 'refresh', 'tone' => 'blue'],
+            'automations' => ['title' => 'Automations', 'subtitle' => 'Workflows, triggers and scheduled tasks', 'icon' => 'refresh', 'tone' => 'purple'],
+            'backup-recovery' => ['title' => 'Backup & Recovery', 'subtitle' => 'Backups, restore points and recovery operations', 'icon' => 'download', 'tone' => 'teal'],
+            'audit-logs' => ['title' => 'Audit & Logs', 'subtitle' => 'Activity history, retention and compliance evidence', 'icon' => 'file-text', 'tone' => 'red'],
+            'system-maintenance' => ['title' => 'System Maintenance', 'subtitle' => 'Maintenance jobs, queues and system health', 'icon' => 'refresh', 'tone' => 'orange'],
+            'other-settings' => ['title' => 'Other Settings', 'subtitle' => 'Additional preferences and operational options', 'icon' => 'dots', 'tone' => 'blue'],
+        ];
+
+        return collect($metadata)->mapWithKeys(function (array $item, string $section): array {
+            $fields = $this->fieldDefinitions($section);
+            $record = AdminRecord::query()->where('module', 'system-settings')->where('reference', $section)->latest('id')->first();
+            $data = $record?->data ?? [];
+            $configured = collect($fields)->filter(function (array $field) use ($data, $record): bool {
+                if (! $record || ! array_key_exists($field['key'], $data)) return false;
+                $value = $data[$field['key']];
+                return is_bool($value) || (is_scalar($value) && trim((string) $value) !== '');
+            })->count();
+            $count = count($fields);
+
+            return [$section => [...$item, 'count' => $count, 'configured' => $configured, 'attention' => 0, 'not_configured' => max(0, $count - $configured)]];
+        })->all();
+    }
+
+    private function overviewStats(array $catalog): array
+    {
         return [
-            'general-configuration' => ['title' => 'General Configuration', 'subtitle' => 'Basic system information and core preferences', 'icon' => 'settings', 'tone' => 'green', 'count' => 12, 'configured' => 10, 'attention' => 1, 'not_configured' => 1],
-            'company-branding' => ['title' => 'Company & Branding', 'subtitle' => 'Company information, branding and visual identity', 'icon' => 'briefcase', 'tone' => 'purple', 'count' => 11, 'configured' => 9, 'attention' => 1, 'not_configured' => 1],
-            'email-notifications' => ['title' => 'Email & Notifications', 'subtitle' => 'Email delivery, templates and notification channels', 'icon' => 'mail', 'tone' => 'blue', 'count' => 18, 'configured' => 14, 'attention' => 2, 'not_configured' => 2],
-            'whatsapp-messaging' => ['title' => 'WhatsApp & Messaging', 'subtitle' => 'WhatsApp API, message templates and workflows', 'icon' => 'message', 'tone' => 'teal', 'count' => 10, 'configured' => 8, 'attention' => 1, 'not_configured' => 1],
-            'payment-gateways' => ['title' => 'Payment Gateways', 'subtitle' => 'Payment providers, currencies and transaction rules', 'icon' => 'credit-card', 'tone' => 'orange', 'count' => 15, 'configured' => 12, 'attention' => 1, 'not_configured' => 2],
-            'localization' => ['title' => 'Localization', 'subtitle' => 'Languages, regional formats and currencies', 'icon' => 'globe', 'tone' => 'blue', 'count' => 12, 'configured' => 10, 'attention' => 1, 'not_configured' => 1],
-            'security-access' => ['title' => 'Security & Access', 'subtitle' => 'Authentication, access control and security policies', 'icon' => 'check', 'tone' => 'red', 'count' => 15, 'configured' => 12, 'attention' => 1, 'not_configured' => 2],
-            'api-roles' => ['title' => 'Users & Roles', 'subtitle' => 'Users, API roles and permission governance', 'icon' => 'users', 'tone' => 'purple', 'count' => 9, 'configured' => 8, 'attention' => 0, 'not_configured' => 1],
-            'application-settings' => ['title' => 'Application Settings', 'subtitle' => 'Features, performance, caching and maintenance', 'icon' => 'settings', 'tone' => 'green', 'count' => 20, 'configured' => 17, 'attention' => 1, 'not_configured' => 2],
-            'document-storage' => ['title' => 'Document & Storage', 'subtitle' => 'Files, documents, upload limits and storage providers', 'icon' => 'file-text', 'tone' => 'orange', 'count' => 12, 'configured' => 10, 'attention' => 1, 'not_configured' => 1],
-            'integrations' => ['title' => 'Integrations', 'subtitle' => 'External services and connection health', 'icon' => 'refresh', 'tone' => 'blue', 'count' => 14, 'configured' => 11, 'attention' => 1, 'not_configured' => 2],
-            'automations' => ['title' => 'Automations', 'subtitle' => 'Workflows, triggers and scheduled tasks', 'icon' => 'refresh', 'tone' => 'purple', 'count' => 10, 'configured' => 7, 'attention' => 1, 'not_configured' => 2],
-            'backup-recovery' => ['title' => 'Backup & Recovery', 'subtitle' => 'Backups, restore points and recovery operations', 'icon' => 'download', 'tone' => 'teal', 'count' => 8, 'configured' => 7, 'attention' => 0, 'not_configured' => 1],
-            'audit-logs' => ['title' => 'Audit & Logs', 'subtitle' => 'Activity history, retention and compliance evidence', 'icon' => 'file-text', 'tone' => 'red', 'count' => 9, 'configured' => 7, 'attention' => 0, 'not_configured' => 2],
-            'system-maintenance' => ['title' => 'System Maintenance', 'subtitle' => 'Maintenance jobs, queues and system health', 'icon' => 'refresh', 'tone' => 'orange', 'count' => 6, 'configured' => 5, 'attention' => 0, 'not_configured' => 1],
-            'other-settings' => ['title' => 'Other Settings', 'subtitle' => 'Additional preferences and operational options', 'icon' => 'dots', 'tone' => 'blue', 'count' => 5, 'configured' => 5, 'attention' => 0, 'not_configured' => 0],
+            'total' => (int) collect($catalog)->sum('count'),
+            'configured' => (int) collect($catalog)->sum('configured'),
+            'attention' => (int) collect($catalog)->sum('attention'),
+            'not_configured' => (int) collect($catalog)->sum('not_configured'),
+        ];
+    }
+
+    private function metricsForOverview(array $stats, ?AuditLog $latestAudit, string $updatedBy): array
+    {
+        return [
+            ['label' => 'Total Settings', 'value' => (string) $stats['total'], 'tone' => 'green', 'icon' => 'settings'],
+            ['label' => 'Configured', 'value' => (string) $stats['configured'], 'tone' => 'blue', 'icon' => 'check'],
+            ['label' => 'Needs Attention', 'value' => (string) $stats['attention'], 'tone' => 'orange', 'icon' => 'alert'],
+            ['label' => 'Not Configured', 'value' => (string) $stats['not_configured'], 'tone' => 'red', 'icon' => 'clock'],
+            ['label' => 'Last Updated', 'value' => $latestAudit?->created_at?->format('d M Y') ?? 'Not recorded', 'tone' => 'purple', 'icon' => 'calendar'],
+            ['label' => 'Updated By', 'value' => $updatedBy, 'tone' => 'teal', 'icon' => 'user'],
         ];
     }
 
@@ -435,7 +444,7 @@ class SettingsController extends Controller
             'general-configuration' => ['company_name' => 'Emerald Rozalia', 'system_name' => 'Emerald Rozalia Hats & Caps Management System', 'short_name' => 'ERHCM', 'company_legal_name' => 'Emerald Rozalia Ltd.', 'registration_number' => '678912', 'website_url' => 'https://emeraldrozalia.ie', 'country' => 'Ireland', 'industry' => 'Retail & Distribution', 'timezone' => 'Europe/Dublin', 'default_language' => 'en', 'default_currency' => 'EUR', 'primary_email' => 'urmos@rozalia.ie', 'primary_phone' => '+353 (89) 978 8187', 'support_email' => 'urmos@rozalia.ie', 'support_phone' => '+353 (89) 978 8187', 'date_format' => 'DD/MM/YYYY', 'time_format' => '24-hour', 'week_starts' => 'Monday', 'decimal_separator' => '.', 'thousands_separator' => ','],
             'company-branding' => ['legal_name' => 'Emerald Rozalia Ltd.', 'trading_name' => 'Emerald Rozalia', 'registration_number' => '678912', 'vat_number' => 'IE678912A', 'address' => "Unit 7, Limerick Business Park,\nLimerick, Ireland.", 'city' => 'Limerick', 'county' => 'Limerick', 'postcode' => 'V94 XY29', 'country' => 'Ireland', 'phone' => '+353 (89) 978 8187', 'email' => 'urmos@rozalia.ie', 'website' => 'https://emeraldrozalia.ie', 'description' => 'Premium Irish hats and caps for modern retail and franchise partners.', 'logo_path' => '/assets/logo/logo_two_line.png', 'brand_primary' => '#075b2f', 'brand_secondary' => '#0b1711', 'brand_accent' => '#7fbd42', 'footer_text' => 'Emerald Rozalia Limited. All rights reserved.'],
             'email-notifications' => ['email_enabled' => true, 'mail_driver' => 'smtp', 'from_name' => 'Emerald Rozalia', 'from_email' => 'urmos@rozalia.ie', 'reply_to' => 'urmos@rozalia.ie', 'return_path' => 'urmos@rozalia.ie', 'signature' => "Emerald Rozalia Limited\nLimerick, Ireland", 'email_language' => 'en', 'content_type' => 'HTML', 'track_opens' => true, 'track_clicks' => true, 'queue_emails' => true, 'notify_admins' => true],
-            'whatsapp-messaging' => ['whatsapp_enabled' => true, 'provider' => 'Meta Cloud API', 'account_name' => 'Emerald Rozalia Business', 'business_account_id' => 'Configured in production', 'phone_number' => '+353 89 978 8187', 'webhook_url' => '/webhooks/whatsapp', 'default_language' => 'en', 'message_window' => '24 hours', 'delivery_receipts' => true, 'read_receipts' => true, 'notify_inquiries' => true, 'notify_orders' => true, 'notify_franchise' => true],
+            'whatsapp-messaging' => ['whatsapp_enabled' => true, 'provider' => 'Meta Cloud API', 'account_name' => 'Emerald Rozalia Business', 'business_account_id' => '', 'phone_number' => '', 'webhook_url' => '/webhooks/whatsapp', 'default_language' => 'en', 'message_window' => '24 hours', 'delivery_receipts' => true, 'read_receipts' => true, 'notify_inquiries' => true, 'notify_orders' => true, 'notify_franchise' => true],
             'payment-gateways' => ['payments_enabled' => true, 'default_gateway' => 'Stripe', 'currency' => 'EUR', 'capture_mode' => 'Automatic', 'payment_timeout' => 30, 'retry_attempts' => 3, 'statement_descriptor' => 'EMERALD ROZALIA', 'three_d_secure' => true, 'fraud_checks' => true, 'save_payment_methods' => false, 'webhook_signing' => true],
             'localization' => ['default_language' => 'en', 'default_currency' => 'EUR', 'country_code' => 'IE', 'region' => 'Ireland', 'timezone' => 'Europe/Dublin', 'date_format' => 'DD/MM/YYYY', 'time_format' => '24-hour', 'first_day' => 'Monday', 'decimal_separator' => '.', 'thousands_separator' => ',', 'measurement_system' => 'Metric', 'rtl_support' => false, 'fallback_language' => 'en'],
             'security-access' => ['two_factor_required' => true, 'mfa_methods' => 'Authenticator app, Email', 'sso_enabled' => false, 'captcha_enabled' => true, 'login_attempts' => 5, 'lockout_minutes' => 30, 'password_min_length' => 12, 'password_expiry_days' => 90, 'session_timeout' => 60, 'remember_device_days' => 30, 'ip_allowlist' => '', 'audit_login_events' => true, 'security_notifications' => true, 'force_https' => true],
@@ -447,7 +456,7 @@ class SettingsController extends Controller
             'backup-recovery' => ['backups_enabled' => true, 'backup_frequency' => 'Daily', 'backup_time' => '02:00', 'backup_type' => 'Full', 'storage_provider' => 'Local encrypted + S3', 'retention_days' => 30, 'encrypt_backups' => true, 'verify_after_backup' => true, 'notify_success' => true, 'notify_failure' => true, 'recovery_point_objective' => 24],
             'audit-logs' => ['audit_enabled' => true, 'retention_days' => 365, 'capture_reads' => false, 'capture_exports' => true, 'capture_logins' => true, 'capture_settings' => true, 'anonymize_ip' => false, 'archive_enabled' => true],
             'system-maintenance' => ['maintenance_window' => 'Sunday 02:00–03:00', 'health_checks' => true, 'queue_monitoring' => true, 'scheduler_monitoring' => true, 'auto_prune' => true, 'notify_failures' => true, 'log_retention_days' => 90],
-            'other-settings' => ['help_url' => 'https://emeraldrozalia.ie', 'support_contact' => 'urmos@rozalia.ie', 'show_release_notes' => true, 'telemetry_enabled' => false, 'custom_css' => ''],
+            'other-settings' => ['help_url' => 'https://emeraldrozalia.ie', 'support_contact' => 'urmos@rozalia.ie', 'show_release_notes' => true, 'telemetry_enabled' => false],
         ];
     }
 
@@ -474,7 +483,7 @@ class SettingsController extends Controller
             'backup-recovery' => [$toggle('backups_enabled', 'Backups enabled'), $select('backup_frequency', 'Backup Frequency', ['Daily' => 'Daily', 'Weekly' => 'Weekly', 'Manual' => 'Manual']), $text('backup_time', 'Backup Time'), $select('backup_type', 'Backup Type', ['Full' => 'Full', 'Database' => 'Database', 'Files' => 'Files']), $text('storage_provider', 'Storage Provider'), $text('retention_days', 'Retention (days)', 'number'), $toggle('encrypt_backups', 'Encrypt backups'), $toggle('verify_after_backup', 'Verify after backup'), $toggle('notify_success', 'Notify on success'), $toggle('notify_failure', 'Notify on failure'), $text('recovery_point_objective', 'Recovery Point Objective (hours)', 'number')],
             'audit-logs' => [$toggle('audit_enabled', 'Audit log enabled'), $text('retention_days', 'Retention (days)', 'number'), $toggle('capture_reads', 'Capture read events'), $toggle('capture_exports', 'Capture exports'), $toggle('capture_logins', 'Capture logins'), $toggle('capture_settings', 'Capture settings changes'), $toggle('anonymize_ip', 'Anonymize IP addresses'), $toggle('archive_enabled', 'Archive old entries')],
             'system-maintenance' => [$text('maintenance_window', 'Maintenance Window'), $toggle('health_checks', 'Health checks'), $toggle('queue_monitoring', 'Queue monitoring'), $toggle('scheduler_monitoring', 'Scheduler monitoring'), $toggle('auto_prune', 'Automatic pruning'), $toggle('notify_failures', 'Notify on failure'), $text('log_retention_days', 'Log Retention (days)', 'number')],
-            default => [$text('help_url', 'Help URL', 'url'), $text('support_contact', 'Support Contact', 'email'), $toggle('show_release_notes', 'Show release notes'), $toggle('telemetry_enabled', 'Anonymous telemetry'), $area('custom_css', 'Custom CSS', 'Applied only to the authenticated admin shell.')],
+            default => [$text('help_url', 'Help URL', 'url'), $text('support_contact', 'Support Contact', 'email'), $toggle('show_release_notes', 'Show release notes'), $toggle('telemetry_enabled', 'Anonymous telemetry')],
         };
     }
 

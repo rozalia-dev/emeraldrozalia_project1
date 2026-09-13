@@ -15,6 +15,8 @@ class ContentPage extends Model
     protected $casts = [
         'meta' => 'array',
         'navigation_visible' => 'boolean',
+        'is_reserved' => 'boolean',
+        'validation_errors' => 'array',
         'scheduled_for' => 'datetime',
         'published_at' => 'datetime',
         'archived_at' => 'datetime',
@@ -55,5 +57,15 @@ class ContentPage extends Model
     public function shouldShowInFooter(): bool
     {
         return (bool) ($this->settings()['show_in_footer'] ?? false);
+    }
+
+    public function routePath(): string
+    {
+        return (string) ($this->route_path ?: '/'.$this->slug);
+    }
+
+    public function isHomepage(): bool
+    {
+        return $this->is_reserved && $this->page_kind === 'home' && $this->routePath() === '/';
     }
 }

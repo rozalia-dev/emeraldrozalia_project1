@@ -93,7 +93,10 @@ class FranchiseTerritoryController extends Controller
         $this->guardTerritory($territory);
         $before = $territory->toArray();
         AuditTrail::record('franchise.territory.deleted', $territory, $before, null);
-        $territory->delete();
+        // Territory management keeps its established permanent-delete
+        // contract until its dedicated action matrix is migrated to the
+        // shared cPanel trash/restore registry.
+        $territory->forceDelete();
 
         return back()->with('success', 'Territory deleted.');
     }
