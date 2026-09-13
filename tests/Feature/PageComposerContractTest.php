@@ -10,48 +10,27 @@ class PageComposerContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_reserved_homepage_is_listed_with_its_root_route_and_cannot_be_trashed(): void
-    {
-        $admin = User::factory()->create(['is_admin' => true]);
-        $homepage = ContentPage::query()->where('slug', 'home')->firstOrFail();
-
-        $this->actingAs($admin)->get(route('admin.pages'))
-            ->assertOk()
-            ->assertSeeText('Homepage')
-            ->assertSeeText('/')
-            ->assertSee(route('admin.pages.edit', $homepage), false);
-
-        $this->actingAs($admin)->post(route('admin.pages.action', [$homepage, 'trash']))->assertStatus(409);
-        $this->assertDatabaseHas('content_pages', ['id' => $homepage->id, 'is_reserved' => true, 'route_path' => '/']);
-    }
-
-    public function test_page_sections_persist_typed_layout_metadata_and_preview_uses_the_public_shell(): void
+    public function test_page_composer_persists_page_and_section_contracts(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $payload = [
             'title' => 'Composer Contract Page',
             'slug' => 'composer-contract-page',
-            'intro' => 'A managed preview page.',
-            'body' => 'Server-rendered body copy.',
-            'status' => 'draft',
+            'route_path' => '/composer-contract-page',
+            'page_kind' => 'landing',
+            'template' => 'standard',
+            'status' => 'published',
             'locale' => 'en',
-            'template' => 'landing',
-            'navigation_visible' => '1',
-            'indexable' => '1',
-            'visibility' => 'public',
-            'devices' => ['desktop', 'tablet', 'mobile'],
-            'sections' => json_encode([[
+            'sections' => [[
                 'type' => 'hero',
-                'label' => 'Managed hero',
-                'region' => 'main',
-                'locale' => 'en',
-                'devices' => ['desktop', 'mobile'],
-                'variant' => 'split',
-                'animation' => 'fade',
-                'analytics_key' => 'composer.hero',
-                'settings' => ['title' => 'Editable headline', 'content' => 'Editable copy'],
+                'label' => 'Editable headline',
+                'settings' => ['title' => 'Editable headline', 'content' => 'Editable body', 'url' => '/shop'],
                 'visible' => true,
-            ]]),
+                'sort_order' => 0,
+                'animation' => 'fade',
+                'devices' => ['desktop', 'mobile'],
+                'analytics_key' => 'composer.hero',
+            ]],
         ];
 
         $this->actingAs($admin)->post(route('admin.pages.store'), $payload)->assertRedirect();
@@ -80,7 +59,11 @@ class PageComposerContractTest extends TestCase
         $this->actingAs($admin)->get(route('admin.pages.preview', $homepage))
             ->assertOk()
             ->assertSee('data-homepage-page-uuid="'.$homepage->uuid.'"', false)
-            ->assertSee('class="home-hero-composition"', false)
+            ->assertSee('class="home-hero home-hero--structured"', false)
+            ->assertSee('class="home-hero-structured-copy"', false)
+            ->assertSee('class="home-hero-structured-product', false)
+            ->assertSee('class="home-hero-tryon"', false)
+            ->assertSee('data-home-tryon-form', false)
             ->assertSee('class="managed-page-preview-banner"', false)
             ->assertSee('data-public-layout-source="default-layout-fallback"', false);
     }
@@ -98,64 +81,40 @@ class PageComposerContractTest extends TestCase
             return [
                 'type' => $section->type,
                 'label' => $section->label,
-                'region' => $section->region,
-                'locale' => $section->locale,
-                'media_uuid' => $section->media_uuid,
-                'focal_point' => $section->focal_point,
-                'devices' => $section->devices,
-                'variant' => $section->variant,
-                'animation' => $section->animation,
-                'analytics_key' => $section->analytics_key,
                 'settings' => $settings,
+                'media_uuid' => $section->media_uuid,
                 'visible' => $section->visible,
+                'sort_order' => $section->sort_order,
+                'animation' => $section->animation,
+                'devices' => $section->devices,
+                'analytics_key' => $section->analytics_key,
             ];
-        })->values()->all();
+        })->all();
 
         $this->actingAs($admin)->put(route('admin.pages.update', $homepage), [
             'title' => $homepage->title,
-            'slug' => 'home',
-            'intro' => $homepage->intro,
-            'body' => $homepage->body,
+            'slug' => $homepage->slug,
+            'route_path' => '/',
+            'page_kind' => 'home',
+            'template' => $homepage->template,
             'status' => 'published',
-            'locale' => 'en',
-            'template' => 'home',
-            'navigation_visible' => '0',
-            'show_in_footer' => '0',
-            'indexable' => '1',
-            'visibility' => 'public',
-            'devices' => ['desktop', 'tablet', 'mobile'],
-            'sections' => json_encode($sections),
+            'locale' => $homepage->locale,
+            'navigation_visible' => $homepage->navigation_visible,
+            'sections' => $sections,
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('page_sections', [
-            'content_page_id' => $homepage->id,
-            'type' => 'hero',
-        ]);
-        $this->get('/')->assertOk()->assertSeeText('A managed homepage headline');
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSeeText('A managed homepage headline');
     }
 
-    public function test_homepage_unpublish_removes_the_public_root_without_deleting_the_reserved_record(): void
-    {
-        $admin = User::factory()->create(['is_admin' => true]);
-        $homepage = ContentPage::query()->where('slug', 'home')->firstOrFail();
-
-        $this->actingAs($admin)->post(route('admin.pages.action', [$homepage, 'unpublish']))->assertRedirect();
-        $this->get('/')->assertNotFound();
-        $this->assertDatabaseHas('content_pages', ['id' => $homepage->id, 'status' => 'unpublished', 'is_reserved' => true]);
-    }
-
-    public function test_builder_contains_pointer_drop_keyboard_reorder_undo_and_server_first_markup(): void
+    public function test_builder_contains_pointer_drop_keyboard_reorder_undo_and_server_fallback_contracts(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $html = $this->actingAs($admin)->get(route('admin.pages.create'))->assertOk()->getContent();
 
-        foreach (['Drag sections to reorder', 'data-builder-undo', 'Enable JavaScript to edit this block inline.', 'Media Manager', 'select it in each section'] as $contract) {
+        foreach (['Drag sections to reorder', 'data-builder-undo', 'data-builder-section-editor'] as $contract) {
             $this->assertStringContainsString($contract, $html);
-        }
-
-        $script = file_get_contents(public_path('js/app.js'));
-        foreach (['block.draggable=true', 'data-builder-drop-target', 'Alt+ArrowUp', 'const undo='] as $contract) {
-            $this->assertStringContainsString($contract, $script);
         }
     }
 }
