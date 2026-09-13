@@ -49,6 +49,8 @@ class AccountController extends Controller
                 ->with('order')
                 ->latest()
                 ->get(),
+            'wishlistCount' => $user->wishlistItems()->count(),
+            'returnsCount' => ReturnRequest::query()->where('user_id', $user->id)->count(),
         ]);
     }
 

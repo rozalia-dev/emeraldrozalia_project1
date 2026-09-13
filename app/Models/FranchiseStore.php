@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class FranchiseStore extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'franchise_stores';
     protected $guarded = [];
     protected $casts = ['address' => 'array', 'opened_at' => 'date'];
