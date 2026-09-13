@@ -17,11 +17,28 @@ class SiteController extends Controller
 {
     public function home()
     {
-        return view('site.home', [
+        $data = $this->homeData();
+        abort_unless($data['homepage'], 404, 'The public homepage is not currently published.');
+
+        return view('site.home', $data);
+    }
+
+    public function homeData(): array
+    {
+        $homepage = ContentPage::with('sections')
+            ->where('slug', 'home')
+            ->where('route_path', '/')
+            ->where('page_kind', 'home')
+            ->where('status', 'published')
+            ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
+            ->first();
+
+        return [
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
             'newProducts' => Product::where('is_active', true)->where('is_new', true)->latest()->limit(8)->get(),
             'banners' => Banner::query()->publishedFor('Home - Main Slider')->orderByDesc('priority')->orderBy('id')->get(),
-        ]);
+            'homepage' => $homepage,
+        ];
     }
 
     public function collections()

@@ -1,11 +1,14 @@
 <?php
 namespace App\Models;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 class FranchiseApplication extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded=[];
     protected $casts=['data'=>'array','follow_up_at'=>'datetime'];
 

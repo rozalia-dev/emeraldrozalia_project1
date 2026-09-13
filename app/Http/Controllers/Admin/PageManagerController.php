@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\SiteController;
 use App\Models\{ContentPage, PageRevision};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +67,19 @@ class PageManagerController extends Controller
             $data['sections']
         );
 
+        if ($page?->isHomepage()) {
+            $data['slug'] = 'home';
+            $data['route_path'] = '/';
+            $data['page_kind'] = 'home';
+            $data['is_reserved'] = true;
+            $data['template'] = 'home';
+            $data['navigation_visible'] = false;
+        } else {
+            $data['route_path'] = '/'.trim((string) ($data['slug'] ?? ''), '/');
+            $data['page_kind'] = ($data['template'] ?? 'standard') === 'home' ? 'standard' : ($data['template'] ?? 'standard');
+            $data['is_reserved'] = false;
+        }
+
         if (($data['status'] ?? null) === 'scheduled' && empty($data['scheduled_for'])) {
             $data['scheduled_for'] = now()->addDay();
         }
@@ -99,6 +113,15 @@ class PageManagerController extends Controller
                 'type' => Str::limit(Str::slug((string) ($row['type'] ?? 'content')), 60, ''),
                 'label' => Str::limit((string) ($row['label'] ?? 'Content block'), 180, ''),
                 'sort_order' => $index,
+                'region' => in_array(($row['region'] ?? 'main'), ['main', 'header', 'footer'], true) ? $row['region'] : 'main',
+                'locale' => filled($row['locale'] ?? null) ? Str::limit((string) $row['locale'], 12, '') : null,
+                'media_uuid' => filled($row['media_uuid'] ?? null) && Str::isUuid((string) $row['media_uuid']) ? (string) $row['media_uuid'] : null,
+                'focal_point' => is_array($row['focal_point'] ?? null) ? $row['focal_point'] : null,
+                'devices' => is_array($row['devices'] ?? null) ? array_values(array_intersect(['desktop', 'tablet', 'mobile'], $row['devices'])) : ['desktop', 'tablet', 'mobile'],
+                'variant' => filled($row['variant'] ?? null) ? Str::limit((string) $row['variant'], 40, '') : null,
+                'animation' => in_array(($row['animation'] ?? 'none'), ['none', 'fade', 'rise', 'slide'], true) ? $row['animation'] : 'none',
+                'analytics_key' => filled($row['analytics_key'] ?? null) ? Str::limit((string) $row['analytics_key'], 100, '') : null,
+                'validation_errors' => null,
                 'settings' => $settings,
                 'visible' => (bool) ($row['visible'] ?? true),
             ];
@@ -117,7 +140,10 @@ class PageManagerController extends Controller
     {
         $page->load('sections');
         $snapshot = $page->fresh()->toArray();
-        $snapshot['sections'] = $page->sections->map(fn ($section) => $section->only(['type', 'label', 'sort_order', 'settings', 'visible']))->values()->all();
+        $snapshot['sections'] = $page->sections->map(fn ($section) => $section->only([
+            'type', 'label', 'sort_order', 'region', 'locale', 'media_uuid', 'focal_point', 'devices',
+            'variant', 'animation', 'analytics_key', 'validation_errors', 'settings', 'visible',
+        ]))->values()->all();
 
         $page->revisions()->create([
             'user_id' => auth()->id(),
@@ -223,7 +249,6 @@ class PageManagerController extends Controller
             'landing' => $countBy(fn ($page) => in_array($page->template, ['landing', 'landing-page'], true)),
             'legal' => $countBy(fn ($page) => in_array($page->template, ['legal', 'policy'], true)),
             'system' => $countBy(fn ($page) => $page->template === 'system'),
-            'other' => 0,
         ];
         $editingPage = $request->filled('edit')
             ? ContentPage::withTrashed()->with(['sections', 'revisions'])->find($request->integer('edit'))
@@ -235,6 +260,7 @@ class PageManagerController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        abort_unless(($data['slug'] ?? null) !== 'home', 409, 'The reserved homepage can only be edited from its existing Page Manager record.');
         DB::transaction(function () use ($request, $data, &$page) {
             $page = ContentPage::create($this->normalise($request, $data));
             $this->syncSections($page, $data['sections'] ?? null);
@@ -259,6 +285,9 @@ class PageManagerController extends Controller
     public function action(Request $request, ContentPage $page, string $action)
     {
         abort_unless(in_array($action, ['duplicate', 'publish', 'unpublish', 'archive', 'trash', 'schedule'], true), 404);
+        if ($page->isHomepage()) {
+            abort_unless(in_array($action, ['publish', 'unpublish', 'schedule'], true), 409, 'The reserved homepage cannot be duplicated, archived or trashed.');
+        }
         DB::transaction(function () use ($request, $page, $action) {
             if ($action === 'duplicate') {
                 $copy = $page->replicate();
@@ -269,9 +298,15 @@ class PageManagerController extends Controller
                 $copy->scheduled_for = null;
                 $copy->published_at = null;
                 $copy->archived_at = null;
+                $copy->route_path = '/'.$copy->slug;
+                $copy->page_kind = $page->page_kind === 'home' ? 'standard' : $page->page_kind;
+                $copy->is_reserved = false;
                 $copy->save();
                 foreach ($page->sections as $section) {
-                    $copy->sections()->create($section->only(['type', 'label', 'sort_order', 'settings', 'visible']));
+                    $copy->sections()->create($section->only([
+                        'type', 'label', 'sort_order', 'region', 'locale', 'media_uuid', 'focal_point', 'devices',
+                        'variant', 'animation', 'analytics_key', 'validation_errors', 'settings', 'visible',
+                    ]));
                 }
                 $this->snapshot($copy, 'Duplicated');
                 return;
@@ -305,28 +340,59 @@ class PageManagerController extends Controller
     {
         abort_unless((int) $revision->content_page_id === (int) $page->id, 404);
         $snapshot = (array) $revision->snapshot;
-        $fields = collect($snapshot)->only(['title', 'slug', 'intro', 'body', 'status', 'meta', 'locale', 'template', 'navigation_visible', 'scheduled_for', 'published_at', 'archived_at'])->all();
+        $fields = collect($snapshot)->only(['title', 'slug', 'intro', 'body', 'status', 'meta', 'locale', 'template', 'navigation_visible', 'route_path', 'page_kind', 'is_reserved', 'validation_errors', 'scheduled_for', 'published_at', 'archived_at'])->all();
+        if ($page->isHomepage()) {
+            $fields['slug'] = 'home';
+            $fields['route_path'] = '/';
+            $fields['page_kind'] = 'home';
+            $fields['is_reserved'] = true;
+            $fields['template'] = 'home';
+            $fields['navigation_visible'] = false;
+        } else {
+            $fields['route_path'] = '/'.trim((string) ($fields['slug'] ?? $page->slug), '/');
+            $fields['page_kind'] = ($fields['template'] ?? 'standard') === 'home' ? 'standard' : ($fields['template'] ?? 'standard');
+            $fields['is_reserved'] = false;
+        }
         DB::transaction(function () use ($page, $snapshot, $fields, $revision) {
             $this->snapshot($page, 'Before revision restore');
             $page->update($fields);
             $page->sections()->delete();
             foreach ((array) ($snapshot['sections'] ?? []) as $section) {
-                $page->sections()->create(collect($section)->only(['type', 'label', 'sort_order', 'settings', 'visible'])->all());
+                $page->sections()->create(collect($section)->only([
+                    'type', 'label', 'sort_order', 'region', 'locale', 'media_uuid', 'focal_point', 'devices',
+                    'variant', 'animation', 'analytics_key', 'validation_errors', 'settings', 'visible',
+                ])->all());
             }
             $this->snapshot($page, 'Revision v' . $revision->version . ' restored');
         });
         return back()->with('success', 'Revision restored and saved as the current page version.');
     }
 
-    public function preview(ContentPage $page)
+    public function preview(ContentPage $page, \App\Services\SiteLayoutVersionService $layouts)
     {
         $page->load('sections');
-        return view('admin.pages.preview', compact('page'));
+        if ($page->isHomepage()) {
+            return view('site.home', [
+                ...app(SiteController::class)->homeData(),
+                'homepage' => $page,
+                'previewMode' => true,
+                'siteLayoutPreview' => $layouts->publicSnapshot(),
+            ]);
+        }
+
+        return view('site.page', [
+            'page' => $page->slug,
+            'managedPage' => $page,
+            'previewMode' => true,
+            'siteLayoutPreview' => $layouts->publicSnapshot(),
+        ]);
     }
 
     public function destroy(int $page)
     {
-        ContentPage::onlyTrashed()->findOrFail($page)->forceDelete();
+        $record = ContentPage::onlyTrashed()->findOrFail($page);
+        abort_unless(! $record->isHomepage(), 409, 'The reserved homepage cannot be permanently deleted.');
+        $record->forceDelete();
         return back()->with('success', 'Page permanently deleted.');
     }
 }

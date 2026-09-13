@@ -7,12 +7,14 @@
 @endphp
 
 @section('title', $pageTitle . ' - Emerald Rozalia')
+@section('body-class', ($previewMode ?? false) ? 'managed-page-preview-body' : '')
 
 @push('styles')
     <link rel="stylesheet" href="/css/managed-pages.css?v=20260912-batch5">
 @endpush
 
 @section('content')
+@if($previewMode ?? false)<div class="managed-page-preview-banner" role="status">Previewing {{ $managedPage->title }} · versioned draft render <a href="{{ route('admin.pages.edit', $managedPage) }}">Edit page</a></div>@endif
 <section class="page-hero"><p class="eyebrow">EMERALD ROZALIA LIMITED</p><h1>{{ $pageTitle }}</h1><p>{{ $managedPage?->intro ?: 'Timeless styles. Irish heritage. Made in Limerick.' }}</p></section>
 
 @if($hasManagedContent)

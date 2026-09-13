@@ -119,7 +119,7 @@ The current shared shell in resources/views/layouts/admin.blade.php defines:
 | Website & Products | 5 top-level, 11 Products children | Real product/media/page/SEO/resource links |
 | Online Sales | 5 top-level, 3 Customers children | Customer, cart, payment, discount and sales-report links; order categories are isolated below |
 | Order Management | 1 overview, 6 category links | Dedicated six-category group backed by the shared Order Master routes |
-| Franchise Management | 10 | Dedicated and generic franchise resource links |
+| Franchise Management | 11 | Dedicated and generic franchise resource links, including Store Setup |
 | Communication Center | 10 | Dedicated CommunicationCenter sections |
 | Reports utility | 7 | Utility links are separate from report routes |
 | Users & Roles utility | 7 | UserSystemController routes |
