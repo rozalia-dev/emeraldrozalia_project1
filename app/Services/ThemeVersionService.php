@@ -200,7 +200,10 @@ final class ThemeVersionService
         abort_unless(in_array($environment, self::ENVIRONMENTS, true), 422, 'Unsupported theme environment.');
 
         return DB::transaction(function () use ($attributes, $company, $environment, $locale, $tokens, $userId): ThemeVersion {
-            $version = ((int) $this->query($company, $environment, $locale)->lockForUpdate()->max('version')) + 1;
+            $version = ((int) $this->query($company, $environment, $locale)
+                ->orderByDesc('version')
+                ->lockForUpdate()
+                ->value('version')) + 1;
 
             $theme = ThemeVersion::create([
                 'company_id' => $company?->getKey(),
@@ -356,14 +359,18 @@ final class ThemeVersionService
                 abort_unless($target, 409, 'There is no prior theme version available for rollback.');
             }
 
+            $rollbackBefore = null;
             if ($current) {
                 $currentBefore = $this->auditState($current);
+                $rollbackBefore = $currentBefore;
                 $current->update(['status' => ThemeVersion::STATUS_SUPERSEDED]);
                 AuditTrail::record('settings.theme.superseded', $current, $currentBefore, $this->auditState($current->fresh()));
             }
 
-            $rollbackBefore = $current ? $this->auditState($current) : null;
-            $version = ((int) $this->query($target->company, $target->environment, $target->locale)->lockForUpdate()->max('version')) + 1;
+            $version = ((int) $this->query($target->company, $target->environment, $target->locale)
+                ->orderByDesc('version')
+                ->lockForUpdate()
+                ->value('version')) + 1;
             $userId = $user?->getKey() ?? auth()->id();
             $rollback = ThemeVersion::create([
                 'company_id' => $target->company_id,
