@@ -18,6 +18,9 @@ class ThemeController extends Controller
         $environment = $themes->currentEnvironment($request);
         $locale = $themes->currentLocale();
         $versions = $themes->versions(null, $environment, $locale);
+        if ($request->filled('version') && ! $versions->contains('uuid', (string) $request->query('version'))) {
+            abort(404);
+        }
         $selected = $versions->firstWhere('uuid', (string) $request->query('version')) ?: $versions->first();
 
         return view('admin.settings.theme', [
@@ -50,6 +53,7 @@ class ThemeController extends Controller
 
     public function update(Request $request, ThemeVersion $theme, ThemeVersionService $themes): RedirectResponse
     {
+        $this->assertCurrentContext($theme);
         Gate::authorize('update', $theme);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:180'],
@@ -64,6 +68,7 @@ class ThemeController extends Controller
     public function action(Request $request, ThemeVersion $theme, string $action, ThemeVersionService $themes): RedirectResponse
     {
         abort_unless(in_array($action, ['validate', 'submit', 'approve', 'activate', 'disable', 'rollback'], true), 404);
+        $this->assertCurrentContext($theme);
         Gate::authorize($action, $theme);
         $theme = match ($action) {
             'validate' => $themes->validateTheme($theme),
@@ -76,5 +81,12 @@ class ThemeController extends Controller
         };
 
         return redirect()->route('admin.settings.theme.index', ['version' => $theme->uuid])->with('success', 'Theme '.$action.' action completed and audited.');
+    }
+
+    private function assertCurrentContext(ThemeVersion $theme): void
+    {
+        $companyId = session('company_id');
+
+        abort_unless($companyId === null || (int) $theme->company_id === (int) $companyId, 404);
     }
 }
