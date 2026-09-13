@@ -339,7 +339,9 @@ class SiteController extends Controller
         $spinFrames = collect($spinViewerData['frames'] ?? []);
         $rawSpinReferences = $product->getRawOriginal('spin_images');
         $rawSpinReferences = is_array($rawSpinReferences) ? $rawSpinReferences : json_decode((string) $rawSpinReferences, true);
-        $legacySpinReferences = is_array($rawSpinReferences) ? collect($rawSpinReferences)->filter('is_string')->values() : collect();
+        $legacySpinReferences = is_array($rawSpinReferences)
+            ? collect($rawSpinReferences)->filter(fn ($reference): bool => is_string($reference))->values()
+            : collect();
         if (! $managedSpin) {
             $spinFrames = $spinFrames->merge($product->media
                 ->where('type', 'spin_360')

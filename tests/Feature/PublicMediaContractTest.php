@@ -98,7 +98,7 @@ class PublicMediaContractTest extends TestCase
             'name' => 'Workshop image',
             'alt_text' => 'Workshop image',
         ])->assertRedirect();
-        $asset = MediaAsset::query()->firstOrFail();
+        $asset = MediaAsset::query()->where('name', 'Workshop image')->firstOrFail();
         $this->assertSame('pending', $asset->approval_status);
 
         $page = ContentPage::query()->where('slug', 'home')->firstOrFail();

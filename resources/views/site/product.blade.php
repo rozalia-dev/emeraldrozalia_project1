@@ -172,7 +172,33 @@
     </section>
 
     @if($related->count())
-        <section class="related-products"><h2>You may also like</h2><div class="related-grid">@foreach($related as $item)@php($relatedMedia = $item->media->firstWhere('type','image'))@php($relatedImage = $relatedMedia ? $publicMedia->forProductMedia($relatedMedia, $item->name) : null)<article class="related-card"><a href="{{ route('product', $item) }}"><div class="related-card-media" data-public-media-state="{{ $relatedImage ? 'approved' : 'awaiting-approved-media' }}">@if($relatedImage)<img src="{{ $relatedImage['url'] }}" @if($relatedImage['srcset']) srcset="{{ $relatedImage['srcset'] }}" sizes="{{ $relatedImage['sizes'] }}" @endif width="{{ $relatedImage['width'] ?: '' }}" height="{{ $relatedImage['height'] ?: '' }}" alt="{{ $relatedImage['alt'] }}" loading="lazy">@else<x-icon name="package" size="34" />@endif</div><div class="related-card-body"><h3>{{ $item->name }}</h3><p>{{ $item->category?->name ?: 'Emerald Rozalia' }}</p><strong>€{{ number_format($item->price, 2) }}</strong></div></a></article>@endforeach</div></section>
+        <section class="related-products">
+            <h2>You may also like</h2>
+            <div class="related-grid">
+                @foreach($related as $item)
+                    @php
+                        $relatedMedia = $item->media->firstWhere('type', 'image');
+                        $relatedImage = $relatedMedia ? $publicMedia->forProductMedia($relatedMedia, $item->name) : null;
+                    @endphp
+                    <article class="related-card">
+                        <a href="{{ route('product', $item) }}">
+                            <div class="related-card-media" data-public-media-state="{{ $relatedImage ? 'approved' : 'awaiting-approved-media' }}">
+                                @if($relatedImage)
+                                    <img src="{{ $relatedImage['url'] }}" @if($relatedImage['srcset']) srcset="{{ $relatedImage['srcset'] }}" sizes="{{ $relatedImage['sizes'] }}" @endif width="{{ $relatedImage['width'] ?: '' }}" height="{{ $relatedImage['height'] ?: '' }}" alt="{{ $relatedImage['alt'] }}" loading="lazy">
+                                @else
+                                    <x-icon name="package" size="34" />
+                                @endif
+                            </div>
+                            <div class="related-card-body">
+                                <h3>{{ $item->name }}</h3>
+                                <p>{{ $item->category?->name ?: 'Emerald Rozalia' }}</p>
+                                <strong>€{{ number_format($item->price, 2) }}</strong>
+                            </div>
+                        </a>
+                    </article>
+                @endforeach
+            </div>
+        </section>
     @endif
 </div>
 @php

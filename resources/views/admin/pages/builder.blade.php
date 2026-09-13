@@ -64,7 +64,7 @@
                     <div class="page-builder-card-heading"><div><span class="page-builder-step">02</span><div><h2>Page sections</h2><p>Compose the page with reusable blocks and control their order.</p></div></div><span class="page-builder-state" data-builder-count>0 blocks</span></div>
                     <div class="page-builder-studio">
                         <aside class="page-builder-library">
-                            <div><h3>Section library</h3><p>Choose a block to add it to the canvas.</p></div>
+                            <div><h3>Section library</h3><p>Choose a block to add it to the canvas.</p><p class="page-builder-media-state">Approved public media: {{ count($approvedMedia ?? []) }} assets available</p></div>
                             <button type="button" data-builder-add="hero"><x-icon name="image" size="17" /><span><strong>Hero section</strong><small>Headline, media and intro</small></span><x-icon name="plus" size="14" /></button>
                             <button type="button" data-builder-add="content"><x-icon name="file-text" size="17" /><span><strong>Rich content</strong><small>Editorial text and details</small></span><x-icon name="plus" size="14" /></button>
                             <button type="button" data-builder-add="gallery"><x-icon name="camera" size="17" /><span><strong>Media gallery</strong><small>Images, captions and links</small></span><x-icon name="plus" size="14" /></button>
