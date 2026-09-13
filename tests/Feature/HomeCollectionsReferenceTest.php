@@ -10,23 +10,30 @@ class HomeCollectionsReferenceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_homepage_renders_approved_collections_reference_contract(): void
+    public function test_homepage_renders_the_persisted_managed_section_contract(): void
     {
         $this->get('/')
             ->assertOk()
             ->assertSee([
-                'data-home-collections-reference="approved-2026-09-08"',
+                'data-homepage-renderer="persisted-page-sections"',
+                'data-home-section="hero"',
+                'data-home-section="banners"',
+                'data-home-section="benefits"',
+                'data-home-section="collections"',
+                'data-home-section="heritage"',
+                'data-home-section="products"',
+                'data-home-section="quality"',
+                'data-home-section="franchise"',
                 'SHOP BY COLLECTIONS',
                 'THE IRISH HERITAGE',
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
-                '/css/home-collections.css?v=20260908-approved',
+                '/css/home-collections.css?v=20260913-managed-home',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
             ], false);
-
-        $this->assertFileExists(public_path('assets/brand/home-collections-reference.webp'));
+        $this->get('/')->assertDontSee('home-collections-reference', false)->assertDontSee('home-page-reference', false);
     }
 
     public function test_homepage_bestseller_cart_button_is_functional(): void

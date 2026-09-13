@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 class PageManagerController extends Controller
 {
     private const STATUSES = ['draft', 'review', 'scheduled', 'published', 'unpublished', 'archived'];
+    private const HOMEPAGE_SECTION_TYPES = ['hero', 'banners', 'benefits', 'collections', 'heritage', 'products', 'quality', 'franchise', 'content'];
 
     private function validated(Request $request, ?ContentPage $page = null): array
     {
@@ -108,9 +109,11 @@ class PageManagerController extends Controller
             if (isset($row['content']) && !isset($settings['content'])) {
                 $settings['content'] = (string) $row['content'];
             }
+            $type = Str::limit(Str::slug((string) ($row['type'] ?? 'content')), 60, '');
+            $settings = $this->normaliseSectionSettings($settings, $type);
 
             return [
-                'type' => Str::limit(Str::slug((string) ($row['type'] ?? 'content')), 60, ''),
+                'type' => $type,
                 'label' => Str::limit((string) ($row['label'] ?? 'Content block'), 180, ''),
                 'sort_order' => $index,
                 'region' => in_array(($row['region'] ?? 'main'), ['main', 'header', 'footer'], true) ? $row['region'] : 'main',
@@ -126,6 +129,32 @@ class PageManagerController extends Controller
                 'visible' => (bool) ($row['visible'] ?? true),
             ];
         })->all();
+    }
+
+    private function normaliseSectionSettings(array $settings, string $type): array
+    {
+        foreach (['primary_href', 'secondary_href', 'tertiary_href', 'button_href', 'view_all_href', 'url'] as $key) {
+            if (!array_key_exists($key, $settings)) {
+                continue;
+            }
+
+            $value = trim((string) $settings[$key]);
+            $isLocal = str_starts_with($value, '/') && !str_starts_with($value, '//');
+            $isHttps = (bool) preg_match('/\Ahttps:\/\/[^\s]+/i', $value);
+            $settings[$key] = ($isLocal || $isHttps) ? $value : null;
+        }
+
+        if (in_array($type, self::HOMEPAGE_SECTION_TYPES, true)) {
+            // Public homepage media is selected by approved media UUID. Raw
+            // paths/URLs are never accepted as a second, untracked source.
+            unset($settings['image'], $settings['src'], $settings['path']);
+        }
+
+        if ($type === 'products') {
+            $settings['limit'] = max(1, min(12, (int) ($settings['limit'] ?? 6)));
+        }
+
+        return $settings;
     }
 
     private function syncSections(ContentPage $page, ?string $payload): void

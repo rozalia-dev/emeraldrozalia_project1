@@ -322,7 +322,7 @@ if(pageBuilder){
     const form=pageBuilder.querySelector('[data-page-form]'),list=pageBuilder.querySelector('[data-builder-list]'),empty=pageBuilder.querySelector('[data-builder-empty]'),sectionInput=pageBuilder.querySelector('[data-page-sections]'),countLabels=[...pageBuilder.querySelectorAll('[data-builder-count]')],titleInput=pageBuilder.querySelector('[data-builder-field="title"]'),slugInput=pageBuilder.querySelector('[data-builder-field="slug"]'),undoButton=pageBuilder.querySelector('[data-builder-undo]');
     let sections=[],undoStack=[],draggingIndex=null,focusIndex=null;
     const decode=(value)=>{try{return JSON.parse(atob(value||''))||[]}catch(error){return[]}};
-    const labels={hero:'Hero section',content:'Rich content',gallery:'Media gallery',cta:'Call to action',form:'Enquiry form'};
+    const labels={hero:'Hero section',content:'Rich content',gallery:'Media gallery',cta:'Call to action',form:'Enquiry form',banners:'Campaign banners',benefits:'Benefits strip',collections:'Collection cards',heritage:'Heritage feature',products:'Product carousel',quality:'Quality feature',franchise:'Franchise callout'};
     const settingValue=(section,key,fallback='')=>{const value=section.settings?.[key];return value===undefined||value===null?fallback:value};
     const metadataKeys=['region','locale','media_uuid','variant','animation','analytics_key'];
     const sectionValue=(section,key,fallback='')=>{const value=metadataKeys.includes(key)?section[key]:settingValue(section,key,fallback);return value===undefined||value===null?fallback:value};
@@ -342,20 +342,67 @@ if(pageBuilder){
         const current=sectionValue(section,key,options[0][0]);options.forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.selected=current===value;control.appendChild(option)});
         control.addEventListener('change',()=>{checkpointBeforeInput(control);setSectionValue(section,key,control.value)});wrapper.appendChild(control);fields.appendChild(wrapper);
     };
+    const addJsonField=(fields,section,title,key,{placeholder='',rows=5}={})=>{
+        const wrapper=document.createElement('label');wrapper.textContent=title;
+        const control=document.createElement('textarea');control.rows=rows;control.value=JSON.stringify(settingValue(section,key,[]),null,2);control.placeholder=placeholder;control.spellcheck=false;
+        const parse=()=>{try{const value=control.value.trim()===''?[]:JSON.parse(control.value);if(!Array.isArray(value)&&typeof value!=='object')throw new Error('JSON object or array required');control.setCustomValidity('');control.removeAttribute('aria-invalid');section.settings={...(section.settings||{}),[key]:value};sync()}catch(error){control.setCustomValidity('Enter valid JSON before saving.');control.setAttribute('aria-invalid','true')}};
+        control.addEventListener('input',()=>{checkpointBeforeInput(control);parse()});wrapper.appendChild(control);fields.appendChild(wrapper);
+    };
+    const addDeviceField=(fields,section)=>{
+        const fieldset=document.createElement('fieldset');fieldset.className='page-builder-device-list page-builder-block-device-list';
+        const legend=document.createElement('legend');legend.textContent='Section device visibility';fieldset.appendChild(legend);
+        const selected=Array.isArray(section.devices)&&section.devices.length?section.devices:['desktop','tablet','mobile'];
+        ['desktop','tablet','mobile'].forEach((device)=>{const label=document.createElement('label');const control=document.createElement('input');control.type='checkbox';control.value=device;control.checked=selected.includes(device);control.addEventListener('change',()=>{checkpointBeforeInput(control);let devices=[...fieldset.querySelectorAll('input:checked')].map((input)=>input.value);if(!devices.length){devices=['desktop','tablet','mobile'];fieldset.querySelectorAll('input').forEach((input)=>input.checked=true)}section.devices=devices;sync()});label.append(control,document.createTextNode(` ${device[0].toUpperCase()+device.slice(1)}`));fieldset.appendChild(label)});
+        fields.appendChild(fieldset);
+    };
     const addSectionSettings=(fields,section)=>{
         const type=labels[section.type]?section.type:'content';
         addSelectField(fields,section,'Region','region',[['main','Page body'],['header','Header region'],['footer','Footer region']]);
         addTextField(fields,section,'Locale override','locale',{placeholder:'en'});
-        addTextField(fields,section,'Media UUID','media_uuid',{placeholder:'Approved media UUID (Batch 19)'});
+        addTextField(fields,section,'Approved media UUID','media_uuid',{placeholder:'Select approved media in Media Manager'});
         addTextField(fields,section,'Style variant','variant',{placeholder:'Default'});
         addSelectField(fields,section,'Animation','animation',[['none','No animation'],['fade','Fade'],['rise','Rise'],['slide','Slide']]);
         addTextField(fields,section,'Analytics key','analytics_key',{placeholder:'homepage.hero'});
+        addDeviceField(fields,section);
         if(type==='hero'){
+            addTextField(fields,section,'Eyebrow','eyebrow',{placeholder:'CRAFTED IN LIMERICK.'});
             addTextField(fields,section,'Headline','title',{placeholder:'Irish made. Worn everywhere.'});
-            addTextField(fields,section,'Image path or URL','image',{placeholder:'assets/brand/example.png'});
-            addTextField(fields,section,'Image alt text','alt',{placeholder:'Describe the image'});
-            addTextField(fields,section,'Button label','button_label',{placeholder:'Explore more'});
-            addTextField(fields,section,'Button URL','url',{placeholder:'/shop'});
+            addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Introductory hero copy.'});
+            addTextField(fields,section,'Primary button label','primary_label',{placeholder:'Start virtual try-on'});
+            addTextField(fields,section,'Primary button URL','primary_href',{placeholder:'/virtual-tryon'});
+            addTextField(fields,section,'Secondary button label','secondary_label',{placeholder:'Shop new arrivals'});
+            addTextField(fields,section,'Secondary button URL','secondary_href',{placeholder:'/new-arrivals'});
+            addTextField(fields,section,'Tertiary link label','tertiary_label',{placeholder:'Our manufacturing story'});
+            addTextField(fields,section,'Tertiary link URL','tertiary_href',{placeholder:'/factory'});
+            addTextField(fields,section,'Media alt text','alt',{placeholder:'Describe the approved media'});
+        }else if(type==='banners'){
+            addTextField(fields,section,'Banner position','position',{placeholder:'Home - Main Slider'});
+        }else if(type==='benefits'){
+            addTextField(fields,section,'Accessibility label','aria_label',{placeholder:'Emerald Rozalia benefits'});
+            addJsonField(fields,section,'Benefit items (JSON)','items',{placeholder:'[{"icon":"clover","title":"MADE IN LIMERICK","content":"..."}]',rows:7});
+        }else if(type==='collections'){
+            addTextField(fields,section,'Section heading','title',{placeholder:'SHOP BY COLLECTIONS'});
+            addTextField(fields,section,'Card link label','card_cta',{placeholder:'SHOP NOW'});
+            addJsonField(fields,section,'Collection cards (JSON)','items',{placeholder:'[{"slug":"baseball-caps","title":"BASEBALL CAPS","copy":"..."}]',rows:8});
+        }else if(type==='heritage'){
+            addTextField(fields,section,'Eyebrow','eyebrow',{placeholder:'THE IRISH HERITAGE COLLECTION'});
+            addTextField(fields,section,'Heading','title',{placeholder:'Tradition, Made in Limerick.'});
+            addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Heritage feature copy.'});
+            addTextField(fields,section,'Button label','button_label',{placeholder:'Explore heritage collection'});
+            addTextField(fields,section,'Button URL','button_href',{placeholder:'/irish-heritage'});
+            addJsonField(fields,section,'Quality badges (JSON)','badges',{placeholder:'[{"icon":"clover","title":"AUTHENTIC IRISH STYLE"}]',rows:6});
+        }else if(type==='products'){
+            addTextField(fields,section,'Section heading','title',{placeholder:'BESTSELLERS'});
+            addTextField(fields,section,'View-all label','view_all_label',{placeholder:'VIEW ALL'});
+            addTextField(fields,section,'View-all URL','view_all_href',{placeholder:'/shop'});
+            addSelectField(fields,section,'Product source','source',[['new_products','New products'],['latest','Latest published products']]);
+            addTextField(fields,section,'Product limit','limit',{placeholder:'6'});
+        }else if(type==='quality' || type==='franchise'){
+            addTextField(fields,section,'Eyebrow','eyebrow',{placeholder:type==='quality'?'FROM CONCEPT TO CREATION.':'FRANCHISE OPEN NOW'});
+            addTextField(fields,section,'Heading','title',{placeholder:type==='quality'?'QUALITY IN EVERY STITCH.':'FOR IRELAND'});
+            addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Feature copy.'});
+            addTextField(fields,section,'Button label','button_label',{placeholder:type==='quality'?'SEE OUR PROCESS':'APPLY FOR FRANCHISE'});
+            addTextField(fields,section,'Button URL','button_href',{placeholder:type==='quality'?'/factory':'/franchise'});
         }else if(type==='gallery'){
             addTextField(fields,section,'Gallery title','title',{placeholder:'Explore the collection'});
             const currentItems=Array.isArray(section.settings?.items)?section.settings.items:[];
@@ -371,8 +418,8 @@ if(pageBuilder){
             addTextField(fields,section,'Submit button label','button_label',{placeholder:'Submit enquiry'});
         }else{
             addTextField(fields,section,'Heading','title',{placeholder:'Section heading'});
+            addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Add plain-text content for this section...'});
         }
-        addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Add plain-text content for this section...'});
     };
     const sync=()=>{const payload=sections.map((section,index)=>({type:section.type||'content',label:section.label||labels[section.type]||'Content block',region:section.region||'main',locale:section.locale||null,media_uuid:section.media_uuid||null,focal_point:section.focal_point||null,devices:Array.isArray(section.devices)&&section.devices.length?section.devices:['desktop','tablet','mobile'],variant:section.variant||null,animation:section.animation||'none',analytics_key:section.analytics_key||null,settings:section.settings||{},visible:section.visible!==false,sort_order:index}));if(sectionInput)sectionInput.value=JSON.stringify(payload);countLabels.forEach((item)=>{item.textContent=`${payload.length} block${payload.length===1?'':'s'}`})};
     const move=(index,delta)=>{const next=index+delta;if(next<0||next>=sections.length)return;checkpoint();[sections[index],sections[next]]=[sections[next],sections[index]];focusIndex=next;render()};

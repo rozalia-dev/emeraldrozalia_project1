@@ -85,6 +85,55 @@ class PageComposerContractTest extends TestCase
             ->assertSee('data-public-layout-source="default-layout-fallback"', false);
     }
 
+    public function test_homepage_is_composed_from_persisted_sections_and_updates_the_public_root(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $homepage = ContentPage::query()->with('sections')->where('slug', 'home')->firstOrFail();
+        $sections = $homepage->sections->map(function (PageSection $section): array {
+            $settings = is_array($section->settings) ? $section->settings : [];
+            if ($section->type === 'hero') {
+                $settings['title'] = 'A managed homepage headline';
+            }
+
+            return [
+                'type' => $section->type,
+                'label' => $section->label,
+                'region' => $section->region,
+                'locale' => $section->locale,
+                'media_uuid' => $section->media_uuid,
+                'focal_point' => $section->focal_point,
+                'devices' => $section->devices,
+                'variant' => $section->variant,
+                'animation' => $section->animation,
+                'analytics_key' => $section->analytics_key,
+                'settings' => $settings,
+                'visible' => $section->visible,
+            ];
+        })->values()->all();
+
+        $this->actingAs($admin)->put(route('admin.pages.update', $homepage), [
+            'title' => $homepage->title,
+            'slug' => 'home',
+            'intro' => $homepage->intro,
+            'body' => $homepage->body,
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'home',
+            'navigation_visible' => '0',
+            'show_in_footer' => '0',
+            'indexable' => '1',
+            'visibility' => 'public',
+            'devices' => ['desktop', 'tablet', 'mobile'],
+            'sections' => json_encode($sections),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('page_sections', [
+            'content_page_id' => $homepage->id,
+            'type' => 'hero',
+        ]);
+        $this->get('/')->assertOk()->assertSeeText('A managed homepage headline');
+    }
+
     public function test_homepage_unpublish_removes_the_public_root_without_deleting_the_reserved_record(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

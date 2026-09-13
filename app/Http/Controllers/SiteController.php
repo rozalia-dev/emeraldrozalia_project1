@@ -33,9 +33,23 @@ class SiteController extends Controller
             ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
             ->first();
 
+        $homeProducts = Product::with('media')
+            ->where('is_active', true)
+            ->where('is_new', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+        $homeLatestProducts = Product::with('media')
+            ->where('is_active', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+
         return [
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
-            'newProducts' => Product::where('is_active', true)->where('is_new', true)->latest()->limit(8)->get(),
+            'homeProducts' => $homeProducts,
+            'homeLatestProducts' => $homeLatestProducts,
+            'newProducts' => $homeProducts,
             'banners' => Banner::query()->publishedFor('Home - Main Slider')->orderByDesc('priority')->orderBy('id')->get(),
             'homepage' => $homepage,
         ];
