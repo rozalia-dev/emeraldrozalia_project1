@@ -5,7 +5,8 @@
 <link rel="stylesheet" href="/css/home-collections.css?v=20260908-approved">
 @endpush
 @section('content')
-<div class="home-page" data-home-collections-reference="approved-2026-09-08">
+<div class="home-page" data-home-collections-reference="approved-2026-09-08" data-homepage-page-uuid="{{ $homepage?->uuid ?: 'reserved-homepage-pending' }}" data-homepage-source="{{ $homepage ? 'content-page-active-record' : 'reserved-homepage-fallback' }}">
+@if(($previewMode ?? false) || ($layoutPreviewMode ?? false))<div class="managed-page-preview-banner" role="status">Previewing {{ ($layoutPreviewMode ?? false) ? 'shared layout · Homepage render' : 'Homepage' }} · unpublished preview <a href="{{ ($layoutPreviewMode ?? false) ? route('admin.pages.layouts') : route('admin.pages.edit', $homepage) }}">Return to control panel</a></div>@endif
 @php
     $homeCollections = [
         ['slug'=>'baseball-caps','title'=>'BASEBALL CAPS','copy'=>'Classic. Everyday. Made to perform.','reference'=>'baseball'],

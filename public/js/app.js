@@ -319,25 +319,37 @@ if(pagesScreen){
 
 const pageBuilder=document.querySelector('[data-page-builder]');
 if(pageBuilder){
-    const form=pageBuilder.querySelector('[data-page-form]'),list=pageBuilder.querySelector('[data-builder-list]'),empty=pageBuilder.querySelector('[data-builder-empty]'),sectionInput=pageBuilder.querySelector('[data-page-sections]'),countLabels=[...pageBuilder.querySelectorAll('[data-builder-count]')],titleInput=pageBuilder.querySelector('[data-builder-field="title"]'),slugInput=pageBuilder.querySelector('[data-builder-field="slug"]');
-    let sections=[];
+    const form=pageBuilder.querySelector('[data-page-form]'),list=pageBuilder.querySelector('[data-builder-list]'),empty=pageBuilder.querySelector('[data-builder-empty]'),sectionInput=pageBuilder.querySelector('[data-page-sections]'),countLabels=[...pageBuilder.querySelectorAll('[data-builder-count]')],titleInput=pageBuilder.querySelector('[data-builder-field="title"]'),slugInput=pageBuilder.querySelector('[data-builder-field="slug"]'),undoButton=pageBuilder.querySelector('[data-builder-undo]');
+    let sections=[],undoStack=[],draggingIndex=null,focusIndex=null;
     const decode=(value)=>{try{return JSON.parse(atob(value||''))||[]}catch(error){return[]}};
     const labels={hero:'Hero section',content:'Rich content',gallery:'Media gallery',cta:'Call to action',form:'Enquiry form'};
     const settingValue=(section,key,fallback='')=>{const value=section.settings?.[key];return value===undefined||value===null?fallback:value};
+    const metadataKeys=['region','locale','media_uuid','variant','animation','analytics_key'];
+    const sectionValue=(section,key,fallback='')=>{const value=metadataKeys.includes(key)?section[key]:settingValue(section,key,fallback);return value===undefined||value===null?fallback:value};
     const setSetting=(section,key,value)=>{section.settings={...(section.settings||{}),[key]:value};sync()};
+    const setSectionValue=(section,key,value)=>{if(metadataKeys.includes(key)){section[key]=value;sync();return}setSetting(section,key,value)};
+    const checkpoint=()=>{undoStack.push(JSON.parse(JSON.stringify(sections)));if(undoStack.length>25)undoStack.shift();if(undoButton)undoButton.disabled=false};
+    const checkpointBeforeInput=(control)=>{if(control.dataset.builderCheckpoint==='true')return;checkpoint();control.dataset.builderCheckpoint='true'};
+    const undo=()=>{const previous=undoStack.pop();if(!previous)return;sections=previous;focusIndex=Math.max(0,Math.min(sections.length-1,focusIndex??0));render();if(undoButton)undoButton.disabled=undoStack.length===0};
     const addTextField=(fields,section,title,key,{textarea=false,placeholder=''}={})=>{
         const wrapper=document.createElement('label');wrapper.textContent=title;
         const control=textarea?document.createElement('textarea'):document.createElement('input');
-        if(!textarea)control.type='text';if(textarea)control.rows=3;control.value=settingValue(section,key,'');control.placeholder=placeholder;
-        control.addEventListener('input',()=>setSetting(section,key,control.value));wrapper.appendChild(control);fields.appendChild(wrapper);
+        if(!textarea)control.type='text';if(textarea)control.rows=3;control.value=sectionValue(section,key,'');control.placeholder=placeholder;
+        control.addEventListener('input',()=>{checkpointBeforeInput(control);setSectionValue(section,key,control.value)});wrapper.appendChild(control);fields.appendChild(wrapper);
     };
     const addSelectField=(fields,section,title,key,options)=>{
         const wrapper=document.createElement('label');wrapper.textContent=title;const control=document.createElement('select');
-        const current=settingValue(section,key,options[0][0]);options.forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.selected=current===value;control.appendChild(option)});
-        control.addEventListener('change',()=>setSetting(section,key,control.value));wrapper.appendChild(control);fields.appendChild(wrapper);
+        const current=sectionValue(section,key,options[0][0]);options.forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.selected=current===value;control.appendChild(option)});
+        control.addEventListener('change',()=>{checkpointBeforeInput(control);setSectionValue(section,key,control.value)});wrapper.appendChild(control);fields.appendChild(wrapper);
     };
     const addSectionSettings=(fields,section)=>{
         const type=labels[section.type]?section.type:'content';
+        addSelectField(fields,section,'Region','region',[['main','Page body'],['header','Header region'],['footer','Footer region']]);
+        addTextField(fields,section,'Locale override','locale',{placeholder:'en'});
+        addTextField(fields,section,'Media UUID','media_uuid',{placeholder:'Approved media UUID (Batch 19)'});
+        addTextField(fields,section,'Style variant','variant',{placeholder:'Default'});
+        addSelectField(fields,section,'Animation','animation',[['none','No animation'],['fade','Fade'],['rise','Rise'],['slide','Slide']]);
+        addTextField(fields,section,'Analytics key','analytics_key',{placeholder:'homepage.hero'});
         if(type==='hero'){
             addTextField(fields,section,'Headline','title',{placeholder:'Irish made. Worn everywhere.'});
             addTextField(fields,section,'Image path or URL','image',{placeholder:'assets/brand/example.png'});
@@ -348,7 +360,7 @@ if(pageBuilder){
             addTextField(fields,section,'Gallery title','title',{placeholder:'Explore the collection'});
             const currentItems=Array.isArray(section.settings?.items)?section.settings.items:[];
             const currentImages=currentItems.map((item)=>typeof item==='string'?item:(item?.image||item?.src||'')).filter(Boolean).join('\n')||settingValue(section,'image','');
-            const wrapper=document.createElement('label');wrapper.textContent='Images (one path or URL per line)';const control=document.createElement('textarea');control.rows=4;control.value=currentImages;control.placeholder='assets/brand/first.png\nassets/brand/second.png';control.addEventListener('input',()=>{const items=control.value.split(/\r?\n/).map((image)=>image.trim()).filter(Boolean).map((image)=>({image}));section.settings={...(section.settings||{}),items};delete section.settings.image;sync()});wrapper.appendChild(control);fields.appendChild(wrapper);
+            const wrapper=document.createElement('label');wrapper.textContent='Images (one path or URL per line)';const control=document.createElement('textarea');control.rows=4;control.value=currentImages;control.placeholder='assets/brand/first.png\nassets/brand/second.png';control.addEventListener('input',()=>{checkpointBeforeInput(control);const items=control.value.split(/\r?\n/).map((image)=>image.trim()).filter(Boolean).map((image)=>({image}));section.settings={...(section.settings||{}),items};delete section.settings.image;sync()});wrapper.appendChild(control);fields.appendChild(wrapper);
         }else if(type==='cta'){
             addTextField(fields,section,'Heading','title',{placeholder:'Start a conversation'});
             addTextField(fields,section,'Button label','button_label',{placeholder:'Contact us'});
@@ -362,27 +374,37 @@ if(pageBuilder){
         }
         addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Add plain-text content for this section...'});
     };
-    const sync=()=>{const payload=sections.map((section,index)=>({type:section.type||'content',label:section.label||labels[section.type]||'Content block',settings:section.settings||{},visible:section.visible!==false,sort_order:index}));if(sectionInput)sectionInput.value=JSON.stringify(payload);countLabels.forEach((item)=>{item.textContent=`${payload.length} block${payload.length===1?'':'s'}`})};
-    const move=(index,delta)=>{const next=index+delta;if(next<0||next>=sections.length)return;[sections[index],sections[next]]=[sections[next],sections[index]];render()};
+    const sync=()=>{const payload=sections.map((section,index)=>({type:section.type||'content',label:section.label||labels[section.type]||'Content block',region:section.region||'main',locale:section.locale||null,media_uuid:section.media_uuid||null,focal_point:section.focal_point||null,devices:Array.isArray(section.devices)&&section.devices.length?section.devices:['desktop','tablet','mobile'],variant:section.variant||null,animation:section.animation||'none',analytics_key:section.analytics_key||null,settings:section.settings||{},visible:section.visible!==false,sort_order:index}));if(sectionInput)sectionInput.value=JSON.stringify(payload);countLabels.forEach((item)=>{item.textContent=`${payload.length} block${payload.length===1?'':'s'}`})};
+    const move=(index,delta)=>{const next=index+delta;if(next<0||next>=sections.length)return;checkpoint();[sections[index],sections[next]]=[sections[next],sections[index]];focusIndex=next;render()};
+    const moveTo=(index,target)=>{if(index===target||index<0||target<0||index>=sections.length||target>=sections.length)return;checkpoint();const [item]=sections.splice(index,1);sections.splice(target,0,item);focusIndex=target;render()};
+    const clearDropTargets=()=>list?.querySelectorAll('.is-drop-target').forEach((node)=>node.classList.remove('is-drop-target'));
     const render=()=>{
         if(!list)return;
         list.replaceChildren();
         sections.forEach((section,index)=>{
-            const block=document.createElement('article');block.className='page-builder-block';
+            const block=document.createElement('article');block.className='page-builder-block';block.draggable=true;block.dataset.builderDropTarget='true';block.dataset.builderIndex=String(index);block.tabIndex=0;block.setAttribute('aria-label',`${labels[section.type]||'Content block'} ${index+1}`);
+            block.addEventListener('dragstart',(event)=>{draggingIndex=index;block.classList.add('is-dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index))});
+            block.addEventListener('dragover',(event)=>{event.preventDefault();if(draggingIndex!==null&&draggingIndex!==index){clearDropTargets();block.classList.add('is-drop-target');event.dataTransfer.dropEffect='move'}});
+            block.addEventListener('drop',(event)=>{event.preventDefault();const source=draggingIndex===null?Number(event.dataTransfer.getData('text/plain')):draggingIndex;clearDropTargets();moveTo(source,index);draggingIndex=null});
+            block.addEventListener('dragend',()=>{clearDropTargets();block.classList.remove('is-dragging');draggingIndex=null});
+            block.addEventListener('keydown',(event)=>{if(event.altKey&&event.key==='ArrowUp'){event.preventDefault();move(index,-1)}if(event.altKey&&event.key==='ArrowDown'){event.preventDefault();move(index,1)}});
             const header=document.createElement('div');header.className='page-builder-block-heading';
             const title=document.createElement('strong');title.textContent=`${String(index+1).padStart(2,'0')} · ${labels[section.type]||'Content block'}`;
             const tools=document.createElement('div');
-            [['↑','Move section up',()=>move(index,-1)],['↓','Move section down',()=>move(index,1)]].forEach(([text,label,handler])=>{const button=document.createElement('button');button.type='button';button.className='page-builder-block-tool';button.textContent=text;button.title=label;button.setAttribute('aria-label',label);button.disabled=(text==='↑'&&index===0)||(text==='↓'&&index===sections.length-1);button.addEventListener('click',handler);tools.appendChild(button)});
-            const remove=document.createElement('button');remove.type='button';remove.className='page-builder-block-remove';remove.textContent='Remove';remove.addEventListener('click',()=>{sections.splice(index,1);render()});tools.appendChild(remove);header.append(title,tools);
+            [['↑','Move section up',()=>move(index,-1)],['↓','Move section down',()=>move(index,1)]].forEach(([text,label,handler])=>{const button=document.createElement('button');button.type='button';button.className='page-builder-block-tool';button.textContent=text;button.title=label+' (Alt+Arrow)';button.setAttribute('aria-label',label);button.setAttribute('aria-keyshortcuts',text==='↑'?'Alt+ArrowUp':'Alt+ArrowDown');button.disabled=(text==='↑'&&index===0)||(text==='↓'&&index===sections.length-1);button.addEventListener('click',handler);tools.appendChild(button)});
+            const remove=document.createElement('button');remove.type='button';remove.className='page-builder-block-remove';remove.textContent='Remove';remove.setAttribute('aria-label',`Remove section ${index+1}`);remove.addEventListener('click',()=>{checkpoint();sections.splice(index,1);focusIndex=Math.max(0,index-1);render()});
+            tools.appendChild(remove);header.append(title,tools);
             const fields=document.createElement('div');fields.className='page-builder-block-fields';
-            const label=document.createElement('label');label.textContent='Section label';const labelInput=document.createElement('input');labelInput.value=section.label||labels[section.type]||'Content block';labelInput.addEventListener('input',()=>{section.label=labelInput.value;sync()});label.appendChild(labelInput);
+            const label=document.createElement('label');label.textContent='Section label';const labelInput=document.createElement('input');labelInput.value=section.label||labels[section.type]||'Content block';labelInput.addEventListener('input',()=>{checkpointBeforeInput(labelInput);section.label=labelInput.value;sync()});label.appendChild(labelInput);
             const settings=document.createElement('div');settings.className='page-builder-block-settings';addSectionSettings(settings,section);
-            const visible=document.createElement('label');visible.className='page-builder-block-visible';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=section.visible!==false;visibleInput.addEventListener('change',()=>{section.visible=visibleInput.checked;sync()});visible.append(visibleInput,document.createTextNode(' Visible'));fields.append(label,settings,visible);block.append(header,fields);list.appendChild(block);
+            const visible=document.createElement('label');visible.className='page-builder-block-visible';const visibleInput=document.createElement('input');visibleInput.type='checkbox';visibleInput.checked=section.visible!==false;visibleInput.addEventListener('change',()=>{checkpointBeforeInput(visibleInput);section.visible=visibleInput.checked;sync()});visible.append(visibleInput,document.createTextNode(' Visible'));fields.append(label,settings,visible);block.append(header,fields);list.appendChild(block);
         });
         if(empty)empty.hidden=sections.length>0;
         sync();
+        const focusTarget=list.querySelector(`[data-builder-index="${focusIndex}"] input`);if(focusTarget&&document.activeElement!==focusTarget){focusTarget.focus();focusIndex=null}
     };
-    pageBuilder.querySelectorAll('[data-builder-add]').forEach((button)=>button.addEventListener('click',()=>{const type=button.dataset.builderAdd||'content';sections.push({type,label:labels[type]||'Content block',settings:{content:''},visible:true});render();list?.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'})}));
+    pageBuilder.querySelectorAll('[data-builder-add]').forEach((button)=>button.addEventListener('click',()=>{checkpoint();const type=button.dataset.builderAdd||'content';sections.push({type,label:labels[type]||'Content block',region:'main',devices:['desktop','tablet','mobile'],animation:'none',settings:{content:''},visible:true});focusIndex=sections.length-1;render();list?.lastElementChild?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'})}));
+    undoButton?.addEventListener('click',undo);
     titleInput?.addEventListener('input',()=>{if(!slugInput||slugInput.dataset.edited==='true')return;slugInput.value=titleInput.value.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,180)});
     slugInput?.addEventListener('input',()=>{slugInput.dataset.edited='true'});
     form?.addEventListener('submit',()=>sync());

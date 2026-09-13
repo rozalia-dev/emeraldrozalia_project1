@@ -1,7 +1,7 @@
 <?php
 use App\Http\Controllers\{CartController,CheckoutController,ContextController,ReviewController,SiteController,WishlistController};
 use App\Http\Controllers\Account\AccountController;
-use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SeoController};
+use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SeoController,SiteLayoutController};
 use App\Http\Controllers\Admin\CollectionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\VideoController;
@@ -59,6 +59,13 @@ Route::post('/resource/collections/{collection}/duplicate',[CollectionController
 Route::post('/resource/collections/{collection}/products',[CollectionController::class,'syncProducts'])->name('collections.products.sync');
 Route::delete('/resource/collections/{collection}/products/{product}',[CollectionController::class,'removeProduct'])->name('collections.products.remove');
 Route::get('/resource/{module}/{record}/details',[ResourceController::class,'show'])->whereNumber('record')->name('resource.show');Route::post('/resource/{module}/{record}/duplicate',[ResourceController::class,'duplicate'])->whereNumber('record')->name('resource.duplicate');Route::post('/resource/{module}/{record}/archive',[ResourceController::class,'archive'])->whereNumber('record')->name('resource.archive');Route::post('/resource/{module}/{record}/trash',[ResourceController::class,'trash'])->whereNumber('record')->name('resource.trash');Route::post('/resource/{module}/{record}/restore',[ResourceController::class,'restore'])->whereNumber('record')->name('resource.restore');Route::delete('/resource/{module}/{record}/permanent',[ResourceController::class,'permanentDestroy'])->whereNumber('record')->name('resource.permanent-destroy');Route::get('/resource/{module}',[ResourceController::class,'index'])->name('resource');Route::post('/resource/{module}',[ResourceController::class,'store'])->name('resource.store');Route::patch('/resource/{module}/{record}',[ResourceController::class,'update'])->name('resource.update');Route::delete('/resource/{module}/{record}',[ResourceController::class,'destroy'])->name('resource.destroy');Route::get('/module/{module}',[AdminController::class,'module'])->name('module');Route::get('/integration-status',\App\Http\Controllers\Admin\IntegrationStatusController::class)->name('integration-status');});
+Route::middleware(['auth','admin'])->prefix('admin/pages')->name('admin.pages.')->group(function(){
+    Route::get('/layouts',[SiteLayoutController::class,'index'])->name('layouts');
+    Route::post('/layouts',[SiteLayoutController::class,'store'])->name('layouts.store');
+    Route::patch('/layouts/{layout}',[SiteLayoutController::class,'update'])->name('layouts.update');
+    Route::get('/layouts/{layout}/preview',[SiteLayoutController::class,'preview'])->name('layouts.preview');
+    Route::post('/layouts/{layout}/action/{action}',[SiteLayoutController::class,'action'])->name('layouts.action');
+});
 Route::post('/context/company',[ContextController::class,'company'])->middleware('auth')->name('context.company');Route::post('/context/language',[ContextController::class,'locale'])->name('context.language');Route::post('/context/currency',[ContextController::class,'currency'])->name('context.currency');
 Route::patch('/admin/reviews/{review}/status',[ResourceController::class,'updateReviewStatus'])->middleware(['auth','admin'])->name('admin.reviews.status');
 Route::get('/{page}',[SiteController::class,'page'])->where('page','(?!up$)[A-Za-z0-9-]+')->name('content.page');

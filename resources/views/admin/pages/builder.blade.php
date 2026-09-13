@@ -9,6 +9,14 @@
     $builderInitial = $sections->map(fn ($section) => [
         'type' => $section->type,
         'label' => $section->label,
+        'region' => $section->region ?: 'main',
+        'locale' => $section->locale,
+        'media_uuid' => $section->media_uuid,
+        'focal_point' => $section->focal_point,
+        'devices' => $section->devices ?: ['desktop', 'tablet', 'mobile'],
+        'variant' => $section->variant,
+        'animation' => $section->animation ?: 'none',
+        'analytics_key' => $section->analytics_key,
         'settings' => $section->settings ?: [],
         'visible' => (bool) $section->visible,
     ])->values()->all();
@@ -56,7 +64,7 @@
                     <div class="page-builder-card-heading"><div><span class="page-builder-step">02</span><div><h2>Page sections</h2><p>Compose the page with reusable blocks and control their order.</p></div></div><span class="page-builder-state" data-builder-count>0 blocks</span></div>
                     <div class="page-builder-studio">
                         <aside class="page-builder-library"><div><h3>Section library</h3><p>Choose a block to add it to the canvas.</p></div><button type="button" data-builder-add="hero"><x-icon name="image" size="17" /><span><strong>Hero section</strong><small>Headline, media and intro</small></span><x-icon name="plus" size="14" /></button><button type="button" data-builder-add="content"><x-icon name="file-text" size="17" /><span><strong>Rich content</strong><small>Editorial text and details</small></span><x-icon name="plus" size="14" /></button><button type="button" data-builder-add="gallery"><x-icon name="camera" size="17" /><span><strong>Media gallery</strong><small>Images, captions and links</small></span><x-icon name="plus" size="14" /></button><button type="button" data-builder-add="cta"><x-icon name="arrow-right" size="17" /><span><strong>Call to action</strong><small>Conversion-focused panel</small></span><x-icon name="plus" size="14" /></button><button type="button" data-builder-add="form"><x-icon name="message" size="17" /><span><strong>Enquiry form</strong><small>Capture customer requests</small></span><x-icon name="plus" size="14" /></button></aside>
-                        <div class="page-builder-canvas"><div class="page-builder-canvas-heading"><div><h3>Canvas</h3><p>Drag-free controls keep the order predictable and auditable.</p></div><span data-builder-count>0 blocks</span></div><div class="page-builder-block-list" data-builder-list></div><div class="page-builder-empty" data-builder-empty><x-icon name="file-text" size="25" /><strong>Your page is ready for sections</strong><span>Add a block from the library to start building.</span></div></div>
+                        <div class="page-builder-canvas"><div class="page-builder-canvas-heading"><div><h3>Canvas</h3><p>Drag sections to reorder them, or use the keyboard controls on each block.</p></div><span data-builder-count>0 blocks</span><button type="button" class="page-builder-undo" data-builder-undo disabled>Undo</button></div><noscript><p class="page-builder-server-note">Enable JavaScript to edit this block inline.</p></noscript><div class="page-builder-block-list" data-builder-list>@foreach($sections as $index => $section)<article class="page-builder-block page-builder-block--server"><div class="page-builder-block-heading"><strong>{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }} · {{ str($section->type)->headline() }}</strong><span>Enable JavaScript to edit this block inline.</span></div><p>{{ $section->label ?: 'Content block' }}</p></article>@endforeach</div><div class="page-builder-empty" data-builder-empty @if($sections->isNotEmpty()) hidden @endif><x-icon name="file-text" size="25" /><strong>Your page is ready for sections</strong><span>Add a block from the library to start building.</span></div></div>
                     </div>
                 </section>
 

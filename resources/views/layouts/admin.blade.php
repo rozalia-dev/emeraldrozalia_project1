@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/admin-actions.css?v=20260913-batch14">
     @stack('styles')
 </head>
-<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
+<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit') || request()->routeIs('admin.pages.layouts*'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -51,6 +51,7 @@
                 ],
                 ['route'=>'admin.banners.index','label'=>'Banners / Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
                 ['route'=>'admin.pages','label'=>'Pages','icon'=>'file-text','active'=>'admin/pages*'],
+                ['route'=>'admin.pages.layouts','label'=>'Shared Site Layout','icon'=>'file-text','active'=>'admin/pages/layouts*'],
                 ['route'=>'admin.seo.dashboard','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/seo*'],
                 ['slug'=>'reviews-ratings','label'=>'Reviews & Ratings','icon'=>'star','active'=>'admin/resource/reviews-ratings*'],
             ],
