@@ -87,6 +87,7 @@
                 ['slug'=>'franchise-agreements','label'=>'Agreements','icon'=>'briefcase','active'=>'admin/resource/franchise-agreements*'],
                 ['slug'=>'franchisees','label'=>'Franchisees','icon'=>'users','active'=>'admin/resource/franchisees*'],
                 ['slug'=>'franchise-retail-stores','label'=>'Franchise Retail Stores','icon'=>'shopping-bag','active'=>'admin/resource/franchise-retail-stores*'],
+                ['slug'=>'store-setup','label'=>'Store Setup','icon'=>'settings','active'=>'admin/resource/store-setup*'],
                 ['slug'=>'training-documents','label'=>'Training & Documents','icon'=>'file-text','active'=>'admin/resource/training-documents*'],
                 ['slug'=>'marketing-assets','label'=>'Marketing Assets','icon'=>'camera','active'=>'admin/resource/marketing-assets*'],
                 ['slug'=>'performance-targets','label'=>'Performance & Targets','icon'=>'star','active'=>'admin/resource/performance-targets*'],
