@@ -46,6 +46,7 @@
         'key' => '<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-2 2 2 2m-5 1 2 2"/>',
         'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
         'menu' => '<path d="M4 6h16M4 12h16M4 18h16"/>',
+        'minus' => '<path d="M5 12h14"/>',
         'message' => '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8m-8 3h5"/>',
         'music' => '<path d="M9 18V5l10-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm10-2a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z"/>',
         'package' => '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',

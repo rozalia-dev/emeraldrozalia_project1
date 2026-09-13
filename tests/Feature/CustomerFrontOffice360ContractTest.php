@@ -101,7 +101,24 @@ class CustomerFrontOffice360ContractTest extends TestCase
         $this->assertStringContainsString('<strong>9</strong><small>Orders</small>', $content);
         $this->assertStringContainsString('<strong>1</strong><small>Returns &amp; Exchanges</small>', $content);
         $this->assertStringContainsString('href="'.route('account.section', 'returns').'"', $content);
-        $this->assertStringNotContainsString('Custom Designs', $content);
+        $this->assertStringContainsString('data-account-layout', $content);
+        $this->assertStringContainsString('data-account-navigation', $content);
+        $this->assertStringContainsString('data-account-kpis', $content);
+        $this->assertStringContainsString('Custom Designs', $content);
         $this->assertStringNotContainsString('My Designs', $content);
+    }
+
+    public function test_customer_account_sections_share_the_custom_account_layout(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (['orders', 'wishlist', 'rewards', 'addresses', 'payments', 'profile', 'designs', 'bulk-orders', 'returns'] as $section) {
+            $content = $this->actingAs($user)->get(route('account.section', $section))->assertOk()->getContent();
+
+            $this->assertStringContainsString('data-account-layout data-account-section="'.$section.'"', $content);
+            $this->assertStringContainsString('data-account-navigation', $content);
+            $this->assertStringContainsString('aria-current="page"', $content);
+            $this->assertStringContainsString('/css/app.css', $content);
+        }
     }
 }

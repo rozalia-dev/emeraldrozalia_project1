@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
+    <link rel="stylesheet" href="/css/admin-actions.css?v=20260913-batch14">
     @stack('styles')
 </head>
 <body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
@@ -87,6 +88,7 @@
                 ['slug'=>'franchise-agreements','label'=>'Agreements','icon'=>'briefcase','active'=>'admin/resource/franchise-agreements*'],
                 ['slug'=>'franchisees','label'=>'Franchisees','icon'=>'users','active'=>'admin/resource/franchisees*'],
                 ['slug'=>'franchise-retail-stores','label'=>'Franchise Retail Stores','icon'=>'shopping-bag','active'=>'admin/resource/franchise-retail-stores*'],
+                ['slug'=>'store-setup','label'=>'Store Setup','icon'=>'settings','active'=>'admin/resource/store-setup*'],
                 ['slug'=>'training-documents','label'=>'Training & Documents','icon'=>'file-text','active'=>'admin/resource/training-documents*'],
                 ['slug'=>'marketing-assets','label'=>'Marketing Assets','icon'=>'camera','active'=>'admin/resource/marketing-assets*'],
                 ['slug'=>'performance-targets','label'=>'Performance & Targets','icon'=>'star','active'=>'admin/resource/performance-targets*'],
