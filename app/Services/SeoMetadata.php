@@ -14,7 +14,6 @@ final class SeoMetadata
         '@type' => 'Organization',
         'name' => 'Emerald Rozalia Limited',
         'url' => 'https://emeraldrozalia.com',
-        'logo' => 'https://emeraldrozalia.com/assets/brand/emerald-rozalia-wordmark.png',
         'address' => [
             '@type' => 'PostalAddress',
             'addressLocality' => 'Limerick',
@@ -59,6 +58,17 @@ final class SeoMetadata
         }
 
         $schema = $this->setting('organization_schema', self::DEFAULT_SCHEMA);
+        if (is_array($schema)) {
+            $logo = app(PublicMediaResolver::class)->forLegacyPath(
+                'assets/brand/emerald-rozalia-wordmark.png',
+                'Emerald Rozalia wordmark',
+            );
+            if ($logo) {
+                $schema['logo'] = $logo['url'];
+            } else {
+                unset($schema['logo']);
+            }
+        }
 
         return [
             'title' => trim((string) $title),

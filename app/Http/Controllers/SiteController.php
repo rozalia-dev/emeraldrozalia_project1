@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,Inquiry,Product};
+use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AuditTrail;
+use App\Services\PublicMediaResolver;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -17,24 +18,84 @@ class SiteController extends Controller
 {
     public function home()
     {
-        return view('site.home', [
+        $data = $this->homeData();
+        abort_unless($data['homepage'], 404, 'The public homepage is not currently published.');
+
+        return view('site.home', $data);
+    }
+
+    public function homeData(): array
+    {
+        $mediaResolver = app(PublicMediaResolver::class);
+        $homepage = ContentPage::with('sections')
+            ->where('slug', 'home')
+            ->where('route_path', '/')
+            ->where('page_kind', 'home')
+            ->where('status', 'published')
+            ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
+            ->first();
+
+        $homeProducts = Product::with('media')
+            ->where('is_active', true)
+            ->where('is_new', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+        $homeLatestProducts = Product::with('media')
+            ->where('is_active', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $banners = Banner::query()
+            ->with('media')
+            ->publishedFor('Home - Main Slider')
+            ->orderByDesc('priority')
+            ->orderBy('id')
+            ->get();
+
+        return [
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
-            'newProducts' => Product::where('is_active', true)->where('is_new', true)->latest()->limit(8)->get(),
-            'banners' => Banner::query()->publishedFor('Home - Main Slider')->orderByDesc('priority')->orderBy('id')->get(),
-        ]);
+            'homeProducts' => $homeProducts,
+            'homeLatestProducts' => $homeLatestProducts,
+            'newProducts' => $homeProducts,
+            'banners' => $banners,
+            'homepage' => $homepage,
+            'homeMedia' => $mediaResolver->forUuids($this->homepageMediaUuids($homepage)),
+        ];
+    }
+
+    private function homepageMediaUuids(?ContentPage $homepage): array
+    {
+        if (! $homepage) {
+            return [];
+        }
+
+        return $homepage->sections->flatMap(function ($section): array {
+            $settings = is_array($section->settings) ? $section->settings : [];
+            $uuids = [$section->media_uuid];
+            foreach ((array) data_get($settings, 'items', []) as $item) {
+                if (is_array($item)) {
+                    $uuids[] = $item['media_uuid'] ?? null;
+                }
+            }
+
+            return $uuids;
+        })->filter()->values()->all();
     }
 
     public function collections()
     {
         return view('site.collections', [
             'categories' => Category::withCount(['products' => fn ($q) => $q->where('is_active', true)])->where('is_active', true)->orderBy('sort_order')->get(),
-            'bestsellers' => Product::where('is_active', true)->latest()->limit(6)->get(),
+            'bestsellers' => Product::with('media')->where('is_active', true)->latest()->limit(6)->get(),
+            'collections' => ProductCollection::with('media')->where('status', 'active')->where('visibility', 'visible')->orderBy('sort_order')->get(),
         ]);
     }
 
     public function newArrivals(Request $r)
     {
-        $q = Product::with('category')->withCount('reviews')->withAvg('reviews', 'rating')->where('is_active', true)->where('is_new', true);
+        $q = Product::with(['category', 'media'])->withCount('reviews')->withAvg('reviews', 'rating')->where('is_active', true)->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
         $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
         if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
@@ -62,7 +123,9 @@ class SiteController extends Controller
             ->orderBy('name')->get();
         $selected = $products->firstWhere('id', (int) $request->input('product_id')) ?: $products->first();
         $assetMetaMap = [];
-        $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap) {
+        $assetReferenceMap = [];
+        $mediaResolver = app(PublicMediaResolver::class);
+        $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap, &$assetReferenceMap, $mediaResolver) {
             $assets = [];
             $managed = $product->tryOnAssets->first(fn ($asset) => $asset->isPublic());
             if ($managed) {
@@ -71,13 +134,17 @@ class SiteController extends Controller
                 return [$product->id => $assets];
             }
             if (filled($product->try_on_asset)) {
-                if (str_starts_with($product->try_on_asset, '/') || str_starts_with($product->try_on_asset, 'http')) $assets[] = $product->try_on_asset;
-                elseif (Storage::disk('public')->exists($product->try_on_asset)) $assets[] = Storage::disk('public')->url($product->try_on_asset);
+                $assetReferenceMap[$product->id][] = basename((string) $product->try_on_asset);
             }
-            foreach ($product->media->where('type', 'try_on') as $media) $assets[] = Storage::disk($media->disk)->url($media->path);
+            foreach ($product->media->where('type', 'try_on') as $media) {
+                if ($descriptor = $mediaResolver->forProductMedia($media, $product->name)) {
+                    $assets[] = $descriptor['url'];
+                    $assetReferenceMap[$product->id][] = $descriptor['original_name'];
+                }
+            }
             return [$product->id => $assets];
         })->all();
-        return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap'));
+        return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap', 'assetReferenceMap'));
     }
 
     public function irishTraditional(Request $request)
@@ -93,7 +160,7 @@ class SiteController extends Controller
     private function categoryLanding(Request $request, string $slug, string $eyebrow, string $title, string $intro)
     {
         $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
-        $query = $category->exists ? $category->products()->with('category')->where('is_active', true) : Product::whereRaw('1 = 0');
+        $query = $category->exists ? $category->products()->with(['category', 'media'])->where('is_active', true) : Product::whereRaw('1 = 0');
         if ($request->filled('q')) $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('sku', 'like', '%'.$request->q.'%'));
         match ($request->input('sort')) {
             'price_low' => $query->orderBy('price'),
@@ -127,6 +194,7 @@ class SiteController extends Controller
         $query = Product::query()
             ->with([
                 'category',
+                'media',
                 'variants' => fn ($variantQuery) => $variantQuery->where('is_active', true)->orderBy('sort_order')->orderBy('id'),
                 'spins' => fn ($spinQuery) => $spinQuery->where('status', 'published')->where('visibility', 'public')->latest('updated_at'),
                 'tryOnAssets' => fn ($tryOnQuery) => $tryOnQuery->where('status', 'published')->where('visibility', 'public')->latest('updated_at'),
@@ -260,6 +328,7 @@ class SiteController extends Controller
             'reviews.user',
             'category',
             'media',
+            'variants.approvedMedia',
             'spins' => fn ($query) => $query
                 ->where('status', 'published')
                 ->where('visibility', 'public')
@@ -267,18 +336,28 @@ class SiteController extends Controller
         ]);
         $managedSpin = $product->latestPublicSpin();
         $spinViewerData = $managedSpin?->viewerData();
-        $spinFrames = collect($spinViewerData['frames'] ?? ($product->spin_images ?? []));
+        $spinFrames = collect($spinViewerData['frames'] ?? []);
+        $rawSpinReferences = $product->getRawOriginal('spin_images');
+        $rawSpinReferences = is_array($rawSpinReferences) ? $rawSpinReferences : json_decode((string) $rawSpinReferences, true);
+        $legacySpinReferences = is_array($rawSpinReferences)
+            ? collect($rawSpinReferences)->filter(fn ($reference): bool => is_string($reference))->values()
+            : collect();
         if (! $managedSpin) {
             $spinFrames = $spinFrames->merge($product->media
                 ->where('type', 'spin_360')
-                ->map(fn ($media) => Storage::disk($media->disk)->url($media->path)));
+                ->map(function ($media) use ($product) {
+                $descriptor = app(PublicMediaResolver::class)->forProductMedia($media, $product->name);
+
+                    return $descriptor['url'] ?? null;
+                }));
         }
         $spinFrames = $spinFrames->filter()->unique()->values()->all();
         $related = Product::where('is_active', true)
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
+            ->with('media')
             ->limit(4)->get();
-        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData'));
+        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData', 'legacySpinReferences'));
     }
 
     public function page(string $page)

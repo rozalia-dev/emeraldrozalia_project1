@@ -168,7 +168,7 @@
                         @forelse($rows as $row)
                             @php
                                 $rowSelected = $selectedId && (string) $selectedId === (string) $row['id'];
-                                $rowEditUrl = $row['id'] ? route('admin.banners.index', ['selected' => $row['id'], 'modal' => 'edit']) : '#';
+                                $rowEditUrl = $row['id'] ? route('admin.banners.index', ['selected' => $row['id'], 'modal' => 'edit']) : null;
                                 $rowPreviewUrl = $row['id'] ? route('admin.banners.index', ['selected' => $row['id'], 'modal' => 'preview']) : '#banner-preview-modal';
                             @endphp
                             <tr class="{{ $rowSelected ? 'is-selected' : '' }}">
@@ -178,7 +178,7 @@
                                         @if($row['image_url'])<img src="{{ $row['image_url'] }}" alt="{{ $row['alt_text'] }}" loading="lazy">@else<span><x-icon name="image" size="20" /></span>@endif
                                     </a>
                                 </td>
-                                <td class="banner-title-cell"><a href="{{ $rowEditUrl }}"><strong>{{ $row['title'] }}</strong><small>{{ $row['subtitle'] }}</small></a></td>
+                                <td class="banner-title-cell">@if($rowEditUrl)<a href="{{ $rowEditUrl }}"><strong>{{ $row['title'] }}</strong><small>{{ $row['subtitle'] }}</small></a>@else<strong>{{ $row['title'] }}</strong><small>{{ $row['subtitle'] }}</small>@endif</td>
                                 <td><span class="banner-type-pill {{ $typeClass($row['type']) }}">{{ $row['type_label'] }}</span></td>
                                 <td>{{ $row['position'] }}</td>
                                 <td class="banner-target-cell"><span>{{ $row['target_url'] }}</span><small>{{ ucfirst($row['target_type']) }} Link</small></td>
@@ -219,7 +219,7 @@
             <div class="banner-pagination-row">
                 <span>Showing {{ $rows ? (($banners->firstItem() ?? 1).' to '.($banners->lastItem() ?? count($rows))) : 0 }} of {{ $banners->total() }} banners / sliders</span>
                 <div>{{ $banners->onEachSide(1)->links('pagination::simple-tailwind') }}</div>
-                <label><span>Rows</span><select data-banner-per-page><option value="10" @selected($banners->perPage() === 10)>10 / page</option><option value="25" @selected($banners->perPage() === 25)>25 / page</option><option value="50" @selected($banners->perPage() === 50)>50 / page</option></select></label>
+                <label><span>Rows</span><select name="per_page" data-banner-per-page><option value="10" @selected($banners->perPage() === 10)>10 / page</option><option value="25" @selected($banners->perPage() === 25)>25 / page</option><option value="50" @selected($banners->perPage() === 50)>50 / page</option></select></label>
             </div>
 
             @if($selected)
@@ -254,7 +254,7 @@
                             <label><span>ARIA Label (Accessibility)</span><input value="{{ $selected['aria_label'] ?? '' }}" readonly></label>
                         </div>
                         <div class="banner-selected-preview">
-                            <div><span class="banner-selected-preview-label">Selected Banner Preview</span><a href="{{ $selected['image_url'] ?? '#' }}" target="_blank" rel="noreferrer">@if($selected['image_url'])<img src="{{ $selected['image_url'] }}" alt="{{ $selected['alt_text'] ?? '' }}">@else<span class="banner-large-placeholder"><x-icon name="image" size="24" /></span>@endif</a></div>
+                            <div><span class="banner-selected-preview-label">Selected Banner Preview</span>@if(!empty($selected['image_url']))<a href="{{ $selected['image_url'] }}" target="_blank" rel="noreferrer"><img src="{{ $selected['image_url'] }}" alt="{{ $selected['alt_text'] ?? '' }}"></a>@else<span class="banner-large-placeholder"><x-icon name="image" size="24" /><small>Select a banner with approved media to open its preview.</small></span>@endif</div>
                             <button type="button" class="banner-small-button" data-banner-modal-open="edit"><x-icon name="image" size="12" /> Change Banner</button>
                         </div>
                     </section>
@@ -354,7 +354,8 @@
                 <label><span>Priority</span><input type="number" name="priority" min="1" max="999" value="{{ $selected['priority'] ?? 1 }}" data-banner-field="priority"></label>
                 <label><span>Start Date &amp; Time</span><input type="datetime-local" name="starts_at" value="{{ $selected['starts_at_value'] ?? '' }}" data-banner-field="starts_at"></label>
                 <label><span>End Date &amp; Time</span><input type="datetime-local" name="ends_at" value="{{ $selected['ends_at_value'] ?? '' }}" data-banner-field="ends_at"></label>
-                <label class="banner-editor-wide"><span>Image Path (existing asset or public URL)</span><input name="image_path" maxlength="500" value="{{ $selected['image_path'] ?? '' }}" placeholder="banners/spring-summer.webp" data-banner-field="image_path"></label>
+                <label class="banner-editor-wide"><span>Approved Media Asset</span><select name="media_uuid" data-banner-field="media_uuid"><option value="">No approved image selected</option>@foreach($approvedMedia as $media)<option value="{{ $media['uuid'] }}" @selected(($selected['media_uuid'] ?? '') === $media['uuid'])>{{ $media['name'] }} · {{ $media['original_name'] }}</option>@endforeach</select><small>Public banners can render only approved assets. Manage uploads in the <a href="{{ route('admin.site-media.index') }}" target="_blank" rel="noopener">Public Media Library</a>.</small></label>
+                <label class="banner-editor-wide"><span>Legacy path (migration trace only)</span><input name="image_path" maxlength="500" value="{{ $selected['image_path'] ?? '' }}" placeholder="Existing path is never emitted directly" data-banner-field="image_path"><small>Legacy paths remain for audit traceability; they are not public delivery sources.</small></label>
                 <label class="banner-editor-wide banner-upload-field"><span>Upload New Image</span><input type="file" name="image" accept="image/*" data-banner-file><small data-banner-file-name>No new image selected</small></label>
                 <label><span>Alt Text</span><input name="alt_text" maxlength="255" value="{{ $selected['alt_text'] ?? '' }}" data-banner-field="alt_text"></label>
                 <label><span>Title Tooltip</span><input name="title_text" maxlength="180" value="{{ $selected['title_text'] ?? '' }}" data-banner-field="title_text"></label>
@@ -381,7 +382,7 @@
     <div class="banner-modal-dialog banner-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="banner-preview-title">
         <div class="banner-modal-head"><div><span class="banner-eyebrow">Selected campaign</span><h2 id="banner-preview-title">{{ $selected['title'] ?? 'Banner Preview' }}</h2></div><button type="button" data-banner-modal-close aria-label="Close"><x-icon name="close" size="18" /></button></div>
         @if($selected && !empty($selected['image_url']))<img class="banner-modal-preview-image" src="{{ $selected['image_url'] }}" alt="{{ $selected['alt_text'] ?? '' }}">@else<div class="banner-modal-preview-placeholder"><x-icon name="image" size="36" /><span>Preview image will appear here</span></div>@endif
-        <div class="banner-preview-meta"><span class="banner-type-pill {{ $selected ? $typeClass($selected['type']) : '' }}">{{ $selected['type_label'] ?? 'Slider' }}</span><span class="banner-status-pill {{ $selected ? $statusClass($selected['status_key']) : '' }}">{{ $selected['status'] ?? 'Draft' }}</span><span>{{ $selected['position'] ?? 'Home - Main Slider' }}</span><a href="{{ $selected['target_url'] ?? '#' }}" target="_blank" rel="noreferrer">{{ $selected['target_url'] ?? '/' }} <x-icon name="arrow-right" size="12" /></a></div>
+        <div class="banner-preview-meta"><span class="banner-type-pill {{ $selected ? $typeClass($selected['type']) : '' }}">{{ $selected['type_label'] ?? 'Slider' }}</span><span class="banner-status-pill {{ $selected ? $statusClass($selected['status_key']) : '' }}">{{ $selected['status'] ?? 'Draft' }}</span><span>{{ $selected['position'] ?? 'Home - Main Slider' }}</span>@if(!empty($selected['target_url']))<a href="{{ $selected['target_url'] }}" target="_blank" rel="noreferrer">{{ $selected['target_url'] }} <x-icon name="arrow-right" size="12" /></a>@else<span class="banner-target-empty">No target link configured</span>@endif</div>
         <div class="banner-modal-actions"><button type="button" class="banner-outline-button" data-banner-modal-close>Close</button><button type="button" class="banner-primary-button" data-banner-modal-open="edit"><x-icon name="pencil" size="13" /> Edit Selected Banner</button></div>
     </div>
 </div>

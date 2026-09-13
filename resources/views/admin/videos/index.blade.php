@@ -83,7 +83,7 @@
             </div>
         </section>
         <p class="vd-data-note">Metrics show website playback from the last 30 days. Admin previews are excluded. External platform analytics are not connected.</p>
-        <form id="vd-settings-form">
+        <form id="vd-settings-form" method="post" action="{{ route('admin.videos.store') }}">
         <fieldset id="vd-edit-fields">
         <div class="vd-bottom-grid">
             <section class="vd-panel vd-upload-card">
@@ -147,7 +147,7 @@
         @foreach([['play','HIGH QUALITY VIDEOS','Showcase your products with clear, engaging videos.'],['globe','MULTI-PLATFORM SUPPORT','Upload videos or embed YouTube and Vimeo.'],['file','SEO & ACCESSIBILITY','Titles, descriptions, tags and WebVTT captions.'],['bar-chart','WEBSITE ANALYTICS','Recorded views and watch time from your website.'],['shield','SECURE & TRACEABLE','Private file delivery and an audited video history.']] as [$icon,$title,$copy])<div><x-icon :name="$icon" size="23" /><p><strong>{{ $title }}</strong><span>{{ $copy }}</span></p></div>@endforeach
     </section>
     <dialog id="vd-dialog" class="vd-dialog" aria-labelledby="vd-dialog-title">
-        <form id="vd-form" enctype="multipart/form-data">
+        <form id="vd-form" method="post" action="{{ route('admin.videos.store') }}" enctype="multipart/form-data">
             <header><div><p>PRODUCT MEDIA MANAGER</p><h2 id="vd-dialog-title">Upload Video</h2></div><button type="button" data-close-dialog aria-label="Close dialog">×</button></header>
             <div class="vd-form-body">
                 <div class="vd-form-errors" id="vd-form-errors" role="alert" hidden></div>

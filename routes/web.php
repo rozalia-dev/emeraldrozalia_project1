@@ -1,11 +1,12 @@
 <?php
 use App\Http\Controllers\{CartController,CheckoutController,ContextController,ReviewController,SiteController,WishlistController};
 use App\Http\Controllers\Account\AccountController;
-use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SeoController};
+use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaAssetController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SeoController,SiteLayoutController};
 use App\Http\Controllers\Admin\CollectionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\VideoPlaybackController;
+use App\Http\Controllers\PublicMediaController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,7 @@ Route::get('/contact',[SiteController::class,'contact'])->name('contact');
 Route::get('/page/{page}',[SiteController::class,'page'])->name('page');
 Route::get('/product/{product:slug}',[SiteController::class,'product'])->name('product');
 Route::get('/category/{category:slug}',[SiteController::class,'category'])->name('category');
+Route::get('/media/{uuid}/{variant?}',[PublicMediaController::class,'show'])->whereUuid('uuid')->where('variant','[A-Za-z0-9_-]{1,40}')->name('media.public');
 Route::get('/video-sitemap.xml',[VideoPlaybackController::class,'sitemap'])->name('videos.sitemap');
 Route::get('/videos/{video:uuid}',[VideoPlaybackController::class,'watch'])->name('videos.watch');
 Route::get('/videos/{video:uuid}/assets/{asset}',[VideoPlaybackController::class,'asset'])->name('videos.asset');
@@ -38,6 +40,19 @@ Route::get('/sitemap.xml',[SeoController::class,'sitemap'])->name('seo.sitemap')
 Route::post('/enquiry',[SiteController::class,'inquiry'])->middleware('throttle:10,1')->name('inquiry');
 Route::middleware('guest')->group(function(){Route::get('/login',[AuthController::class,'show'])->name('login');Route::post('/login',[AuthController::class,'login'])->middleware('throttle:5,1')->name('login.submit');Route::get('/register',[AuthController::class,'registerForm'])->name('register.form');Route::post('/register',[AuthController::class,'register'])->middleware('throttle:5,10')->name('register');Route::get('/forgot-password',[AuthController::class,'forgotForm'])->name('password.request');Route::post('/forgot-password',[AuthController::class,'forgot'])->middleware('throttle:5,10')->name('password.email');Route::get('/reset-password/{token}',[AuthController::class,'resetForm'])->name('password.reset');Route::post('/reset-password',[AuthController::class,'reset'])->middleware('throttle:5,10')->name('password.update');});
 Route::post('/logout',[AuthController::class,'logout'])->middleware('auth')->name('logout');
+Route::middleware(['auth','admin'])->prefix('admin/resource/site-media')->name('admin.site-media.')->group(function(){
+    Route::get('/',[MediaAssetController::class,'index'])->name('index');
+    Route::get('/trash',[MediaAssetController::class,'index'])->defaults('view', 'trash')->name('trash');
+    Route::post('/',[MediaAssetController::class,'store'])->name('store');
+    Route::patch('/{asset}',[MediaAssetController::class,'update'])->name('update');
+    Route::post('/{asset}/approve',[MediaAssetController::class,'approve'])->name('approve');
+    Route::post('/{asset}/reject',[MediaAssetController::class,'reject'])->name('reject');
+    Route::post('/{asset}/archive',[MediaAssetController::class,'archive'])->whereUuid('asset')->name('archive');
+    Route::post('/{asset}/restore',[MediaAssetController::class,'restore'])->whereUuid('asset')->name('restore');
+    Route::post('/{asset}/versions/{version}/restore',[MediaAssetController::class,'restoreVersion'])->whereUuid('asset')->whereNumber('version')->name('version.restore');
+    Route::delete('/trash/{asset}',[MediaAssetController::class,'permanentDestroy'])->whereUuid('asset')->name('permanent-destroy');
+    Route::delete('/{asset}',[MediaAssetController::class,'destroy'])->name('destroy');
+});
 Route::get('/email/verify',fn()=>view('auth.verify'))->middleware('auth')->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}',function(EmailVerificationRequest $request){$request->fulfill();return redirect('/account')->with('success','Email verified.');})->middleware(['auth','signed'])->name('verification.verify');
 Route::post('/email/verification-notification',function(Request $request){$request->user()->sendEmailVerificationNotification();return back()->with('success','Verification link sent.');})->middleware(['auth','throttle:6,1'])->name('verification.send');
@@ -58,7 +73,20 @@ Route::patch('/resource/collections/{collection}/visibility',[CollectionControll
 Route::post('/resource/collections/{collection}/duplicate',[CollectionController::class,'duplicate'])->name('collections.duplicate');
 Route::post('/resource/collections/{collection}/products',[CollectionController::class,'syncProducts'])->name('collections.products.sync');
 Route::delete('/resource/collections/{collection}/products/{product}',[CollectionController::class,'removeProduct'])->name('collections.products.remove');
-Route::get('/resource/{module}',[ResourceController::class,'index'])->name('resource');Route::post('/resource/{module}',[ResourceController::class,'store'])->name('resource.store');Route::patch('/resource/{module}/{record}',[ResourceController::class,'update'])->name('resource.update');Route::delete('/resource/{module}/{record}',[ResourceController::class,'destroy'])->name('resource.destroy');Route::get('/module/{module}',[AdminController::class,'module'])->name('module');Route::get('/integration-status',\App\Http\Controllers\Admin\IntegrationStatusController::class)->name('integration-status');});
+Route::post('/resource/reviews-ratings/import',[ResourceController::class,'importReviews'])->name('reviews.import');
+Route::post('/resource/reviews-ratings/bulk-status',[ResourceController::class,'bulkReviewStatus'])->name('reviews.bulk-status');
+Route::get('/resource/{module}/{record}/details',[ResourceController::class,'show'])->whereNumber('record')->name('resource.show');Route::post('/resource/{module}/{record}/duplicate',[ResourceController::class,'duplicate'])->whereNumber('record')->name('resource.duplicate');Route::post('/resource/{module}/{record}/archive',[ResourceController::class,'archive'])->whereNumber('record')->name('resource.archive');Route::post('/resource/{module}/{record}/trash',[ResourceController::class,'trash'])->whereNumber('record')->name('resource.trash');Route::post('/resource/{module}/{record}/restore',[ResourceController::class,'restore'])->whereNumber('record')->name('resource.restore');Route::delete('/resource/{module}/{record}/permanent',[ResourceController::class,'permanentDestroy'])->whereNumber('record')->name('resource.permanent-destroy');Route::get('/resource/{module}',[ResourceController::class,'index'])->name('resource');Route::post('/resource/{module}',[ResourceController::class,'store'])->name('resource.store');Route::patch('/resource/{module}/{record}',[ResourceController::class,'update'])->name('resource.update');Route::delete('/resource/{module}/{record}',[ResourceController::class,'destroy'])->name('resource.destroy');Route::get('/module/{module}',[AdminController::class,'module'])->name('module');Route::get('/integration-status',\App\Http\Controllers\Admin\IntegrationStatusController::class)->name('integration-status');});
+Route::middleware(['auth','admin'])->prefix('admin/resource/media-manager')->name('admin.media.')->group(function(){
+    Route::post('/{media}/approve',[MediaManagerController::class,'approve'])->name('approve');
+    Route::post('/{media}/reject',[MediaManagerController::class,'reject'])->name('reject');
+});
+Route::middleware(['auth','admin'])->prefix('admin/pages')->name('admin.pages.')->group(function(){
+    Route::get('/layouts',[SiteLayoutController::class,'index'])->name('layouts');
+    Route::post('/layouts',[SiteLayoutController::class,'store'])->name('layouts.store');
+    Route::patch('/layouts/{layout}',[SiteLayoutController::class,'update'])->name('layouts.update');
+    Route::get('/layouts/{layout}/preview',[SiteLayoutController::class,'preview'])->name('layouts.preview');
+    Route::post('/layouts/{layout}/action/{action}',[SiteLayoutController::class,'action'])->name('layouts.action');
+});
 Route::post('/context/company',[ContextController::class,'company'])->middleware('auth')->name('context.company');Route::post('/context/language',[ContextController::class,'locale'])->name('context.language');Route::post('/context/currency',[ContextController::class,'currency'])->name('context.currency');
 Route::patch('/admin/reviews/{review}/status',[ResourceController::class,'updateReviewStatus'])->middleware(['auth','admin'])->name('admin.reviews.status');
 Route::get('/{page}',[SiteController::class,'page'])->where('page','(?!up$)[A-Za-z0-9-]+')->name('content.page');

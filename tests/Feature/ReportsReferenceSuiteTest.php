@@ -21,7 +21,7 @@ class ReportsReferenceSuiteTest extends TestCase
             'history' => 'Report History', 'returns' => 'Returns & Refund Reports', 'roles' => 'User Roles & Permissions', 'scheduler' => 'Schedule Report',
         ];
         foreach ($pages as $page => $heading) {
-            $this->actingAs($admin)->get(route('admin.reports.'.$page))->assertOk()->assertSeeText($heading)->assertSee('/css/reports-reference.css?v=20260910-1', false);
+            $this->actingAs($admin)->get(route('admin.reports.'.$page))->assertOk()->assertSeeText($heading)->assertSee('/css/reports-reference.css?v=20260913-b20-1', false);
         }
     }
 
@@ -49,6 +49,42 @@ class ReportsReferenceSuiteTest extends TestCase
         $this->actingAs($admin)->post(route('admin.reports.schedules.toggle', $schedule))->assertRedirect();
         $this->assertSame('paused', $schedule->fresh()->status);
         $this->assertDatabaseHas('audit_logs', ['action' => 'reports.schedule.toggled', 'subject_id' => $schedule->id]);
+    }
+
+    public function test_report_controls_persist_builder_scheduler_and_history_actions(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->get(route('admin.reports.overview', [
+            'module' => 'Franchise Reports', 'report_type' => 'Summary Report', 'compare' => 'previous_year', 'view' => 'detailed',
+        ]))->assertOk()->assertSee('name="compare"', false)->assertSee('name="view"', false)->assertSee('Franchise Reports', false);
+
+        $this->actingAs($admin)->post(route('admin.reports.custom.store'), [
+            'name' => 'Interactive Builder Contract', 'description' => 'Builder contract test', 'report_type' => 'Summary Report',
+            'module' => 'Franchise Reports', 'data_source' => 'Operational Database', 'group_by' => 'Territory',
+            'selected_modules' => ['Franchise Reports', 'Online Orders'], 'filters' => [['field' => 'Order Status', 'condition' => 'equals', 'value' => 'paid', 'logic' => 'and']],
+            'sorts' => [['field' => 'Total Sales (EUR)', 'direction' => 'desc']], 'calculated_fields' => ['profit / sales'],
+            'share_with' => 'admin', 'favorite' => '1', 'make_public' => '1',
+        ])->assertRedirect(route('admin.reports.custom'));
+        $custom = AdminRecord::query()->where('title', 'Interactive Builder Contract')->firstOrFail();
+        $this->assertSame(['Franchise Reports', 'Online Orders'], data_get($custom->data, 'selected_modules'));
+        $this->assertSame('profit / sales', data_get($custom->data, 'calculated_fields.0'));
+        $this->assertTrue((bool) data_get($custom->data, 'favorite'));
+
+        $this->actingAs($admin)->post(route('admin.reports.schedules.store'), [
+            'name' => 'Interactive Scheduler Contract', 'report' => 'Interactive Builder Contract', 'frequency' => 'Weekly',
+            'day' => ['Monday', 'Friday'], 'time' => '09:00', 'recipients' => 'admin@emeraldrozalia.ie',
+            'recipient_extra' => ['manager@emeraldrozalia.ie'], 'format' => 'PDF', 'orientation' => 'landscape',
+            'delivery_methods' => ['email', 'download'], 'include_charts' => '1', 'include_drilldown' => '1', 'max_records' => 5000,
+        ])->assertRedirect(route('admin.reports.scheduler'));
+        $schedule = AdminRecord::query()->where('title', 'Interactive Scheduler Contract')->firstOrFail();
+        $this->assertSame('Monday, Friday', data_get($schedule->data, 'day'));
+        $this->assertStringContainsString('manager@emeraldrozalia.ie', (string) data_get($schedule->data, 'recipients'));
+
+        $oldRun = AdminRecord::create(['module' => 'report-runs', 'title' => 'Old report run', 'reference' => 'OLD-RUN', 'status' => 'success', 'record_date' => now()->subDays(120), 'user_id' => $admin->id, 'data' => []]);
+        $this->actingAs($admin)->post(route('admin.reports.history.prune'))->assertRedirect();
+        $this->assertSame('deleted', $oldRun->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'reports.history.pruned', 'subject_id' => $oldRun->id]);
     }
 
     public function test_report_export_is_downloadable(): void

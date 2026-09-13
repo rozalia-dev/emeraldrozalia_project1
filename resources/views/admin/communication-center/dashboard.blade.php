@@ -7,11 +7,11 @@
 @endphp
 
 @push('styles')
-<link rel="stylesheet" href="/css/communication-center-reference.css?v=20260910-1">
+<link rel="stylesheet" href="/css/communication-center-reference.css?v=20260913-b20-1">
 @endpush
 
 @push('scripts')
-<script src="/js/communication-center-reference.js?v=20260910-1" defer></script>
+<script src="/js/communication-center-reference.js?v=20260913-b20-1" defer></script>
 @endpush
 
 @section('content')
@@ -36,10 +36,27 @@
     };
     $meta = fn ($record, $key, $default = '—') => data_get($record?->data, $key, $default);
     $conversationName = fn ($conversation) => data_get($conversation?->metadata, 'name', data_get($conversation?->metadata, 'customer_name', $conversation?->contact ?: 'Customer'));
+    $metricUrl = function (array $metric) use ($section, $pageUrl): string {
+        $label = \Illuminate\Support\Str::lower((string) ($metric['label'] ?? ''));
+        $query = [];
+        if (str_contains($label, 'urgent')) $query['priority'] = 'urgent';
+        elseif (str_contains($label, 'pending')) $query['status'] = 'pending';
+        elseif (str_contains($label, 'closed')) $query['status'] = 'closed';
+        elseif (str_contains($label, 'open')) $query['status'] = 'open';
+
+        if (str_contains($label, 'audit') || str_contains($label, 'activity') || str_contains($label, 'logged') || str_contains($label, 'change')) {
+            return $pageUrl('communication-history');
+        }
+        if (str_contains($label, 'approval')) return $pageUrl('approval-center', $query);
+        if (str_contains($label, 'template')) return $pageUrl('email-templates', $query);
+        if ($section === 'communication-reports') return $pageUrl('inbox', $query);
+
+        return $pageUrl(in_array($section, ['communication-center', 'inbox', 'chat-24-7', 'whatsapp', 'email'], true) ? $section : 'communication-center', $query);
+    };
 @endphp
 
 <script>document.body.classList.add('communication-center-reference-page')</script>
-<div class="cc-reference cc-variant-{{ $config['variant'] }}" data-cc-root>
+<div class="cc-reference cc-variant-{{ $config['variant'] }}" data-cc-root data-cc-open-create="{{ request('create') ? 'true' : 'false' }}">
     <header class="cc-page-header">
         <div class="cc-heading">
             <div class="cc-breadcrumb"><span>Project 1 Control Panel (cPanel)</span><b>›</b><span>Communication Center</span><b>›</b><strong>{{ $config['title'] }}</strong></div>
@@ -56,14 +73,14 @@
 
     <section class="cc-metrics cc-metrics-{{ count($metrics) }}">
         @foreach($metrics as $metric)
-            <article class="cc-metric">
+            <a class="cc-metric cc-metric-link" href="{{ $metricUrl($metric) }}" data-cc-kpi data-cc-value="{{ is_numeric($metric['value']) ? $metric['value'] : '' }}" aria-label="Open {{ $metric['label'] }}">
                 <span class="cc-metric-icon cc-tone-{{ $metric['tone'] }}"><x-icon name="{{ $metric['icon'] }}" size="23" /></span>
                 <div>
                     <small>{{ $metric['label'] }}</small>
-                    <strong>{{ $fmt($metric['value']) }}</strong>
+                    <strong data-cc-kpi-value>{{ $fmt($metric['value']) }}</strong>
                     <em>↑ <b>{{ $metric['sub'] }}</b></em>
                 </div>
-            </article>
+            </a>
         @endforeach
     </section>
 
@@ -105,7 +122,7 @@
             </article>
 
             <article class="cc-card cc-chart-card">
-                <header><h2>Conversations Trend</h2><span class="cc-mini-select">Last 7 Days⌄</span></header>
+                <header><h2>Conversations Trend</h2><form class="cc-mini-select-form" method="get" action="{{ $pageUrl('communication-center') }}"><label><span class="sr-only">Trend period</span><select name="period" aria-label="Trend period" onchange="this.form.submit()"><option value="7d" @selected(request('period', '7d') === '7d')>Last 7 Days</option><option value="30d" @selected(request('period') === '30d')>Last 30 Days</option><option value="90d" @selected(request('period') === '90d')>Last 90 Days</option></select></label></form></header>
                 <div class="cc-line-chart">
                     @php $trendMax = max(1, collect($report['trend'])->max('count')); @endphp
                     <div class="cc-trend-bars">
@@ -201,7 +218,7 @@
                 <a class="cc-card-link" href="{{ $pageUrl('communication-reports') }}">View Performance Report →</a>
             </article>
             <article class="cc-card">
-                <header><h2>Top Conversation Topics</h2><span class="cc-mini-select">This Month⌄</span></header>
+                <header><h2>Top Conversation Topics</h2><form class="cc-mini-select-form" method="get" action="{{ $pageUrl('communication-center') }}"><label><span class="sr-only">Topic period</span><select name="period" aria-label="Topic period" onchange="this.form.submit()"><option value="30d" @selected(request('period', '30d') === '30d')>This Month</option><option value="90d" @selected(request('period') === '90d')>Last 90 Days</option><option value="365d" @selected(request('period') === '365d')>Last Year</option></select></label></form></header>
                 <ul class="cc-ranked-list">
                     @forelse($report['topics'] as $row)<li><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@empty<li>No topics yet.</li>@endforelse
                 </ul>
@@ -276,9 +293,9 @@
                 <footer class="cc-list-footer">
                     <span>Showing {{ $conversations->firstItem() ?? 0 }} to {{ $conversations->lastItem() ?? 0 }} of {{ number_format($conversations->total()) }}</span>
                     <div class="cc-pager">
-                        <a href="{{ $conversations->previousPageUrl() ?: '#' }}" class="{{ $conversations->onFirstPage()?'disabled':'' }}">‹</a>
+                        @if($conversations->onFirstPage())<span class="disabled" aria-disabled="true">‹</span>@else<a href="{{ $conversations->previousPageUrl() }}" aria-label="Previous page">‹</a>@endif
                         <b>{{ $conversations->currentPage() }}</b>
-                        <a href="{{ $conversations->nextPageUrl() ?: '#' }}" class="{{ $conversations->hasMorePages()?'':'disabled' }}">›</a>
+                        @if($conversations->hasMorePages())<a href="{{ $conversations->nextPageUrl() }}" aria-label="Next page">›</a>@else<span class="disabled" aria-disabled="true">›</span>@endif
                     </div>
                 </footer>
             </aside>
@@ -311,18 +328,19 @@
                     @endif
                     <div class="cc-messages">
                         @forelse($selected->messages as $message)
-                            <div class="cc-message {{ $message->direction === 'outbound' ? 'outbound' : 'inbound' }}">
-                                <span class="cc-message-avatar">{{ $message->direction === 'outbound' ? 'AU' : strtoupper(substr((string)$customerName,0,2)) }}</span>
-                                <div><b>{{ $message->direction === 'outbound' ? (auth()->user()->name ?? 'Admin User') : $customerName }}</b><p>{{ $message->body }}</p><small>{{ optional($message->sent_at ?? $message->created_at)->format('h:i A') }}</small></div>
+                            <div class="cc-message {{ $message->direction === 'outbound' ? 'outbound' : ($message->direction === 'internal' ? 'internal' : 'inbound') }}">
+                                <span class="cc-message-avatar">{{ $message->direction === 'outbound' ? 'AU' : ($message->direction === 'internal' ? 'IN' : strtoupper(substr((string)$customerName,0,2))) }}</span>
+                                <div><b>{{ $message->direction === 'outbound' ? (auth()->user()->name ?? 'Admin User') : ($message->direction === 'internal' ? 'Internal Note' : $customerName) }}</b><p>{{ $message->body }}</p><small>{{ optional($message->sent_at ?? $message->created_at)->format('h:i A') }}</small></div>
                             </div>
                         @empty
                             <div class="cc-empty">No messages stored in this conversation yet.</div>
                         @endforelse
                     </div>
                     <div class="cc-composer">
-                        <nav><button type="button" class="active">Reply</button><button type="button">Internal Note</button></nav>
+                        <nav aria-label="Message mode"><button type="button" class="active" data-cc-message-mode="reply" aria-pressed="true">Reply</button><button type="button" data-cc-message-mode="internal_note" aria-pressed="false">Internal Note</button></nav>
                         <form method="post" action="{{ route('admin.communication.message.store',$selected) }}">@csrf
-                            <textarea name="body" rows="4" maxlength="5000" placeholder="Type your message..." required></textarea>
+                            <input type="hidden" name="mode" value="reply" data-cc-message-mode-input>
+                            <textarea name="body" rows="4" maxlength="5000" placeholder="Type your message..." data-cc-message-body required></textarea>
                             <footer><span>☺　📎　<b>B</b>　<i>I</i>　<u>U</u>　☷</span><button class="cc-btn cc-btn-primary" type="submit">Send</button></footer>
                         </form>
                     </div>
@@ -335,7 +353,7 @@
                 @if($selected)
                     @php $selectedMeta = $selected->metadata ?? []; $customerName = $conversationName($selected); @endphp
                     <section class="cc-side-card">
-                        <header><h2>Customer Details</h2><a href="#">Edit</a></header>
+                        <header><h2>Customer Details</h2><a href="{{ route('admin.customers.index', $selected->customer ? ['selected' => $selected->customer->id] : ['q' => $selected->contact]) }}">Open Customer Record</a></header>
                         <div class="cc-customer-card"><span class="cc-avatar cc-avatar-large">{{ strtoupper(substr((string)$customerName,0,2)) }}</span><div><b>{{ $customerName }}</b><span>{{ $selected->contact }}</span><span>{{ data_get($selectedMeta,'phone','—') }}</span><span>{{ data_get($selectedMeta,'location','Limerick, Ireland') }}</span><small>Customer ID: {{ data_get($selectedMeta,'customer_uuid',$selected->uuid) }}</small></div></div>
                     </section>
                     <section class="cc-side-card">
@@ -351,11 +369,16 @@
                     <section class="cc-side-card">
                         <header><h2>Quick Actions</h2></header>
                         <ul class="cc-quick-list">
-                            <li><x-icon name="users" size="14" /> View Customer Profile</li>
-                            <li><x-icon name="shopping-bag" size="14" /> View Order Details</li>
-                            <li><x-icon name="file-text" size="14" /> Send Template</li>
-                            <li><x-icon name="clock" size="14" /> Add Follow-up</li>
-                            <li><x-icon name="check" size="14" /> Close Conversation</li>
+                            <li><x-icon name="users" size="14" /> <a href="{{ route('admin.customers.index', $selected->customer ? ['selected' => $selected->customer->id] : ['q' => $selected->contact]) }}">View Customer Profile</a></li>
+                            <li><x-icon name="shopping-bag" size="14" /> @if($selected->order)<a href="{{ route('admin.order-master.show', [$selected->order->order_type, $selected->order]) }}">View Order Details</a>@elseif($orderId)<a href="{{ route('admin.order-master.overview', ['q' => $orderId]) }}">Find Order Details</a>@else<span class="cc-quick-disabled">No linked order</span>@endif</li>
+                            <li><x-icon name="file-text" size="14" /> <a href="{{ $pageUrl('email-templates', ['conversation' => $selected->uuid]) }}">Send Template</a></li>
+                            <li><x-icon name="clock" size="14" /> <a href="{{ $pageUrl('action-follow-ups', ['conversation' => $selected->uuid, 'create' => 1]) }}">Add Follow-up</a></li>
+                            <li><x-icon name="check" size="14" />
+                                <form method="post" action="{{ route('admin.communication.update', $selected) }}">@csrf @method('PATCH')
+                                    <input type="hidden" name="status" value="{{ $selected->status === 'closed' ? 'open' : 'closed' }}"><input type="hidden" name="priority" value="{{ $selected->priority }}"><input type="hidden" name="assigned_to" value="{{ $selected->assigned_to }}">
+                                    <button type="submit">{{ $selected->status === 'closed' ? 'Reopen Conversation' : 'Close Conversation' }}</button>
+                                </form>
+                            </li>
                         </ul>
                     </section>
                 @else
@@ -443,21 +466,21 @@
                                 <td class="cc-actions">
                                     <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ in_array($section, ['email-templates','approval-center'], true) ? $record->uuid : $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
                                     @if($section === 'approval-center' && !in_array($record->status,['approved','rejected'],true))
-                                        <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'approve']) }}">@csrf<button title="Approve"><x-icon name="check" size="14" /></button></form>
-                                        <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'reject']) }}">@csrf<button title="Reject">×</button></form>
+                                        <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'approve']) }}">@csrf<button type="submit" title="Approve"><x-icon name="check" size="14" /></button></form>
+                                        <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'reject']) }}">@csrf<button type="submit" title="Reject">×</button></form>
                                     @elseif($section === 'action-follow-ups')
-                                        @if($record->status !== 'completed')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'complete']) }}">@csrf<button title="Complete"><x-icon name="check" size="14" /></button></form>@else<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'reopen']) }}">@csrf<button title="Reopen"><x-icon name="refresh" size="14" /></button></form>@endif
+                                        @if($record->status !== 'completed')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'complete']) }}">@csrf<button type="submit" title="Complete"><x-icon name="check" size="14" /></button></form>@else<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'reopen']) }}">@csrf<button type="submit" title="Reopen"><x-icon name="refresh" size="14" /></button></form>@endif
                                     @elseif($section === 'alerts-notifications')
-                                        @if($record->status !== 'acknowledged')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'acknowledge']) }}">@csrf<button title="Acknowledge"><x-icon name="check" size="14" /></button></form>@endif
+                                        @if($record->status !== 'acknowledged')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'acknowledge']) }}">@csrf<button type="submit" title="Acknowledge"><x-icon name="check" size="14" /></button></form>@endif
                                     @elseif($section === 'email-templates')
-                                        <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'duplicate']) }}">@csrf<button title="Duplicate">⧉</button></form>
+                                        <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'duplicate']) }}">@csrf<button type="submit" title="Duplicate">⧉</button></form>
                                         @if($record->status === 'archived')
-                                            <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'restore']) }}">@csrf<button title="Restore"><x-icon name="refresh" size="14" /></button></form>
+                                            <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'restore']) }}">@csrf<button type="submit" title="Restore"><x-icon name="refresh" size="14" /></button></form>
                                         @else
-                                            <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'archive']) }}">@csrf<button title="Archive"><x-icon name="folder" size="14" /></button></form>
+                                            <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'archive']) }}">@csrf<button type="submit" title="Archive"><x-icon name="folder" size="14" /></button></form>
                                         @endif
                                     @endif
-                                    <form method="post" action="{{ $section === 'email-templates' ? route('admin.communication-center.templates.destroy', $record) : ($section === 'approval-center' ? route('admin.communication-center.approvals.destroy', $record) : route('admin.communication-center.record.destroy',[$section,$record])) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button title="Delete"><x-icon name="trash" size="14" /></button></form>
+                                    <form method="post" action="{{ $section === 'email-templates' ? route('admin.communication-center.templates.destroy', $record) : ($section === 'approval-center' ? route('admin.communication-center.approvals.destroy', $record) : route('admin.communication-center.record.destroy',[$section,$record])) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button type="submit" title="Delete"><x-icon name="trash" size="14" /></button></form>
                                 </td>
                             </tr>
                         @empty
@@ -468,7 +491,7 @@
                 </div>
                 <footer class="cc-table-footer">
                     <span>Showing {{ $records->firstItem() ?? 0 }} to {{ $records->lastItem() ?? 0 }} of {{ number_format($records->total()) }} results</span>
-                    <div class="cc-pager"><a class="{{ $records->onFirstPage()?'disabled':'' }}" href="{{ $records->previousPageUrl() ?: '#' }}">‹</a><b>{{ $records->currentPage() }}</b><a class="{{ $records->hasMorePages()?'':'disabled' }}" href="{{ $records->nextPageUrl() ?: '#' }}">›</a></div>
+                    <div class="cc-pager">@if($records->onFirstPage())<span class="disabled" aria-disabled="true">‹</span>@else<a href="{{ $records->previousPageUrl() }}" aria-label="Previous page">‹</a>@endif<b>{{ $records->currentPage() }}</b>@if($records->hasMorePages())<a href="{{ $records->nextPageUrl() }}" aria-label="Next page">›</a>@else<span class="disabled" aria-disabled="true">›</span>@endif</div>
                 </footer>
             </main>
 
@@ -490,16 +513,16 @@
                 <section class="cc-side-card">
                     <header><h2>Recent Activity</h2><a href="{{ $pageUrl('communication-history') }}">View All</a></header>
                     <div class="cc-list-stack">
-                        @forelse($report['recent'] as $recent)<a href="#"><span><b>{{ $recent->title }}</b><small>{{ $recent->reference }} · {{ \Illuminate\Support\Str::headline($recent->status) }}</small></span><em>{{ optional($recent->updated_at)->diffForHumans() }}</em></a>@empty<div class="cc-empty">No recent activity.</div>@endforelse
+                        @forelse($report['recent'] as $recent)<a href="{{ $pageUrl('communication-history', ['q' => $recent->reference]) }}"><span><b>{{ $recent->title }}</b><small>{{ $recent->reference }} · {{ \Illuminate\Support\Str::headline($recent->status) }}</small></span><em>{{ optional($recent->updated_at)->diffForHumans() }}</em></a>@empty<div class="cc-empty">No recent activity.</div>@endforelse
                     </div>
                 </section>
                 <section class="cc-side-card">
                     <header><h2>Quick Actions</h2></header>
                     <ul class="cc-quick-list">
-                        <li><x-icon name="plus" size="14" /> Create New Record</li>
-                        <li><x-icon name="file-text" size="14" /> Export Current View</li>
-                        <li><x-icon name="settings" size="14" /> Configure Rules</li>
-                        <li><x-icon name="chart" size="14" /> View Reports</li>
+                        <li><x-icon name="plus" size="14" /> <button type="button" data-cc-create>Create New Record</button></li>
+                        <li><x-icon name="file-text" size="14" /> <a href="{{ route('admin.communication-center.export', ['section' => $section] + request()->query()) }}">Export Current View</a></li>
+                        <li><x-icon name="settings" size="14" /> <a href="{{ route('admin.settings.page', 'automations') }}">Configure Rules</a></li>
+                        <li><x-icon name="chart" size="14" /> <a href="{{ $pageUrl('communication-reports') }}">View Reports</a></li>
                     </ul>
                 </section>
             </aside>
@@ -585,59 +608,60 @@
     @endif
 
     @if($config['variant'] === 'reports')
-        <form class="cc-filterbar cc-report-toolbar" method="get">
-            <span class="cc-spacer"></span>
+        <form class="cc-filterbar cc-report-toolbar" method="get" action="{{ $pageUrl('communication-reports') }}">
+            <label class="cc-filter-field"><span>From</span><input type="date" name="date_from" value="{{ request('date_from') }}"></label>
+            <label class="cc-filter-field"><span>To</span><input type="date" name="date_to" value="{{ request('date_to') }}"></label>
             <button class="cc-btn cc-btn-light" type="submit"><x-icon name="filter" size="13" /> Filters</button>
             <a class="cc-btn cc-btn-light" href="{{ route('admin.communication-center.export',['section'=>$section]) }}"><x-icon name="download" size="13" /> Export</a>
         </form>
 
         <section class="cc-report-grid cc-report-top">
             <article class="cc-card">
-                <header><h2>Conversations by Channel</h2><a href="#">View Full Report</a></header>
+                <header><h2>Conversations by Channel</h2><a href="{{ $pageUrl('inbox', ['channel' => 'email']) }}">View Full Report</a></header>
                 <div class="cc-donut-wrap"><div class="cc-donut" style="--p:{{ $report['channels'][0]['share'] ?? 0 }}"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend">@foreach(array_slice($report['channels'],0,6) as $i=>$row)<li><i class="cc-dot cc-dot-{{ $i }}"></i><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@endforeach</ul></div>
             </article>
             <article class="cc-card cc-report-wide">
-                <header><h2>Conversations Over Time</h2><span class="cc-mini-select">Daily⌄</span></header>
+                <header><h2>Conversations Over Time</h2><form class="cc-mini-select-form" method="get" action="{{ $pageUrl('communication-reports') }}"><label><span class="sr-only">Conversation interval</span><select name="period" aria-label="Conversation interval" onchange="this.form.submit()"><option value="1d" @selected(request('period', '1d') === '1d')>Daily</option><option value="7d" @selected(request('period') === '7d')>Weekly</option><option value="30d" @selected(request('period') === '30d')>Monthly</option></select></label></form></header>
                 @php $trendMax=max(1,collect($report['trend'])->max('count')); @endphp
                 <div class="cc-report-line"><div class="cc-trend-bars">@foreach($report['trend'] as $row)<span style="--h:{{ max(6,round(($row['count']/$trendMax)*100)) }}%"><i></i><small>{{ $row['label'] }}</small></span>@endforeach</div></div>
             </article>
             <article class="cc-card">
-                <header><h2>Conversations by Status</h2><a href="#">View Full Report</a></header>
+                <header><h2>Conversations by Status</h2><a href="{{ $pageUrl('inbox', ['status' => 'open']) }}">View Full Report</a></header>
                 <div class="cc-donut-wrap"><div class="cc-donut cc-donut-status" style="--p:{{ $report['statuses'][0]['share'] ?? 0 }}"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend">@foreach(array_slice($report['statuses'],0,5) as $i=>$row)<li><i class="cc-dot cc-dot-{{ $i+1 }}"></i><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@endforeach</ul></div>
             </article>
         </section>
 
         <section class="cc-report-grid">
             <article class="cc-card cc-sla-card">
-                <header><h2>SLA Performance</h2><a href="#">View Full Report</a></header>
+                <header><h2>SLA Performance</h2><a href="{{ $pageUrl('communication-reports', ['tab' => 'sla']) }}">View Full Report</a></header>
                 <div class="cc-gauge" style="--p:{{ $report['sla'] }}"><span><b>{{ number_format($report['sla'],2) }}%</b><small>SLA Compliance</small></span></div>
                 <ul class="cc-key-values"><li><span>Open Conversations</span><b>{{ number_format($report['open']) }}</b></li><li><span>Closed Conversations</span><b>{{ number_format($report['closed']) }}</b></li></ul>
             </article>
             <article class="cc-card">
-                <header><h2>Conversations by Category</h2><a href="#">View Full Report</a></header>
+                <header><h2>Conversations by Category</h2><a href="{{ $pageUrl('communication-reports', ['tab' => 'categories']) }}">View Full Report</a></header>
                 @php $bars=$report['topics'];$barMax=max(1,(int)collect($bars)->max('count')); @endphp
                 <div class="cc-bars">@foreach($bars as $row)<div><span>{{ $row['label'] }}</span><i><b style="width:{{ round(($row['count']/$barMax)*100) }}%"></b></i><em>{{ number_format($row['count']) }} ({{ $row['share'] }}%)</em></div>@endforeach</div>
             </article>
             <article class="cc-card">
-                <header><h2>Top Performing Agents</h2><a href="#">View Full Report</a></header>
+                <header><h2>Top Performing Agents</h2><a href="{{ $pageUrl('communication-reports', ['tab' => 'agents']) }}">View Full Report</a></header>
                 <table class="cc-mini-table"><thead><tr><th>Rank</th><th>Agent</th><th>Conversations</th></tr></thead><tbody>@forelse($report['agents'] as $i=>$row)<tr><td>{{ $i+1 }}</td><td>{{ $row['label'] }}</td><td>{{ number_format($row['count']) }}</td></tr>@empty<tr><td colspan="3">No assignment data yet.</td></tr>@endforelse</tbody></table>
             </article>
         </section>
 
         <section class="cc-report-grid cc-report-bottom">
             <article class="cc-card">
-                <header><h2>Communications Linked to</h2><a href="#">View Full Report</a></header>
+                <header><h2>Communications Linked to</h2><a href="{{ $pageUrl('communication-reports', ['tab' => 'linked']) }}">View Full Report</a></header>
                 <ul class="cc-ranked-list">@forelse($report['business'] as $row)<li><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@empty<li>No linked business data.</li>@endforelse</ul>
             </article>
             <article class="cc-card cc-report-wide">
-                <header><h2>Response & Resolution Time Trends</h2><span class="cc-mini-select">Daily⌄</span></header>
+                <header><h2>Response & Resolution Time Trends</h2><form class="cc-mini-select-form" method="get" action="{{ $pageUrl('communication-reports') }}"><label><span class="sr-only">Resolution interval</span><select name="interval" aria-label="Resolution interval" onchange="this.form.submit()"><option value="day" @selected(request('interval', 'day') === 'day')>Daily</option><option value="week" @selected(request('interval') === 'week')>Weekly</option><option value="month" @selected(request('interval') === 'month')>Monthly</option></select></label></form></header>
                 <div class="cc-heatmap-line">
                     @foreach(range(1,28) as $i)<i style="height:{{ 12 + (($i*17)%54) }}%"></i>@endforeach
                 </div>
                 <p class="cc-muted">Trend visualization uses current communication activity; response and resolution times are sourced from captured metadata.</p>
             </article>
             <article class="cc-card">
-                <header><h2>Channel Performance</h2><a href="#">View Full Report</a></header>
+                <header><h2>Channel Performance</h2><a href="{{ $pageUrl('communication-reports', ['tab' => 'channels']) }}">View Full Report</a></header>
                 <table class="cc-mini-table"><thead><tr><th>Channel</th><th>Conversations</th><th>Share</th></tr></thead><tbody>@foreach($report['channels'] as $row)<tr><td>{{ $row['label'] }}</td><td>{{ number_format($row['count']) }}</td><td>{{ $row['share'] }}%</td></tr>@endforeach</tbody></table>
             </article>
         </section>
@@ -645,15 +669,15 @@
         <section class="cc-report-grid cc-report-mini">
             <article class="cc-card cc-csat-card"><header><h2>Customer Satisfaction Trend</h2></header><strong>{{ $report['csat'] }}</strong><div class="cc-stars">★★★★★</div><div class="cc-mini-line">@foreach(range(1,18) as $i)<i style="height:{{ 34+(($i*11)%38) }}%"></i>@endforeach</div></article>
             <article class="cc-card"><header><h2>Conversations by Time of Day</h2></header><div class="cc-heatmap">@foreach(range(1,42) as $i)<i style="opacity:{{ 0.2 + (($i*7)%8)/10 }}"></i>@endforeach</div></article>
-            <article class="cc-card"><header><h2>Recent High Volume Topics</h2><a href="#">View All</a></header><ul class="cc-ranked-list">@foreach(array_slice($report['topics'],0,5) as $row)<li><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@endforeach</ul></article>
-            <article class="cc-card"><header><h2>Quick Actions</h2></header><ul class="cc-quick-list"><li><x-icon name="download" size="14"/> Export Full Report</li><li><x-icon name="calendar" size="14"/> Schedule Report</li><li><x-icon name="settings" size="14"/> Configure Widgets</li><li><x-icon name="file-text" size="14"/> View Communication History</li></ul></article>
+            <article class="cc-card"><header><h2>Recent High Volume Topics</h2><a href="{{ $pageUrl('communication-reports', ['tab' => 'topics']) }}">View All</a></header><ul class="cc-ranked-list">@foreach(array_slice($report['topics'],0,5) as $row)<li><span>{{ $row['label'] }}</span><b>{{ number_format($row['count']) }}</b><em>{{ $row['share'] }}%</em></li>@endforeach</ul></article>
+            <article class="cc-card"><header><h2>Quick Actions</h2></header><ul class="cc-quick-list"><li><x-icon name="download" size="14"/><a href="{{ route('admin.communication-center.export', ['section' => $section] + request()->query()) }}">Export Full Report</a></li><li><x-icon name="calendar" size="14"/><a href="{{ route('admin.reports.scheduler') }}">Schedule Report</a></li><li><x-icon name="settings" size="14"/><a href="{{ route('admin.settings.page', 'application-settings') }}">Configure Widgets</a></li><li><x-icon name="file-text" size="14"/><a href="{{ $pageUrl('communication-history') }}">View Communication History</a></li></ul></article>
         </section>
     @endif
 
     @if($config['variant'] === 'history')
-        <form class="cc-filterbar" method="get">
+        <form class="cc-filterbar" method="get" action="{{ $pageUrl('communication-history') }}">
             <label class="cc-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search by keyword, UUID, subject, customer..."><x-icon name="search" size="14"/></label>
-            <select><option>Channel: All</option></select><select><option>Type: All</option></select><select><option>Action: All</option></select><select><option>User: All</option></select><select><option>Entity Type: All</option></select>
+            <select name="channel"><option value="">Channel: All</option>@foreach(['communication'=>'Communication','reports'=>'Reports','customer'=>'Customer','system'=>'System'] as $value=>$label)<option value="{{ $value }}" @selected(request('channel') === $value)>{{ $label }}</option>@endforeach</select><select name="type"><option value="">Type: All</option>@foreach(['App\\Models\\Conversation'=>'Conversation','App\\Models\\AdminRecord'=>'Admin Record','App\\Models\\User'=>'User','System'=>'System'] as $value=>$label)<option value="{{ $value }}" @selected(request('type') === $value)>{{ $label }}</option>@endforeach</select><select name="action"><option value="">Action: All</option>@foreach(['created'=>'Created','updated'=>'Updated','deleted'=>'Deleted','approved'=>'Approved','rejected'=>'Rejected'] as $value=>$label)<option value="{{ $value }}" @selected(request('action') === $value)>{{ $label }}</option>@endforeach</select><select name="user_id"><option value="">User: All</option>@foreach($auditUsers as $id=>$name)<option value="{{ $id }}" @selected((string)request('user_id') === (string)$id)>{{ $name }}</option>@endforeach</select><select name="entity_type"><option value="">Entity Type: All</option>@foreach(['App\\Models\\Conversation'=>'Conversation','App\\Models\\Order'=>'Order','App\\Models\\User'=>'User','App\\Models\\AdminRecord'=>'Admin Record'] as $value=>$label)<option value="{{ $value }}" @selected(request('entity_type') === $value)>{{ $label }}</option>@endforeach</select>
             <button class="cc-btn cc-btn-light" type="submit"><x-icon name="filter" size="13"/> Filters</button>
             <a class="cc-btn cc-btn-light cc-export" href="{{ route('admin.communication-center.export', ['section' => $section] + request()->query()) }}"><x-icon name="download" size="13"/> Export</a>
         </form>
@@ -666,6 +690,7 @@
                             $action = (string)$activity->action;
                             $channel = \Illuminate\Support\Str::headline(\Illuminate\Support\Str::before($action,'.') ?: 'System');
                             $severity = str_contains($action,'deleted') || str_contains($action,'reject') ? 'High' : (str_contains($action,'updated') ? 'Medium' : 'Low');
+                            $auditPayload = base64_encode(json_encode(['uuid' => $activity->uuid, 'action' => $activity->action, 'subject' => class_basename((string)$activity->subject_type ?: 'System'), 'subject_id' => $activity->subject_id, 'request_id' => $activity->request_id, 'ip_address' => $activity->ip_address, 'before' => $activity->before, 'after' => $activity->after], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                         @endphp
                         <tr>
                             <td><strong>{{ optional($activity->created_at)->format('d M Y') }}</strong><small>{{ optional($activity->created_at)->format('h:i:s A') }}</small></td>
@@ -676,27 +701,31 @@
                             <td>{{ $auditUsers[$activity->user_id] ?? 'System' }}</td>
                             <td>{{ $activity->ip_address ?: '—' }}</td>
                             <td><i class="cc-badge cc-badge-{{ $priorityTone(strtolower($severity)) }}">{{ $severity }}</i></td>
-                            <td><button type="button" class="cc-icon-btn" title="Audit UUID {{ $activity->uuid }}"><x-icon name="eye" size="14"/></button></td>
+                            <td><button type="button" class="cc-icon-btn" data-cc-audit="{{ $auditPayload }}" aria-label="View audit details for {{ $activity->uuid }}" title="View audit details"><x-icon name="eye" size="14"/></button></td>
                         </tr>
                     @empty
                         <tr><td colspan="9"><div class="cc-empty cc-empty-large">No audit activities found.</div></td></tr>
                     @endforelse
                     </tbody></table>
                 </div>
-                <footer class="cc-table-footer"><span>Showing {{ $activities->firstItem() ?? 0 }} to {{ $activities->lastItem() ?? 0 }} of {{ number_format($activities->total()) }} activities</span><div class="cc-pager"><a href="{{ $activities->previousPageUrl() ?: '#' }}" class="{{ $activities->onFirstPage()?'disabled':'' }}">‹</a><b>{{ $activities->currentPage() }}</b><a href="{{ $activities->nextPageUrl() ?: '#' }}" class="{{ $activities->hasMorePages()?'':'disabled' }}">›</a></div></footer>
+                <footer class="cc-table-footer"><span>Showing {{ $activities->firstItem() ?? 0 }} to {{ $activities->lastItem() ?? 0 }} of {{ number_format($activities->total()) }} activities</span><div class="cc-pager">@if($activities->onFirstPage())<span class="disabled" aria-disabled="true">‹</span>@else<a href="{{ $activities->previousPageUrl() }}" aria-label="Previous page">‹</a>@endif<b>{{ $activities->currentPage() }}</b>@if($activities->hasMorePages())<a href="{{ $activities->nextPageUrl() }}" aria-label="Next page">›</a>@else<span class="disabled" aria-disabled="true">›</span>@endif</div></footer>
             </main>
             <aside class="cc-record-side">
                 <section class="cc-side-card"><header><h2>Activity Summary</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:50"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></section>
-                <section class="cc-side-card"><header><h2>Top Entity Types</h2><a href="#">View Report</a></header><ul class="cc-ranked-list">@foreach($report['by_entity'] as $label=>$count)<li><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></section>
-                <section class="cc-side-card"><header><h2>Quick Actions</h2></header><ul class="cc-quick-list"><li><x-icon name="file-text" size="14"/> View Full Audit Log</li><li><x-icon name="download" size="14"/> Export Audit Log</li><li><x-icon name="calendar" size="14"/> Schedule Audit Report</li><li><x-icon name="settings" size="14"/> Configure Log Settings</li></ul></section>
+                <section class="cc-side-card"><header><h2>Top Entity Types</h2><a href="{{ $pageUrl('communication-history', ['entity_type' => 'App\\Models\\Conversation']) }}">View Report</a></header><ul class="cc-ranked-list">@foreach($report['by_entity'] as $label=>$count)<li><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></section>
+                <section class="cc-side-card"><header><h2>Quick Actions</h2></header><ul class="cc-quick-list"><li><x-icon name="file-text" size="14"/><a href="{{ $pageUrl('communication-history') }}">View Full Audit Log</a></li><li><x-icon name="download" size="14"/><a href="{{ route('admin.communication-center.export', ['section' => $section] + request()->query()) }}">Export Audit Log</a></li><li><x-icon name="calendar" size="14"/><a href="{{ route('admin.reports.scheduler') }}">Schedule Audit Report</a></li><li><x-icon name="settings" size="14"/><a href="{{ route('admin.settings.page', 'audit-logs') }}">Configure Log Settings</a></li></ul></section>
             </aside>
         </section>
         <section class="cc-bottom-grid">
-            <article class="cc-card"><header><h2>Activities Over Time</h2><a href="#">View Report</a></header><div class="cc-mini-line">@foreach(range(1,20) as $i)<i style="height:{{ 20+(($i*19)%72) }}%"></i>@endforeach</div></article>
-            <article class="cc-card"><header><h2>Activities by Channel</h2><a href="#">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:52"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></article>
+            <article class="cc-card"><header><h2>Activities Over Time</h2><a href="{{ $pageUrl('communication-history') }}">View Report</a></header><div class="cc-mini-line">@foreach(range(1,20) as $i)<i style="height:{{ 20+(($i*19)%72) }}%"></i>@endforeach</div></article>
+            <article class="cc-card"><header><h2>Activities by Channel</h2><a href="{{ $pageUrl('communication-history', ['channel' => 'communication']) }}">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:52"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></article>
             <article class="cc-card"><header><h2>Top Entity Types</h2></header><div class="cc-bars">@php $barMax=max(1,(int)collect($report['by_entity'])->max()); @endphp @foreach($report['by_entity'] as $label=>$count)<div><span>{{ $label }}</span><i><b style="width:{{ round(($count/$barMax)*100) }}%"></b></i><em>{{ $count }}</em></div>@endforeach</div></article>
             <article class="cc-card"><header><h2>Activity Heatmap (Time of Day)</h2></header><div class="cc-heatmap">@foreach(range(1,49) as $i)<i style="opacity:{{ .18+(($i*5)%8)/10 }}"></i>@endforeach</div></article>
         </section>
+        <dialog class="cc-dialog cc-audit-dialog" data-cc-audit-dialog>
+            <header><div><small>IMMUTABLE AUDIT ENTRY</small><h2>Audit Details</h2></div><button type="button" data-cc-audit-close aria-label="Close audit details">×</button></header>
+            <div class="cc-audit-content" data-cc-audit-content></div>
+        </dialog>
     @endif
 </div>
 @endsection

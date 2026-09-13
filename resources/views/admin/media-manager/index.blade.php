@@ -67,7 +67,7 @@
     <section class="mm-filter-bar" aria-label="Media filters">
         <div class="mm-product-control">
             <label for="mm-product-select">SELECT PRODUCT</label>
-            <form method="get">
+            <form method="get" action="{{ route('admin.media.index') }}">
                 <select id="mm-product-select" name="product_id" onchange="this.form.submit()">
                     @forelse($products as $product)
                         <option value="{{ $product->id }}" @selected($selected?->id === $product->id)>{{ $product->name }} ({{ $product->media_count }} active media)</option>
@@ -86,7 +86,7 @@
                 @endforeach
             </div>
         </div>
-        <form class="mm-sort-control" method="get">
+        <form class="mm-sort-control" method="get" action="{{ route('admin.media.index') }}">
             <input type="hidden" name="product_id" value="{{ $selected?->id }}">
             @if($mediaType !== 'all')<input type="hidden" name="media_type" value="{{ $mediaType }}">@endif
             <label>Status Filter<select name="media_status" onchange="this.form.submit()"><option value="">All</option><option value="active" @selected($mediaStatus === 'active')>Active</option><option value="inactive" @selected($mediaStatus === 'inactive')>Inactive</option><option value="archived" @selected($mediaStatus === 'archived')>Archived</option></select></label>
@@ -123,6 +123,7 @@
                             @php
                                 $definition = $mediaTypes[$item->type] ?? ['label' => $formatMediaLabel($item->type), 'badge' => 'Media', 'icon' => 'file-text'];
                                 $metadata = is_array($item->metadata) ? $item->metadata : [];
+                                $approvalStatus = $item->approval_status ?: 'approved';
                                 $extension = strtolower(pathinfo($item->path, PATHINFO_EXTENSION));
                                 $mediaUrl = null;
                                 if (preg_match('/^(https?:)?\\/\\//', $item->path)) {
@@ -167,7 +168,12 @@
                                     <small>Uploaded: {{ optional($item->created_at)->format('d M Y') ?: '—' }}</small>
                                     <div class="mm-card-footer">
                                         <span class="mm-status-dot {{ $item->active ? 'is-active' : 'is-inactive' }}">{{ $item->active ? 'Active' : 'Inactive' }}</span>
+                                        <span class="mm-status-dot mm-status-dot--{{ $approvalStatus }}">{{ str($approvalStatus)->headline() }}</span>
                                         <button type="button" class="mm-edit-link" data-mm-select-media data-media-id="{{ $item->id }}" data-media-update-url="{{ route('admin.media.update', $item) }}" data-media-type="{{ $item->type }}" data-media-order="{{ $item->sort_order }}" data-media-active="{{ $item->active ? 1 : 0 }}" data-media-alt="{{ $item->alt_text }}">Edit</button>
+                                    </div>
+                                    <div class="mm-card-approval-actions">
+                                        @if($approvalStatus !== 'approved')<form method="post" action="{{ route('admin.media.approve', $item) }}">@csrf<button type="submit">Approve for public</button></form>@endif
+                                        @if($approvalStatus !== 'rejected')<form method="post" action="{{ route('admin.media.reject', $item) }}">@csrf<button type="submit">Reject public use</button></form>@endif
                                     </div>
                                 </div>
                             </article>

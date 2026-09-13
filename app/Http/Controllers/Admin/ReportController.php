@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -33,9 +34,9 @@ class ReportController extends Controller
     {
         $filters = $this->filters($request);
         $orders = $this->orders($filters);
-        $runCount = AdminRecord::query()->where('module', 'report-runs')->count();
+        $runCount = $this->applyReportFilters(AdminRecord::query()->where('module', 'report-runs'), $filters)->count();
         $scheduled = AdminRecord::query()->where('module', 'report-schedules')->where('status', 'active')->count();
-        $customCount = AdminRecord::query()->where('module', 'custom-reports')->where('status', 'active')->count();
+        $customCount = $this->applyReportFilters(AdminRecord::query()->where('module', 'custom-reports')->where('status', 'active'), $filters)->count();
         $data = $this->overviewData($orders, $filters, $runCount, $scheduled, $customCount);
 
         return view('admin.reports.index', [
@@ -57,7 +58,7 @@ class ReportController extends Controller
             'custom' => $this->customData($request),
             'history' => $this->historyData($request),
             'returns' => $this->returnsData($filters),
-            'roles' => $this->rolesData(),
+            'roles' => $this->rolesData($request),
             'scheduler' => $this->schedulerData(),
         };
 
@@ -125,7 +126,14 @@ class ReportController extends Controller
             'name' => ['required', 'string', 'max:180'], 'description' => ['nullable', 'string', 'max:500'],
             'report_type' => ['required', 'string', 'max:80'], 'module' => ['required', 'string', 'max:120'],
             'data_source' => ['required', 'string', 'max:120'], 'group_by' => ['nullable', 'string', 'max:120'],
-            'schedule' => ['nullable', 'boolean'],
+            'selected_modules' => ['nullable', 'array'], 'selected_modules.*' => ['string', 'max:120'],
+            'filters' => ['nullable', 'array'], 'filters.*.field' => ['nullable', 'string', 'max:120'],
+            'filters.*.condition' => ['nullable', 'string', 'max:40'], 'filters.*.value' => ['nullable', 'string', 'max:180'],
+            'filters.*.logic' => ['nullable', 'string', 'max:10'], 'sorts' => ['nullable', 'array'],
+            'sorts.*.field' => ['nullable', 'string', 'max:120'], 'sorts.*.direction' => ['nullable', 'string', 'max:10'],
+            'calculated_fields' => ['nullable', 'array'], 'calculated_fields.*' => ['nullable', 'string', 'max:180'],
+            'share_with' => ['nullable', 'string', 'max:120'], 'favorite' => ['nullable', 'boolean'],
+            'make_public' => ['nullable', 'boolean'], 'schedule' => ['nullable', 'boolean'],
         ]);
         $record = AdminRecord::create([
             'module' => 'custom-reports', 'reference' => Str::slug($data['name']).'-'.Str::lower(Str::random(6)),
@@ -144,10 +152,25 @@ class ReportController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:180'], 'report' => ['required', 'string', 'max:180'],
-            'frequency' => ['required', 'string', 'max:40'], 'day' => ['nullable', 'string', 'max:20'],
-            'time' => ['required', 'date_format:H:i'], 'recipients' => ['required', 'string', 'max:1000'],
+            'description' => ['nullable', 'string', 'max:500'], 'frequency' => ['required', 'string', 'max:40'],
+            'day' => ['nullable'], 'time' => ['required', 'date_format:H:i'], 'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'], 'timezone' => ['nullable', 'string', 'max:80'],
+            'orientation' => ['nullable', 'string', 'in:landscape,portrait'], 'include_charts' => ['nullable', 'boolean'],
+            'password_protect' => ['nullable', 'boolean'], 'delivery_methods' => ['nullable', 'array'],
+            'delivery_methods.*' => ['string', 'max:40'], 'recipients' => ['required', 'string', 'max:1000'],
+            'recipient_extra' => ['nullable', 'array'], 'recipient_extra.*' => ['nullable', 'string', 'max:255'],
+            'email_subject' => ['nullable', 'string', 'max:180'], 'email_message' => ['nullable', 'string', 'max:2000'],
+            'reply_to' => ['nullable', 'email', 'max:180'], 'run_as' => ['nullable', 'string', 'max:40'],
+            'data_refresh' => ['nullable', 'string', 'max:40'], 'include_drilldown' => ['nullable', 'boolean'],
+            'max_records' => ['nullable', 'integer', 'min:1', 'max:100000'], 'save_mode' => ['nullable', 'in:draft'],
             'format' => ['required', 'string', 'max:20'], 'active' => ['nullable', 'boolean'],
         ]);
+        $extraRecipients = array_values(array_filter($data['recipient_extra'] ?? [], static fn ($value): bool => trim((string) $value) !== ''));
+        if ($extraRecipients) {
+            $data['recipients'] = implode(', ', array_filter(array_merge(preg_split('/\s*,\s*/', $data['recipients']) ?: [], $extraRecipients)));
+        }
+        if (is_array($data['day'] ?? null)) $data['day'] = implode(', ', $data['day']);
+        if (($data['save_mode'] ?? null) === 'draft') $data['active'] = false;
         $schedule = $this->createSchedule($data['name'], $data);
         AuditTrail::record('reports.schedule.created', $schedule, null, $schedule->toArray());
         return redirect()->route('admin.reports.scheduler')->with('success', 'Report schedule saved and activated.');
@@ -179,6 +202,28 @@ class ReportController extends Controller
         return back()->with('success', 'Schedule archived from the report calendar.');
     }
 
+    public function pruneHistory(): RedirectResponse
+    {
+        $runs = DB::transaction(function () {
+            $runs = AdminRecord::query()
+                ->where('module', 'report-runs')
+                ->where('record_date', '<', now()->subDays(90))
+                ->where('status', '!=', 'deleted')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($runs as $run) {
+                $before = $run->toArray();
+                $run->update(['status' => 'deleted']);
+                AuditTrail::record('reports.history.pruned', $run, $before, $run->fresh()->toArray());
+            }
+
+            return $runs;
+        });
+
+        return back()->with('success', $runs->count().' report runs older than 90 days were archived.');
+    }
+
     private function createSchedule(string $title, array $data): AdminRecord
     {
         return AdminRecord::create([
@@ -190,15 +235,50 @@ class ReportController extends Controller
 
     private function filters(Request $request): array
     {
-        $from = Carbon::parse($request->query('from', now()->startOfMonth()->toDateString()))->startOfDay();
-        $to = Carbon::parse($request->query('to', now()->toDateString()))->endOfDay();
+        $today = now();
+        $from = $this->filterDate($request->query('from'), $today->copy()->startOfMonth())->startOfDay();
+        $to = $this->filterDate($request->query('to'), $today)->endOfDay();
         if ($from->gt($to)) [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
-        return ['q' => trim((string) $request->query('q', '')), 'company' => (string) $request->query('company', 'All Companies'), 'from' => $from, 'to' => $to, 'from_label' => $from->format('d M Y'), 'to_label' => $to->format('d M Y')];
+        return ['q' => trim((string) $request->query('q', '')), 'company' => (string) $request->query('company', 'All Companies'), 'compare' => (string) $request->query('compare', 'previous_period'), 'view' => (string) $request->query('view', 'summary'), 'module' => (string) $request->query('module', 'all'), 'report_type' => (string) $request->query('report_type', 'all'), 'created_by' => (string) $request->query('created_by', 'all'), 'tag' => (string) $request->query('tag', 'all'), 'status' => (string) $request->query('status', 'all'), 'favorite' => (string) $request->query('favorite', 'all'), 'from' => $from, 'to' => $to, 'from_label' => $from->format('d M Y'), 'to_label' => $to->format('d M Y')];
+    }
+
+    private function filterDate(mixed $value, Carbon $fallback): Carbon
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return $fallback->copy();
+        }
+
+        try {
+            $date = Carbon::createFromFormat('!Y-m-d', $value);
+        } catch (\Throwable) {
+            return $fallback->copy();
+        }
+
+        return $date->format('Y-m-d') === $value ? $date : $fallback->copy();
     }
 
     private function orders(array $filters)
     {
         return Order::query()->whereBetween('created_at', [$filters['from'], $filters['to']])->when($filters['q'], fn ($q, $term) => $q->where(fn ($inner) => $inner->where('number', 'like', '%'.$term.'%')->orWhere('email', 'like', '%'.$term.'%')))->latest()->limit(250)->get();
+    }
+
+    private function applyReportFilters($query, array $filters)
+    {
+        return $query
+            ->when(($filters['q'] ?? '') !== '', fn ($builder) => $builder->where('title', 'like', '%'.$filters['q'].'%'))
+            ->when(($filters['module'] ?? 'all') !== 'all', fn ($builder) => $builder->where('data->module', $filters['module']))
+            ->when(($filters['report_type'] ?? 'all') !== 'all', fn ($builder) => $builder->where('data->report_type', $filters['report_type']))
+            ->when(($filters['status'] ?? 'all') !== 'all', fn ($builder) => $builder->where('status', $filters['status']))
+            ->when(is_numeric($filters['created_by'] ?? null), fn ($builder) => $builder->where('user_id', (int) $filters['created_by']))
+            ->when(($filters['tag'] ?? 'all') !== 'all', fn ($builder) => $builder->where('data->tag', $filters['tag']))
+            ->when(($filters['favorite'] ?? 'all') === '1', fn ($builder) => $builder->where('data->favorite', true));
+    }
+
+    private function filtersAreDefault(array $filters): bool
+    {
+        return ($filters['q'] ?? '') === '' && ($filters['module'] ?? 'all') === 'all' && ($filters['report_type'] ?? 'all') === 'all'
+            && ($filters['status'] ?? 'all') === 'all' && ($filters['created_by'] ?? 'all') === 'all'
+            && ($filters['tag'] ?? 'all') === 'all' && ($filters['favorite'] ?? 'all') === 'all';
     }
 
     private function overviewData($orders, array $filters, int $runCount, int $scheduled, int $customCount): array
@@ -207,8 +287,8 @@ class ReportController extends Controller
         $paid = $orders->where('payment_status', 'paid')->count() ?: 1152;
         $revenue = (float) $orders->where('payment_status', 'paid')->sum('total') ?: 152680;
         $byModule = collect(self::ORDER_TYPES)->map(function (string $label, string $type) use ($orders): array { $count = $orders->where('order_type', $type)->count(); return ['label' => $label, 'count' => $count ?: ['online'=>268,'corporate'=>132,'bulk'=>110,'franchise'=>186,'franchise_retail'=>456,'buyer'=>64][$type], 'tone' => ['online'=>'blue','corporate'=>'purple','bulk'=>'orange','franchise'=>'green','franchise_retail'=>'teal','buyer'=>'gold'][$type]]; })->values();
-        $runs = AdminRecord::query()->where('module', 'report-runs')->latest('id')->limit(8)->get();
-        if ($runs->isEmpty()) $runs = collect($this->previewRuns());
+        $runs = $this->applyReportFilters(AdminRecord::query()->where('module', 'report-runs'), $filters)->latest('id')->limit(8)->get();
+        if ($runs->isEmpty() && $this->filtersAreDefault($filters)) $runs = collect($this->previewRuns());
         $schedules = AdminRecord::query()->where('module', 'report-schedules')->where('status', '!=', 'deleted')->latest('id')->limit(8)->get();
         if ($schedules->isEmpty()) $schedules = collect($this->previewSchedules());
         return ['metrics' => [
@@ -231,9 +311,17 @@ class ReportController extends Controller
 
     private function historyData(Request $request): array
     {
-        $runs = AdminRecord::query()->where('module','report-runs')->when($request->filled('q'), fn($q) => $q->where('title','like','%'.$request->string('q').'%'))->where('status','!=','deleted')->latest('record_date')->paginate(10)->withQueryString();
+        $runs = AdminRecord::query()->where('module','report-runs')
+            ->when($request->filled('q'), fn($q) => $q->where('title','like','%'.$request->string('q').'%'))
+            ->when($request->filled('module') && $request->query('module') !== 'all', fn($q) => $q->where('data->module', (string) $request->query('module')))
+            ->when($request->filled('status') && $request->query('status') !== 'all', fn($q) => $q->where('status', (string) $request->query('status')))
+            ->when($request->filled('user_id') && is_numeric($request->query('user_id')), fn($q) => $q->where('user_id', (int) $request->query('user_id')))
+            ->when($request->filled('method') && $request->query('method') !== 'all', fn($q) => $q->where('data->delivery', 'like', '%'.(string) $request->query('method').'%'))
+            ->where('status','!=','deleted')->latest('record_date')->paginate(10)->withQueryString();
         if ($runs->total() === 0) $runs = new \Illuminate\Pagination\LengthAwarePaginator(collect($this->previewRuns()), 1248, 10, (int) $request->query('page',1), ['path'=>url()->current(),'query'=>$request->query()]);
-        return ['history'=>$runs,'selectedRun'=>$runs->first(),'recent'=>$this->previewRecent(),'historyMetrics'=>[['label'=>'Total Runs','value'=>1248,'tone'=>'green','icon'=>'file-text'],['label'=>'Successful Runs','value'=>1152,'tone'=>'blue','icon'=>'check'],['label'=>'Failed Runs','value'=>32,'tone'=>'orange','icon'=>'alert'],['label'=>'In Progress','value'=>8,'tone'=>'purple','icon'=>'clock'],['label'=>'Downloads','value'=>856,'tone'=>'teal','icon'=>'download'],['label'=>'Avg. Run Time','value'=>'00:00:18','tone'=>'gold','icon'=>'clock']],'statusBreakdown'=>[['label'=>'Success','value'=>1152,'percent'=>'92.31%','tone'=>'green'],['label'=>'Failed','value'=>32,'percent'=>'2.56%','tone'=>'red'],['label'=>'In Progress','value'=>8,'percent'=>'0.64%','tone'=>'blue'],['label'=>'Cancelled','value'=>56,'percent'=>'4.49%','tone'=>'orange']]];
+        $selectedId = (int) $request->query('selected', 0);
+        $selectedRun = $selectedId ? AdminRecord::query()->where('module', 'report-runs')->where('status', '!=', 'deleted')->find($selectedId) : $runs->first();
+        return ['history'=>$runs,'selectedRun'=>$selectedRun,'recent'=>$this->previewRecent(),'historyMetrics'=>[['label'=>'Total Runs','value'=>1248,'tone'=>'green','icon'=>'file-text'],['label'=>'Successful Runs','value'=>1152,'tone'=>'blue','icon'=>'check'],['label'=>'Failed Runs','value'=>32,'tone'=>'orange','icon'=>'alert'],['label'=>'In Progress','value'=>8,'tone'=>'purple','icon'=>'clock'],['label'=>'Downloads','value'=>856,'tone'=>'teal','icon'=>'download'],['label'=>'Avg. Run Time','value'=>'00:00:18','tone'=>'gold','icon'=>'clock']],'statusBreakdown'=>[['label'=>'Success','value'=>1152,'percent'=>'92.31%','tone'=>'green'],['label'=>'Failed','value'=>32,'percent'=>'2.56%','tone'=>'red'],['label'=>'In Progress','value'=>8,'percent'=>'0.64%','tone'=>'blue'],['label'=>'Cancelled','value'=>56,'percent'=>'4.49%','tone'=>'orange']]];
     }
 
     private function returnsData(array $filters): array
@@ -244,9 +332,9 @@ class ReportController extends Controller
         return ['returnMetrics'=>[['label'=>'Total Returns','value'=>$total,'change'=>'17.86%','tone'=>'green','icon'=>'refresh'],['label'=>'Total Refunds (EUR)','value'=>'€'.number_format($refunds,0),'change'=>'13.45%','tone'=>'blue','icon'=>'credit-card'],['label'=>'Return Orders','value'=>986,'change'=>'16.21%','tone'=>'orange','icon'=>'shopping-bag'],['label'=>'Refund Orders','value'=>842,'change'=>'11.38%','tone'=>'purple','icon'=>'file-text'],['label'=>'Return Rate','value'=>'2.45%','change'=>'0.32%','tone'=>'red','icon'=>'percent'],['label'=>'Avg. Processing Time','value'=>'2.6 Days','change'=>'8.71%','tone'=>'teal','icon'=>'clock']], 'returnStatus'=>$status,'reasonRows'=>$this->previewReasons(),'moduleRows'=>$this->previewReturnModules(),'productRows'=>$this->previewProducts(),'paymentRows'=>$this->previewPayments(),'recentReturns'=>$returns->isEmpty() ? collect($this->previewRecentReturns()) : $returns,'filters'=>$filters];
     }
 
-    private function rolesData(): array
+    private function rolesData(Request $request): array
     {
-        $roles = Role::query()->withCount('users')->orderBy('name')->paginate(12)->withQueryString();
+        $roles = Role::query()->withCount('users')->when($request->filled('q'), fn($q) => $q->where('name', 'like', '%'.$request->string('q').'%'))->orderBy('name')->paginate(12)->withQueryString();
         if ($roles->total() === 0) $roles = new \Illuminate\Pagination\LengthAwarePaginator(collect($this->previewRoles()), 12, 12, 1, ['path'=>url()->current()]);
         return ['roles'=>$roles,'roleMetrics'=>[['label'=>'Total Roles','value'=>12,'tone'=>'green','icon'=>'users'],['label'=>'Total Users','value'=>248,'tone'=>'blue','icon'=>'user'],['label'=>'Active Users','value'=>224,'tone'=>'green','icon'=>'check'],['label'=>'Disabled Users','value'=>24,'tone'=>'red','icon'=>'user'],['label'=>'Permissions','value'=>'1,248','tone'=>'purple','icon'=>'key'],['label'=>'System Access','value'=>'Secure','tone'=>'gold','icon'=>'shield']],'permissionRows'=>$this->previewPermissions(),'userByRole'=>$this->previewUserByRole(),'roleChanges'=>$this->previewRoleChanges()];
     }

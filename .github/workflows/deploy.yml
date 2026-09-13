@@ -116,6 +116,8 @@ jobs:
           node tests/Browser/spin-dashboard.cjs
           php artisan cache:clear
           node tests/Browser/tryon-dashboard.cjs
+          php artisan cache:clear
+          node tests/Browser/cpanel-interaction.cjs
 
       - name: Upload media browser evidence
         if: always() && github.ref == 'refs/heads/main'

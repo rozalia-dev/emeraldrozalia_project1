@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\{AuditLog, Banner};
+use App\Models\{AuditLog, Banner, MediaAsset};
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -57,13 +57,13 @@ class BannerDashboardService
             : 10;
 
         $banners = $this->filteredQuery($request, $tab)
-            ->with('creator')
+            ->with(['creator', 'media'])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
 
-        $allRecords = Banner::withTrashed()->latest('updated_at')->get();
+        $allRecords = Banner::withTrashed()->with('media')->latest('updated_at')->get();
         $liveRecords = $allRecords->filter(fn (Banner $banner): bool => ! $banner->trashed())->values();
         $rows = $banners->getCollection()
             ->map(fn (Banner $banner): array => $this->row($banner))
@@ -107,6 +107,7 @@ class BannerDashboardService
             'dateFrom' => (string) $request->query('date_from', ''),
             'dateTo' => (string) $request->query('date_to', ''),
             'notifications' => $this->notifications($liveRecords, $stats),
+            'approvedMedia' => $this->approvedMedia(),
         ];
     }
 
@@ -184,6 +185,10 @@ class BannerDashboardService
         $status = $this->displayStatus($banner);
         $devices = array_values(array_intersect(self::DEVICES, (array) $banner->device_visibility));
         $specificPages = array_values(array_filter((array) $banner->specific_pages, fn ($page): bool => filled($page)));
+        $media = $banner->media;
+        $mediaDescriptor = $media && $media->isApprovedPublic()
+            ? app(PublicMediaResolver::class)->describe($media, $banner->alt_text ?: $banner->title)
+            : null;
 
         return [
             'id' => $banner->id,
@@ -204,8 +209,9 @@ class BannerDashboardService
             'clicks' => (int) $banner->clicks,
             'impressions' => (int) $banner->impressions,
             'priority' => (int) $banner->priority,
-            'image_url' => $banner->imageUrl(),
+            'image_url' => $mediaDescriptor['url'] ?? null,
             'image_path' => $banner->image_path,
+            'media_uuid' => $banner->media_uuid,
             'alt_text' => $banner->alt_text ?: $banner->title,
             'title_text' => $banner->title_text ?: $banner->title,
             'aria_label' => $banner->aria_label ?: $banner->title.' banner link',
@@ -381,5 +387,23 @@ class BannerDashboardService
             ->limit(8)
             ->with('user')
             ->get();
+    }
+
+    private function approvedMedia(): array
+    {
+        $resolver = app(PublicMediaResolver::class);
+
+        return MediaAsset::query()
+            ->approvedPublic()
+            ->latest('created_at')
+            ->get()
+            ->map(function (MediaAsset $asset) use ($resolver): array {
+                return [
+                    ...$resolver->describe($asset, $asset->name),
+                    'name' => $asset->name,
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

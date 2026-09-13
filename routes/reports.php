@@ -24,4 +24,5 @@ Route::prefix('admin/reports')->middleware(['auth', 'admin'])->name('admin.repor
     Route::post('/schedules/{schedule}/toggle', [ReportController::class, 'toggleSchedule'])->name('schedules.toggle');
     Route::post('/schedules/{schedule}/duplicate', [ReportController::class, 'duplicateSchedule'])->name('schedules.duplicate');
     Route::post('/schedules/{schedule}/delete', [ReportController::class, 'deleteSchedule'])->name('schedules.delete');
+    Route::post('/history/prune', [ReportController::class, 'pruneHistory'])->name('history.prune');
 });

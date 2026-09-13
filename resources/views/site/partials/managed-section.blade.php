@@ -1,5 +1,7 @@
 @php
     $settings = is_array($section->settings) ? $section->settings : [];
+    $publicMedia = app(\App\Services\PublicMediaResolver::class);
+    $sectionMedia = $publicMedia->forUuid($section->media_uuid, $section->label ?: null);
     $rawType = strtolower(trim((string) $section->type));
     $type = in_array($rawType, ['hero', 'content', 'gallery', 'cta', 'form'], true) ? $rawType : 'content';
     $copy = static function (string $key, string $fallback = '') use ($settings): string {
@@ -18,20 +20,6 @@
 
         return null;
     };
-    $safeImage = static function ($value): ?string {
-        $value = trim((string) $value);
-        if ($value === '' || preg_match('/\A(?:javascript|data|vbscript):/i', $value)) {
-            return null;
-        }
-        if (str_starts_with($value, '/') || preg_match('/\Ahttps?:\/\/[^\s]+/i', $value)) {
-            return $value;
-        }
-        if (str_contains($value, '..') || ! preg_match('/\A[A-Za-z0-9_\/.\-]+\z/', $value)) {
-            return null;
-        }
-
-        return asset($value);
-    };
     $label = trim((string) ($section->label ?: str($type)->headline()));
     $content = $copy('content', 'Section content is ready to be edited in the Page Manager.');
     $sectionId = 'managed-section-' . ($section->id ?: str($type)->slug());
@@ -41,7 +29,7 @@
     @case('hero')
         @php
             $heroTitle = $copy('title', $label);
-            $heroImage = $safeImage($settings['image'] ?? $settings['image_path'] ?? null);
+            $heroImage = $sectionMedia;
             $heroUrl = $safeUrl($settings['url'] ?? $settings['cta_url'] ?? null);
             $heroCta = $copy('button_label', $copy('cta_label', 'Explore more'));
         @endphp
@@ -53,7 +41,7 @@
                 @if($heroUrl)<a class="btn" href="{{ $heroUrl }}">{{ $heroCta }}</a>@endif
             </div>
             @if($heroImage)
-                <figure class="managed-page-section-media"><img src="{{ $heroImage }}" alt="{{ $copy('alt', $heroTitle) }}" loading="lazy"></figure>
+                <figure class="managed-page-section-media"><img src="{{ $heroImage['url'] }}" @if($heroImage['srcset']) srcset="{{ $heroImage['srcset'] }}" sizes="{{ $heroImage['sizes'] }}" @endif width="{{ $heroImage['width'] ?: '' }}" height="{{ $heroImage['height'] ?: '' }}" alt="{{ $heroImage['alt'] ?: $copy('alt', $heroTitle) }}" loading="lazy"></figure>
             @endif
         </section>
         @break
@@ -61,9 +49,6 @@
     @case('gallery')
         @php
             $galleryItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [];
-            if ($galleryItems === [] && filled($settings['image'] ?? null)) {
-                $galleryItems[] = ['image' => $settings['image'], 'alt' => $settings['alt'] ?? $label, 'caption' => $settings['caption'] ?? ''];
-            }
         @endphp
         <section id="{{ $sectionId }}" class="managed-page-section managed-page-section--gallery" data-managed-section="gallery">
             <header class="managed-page-section-heading"><p class="managed-page-eyebrow">{{ $label }}</p><h2>{{ $copy('title', $label) }}</h2>@if($content !== 'Section content is ready to be edited in the Page Manager.')<div class="managed-page-copy">{!! nl2br(e($content)) !!}</div>@endif</header>
@@ -72,7 +57,9 @@
                     @foreach($galleryItems as $item)
                         @if(is_array($item))
                             @php
-                                $itemImage = $safeImage($item['image'] ?? $item['src'] ?? $item['path'] ?? null);
+                                $itemImage = $publicMedia->forUuid($item['media_uuid'] ?? null, $item['alt'] ?? $label);
+                                $legacyReference = basename((string) ($item['image'] ?? ''));
+                                $legacyReference = preg_match('/\A[A-Za-z0-9._-]+\z/', $legacyReference) ? $legacyReference : null;
                                 $itemUrl = $safeUrl($item['url'] ?? $item['href'] ?? null);
                                 $itemAlt = is_scalar($item['alt'] ?? null) ? trim((string) $item['alt']) : $label;
                                 $itemCaption = is_scalar($item['caption'] ?? null) ? trim((string) $item['caption']) : '';
@@ -80,10 +67,12 @@
                             @if($itemImage)
                                 <figure class="managed-page-gallery-item">
                                     @if($itemUrl)<a href="{{ $itemUrl }}">@endif
-                                    <img src="{{ $itemImage }}" alt="{{ $itemAlt }}" loading="lazy">
+                                    <img src="{{ $itemImage['url'] }}" @if($itemImage['srcset']) srcset="{{ $itemImage['srcset'] }}" sizes="{{ $itemImage['sizes'] }}" @endif width="{{ $itemImage['width'] ?: '' }}" height="{{ $itemImage['height'] ?: '' }}" alt="{{ $itemImage['alt'] ?: $itemAlt }}" loading="lazy">
                                     @if($itemUrl)</a>@endif
                                     @if($itemCaption)<figcaption>{{ $itemCaption }}</figcaption>@endif
                                 </figure>
+                            @elseif($legacyReference)
+                                <span class="managed-page-media-reference sr-only" data-media-migration-reference>Legacy media reference awaiting approval: {{ $legacyReference }}</span>
                             @endif
                         @endif
                     @endforeach

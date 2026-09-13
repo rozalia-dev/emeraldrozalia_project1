@@ -1,20 +1,53 @@
 @extends('layouts.admin')
-@section('title', Str::headline($module))
+@section('title', $title ?? Str::headline($module))
 @section('content')
-<div class="admin-title"><div><p class="eyebrow">ADMIN MODULE</p><h1>{{ Str::headline($module) }}</h1></div><button class="btn"><x-icon name="plus" size="14" /> NEW RECORD</button></div>
-<section class="panel">
-    <div class="module-toolbar module-filter-toolbar"><input placeholder="Search records"><select><option>All statuses</option><option>Active</option><option>Pending</option><option>Completed</option></select><button>Export</button></div>
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead><tr><th>Reference</th><th>Title</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
-            <tbody>
-            @forelse($records as $r)
-                <tr><td>{{ $r->reference }}</td><td>{{ $r->title }}</td><td>{{ $r->status }}</td><td>{{ $r->created_at?->format('d M Y') }}</td><td>Edit</td></tr>
-            @empty
-                <tr><td colspan="5">No records yet. This module is ready for live data.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+<div class="admin-title">
+    <div>
+        <small>ADMIN / OPERATIONS / LEGACY ENTRY</small>
+        <h1>{{ $title ?? Str::headline($module) }}</h1>
+        <p class="admin-page-description">{{ $description ?? 'Manage this module using the server-backed record contract.' }}</p>
     </div>
-</section>
+</div>
+
+<div class="resource-page" data-resource-page data-resource-tab="{{ $tab ?? 'active' }}">
+    <nav class="resource-view-tabs" aria-label="{{ $title ?? Str::headline($module) }} record views">
+        <a class="{{ ($tab ?? 'active') === 'active' ? 'active' : '' }}" href="{{ route('admin.module', $module) }}">Active records</a>
+        <a class="{{ ($tab ?? 'active') === 'trash' ? 'active' : '' }}" href="{{ route('admin.module', [$module, 'tab' => 'trash']) }}">Trash</a>
+    </nav>
+    @if(($tab ?? 'active') === 'active')
+        <section class="panel resource-create-panel">
+            <div class="panel-heading"><div><h2>Add Record</h2><span class="panel-caption">Create a tracked record for this legacy module.</span></div><span class="resource-record-count">{{ number_format($records->total()) }} records</span></div>
+            <form class="module-toolbar resource-create-form" method="post" action="{{ route('admin.resource.store', $module) }}">
+                @csrf
+                <label class="resource-field resource-field-wide">Title / name<input name="title" value="{{ old('title') }}" placeholder="Title / name" required maxlength="180"></label>
+                <label class="resource-field">Reference<input name="reference" value="{{ old('reference') }}" placeholder="Reference" maxlength="100"></label>
+                <label class="resource-field">Status<select name="status" required>@foreach($statuses as $option)<option value="{{ $option }}" @selected(old('status', 'active') === $option)>{{ str($option)->headline() }}</option>@endforeach</select></label>
+                <label class="resource-field">Amount<input name="amount" type="number" min="0" step="0.01" value="{{ old('amount') }}" placeholder="Amount"></label>
+                <label class="resource-field">Date<input name="record_date" type="date" value="{{ old('record_date') }}"></label>
+                <label class="resource-field resource-field-wide">Notes<input name="notes" value="{{ old('notes') }}" placeholder="Notes" maxlength="3000"></label>
+                <button class="btn resource-add-button" type="submit">ADD RECORD</button>
+            </form>
+        </section>
+    @else
+        <section class="panel resource-trash-panel"><div class="panel-heading"><div><h2>Trash</h2><span class="panel-caption">Trashed records can be restored or permanently deleted.</span></div><a class="btn" href="{{ route('admin.module', $module) }}">Back to active</a></div></section>
+    @endif
+    <section class="panel resource-list-panel">
+        <form class="module-toolbar module-filter-toolbar resource-filter-form" method="get" action="{{ route('admin.module', $module) }}">
+            @if(($tab ?? 'active') === 'trash')<input type="hidden" name="tab" value="trash">@endif
+            <label>Search<input type="search" name="q" value="{{ $search ?? '' }}" placeholder="Title or reference" aria-label="Search records"></label>
+            <label>Status<select name="status"><option value="">All statuses</option>@foreach($statuses as $option)<option value="{{ $option }}" @selected(($status ?? '') === $option)>{{ str($option)->headline() }}</option>@endforeach</select></label>
+            <label>From<input type="date" name="date_from" value="{{ $dateFrom ?? '' }}"></label>
+            <label>To<input type="date" name="date_to" value="{{ $dateTo ?? '' }}"></label>
+            <button type="submit">FILTER</button>
+            @if(($search ?? '') !== '' || ($status ?? '') !== '' || ($dateFrom ?? '') !== '' || ($dateTo ?? '') !== '')<a class="clear-filter" href="{{ route('admin.module', ($tab ?? 'active') === 'trash' ? [$module, 'tab' => 'trash'] : $module) }}">Clear</a>@endif
+        </form>
+        <div class="table-wrap"><table class="data-table resource-table"><thead><tr><th>Reference</th><th>Title</th><th>Status</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead><tbody>
+        @forelse($records as $record)
+            @php $actions = app(\App\Services\AdminActionRegistry::class)->for($record); @endphp
+            <tr><td><code>{{ $record->reference ?: '—' }}</code></td><td><strong>{{ $record->title }}</strong></td><td>{{ str($record->status)->headline() }}</td><td>{{ $record->amount !== null ? '€'.number_format((float) $record->amount, 2) : '—' }}</td><td>{{ $record->record_date?->format('d M Y') ?? '—' }}</td><td><details class="resource-action-menu"><summary aria-label="Actions for {{ $record->title }}">Actions <x-icon name="chevron-down" size="12" /></summary><div class="resource-action-menu-panel" role="menu">@foreach($actions as $action)@if($action['type']==='link')<a class="resource-action-item resource-action-item--{{ $action['tone'] }}" role="menuitem" href="{{ $action['href'] }}">{{ $action['label'] }}</a>@else<form method="post" action="{{ $action['href'] }}" @if(isset($action['confirm'])) onsubmit="return confirm('{{ $action['confirm'] }}')" @endif>@csrf @if($action['method']!=='POST') @method($action['method']) @endif<button class="resource-action-item resource-action-item--{{ $action['tone'] }}" type="submit" role="menuitem">{{ $action['label'] }}</button></form>@endif @endforeach</div></details></td></tr>
+        @empty<tr><td colspan="6" class="empty-note">{{ ($tab ?? 'active') === 'trash' ? 'Trash is empty.' : 'No records found. Use Add Record above to create the first one.' }}</td></tr>@endforelse
+        </tbody></table></div>
+        {{ $records->links() }}
+    </section>
+</div>
 @endsection

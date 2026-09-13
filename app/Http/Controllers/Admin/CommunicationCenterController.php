@@ -74,8 +74,8 @@ class CommunicationCenterController extends Controller
 
         if ($section === 'communication-reports') {
             return view('admin.communication-center.dashboard', $common + [
-                'metrics' => $this->reportMetrics(),
-                'report' => $this->reportData(),
+                'metrics' => $this->reportMetrics($request),
+                'report' => $this->reportData($request),
                 'conversations' => null,
                 'selected' => null,
                 'records' => null,
@@ -91,7 +91,7 @@ class CommunicationCenterController extends Controller
             $auditUsers = User::query()->whereIn('id', $userIds)->pluck('name', 'id');
 
             return view('admin.communication-center.dashboard', $common + [
-                'metrics' => $this->auditMetrics(),
+                'metrics' => $this->auditMetrics($request),
                 'report' => $this->auditSummary(),
                 'conversations' => null,
                 'selected' => null,
@@ -131,7 +131,7 @@ class CommunicationCenterController extends Controller
 
             return view('admin.communication-center.dashboard', $common + [
                 'metrics' => $this->conversationMetrics($section),
-                'report' => $section === 'communication-center' ? $this->reportData() : $this->conversationSideData($section),
+                'report' => $section === 'communication-center' ? $this->reportData($request) : $this->conversationSideData($section),
                 'conversations' => $conversations,
                 'selected' => $selected,
                 'records' => null,
@@ -310,7 +310,7 @@ class CommunicationCenterController extends Controller
         }
 
         if ($section === 'communication-reports') {
-            $rows = collect($this->reportData()['channels']);
+            $rows = collect($this->reportData($request)['channels']);
 
             return response()->streamDownload(function () use ($rows): void {
                 $handle = fopen('php://output', 'w');
@@ -553,20 +553,35 @@ class CommunicationCenterController extends Controller
 
     private function dateFilter(mixed $value): ?Carbon
     {
-        if (! is_string($value) || trim($value) === '') {
+        $value = is_string($value) ? trim($value) : '';
+        if ($value === '' || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
             return null;
         }
 
         try {
-            return Carbon::createFromFormat('Y-m-d', trim($value));
+            $date = Carbon::createFromFormat('!Y-m-d', $value);
         } catch (\Throwable) {
             return null;
         }
+
+        return $date->format('Y-m-d') === $value ? $date : null;
     }
 
     private function displayDate(mixed $value, string $fallback): string
     {
         return ($date = $this->dateFilter($value))?->toDateString() ?? $fallback;
+    }
+
+    private function applyDateRange(Builder $query, Request $request): Builder
+    {
+        if ($from = $this->dateFilter($request->query('date_from'))) {
+            $query->where('created_at', '>=', $from->startOfDay());
+        }
+        if ($to = $this->dateFilter($request->query('date_to'))) {
+            $query->where('created_at', '<=', $to->endOfDay());
+        }
+
+        return $query;
     }
 
     private function approvalQuery(): Builder
@@ -693,6 +708,32 @@ class CommunicationCenterController extends Controller
                     ->orWhere('request_id', 'like', '%'.$search.'%')
                     ->orWhere('ip_address', 'like', '%'.$search.'%');
             });
+        }
+
+        $channel = Str::lower(trim((string) $request->query('channel', '')));
+        if ($channel !== '') {
+            $query->where('action', 'like', $channel.'.%');
+        }
+
+        $type = trim((string) $request->query('type', ''));
+        if ($type !== '') {
+            $type === 'System'
+                ? $query->whereNull('subject_type')
+                : $query->where('subject_type', $type);
+        }
+
+        $action = Str::lower(trim((string) $request->query('action', '')));
+        if ($action !== '') {
+            $query->where('action', 'like', '%.'.$action);
+        }
+
+        if ($request->filled('user_id') && is_numeric($request->query('user_id'))) {
+            $query->where('user_id', (int) $request->query('user_id'));
+        }
+
+        $entityType = trim((string) $request->query('entity_type', ''));
+        if ($entityType !== '') {
+            $query->where('subject_type', $entityType);
         }
     }
 
@@ -843,13 +884,13 @@ class CommunicationCenterController extends Controller
         ];
     }
 
-    private function reportMetrics(): array
+    private function reportMetrics(Request $request): array
     {
-        $total = Conversation::query()->count();
-        $messages = ConversationMessage::query()->where('direction', 'outbound')->count();
-        $unique = Conversation::query()->whereNotNull('contact')->distinct()->count('contact');
-        $urgent = Conversation::query()->where('priority', 'urgent')->where('status', '!=', 'closed')->count();
-        $closed = Conversation::query()->where('status', 'closed')->count();
+        $total = $this->applyDateRange(Conversation::query(), $request)->count();
+        $messages = $this->applyDateRange(ConversationMessage::query()->where('direction', 'outbound'), $request)->count();
+        $unique = $this->applyDateRange(Conversation::query()->whereNotNull('contact'), $request)->distinct()->count('contact');
+        $urgent = $this->applyDateRange(Conversation::query()->where('priority', 'urgent')->where('status', '!=', 'closed'), $request)->count();
+        $closed = $this->applyDateRange(Conversation::query()->where('status', 'closed'), $request)->count();
 
         return [
             $this->metric('Total Conversations', $total, 'message', 'green', 'All communication channels'),
@@ -862,9 +903,10 @@ class CommunicationCenterController extends Controller
         ];
     }
 
-    private function auditMetrics(): array
+    private function auditMetrics(Request $request): array
     {
         $query = AuditLog::query();
+        $this->applyAuditFilters($query, $request);
         $total = $query->count();
 
         return [
@@ -879,11 +921,19 @@ class CommunicationCenterController extends Controller
         ];
     }
 
-    private function reportData(): array
+    private function reportData(Request $request): array
     {
-        $total = max(1, Conversation::query()->count());
+        $periodDays = match ((string) $request->query('period', '1d')) {
+            '1d' => 1,
+            '7d' => 7,
+            '30d' => 30,
+            '90d' => 90,
+            '365d' => 365,
+            default => 1,
+        };
+        $total = max(1, $this->applyDateRange(Conversation::query(), $request)->count());
 
-        $channels = Conversation::query()
+        $channels = $this->applyDateRange(Conversation::query(), $request)
             ->selectRaw('channel, COUNT(*) AS aggregate')
             ->groupBy('channel')
             ->orderByDesc('aggregate')
@@ -894,7 +944,7 @@ class CommunicationCenterController extends Controller
                 'share' => round(((int) $row->aggregate / $total) * 100, 2),
             ])->values()->all();
 
-        $statuses = Conversation::query()
+        $statuses = $this->applyDateRange(Conversation::query(), $request)
             ->selectRaw('status, COUNT(*) AS aggregate')
             ->groupBy('status')
             ->orderByDesc('aggregate')
@@ -905,16 +955,16 @@ class CommunicationCenterController extends Controller
                 'share' => round(((int) $row->aggregate / $total) * 100, 2),
             ])->values()->all();
 
-        $trend = collect(range(6, 0))->map(function (int $daysAgo): array {
+        $trend = collect(range($periodDays - 1, 0))->map(function (int $daysAgo) use ($request): array {
             $date = now()->subDays($daysAgo);
 
             return [
                 'label' => $date->format('M j'),
-                'count' => Conversation::query()->whereDate('created_at', $date->toDateString())->count(),
+                'count' => $this->applyDateRange(Conversation::query()->whereDate('created_at', $date->toDateString()), $request)->count(),
             ];
         })->all();
 
-        $sample = Conversation::query()->latest('id')->limit(5000)->get(['id', 'subject', 'channel', 'status', 'priority', 'assigned_to', 'metadata']);
+        $sample = $this->applyDateRange(Conversation::query(), $request)->latest('id')->limit(5000)->get(['id', 'subject', 'channel', 'status', 'priority', 'assigned_to', 'metadata']);
         $topics = $sample->groupBy(function (Conversation $conversation): string {
             return (string) data_get($conversation->metadata, 'topic', $this->topicFromSubject($conversation->subject));
         })->map->count()->sortDesc()->take(6)->map(function (int $count, string $label) use ($sample): array {
@@ -929,7 +979,7 @@ class CommunicationCenterController extends Controller
             return ['label' => $label, 'count' => $count, 'share' => round(($count / $base) * 100, 2)];
         })->values()->all();
 
-        $agentRows = Conversation::query()
+        $agentRows = $this->applyDateRange(Conversation::query(), $request)
             ->whereNotNull('assigned_to')
             ->selectRaw('assigned_to, COUNT(*) AS aggregate')
             ->groupBy('assigned_to')
@@ -942,11 +992,11 @@ class CommunicationCenterController extends Controller
             'count' => (int) $row->aggregate,
         ])->values()->all();
 
-        $urgent = Conversation::query()->where('priority', 'urgent')->where('status', '!=', 'closed')->count();
+        $urgent = $this->applyDateRange(Conversation::query()->where('priority', 'urgent')->where('status', '!=', 'closed'), $request)->count();
         $sla = round(max(0, 100 - (($urgent / $total) * 100)), 2);
 
         return [
-            'total' => Conversation::query()->count(),
+            'total' => $this->applyDateRange(Conversation::query(), $request)->count(),
             'channels' => $channels,
             'statuses' => $statuses,
             'trend' => $trend,
@@ -957,9 +1007,9 @@ class CommunicationCenterController extends Controller
             'csat' => $this->averageCsat('communication-center'),
             'avg_response' => $this->averageResponseTime('communication-center'),
             'avg_resolution' => $this->averageResolutionTime(),
-            'open' => Conversation::query()->whereIn('status', ['new', 'open', 'pending'])->count(),
-            'closed' => Conversation::query()->where('status', 'closed')->count(),
-            'recent' => Conversation::query()->latest('id')->limit(5)->get(),
+            'open' => $this->applyDateRange(Conversation::query()->whereIn('status', ['new', 'open', 'pending']), $request)->count(),
+            'closed' => $this->applyDateRange(Conversation::query()->where('status', 'closed'), $request)->count(),
+            'recent' => $this->applyDateRange(Conversation::query(), $request)->latest('id')->limit(5)->get(),
             'approval_recent' => Approval::query()->forCurrentCompany()->with(['requestedBy', 'approver'])->latest('id')->limit(5)->get(),
             'alert_recent' => AdminRecord::query()->where('module', 'alerts-notifications')->latest('id')->limit(5)->get(),
         ];

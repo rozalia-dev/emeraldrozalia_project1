@@ -36,7 +36,7 @@
 </div>
 <form class="sd-filters" method="get" action="{{ route('admin.tryons.index') }}">
     <label class="sd-search"><span class="sd-sr">Search</span><input name="q" placeholder="Search try-on assets, product, SKU…" value="{{ request('q') }}" maxlength="150"></label>
-    <button class="sd-button sd-outline"><x-icon name="filter" size="15" /> Filters</button>
+    <button type="submit" class="sd-button sd-outline"><x-icon name="filter" size="15" /> Filters</button>
     <label><span class="sd-sr">Product</span><select name="product_id"><option value="">All Products</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected(request('product_id')==$product->id)>{{ $product->name }}</option>@endforeach</select></label>
     <label><span class="sd-sr">Type</span><select name="type"><option value="">All Types</option>@foreach($types as $key=>$label)<option value="{{ $key }}" @selected(request('type')===$key)>{{ $label }}</option>@endforeach</select></label>
     <label><span class="sd-sr">Status</span><select name="status"><option value="">All Statuses</option>@foreach($statuses as $key=>$label)<option value="{{ $key }}" @selected(request('status')===$key)>{{ $label }}</option>@endforeach</select></label>
@@ -72,7 +72,7 @@
         @if($pageEnd<$assets->lastPage())@if($pageEnd<$assets->lastPage()-1)<span>…</span>@endif<a href="{{ $assets->url($assets->lastPage()) }}">{{ $assets->lastPage() }}</a>@endif
         @if($assets->nextPageUrl())<a href="{{ $assets->nextPageUrl() }}" aria-label="Next page">›</a>@endif
     </nav>
-    <label><span class="sd-sr">Rows per page</span><select data-per-page>@foreach([8,20,40] as $n)<option value="{{ $n }}" @selected($assets->perPage()===$n)>{{ $n }} / page</option>@endforeach</select></label>
+    <label><span class="sd-sr">Rows per page</span><select name="per_page" data-per-page>@foreach([8,20,40] as $n)<option value="{{ $n }}" @selected($assets->perPage()===$n)>{{ $n }} / page</option>@endforeach</select></label>
 </div>
 <div class="sd-bulk"><label>Selected assets<select name="action"><option value="draft">Move to Draft</option><option value="in_review">Send to Review</option><option value="published">Publish</option><option value="needs_attention">Needs Attention</option><option value="archived">Archive</option><option value="delete">Delete permanently</option></select></label><button class="sd-button sd-outline" type="submit">Apply</button><a href="{{ route('admin.tryons.export',request()->except(['page','edit'])) }}">Export CSV</a><small data-selection>0 selected</small></div>
 </form>

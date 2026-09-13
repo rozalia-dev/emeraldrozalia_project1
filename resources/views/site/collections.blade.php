@@ -14,20 +14,7 @@
         ['slug'=>'irish-heritage-hats','title'=>'IRISH HERITAGE HATS','copy'=>'Heritage designs. Timeless elegance.','reference'=>'heritage','href'=>'/irish-heritage'],
         ['slug'=>'beanies-more','title'=>'BEANIES & MORE','copy'=>'Warm. Stylish. Essential.','reference'=>'beanie','href'=>'/shop?category=beanies-more'],
     ];
-    $fallbackProducts = [
-        ['name'=>'Classic Emerald Cap','price'=>34.99,'reference'=>'one'],
-        ['name'=>'Emerald Signature Cap','price'=>34.99,'reference'=>'two'],
-        ['name'=>'Rozalia Snapback','price'=>36.99,'reference'=>'three'],
-        ['name'=>'Emerald Flat Cap','price'=>44.99,'reference'=>'four'],
-        ['name'=>'Emerald Beanie','price'=>29.99,'reference'=>'five'],
-        ['name'=>'Emerald Trucker Cap','price'=>34.99,'reference'=>'six'],
-    ];
-    $referenceProductClasses = ['one','two','three','four','five','six'];
-    $productImageUrl = static function (?string $path): ?string {
-        if (blank($path)) return null;
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
-        return Storage::disk('public')->url($path);
-    };
+    $publicMedia = app(\App\Services\PublicMediaResolver::class);
 @endphp
 
 <div class="collections-reference-shell" data-approved-reference="hats collection.png">
@@ -46,8 +33,11 @@
             @foreach($collectionCards as $item)
                 @php($category = $categories->firstWhere('slug',$item['slug']))
                 @php($href = $category ? route('category',['category'=>$category->slug]) : $item['href'])
+                @php($managedCollection = collect($collections ?? [])->firstWhere('slug', $item['slug']))
+                @php($collectionMedia = $managedCollection?->media && $managedCollection->media->isApprovedPublic() ? $publicMedia->describe($managedCollection->media, $item['title']) : null)
                 <a class="home-collection-card collections-reference-card" href="{{ $href }}">
-                    <div class="home-reference-placeholder home-reference-placeholder--collection home-reference-placeholder--{{ $item['reference'] }} collections-reference-photo" role="img" aria-label="{{ $item['title'] }} collection image">
+                    <div class="collections-reference-photo" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
+                        @if($collectionMedia)<img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif width="{{ $collectionMedia['width'] ?: '' }}" height="{{ $collectionMedia['height'] ?: '' }}" alt="{{ $collectionMedia['alt'] }}" loading="lazy">@endif
                         @if(!empty($item['new']))<b class="collections-new-badge">NEW</b>@endif
                     </div>
                     <div><h2>{{ $item['title'] }}</h2><p>{{ $item['copy'] }}</p><span>SHOP NOW <b aria-hidden="true"><x-icon name="arrow-right" /></b></span></div>
@@ -63,7 +53,7 @@
             <p>Inspired by generations of Irish craftsmanship. Our flat caps and heritage hats are woven from premium fabrics and made to last.</p>
             <a class="btn" href="/irish-heritage">EXPLORE HERITAGE COLLECTION <x-icon name="arrow-right" /></a>
         </div>
-        <div class="home-heritage-visual home-reference-image home-reference-image--heritage collections-heritage-visual" role="img" aria-label="Irish heritage flat cap, craftsmanship and Limerick collection photography">
+        <div class="home-heritage-visual collections-heritage-visual" role="img" aria-label="Irish heritage flat cap, craftsmanship and Limerick collection photography">
             <div class="collections-heritage-points" aria-label="Irish heritage commitments">
                 <span><x-icon name="clover" size="26" />AUTHENTIC<br>IRISH STYLE</span>
                 <span><x-icon name="package" size="26" />PREMIUM<br>TWEED &amp; WOOL</span>
@@ -84,8 +74,10 @@
                 @foreach($bestsellers as $index => $product)
                     <article class="home-product-card collections-product-card">
                         <a class="collections-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
-                            <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{ $referenceProductClasses[$index % 6] }}">
-                                @if($imageUrl = $productImageUrl($product->image))<img src="{{ $imageUrl }}" alt="{{ $product->name }}">@endif
+                            @php($imageMedia = $product->media->firstWhere('type','image'))
+                            @php($image = $imageMedia ? $publicMedia->forProductMedia($imageMedia, $product->name) : null)
+                            <div class="home-product-media collections-product-media" data-public-media-state="{{ $image ? 'approved' : 'awaiting-approved-media' }}">
+                                @if($image)<img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">@endif
                             </div>
                             <span>{{ $product->name }}</span>
                             <strong>€{{ number_format($product->price,2) }}</strong>
@@ -98,16 +90,7 @@
                     </article>
                 @endforeach
             @else
-                @foreach($fallbackProducts as $item)
-                    <article class="home-product-card collections-product-card">
-                        <a class="collections-product-link" href="/shop">
-                            <div class="home-product-media home-reference-placeholder home-reference-placeholder--product home-reference-placeholder--product-{{ $item['reference'] }}" role="img" aria-label="{{ $item['name'] }} product image"></div>
-                            <span>{{ $item['name'] }}</span>
-                            <strong>€{{ number_format($item['price'],2) }}</strong>
-                        </a>
-                        <a class="collections-cart-fallback" href="/shop" aria-label="Shop {{ $item['name'] }}"><x-icon name="shopping-bag" size="15" /></a>
-                    </article>
-                @endforeach
+                <p class="home-managed-empty">No published products are available for this collection.</p>
             @endif
         </div>
     </section>

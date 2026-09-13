@@ -38,7 +38,7 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
                 ->get('/admin/resource/'.$slug)
                 ->assertOk()
                 ->assertSeeText($heading)
-                ->assertSee('/css/communication-center-reference.css?v=20260910-1', false)
+                ->assertSee('/css/communication-center-reference.css?v=20260913-b20-1', false)
                 ->assertSee('id="admin-sidebar"', false);
         }
     }
@@ -91,6 +91,20 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
             'direction' => 'outbound',
             'body' => 'Your order has shipped today.',
         ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.communication.message.store', $conversation), [
+                'body' => 'Confirm the dispatch scan before closing this conversation.',
+                'mode' => 'internal_note',
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('conversation_messages', [
+            'conversation_id' => $conversation->id,
+            'direction' => 'internal',
+            'delivery_status' => 'stored',
+            'body' => 'Confirm the dispatch scan before closing this conversation.',
+        ]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'communication.internal_note.created']);
 
         $this->actingAs($admin)
             ->patch(route('admin.communication.update', $conversation), [

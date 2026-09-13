@@ -87,6 +87,80 @@ class CommunicationCenter
     }
 
     /**
+     * Store an internal note without sending it through an external provider.
+     * Internal notes use the same transaction, idempotency and audit guarantees
+     * as replies, but remain visible only to cPanel operators.
+     */
+    public function addInternalNote(Conversation $conversation, string $body, ?string $idempotencyKey = null): ConversationMessage
+    {
+        if (trim($body) === '') {
+            throw ValidationException::withMessages(['body' => 'An internal note body is required.']);
+        }
+
+        $idempotencyKey = $this->normalizeIdempotencyKey($idempotencyKey);
+        $message = null;
+
+        DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
+            $lockedConversation = Conversation::query()
+                ->forCurrentCompany()
+                ->lockForUpdate()
+                ->find($conversation->getKey());
+
+            if (! $lockedConversation) {
+                throw (new ModelNotFoundException())->setModel(Conversation::class, [$conversation->getKey()]);
+            }
+
+            $requestHash = hash('sha256', (string) json_encode([
+                'conversation_uuid' => $lockedConversation->uuid,
+                'body' => $body,
+                'mode' => 'internal_note',
+            ], JSON_UNESCAPED_SLASHES));
+
+            if ($idempotencyKey !== null) {
+                $existing = ConversationMessage::query()
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    $existingHash = (string) data_get($existing->payload, 'request_hash');
+                    if (! hash_equals($existingHash, $requestHash)) {
+                        abort(409, 'The Idempotency-Key was already used for a different note.');
+                    }
+
+                    $message = $existing;
+                    return;
+                }
+            }
+
+            $message = $lockedConversation->messages()->create([
+                'user_id' => auth()->id(),
+                'direction' => 'internal',
+                'body' => $body,
+                'delivery_status' => 'stored',
+                'idempotency_key' => $idempotencyKey,
+                'payload' => [
+                    'source' => 'communication_center_internal_note',
+                    'correlation_id' => $this->correlationId(),
+                    'request_hash' => $requestHash,
+                ],
+                'sent_at' => now(),
+            ]);
+
+            \App\Services\AuditTrail::record(
+                'communication.internal_note.created',
+                $message,
+                null,
+                $this->messageState($message),
+            );
+        });
+
+        $this->dispatchChanged($conversation->fresh(), 'internal_note');
+
+        return $message->fresh();
+    }
+
+    /**
      * Apply the cPanel conversation transition under a row lock.
      * Only fields exposed by the admin form are accepted here.
      */

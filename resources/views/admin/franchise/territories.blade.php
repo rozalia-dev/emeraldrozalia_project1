@@ -88,9 +88,9 @@
                                 <span>Showing {{ $records->firstItem() ?? 0 }} to {{ $records->lastItem() ?? 0 }} of {{ number_format($records->total()) }} results</span>
                                 @if($records->lastPage() > 1)
                                     <nav class="fm-pagination" aria-label="Pagination">
-                                        <a class="{{ $records->onFirstPage() ? 'disabled' : '' }}" href="{{ $records->previousPageUrl() ?: '#' }}">‹</a>
+                                        @if($records->onFirstPage())<span class="disabled" aria-disabled="true">‹</span>@else<a href="{{ $records->previousPageUrl() }}">‹</a>@endif
                                         @for($page=max(1,$records->currentPage()-2);$page<=min($records->lastPage(),$records->currentPage()+3);$page++)<a class="{{ $records->currentPage()===$page?'active':'' }}" href="{{ $records->url($page) }}">{{ $page }}</a>@endfor
-                                        <a class="{{ $records->hasMorePages() ? '' : 'disabled' }}" href="{{ $records->nextPageUrl() ?: '#' }}">›</a>
+                                        @if($records->hasMorePages())<a href="{{ $records->nextPageUrl() }}">›</a>@else<span class="disabled" aria-disabled="true">›</span>@endif
                                     </nav>
                                 @endif
                             </footer>

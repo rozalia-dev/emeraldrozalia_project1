@@ -15,10 +15,10 @@
     ];
     $materialOptions = ['Tweed','Wool','Cotton','Linen','Leather','Felt'];
     $referenceClasses = [1,2,3,4,5,6];
-    $productImageUrl = static function (?string $path): ?string {
-        if (blank($path)) return null;
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
-        return Storage::disk('public')->url($path);
+    $productImage = static function ($product): ?array {
+        $media = $product->media?->firstWhere('type', 'image');
+
+        return $media ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($media, $product->name) : null;
     };
     $swatchColour = static function ($value): string {
         $value = strtolower(trim((string) $value));
@@ -115,7 +115,7 @@
                     <article class="arrival-product-card">
                         <a class="arrival-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
                             <div class="arrival-product-media arrival-product-media--{{ $referenceClasses[$index % 6] }}">
-                                @if($imageUrl = $productImageUrl($product->image))<img src="{{ $imageUrl }}" alt="{{ $product->name }}">@endif
+                                @if($image = $productImage($product))<img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}">@endif
                                 <span class="arrival-new-badge">NEW</span>
                                 <span class="arrival-spin-badge">360°</span>
                             </div>

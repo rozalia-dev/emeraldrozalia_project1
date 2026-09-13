@@ -68,6 +68,7 @@
     const selectVideo = id => {
         selected = records.get(String(id));
         if (!selected) return;
+        settings.action = selected.update_url;
         $$('[data-video-row]').forEach(row => row.classList.toggle('is-selected',row.dataset.videoRow === String(id)));
         $$('#vd-edit-fields input, #vd-edit-fields select, #vd-edit-fields textarea, #vd-edit-fields button[type=submit]').forEach(node => node.disabled = false);
         $('#vd-editor-hint').textContent = 'Editing '+selected.title+'. Changes take effect after you save.';

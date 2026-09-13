@@ -4,6 +4,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="/css/franchise-management.css?v=20260910-1">
+<link rel="stylesheet" href="/css/franchise-batch13.css?v=20260913-batch13">
 @endpush
 
 @push('scripts')
@@ -94,6 +95,16 @@
                                     <td class="fm-actions">
                                         <button type="button" title="View" data-fm-view="{{ base64_encode(json_encode($row['edit'], JSON_UNESCAPED_UNICODE)) }}"><x-icon name="eye" size="15" /></button>
                                         <button type="button" title="Edit" data-fm-edit="{{ base64_encode(json_encode($row['edit'], JSON_UNESCAPED_UNICODE)) }}" data-id="{{ $row['id'] }}"><x-icon name="pencil" size="15" /></button>
+                                        @if($section === 'franchise-applications' && !empty($row['actions']))
+                                            <details class="fm-row-menu">
+                                                <summary title="Application actions" aria-label="Application actions"><x-icon name="dots" size="15" /></summary>
+                                                <div>
+                                                    @foreach($row['actions'] as $action => $label)
+                                                        <form method="post" action="{{ route('admin.franchise.application.action', ['application' => $row['uuid'], 'action' => $action]) }}" onsubmit="return confirm('{{ $label }} this application?')">@csrf<button type="submit">{{ $label }}</button></form>
+                                                    @endforeach
+                                                </div>
+                                            </details>
+                                        @endif
                                         <form method="post" action="{{ route('admin.franchise.destroy', [$section, $row['id']]) }}" onsubmit="return confirm('Delete this {{ strtolower($config['singular']) }}?')">@csrf @method('DELETE')<button type="submit" title="Delete"><x-icon name="trash" size="15" /></button></form>
                                     </td>
                                     @endif
@@ -109,11 +120,11 @@
                         <span>Showing {{ $records->firstItem() ?? 0 }} to {{ $records->lastItem() ?? 0 }} of {{ number_format($records->total()) }} results</span>
                         @if($records->lastPage() > 1)
                         <nav class="fm-pagination" aria-label="Pagination">
-                            <a class="{{ $records->onFirstPage() ? 'disabled' : '' }}" href="{{ $records->previousPageUrl() ?: '#' }}">‹</a>
+                            @if($records->onFirstPage())<span class="disabled" aria-disabled="true">‹</span>@else<a href="{{ $records->previousPageUrl() }}">‹</a>@endif
                             @for($page = max(1, $records->currentPage()-2); $page <= min($records->lastPage(), $records->currentPage()+3); $page++)
                                 <a class="{{ $records->currentPage() === $page ? 'active' : '' }}" href="{{ $records->url($page) }}">{{ $page }}</a>
                             @endfor
-                            <a class="{{ $records->hasMorePages() ? '' : 'disabled' }}" href="{{ $records->nextPageUrl() ?: '#' }}">›</a>
+                            @if($records->hasMorePages())<a href="{{ $records->nextPageUrl() }}">›</a>@else<span class="disabled" aria-disabled="true">›</span>@endif
                         </nav>
                         @endif
                     </footer>

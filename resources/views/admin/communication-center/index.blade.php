@@ -1,23 +1,24 @@
 @extends('layouts.admin')
 
-@section('title', $module === 'inbox' ? 'Inbox' : 'Communication Center')
+@section('title', $kind === 'questions' ? 'Customer Q&A' : ($module === 'inbox' ? 'Inbox' : 'Communication Center'))
 
 @section('content')
 <div class="admin-title">
     <div>
         <small>ADMIN / COMMUNICATION CENTER</small>
-        <h1>{{ $module === 'inbox' ? 'Inbox' : 'Communication Center' }}</h1>
-        <p class="admin-page-description">Every public enquiry, meeting request and team reply is recorded here.</p>
+        <h1>{{ $kind === 'questions' ? 'Customer Q&A' : ($module === 'inbox' ? 'Inbox' : 'Communication Center') }}</h1>
+        <p class="admin-page-description">{{ $kind === 'questions' ? 'Questions identified from customer conversations are routed here for a tracked reply.' : 'Every public enquiry, meeting request and team reply is recorded here.' }}</p>
     </div>
 </div>
 
 <section class="panel communication-panel">
     <div class="panel-heading"><div><h2>Customer conversations</h2><span class="panel-caption">Website enquiries and meeting requests</span></div><span class="resource-record-count">{{ number_format($conversations->total()) }} conversation{{ $conversations->total() === 1 ? '' : 's' }}</span></div>
-    <form class="module-toolbar module-filter-toolbar communication-filter-form" method="get">
+    <form class="module-toolbar module-filter-toolbar communication-filter-form" method="get" action="{{ route('admin.resource', $module) }}">
+        @if($kind !== '')<input type="hidden" name="kind" value="{{ $kind }}">@endif
         <label>Search<input name="q" value="{{ $search }}" type="search" placeholder="Email or subject" aria-label="Search conversations"></label>
         <label>Status<select name="status"><option value="">All statuses</option>@foreach(['new','open','pending','closed'] as $option)<option value="{{ $option }}" @selected($status === $option)>{{ ucfirst($option) }}</option>@endforeach</select></label>
         <button class="btn" type="submit">FILTER</button>
-        @if($search !== '' || $status !== '')<a class="clear-filter" href="{{ route('admin.resource', $module) }}">Clear</a>@endif
+        @if($search !== '' || $status !== '')<a class="clear-filter" href="{{ route('admin.resource', ['module' => $module] + ($kind !== '' ? ['kind' => $kind] : [])) }}">Clear</a>@endif
     </form>
     <div class="table-wrap"><table class="data-table communication-table">
         <thead><tr><th>Received</th><th>Customer</th><th>Subject</th><th>Message thread</th><th>Meeting request</th><th>Workflow</th><th>Action</th></tr></thead>
