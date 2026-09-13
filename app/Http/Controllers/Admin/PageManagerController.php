@@ -112,12 +112,13 @@ class PageManagerController extends Controller
             }
             $type = Str::limit(Str::slug((string) ($row['type'] ?? 'content')), 60, '');
             $settings = $this->normaliseSectionSettings($settings, $type);
+            $region = $row['region'] ?? 'main';
 
             return [
                 'type' => $type,
                 'label' => Str::limit((string) ($row['label'] ?? 'Content block'), 180, ''),
                 'sort_order' => $index,
-                'region' => in_array(($row['region'] ?? 'main'), ['main', 'header', 'footer'], true) ? $row['region'] : 'main',
+                'region' => in_array($region, ['main', 'header', 'footer'], true) ? $region : 'main',
                 'locale' => filled($row['locale'] ?? null) ? Str::limit((string) $row['locale'], 12, '') : null,
                 'media_uuid' => $this->approvedMediaUuid($row['media_uuid'] ?? null),
                 'focal_point' => is_array($row['focal_point'] ?? null) ? $row['focal_point'] : null,

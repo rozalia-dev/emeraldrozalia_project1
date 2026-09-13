@@ -32,8 +32,6 @@
     $stock = (int) $product->stock;
     $swatchColours = ['#614a31', '#1d2420', '#9b8365', '#244535', '#d9d2c4', '#232323'];
     $approvedMediaNames = $galleryMedia->pluck('original_name')
-        ->merge($product->media->where('type', 'spin_360')->map(fn ($media) => basename((string) $media->path)))
-        ->merge($legacySpinReferences ?? [])
         ->filter()
         ->unique()
         ->values();
