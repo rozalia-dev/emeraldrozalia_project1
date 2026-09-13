@@ -49,7 +49,7 @@ class ProductManagedSpinIntegrationTest extends TestCase
         $response->assertDontSee('/legacy-spin-001.jpg', false);
     }
 
-    public function test_product_detail_view_keeps_legacy_spin_frames_when_managed_spin_is_not_public(): void
+    public function test_product_detail_view_does_not_publish_legacy_spin_frames_when_managed_spin_is_not_public(): void
     {
         $product = Product::create([
             'name' => 'Legacy Spin Cap',
@@ -83,7 +83,9 @@ class ProductManagedSpinIntegrationTest extends TestCase
         $response = $this->get(route('product', $product));
 
         $response->assertOk();
-        $response->assertSee('/legacy-spin-001.jpg', false);
+        $response->assertSee('Legacy media references are awaiting migration.', false);
+        $response->assertDontSee('/legacy-spin-001.jpg', false);
+        $response->assertDontSee('/legacy-spin-002.jpg', false);
         $response->assertDontSee('/360/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/frames/0', false);
     }
 }

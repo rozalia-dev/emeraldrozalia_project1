@@ -113,6 +113,7 @@ class PageManagerController extends Controller
             $type = Str::limit(Str::slug((string) ($row['type'] ?? 'content')), 60, '');
             $settings = $this->normaliseSectionSettings($settings, $type);
             $region = $row['region'] ?? 'main';
+            $animation = $row['animation'] ?? 'none';
 
             return [
                 'type' => $type,
@@ -124,7 +125,7 @@ class PageManagerController extends Controller
                 'focal_point' => is_array($row['focal_point'] ?? null) ? $row['focal_point'] : null,
                 'devices' => is_array($row['devices'] ?? null) ? array_values(array_intersect(['desktop', 'tablet', 'mobile'], $row['devices'])) : ['desktop', 'tablet', 'mobile'],
                 'variant' => filled($row['variant'] ?? null) ? Str::limit((string) $row['variant'], 40, '') : null,
-                'animation' => in_array(($row['animation'] ?? 'none'), ['none', 'fade', 'rise', 'slide'], true) ? $row['animation'] : 'none',
+                'animation' => in_array($animation, ['none', 'fade', 'rise', 'slide'], true) ? $animation : 'none',
                 'analytics_key' => filled($row['analytics_key'] ?? null) ? Str::limit((string) $row['analytics_key'], 100, '') : null,
                 'validation_errors' => null,
                 'settings' => $settings,
