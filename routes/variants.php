@@ -13,6 +13,8 @@ Route::prefix('admin/resource/variants')->middleware(['auth','admin'])->name('ad
     Route::get('/export',[VariantController::class,'export'])->name('export');
     Route::get('/{variant}/audit',[VariantController::class,'audit'])->name('audit');
     Route::post('/{variant}/media',[VariantController::class,'storeMedia'])->name('media.store');
+    Route::post('/{variant}/media/{media}/approve',[VariantController::class,'approveMedia'])->name('media.approve');
+    Route::post('/{variant}/media/{media}/reject',[VariantController::class,'rejectMedia'])->name('media.reject');
     Route::delete('/{variant}/media/{media}',[VariantController::class,'destroyMedia'])->name('media.destroy');
     Route::patch('/{variant}',[VariantController::class,'update'])->name('update');
     Route::delete('/{variant}',[VariantController::class,'destroy'])->name('destroy');

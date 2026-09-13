@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Banner, BannerRevision};
+use App\Models\{Banner, BannerRevision, MediaAsset};
+use App\Rules\MediaDimensions;
 use App\Services\{AuditTrail, BannerDashboardService};
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\{RedirectResponse, Request};
@@ -18,7 +19,7 @@ class BannerController extends Controller
 {
     private const SNAPSHOT_FIELDS = [
         'title', 'subtitle', 'type', 'position', 'target_url', 'target_type', 'status',
-        'starts_at', 'ends_at', 'clicks', 'impressions', 'priority', 'image_disk', 'image_path',
+        'starts_at', 'ends_at', 'clicks', 'impressions', 'priority', 'image_disk', 'image_path', 'media_uuid',
         'device_visibility', 'specific_pages', 'alt_text', 'title_text', 'aria_label', 'animation',
         'autoplay', 'autoplay_speed', 'show_arrows', 'show_dots', 'pause_on_hover', 'settings',
     ];
@@ -327,8 +328,13 @@ class BannerController extends Controller
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'priority' => ['required', 'integer', 'min:1', 'max:999'],
+            'media_uuid' => ['nullable', 'uuid', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! MediaAsset::query()->approvedPublic()->where('uuid', $value)->exists()) {
+                    $fail('Choose an approved asset from the Public Media Library.');
+                }
+            }],
             'image_path' => ['nullable', 'string', 'max:500'],
-            'image' => ['nullable', 'image', 'max:5120'],
+            'image' => ['nullable', 'image', new MediaDimensions, 'max:5120'],
             'devices' => ['nullable', 'array'],
             'devices.*' => ['string', Rule::in(BannerDashboardService::DEVICES)],
             'specific_pages' => ['nullable', 'string', 'max:2000'],
@@ -347,8 +353,28 @@ class BannerController extends Controller
     private function attributes(Request $request, array $data, ?Banner $banner = null): array
     {
         $path = array_key_exists('image_path', $data) ? $data['image_path'] : $banner?->image_path;
+        $mediaUuid = array_key_exists('media_uuid', $data) ? ($data['media_uuid'] ?: null) : $banner?->media_uuid;
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('banners', 'public');
+            $file = $request->file('image');
+            $path = $file->store('site-media/banners', 'local');
+            $dimensions = @getimagesize($file->getRealPath());
+            $asset = MediaAsset::create([
+                'name' => Str::limit(trim((string) $data['title']).' banner', 180, ''),
+                'disk' => 'local',
+                'path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'bytes' => (int) ($file->getSize() ?: 0) ?: null,
+                'width' => (int) ($dimensions[0] ?? 0) ?: null,
+                'height' => (int) ($dimensions[1] ?? 0) ?: null,
+                'alt_text' => $data['alt_text'] ?? $data['title'],
+                'approval_status' => 'pending',
+                'active' => true,
+                'metadata' => ['original_name' => $file->getClientOriginalName(), 'source' => 'banner-upload'],
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+            ]);
+            AuditTrail::record('site-media.created', $asset, null, $asset->toArray());
+            $mediaUuid = $asset->uuid;
         }
 
         return [
@@ -362,7 +388,8 @@ class BannerController extends Controller
             'starts_at' => filled($data['starts_at'] ?? null) ? Carbon::parse($data['starts_at']) : null,
             'ends_at' => filled($data['ends_at'] ?? null) ? Carbon::parse($data['ends_at']) : null,
             'priority' => (int) $data['priority'],
-            'image_disk' => 'public',
+            'media_uuid' => $mediaUuid,
+            'image_disk' => $request->hasFile('image') ? 'local' : ($banner?->image_disk ?: 'local'),
             'image_path' => $path,
             'device_visibility' => $this->devices($data['devices'] ?? []),
             'specific_pages' => $this->pages($data['specific_pages'] ?? null),

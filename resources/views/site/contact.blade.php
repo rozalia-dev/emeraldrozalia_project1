@@ -3,6 +3,9 @@
 @section('title', 'Contact Us — Emerald Rozalia')
 
 @php
+    $publicMedia = app(\App\Services\PublicMediaResolver::class);
+    $contactHeroMedia = $publicMedia->forLegacyPath('assets/brand/contact-hero-reference.png', 'Emerald Rozalia storefront in Limerick');
+    $contactLocationMedia = $publicMedia->forLegacyPath('assets/brand/contact-location-reference.png', 'Limerick, Ireland, home of Emerald Rozalia manufacturing');
     $contactMonth = now()->startOfMonth();
     $contactToday = now()->startOfDay();
     $contactWeekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -25,7 +28,7 @@
             <p>Have a question about our hats and caps, an order or a partnership opportunity? Our team in Limerick is ready to assist you.</p>
         </div>
         <figure class="contact-hero-art">
-            <img src="{{ asset('assets/brand/contact-hero-reference.png') }}?v=20260904" width="694" height="307" alt="Emerald Rozalia storefront in Limerick" loading="eager" fetchpriority="high">
+            @if($contactHeroMedia)<img src="{{ $contactHeroMedia['url'] }}" @if($contactHeroMedia['srcset']) srcset="{{ $contactHeroMedia['srcset'] }}" sizes="{{ $contactHeroMedia['sizes'] }}" @endif width="{{ $contactHeroMedia['width'] ?: '' }}" height="{{ $contactHeroMedia['height'] ?: '' }}" alt="{{ $contactHeroMedia['alt'] }}" loading="eager" fetchpriority="high">@else<span class="public-media-missing">Approved contact artwork is not configured.</span>@endif
         </figure>
     </section>
 
@@ -136,7 +139,7 @@
             <p class="contact-section-kicker">VISIT OUR HOME</p>
             <h2>WE’RE BASED IN LIMERICK</h2>
             <figure>
-                <img src="{{ asset('assets/brand/contact-location-reference.png') }}?v=20260904" width="399" height="176" alt="Limerick, Ireland, home of Emerald Rozalia manufacturing">
+                @if($contactLocationMedia)<img src="{{ $contactLocationMedia['url'] }}" @if($contactLocationMedia['srcset']) srcset="{{ $contactLocationMedia['srcset'] }}" sizes="{{ $contactLocationMedia['sizes'] }}" @endif width="{{ $contactLocationMedia['width'] ?: '' }}" height="{{ $contactLocationMedia['height'] ?: '' }}" alt="{{ $contactLocationMedia['alt'] }}">@else<span class="public-media-missing">Approved location artwork is not configured.</span>@endif
             </figure>
             <p>Our manufacturing and support team is based in Limerick, Ireland.</p>
         </article>

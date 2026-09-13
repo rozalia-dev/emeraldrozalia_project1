@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Services\PublicMediaResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,7 +18,7 @@ class BannerResource extends JsonResource
             'position' => $this->position,
             'target_url' => $this->target_url,
             'target_type' => $this->target_type,
-            'image_url' => $this->imageUrl(),
+            'image_url' => app(PublicMediaResolver::class)->forUuid($this->media_uuid, $this->alt_text ?: $this->title)['url'] ?? null,
             'alt_text' => $this->alt_text ?: $this->title,
             'aria_label' => $this->aria_label,
             'starts_at' => $this->starts_at?->toIso8601String(),

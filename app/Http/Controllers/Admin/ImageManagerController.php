@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Product, ProductMedia};
-use App\Services\AuditTrail;
+use App\Rules\MediaDimensions;
+use App\Services\{AuditTrail, PublicMediaDerivativeService};
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
@@ -161,12 +162,12 @@ class ImageManagerController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PublicMediaDerivativeService $derivatives)
     {
         $data = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
             'files' => 'required|array|min:1|max:20',
-            'files.*' => 'required|file|image|max:20480|mimes:jpg,jpeg,png,webp,avif',
+            'files.*' => ['required', 'file', 'image', new MediaDimensions, 'max:20480', 'mimes:jpg,jpeg,png,webp,avif'],
             'image_role' => ['required', Rule::in(self::ROLES)],
             'alt_text' => 'nullable|string|max:255',
         ]);
@@ -199,7 +200,13 @@ class ImageManagerController extends Controller
                 'sort_order' => $role === 'primary' && $index === 0 ? 0 : $nextOrder + $index,
                 'metadata' => $metadata,
                 'active' => true,
+                'approval_status' => 'pending',
+                'mime_type' => $file->getMimeType(),
+                'width' => $width ?: null,
+                'height' => $height ?: null,
+                'bytes' => $sizeBytes ?: null,
             ]);
+            $media->updateQuietly(['responsive_variants' => $derivatives->generate($media, 1) ?: null]);
             AuditTrail::record('image.created', $media, null, $media->toArray());
             $created[] = $media;
         }

@@ -53,6 +53,15 @@ class ProductVariant extends Model
         return $this->hasMany(VariantMedia::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function approvedMedia(): HasMany
+    {
+        return $this->hasMany(VariantMedia::class)
+            ->where('approval_status', 'approved')
+            ->where('active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

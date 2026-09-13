@@ -7,11 +7,10 @@
 @endpush
 
 @php
-    $productImageUrl = static function (?string $path): ?string {
-        if (blank($path)) return null;
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
-        if (str_starts_with($path, 'assets/') || str_starts_with($path, 'images/') || str_starts_with($path, 'storage/')) return asset($path);
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+    $productImage = static function ($product): ?array {
+        $media = $product->media?->firstWhere('type', 'image');
+
+        return $media ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($media, $product->name) : null;
     };
 
     $swatchColour = static function ($value): string {
@@ -213,18 +212,18 @@
                         $productColours = collect($product->colours ?? [])->filter()->take(4);
                         $quickVariant = $product->variants->first(fn ($variant) => $variant->is_active && (int) $variant->stock > 0);
                         $canQuickAdd = $product->variants->isNotEmpty() ? (bool) $quickVariant : (int) $product->stock > 0;
-                        $rawSpinFrames = json_decode((string) ($product->getRawOriginal('spin_images') ?? '[]'), true);
                         $hasManagedSpin = $product->spins->contains(fn ($spin) => $spin->status === 'published' && $spin->visibility === 'public' && count($spin->frames ?? []) >= 2);
-                        $hasSpin = $hasManagedSpin || (is_array($rawSpinFrames) && count($rawSpinFrames) >= 2);
-                        $hasTryOn = filled($product->try_on_asset) || $product->tryOnAssets->contains(fn ($asset) => $asset->status === 'published' && $asset->visibility === 'public');
+                        $hasApprovedSpinMedia = $product->media->where('type', 'spin_360')->count() >= 2;
+                        $hasSpin = $hasManagedSpin || $hasApprovedSpinMedia;
+                        $hasTryOn = $product->media->where('type', 'try_on')->isNotEmpty() || $product->tryOnAssets->contains(fn ($asset) => $asset->status === 'published' && $asset->visibility === 'public');
                         $hasSale = filled($product->compare_price) && (float) $product->compare_price > (float) $product->price;
                         $discount = $hasSale ? max(1, (int) round((1 - ((float)$product->price / (float)$product->compare_price)) * 100)) : null;
                     @endphp
                     <article class="shop-product-card">
                         <div class="shop-product-media">
                             <a href="{{ route('product', $product) }}" aria-label="View {{ $product->name }}">
-                                @if($image = $productImageUrl($product->image))
-                                    <img src="{{ $image }}" alt="{{ $product->name }}" loading="lazy">
+                                @if($image = $productImage($product))
+                                    <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
                                 @else
                                     <span class="shop-product-placeholder"><x-icon name="clover" size="34" /><b>EMERALD ROZALIA</b><small>Product image coming soon</small></span>
                                 @endif
