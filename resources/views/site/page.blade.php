@@ -14,7 +14,7 @@
 @endpush
 
 @section('content')
-@if($previewMode ?? false)<div class="managed-page-preview-banner" role="status">Previewing {{ $managedPage->title }} · versioned draft render <a href="{{ route('admin.pages.edit', $managedPage) }}">Return to Page Manager</a></div>@endif
+@if($previewMode ?? false)<div class="managed-page-preview-banner" role="status">Previewing {{ $managedPage->title }} · versioned draft render <a href="{{ route('admin.pages.edit', $managedPage) }}">Edit page</a></div>@endif
 <section class="page-hero"><p class="eyebrow">EMERALD ROZALIA LIMITED</p><h1>{{ $pageTitle }}</h1><p>{{ $managedPage?->intro ?: 'Timeless styles. Irish heritage. Made in Limerick.' }}</p></section>
 
 @if($hasManagedContent)

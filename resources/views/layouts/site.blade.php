@@ -4,6 +4,7 @@
 @php($siteThemeMeta = data_get($siteSettings ?? [], 'theme_meta', []))
 @php($siteLayoutRegions = data_get($siteLayout ?? [], 'regions', []))
 @php($siteLayoutMeta = data_get($siteLayout ?? [], 'meta', []))
+@php($footerBrandDescription = data_get($siteLayoutRegions, 'footer.brand_description') ?: data_get($siteBranding, 'description', 'Proudly manufacturing hats and caps in Limerick, Ireland.'))
 @php($siteLayoutService = app(\App\Services\SiteLayoutVersionService::class))
 @php($layoutUrl = static fn ($link) => is_array($link) ? $siteLayoutService->urlFor($link) : null)
 @php($layoutPath = static fn (?string $href) => $href ? (parse_url($href, PHP_URL_PATH) ?: '/') : null)
@@ -103,7 +104,7 @@
     @php($footerLogoPath = in_array($footerLogoPath, ['/assets/logo/logo_one_line.png', '/assets/logo/logo_two_line.png'], true) ? $footerLogoPath : '/assets/logo/logo_two_line.png')
     <div class="footer-brand">
         <img class="brand-logo-image" src="{{ asset($footerLogoPath) }}" alt="{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}">
-        <p>{{ data_get($siteLayoutRegions, 'footer.brand_description', data_get($siteBranding, 'description', 'Proudly manufacturing hats and caps in Limerick, Ireland.')) }}</p>
+        <p>{{ $footerBrandDescription }}</p>
         <div class="socials">
             @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
                 @php($socialHref = $layoutUrl($social))

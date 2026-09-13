@@ -38,7 +38,7 @@ final class SiteLayoutVersionService
             ],
         ],
         'footer' => [
-            'brand_description' => 'Proudly manufacturing hats and caps in Limerick, Ireland.',
+            'brand_description' => null,
             'social_links' => [],
             'columns' => [
                 [

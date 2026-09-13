@@ -382,7 +382,7 @@ if(pageBuilder){
         if(!list)return;
         list.replaceChildren();
         sections.forEach((section,index)=>{
-            const block=document.createElement('article');block.className='page-builder-block';block.draggable=true;block.dataset.builderDropTarget='true';block.dataset.builderIndex=String(index);block.tabIndex=0;block.setAttribute('aria-label',`${labels[section.type]||'Content block'} ${index+1}`);
+            const block=document.createElement('article');block.className='page-builder-block';block.draggable=true;block.dataset.builderDropTarget='true';block.setAttribute('data-builder-drop-target','true');block.dataset.builderIndex=String(index);block.tabIndex=0;block.setAttribute('aria-label',`${labels[section.type]||'Content block'} ${index+1}`);
             block.addEventListener('dragstart',(event)=>{draggingIndex=index;block.classList.add('is-dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index))});
             block.addEventListener('dragover',(event)=>{event.preventDefault();if(draggingIndex!==null&&draggingIndex!==index){clearDropTargets();block.classList.add('is-drop-target');event.dataTransfer.dropEffect='move'}});
             block.addEventListener('drop',(event)=>{event.preventDefault();const source=draggingIndex===null?Number(event.dataTransfer.getData('text/plain')):draggingIndex;clearDropTargets();moveTo(source,index);draggingIndex=null});
