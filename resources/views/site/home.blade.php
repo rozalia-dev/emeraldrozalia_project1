@@ -18,20 +18,28 @@
             $value = trim((string) $value);
             return $value !== '' && str_starts_with($value, '/') && ! str_starts_with($value, '//') ? $value : $fallback;
         };
+        $tryOnSource = $homeLatestProducts ?? $homeProducts ?? collect();
+        $tryOnProducts = $tryOnSource instanceof \Illuminate\Support\Collection ? $tryOnSource->take(8) : collect();
+        $fallbackProduct = $tryOnProducts->first();
+        $fallbackProductMedia = $fallbackProduct?->media?->firstWhere('type', 'image');
+        $fallbackProductDescriptor = $fallbackProductMedia
+            ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($fallbackProductMedia, $fallbackProduct->name)
+            : null;
         $heroMedia = $heroSection && is_array($homeMedia ?? null) && filled($heroSection->media_uuid)
             ? ($homeMedia[$heroSection->media_uuid] ?? null)
             : null;
-        $heroVisual = is_array($heroMedia) ? $heroMedia : (is_array($homeHeroReferenceMedia ?? null) ? $homeHeroReferenceMedia : null);
-        $heroVisualIsReference = ! is_array($heroMedia) && is_array($heroVisual);
+        $heroVisual = is_array($heroMedia)
+            ? $heroMedia
+            : (is_array($fallbackProductDescriptor)
+                ? $fallbackProductDescriptor
+                : (is_array($homeHeroReferenceMedia ?? null) ? $homeHeroReferenceMedia : null));
+        $heroVisualIsReference = ! is_array($heroMedia) && ! is_array($fallbackProductDescriptor) && is_array($heroVisual);
         $heroVisualUrl = is_array($heroVisual) ? ($heroVisual['url'] ?? null) : null;
         $heroVisualAlt = is_array($heroVisual) ? ($heroVisual['alt'] ?? 'Emerald Rozalia hat') : 'Emerald Rozalia hat';
         $heroId = $heroSection ? 'home-section-' . ($heroSection->uuid ?: $heroSection->id) : 'home-hero';
         $heroDevices = $heroSection && is_array($heroSection->devices) && $heroSection->devices !== [] ? $heroSection->devices : ['desktop', 'tablet', 'mobile'];
         $heroDeviceValue = implode(' ', array_values(array_intersect(['desktop', 'tablet', 'mobile'], $heroDevices)));
         $heroAnimation = $heroSection && in_array($heroSection->animation, ['none', 'fade', 'rise', 'slide'], true) ? $heroSection->animation : 'none';
-        $tryOnProducts = ($homeLatestProducts ?? $homeProducts ?? collect()) instanceof \Illuminate\Support\Collection
-            ? ($homeLatestProducts ?? $homeProducts)->take(8)
-            : collect();
     @endphp
 
     <div class="home-page" data-homepage-page-uuid="{{ $homepage?->uuid ?: 'reserved-homepage-pending' }}" data-homepage-source="{{ $homepage ? 'content-page-active-record' : 'reserved-homepage-fallback' }}" data-homepage-renderer="persisted-page-sections">
@@ -55,7 +63,7 @@
                         </div>
                     </div>
 
-                    <div class="home-hero-structured-product @if($heroVisualIsReference) is-reference-crop @endif" data-public-media-state="{{ is_array($heroMedia) ? 'approved' : ($heroVisualUrl ? 'reference-crop' : 'awaiting-approved-media') }}">
+                    <div class="home-hero-structured-product @if($heroVisualIsReference) is-reference-crop @endif" data-public-media-state="{{ is_array($heroMedia) ? 'approved' : (is_array($fallbackProductDescriptor) ? 'product-media' : ($heroVisualUrl ? 'reference-crop' : 'awaiting-approved-media')) }}">
                         @if($heroVisualUrl)
                             <img src="{{ $heroVisualUrl }}" alt="{{ $heroVisualAlt }}" fetchpriority="high">
                         @else
