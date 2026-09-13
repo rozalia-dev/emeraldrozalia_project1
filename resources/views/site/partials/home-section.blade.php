@@ -71,7 +71,7 @@
         <section {!! $sectionAttributes !!} class="home-published-banners" data-public-source="published-banner-records" data-banner-position="{{ $copy('position', 'Home - Main Slider') }}" aria-label="Published Emerald Rozalia banners">
             <?php if (isset($banners) && $banners->isNotEmpty()) { ?>
                 <?php foreach ($banners as $banner) { ?>
-                    @php($bannerTarget = $safeUrl($banner->target_url))
+                    <?php $bannerTarget = $safeUrl($banner->target_url); ?>
                     <?php if ($bannerTarget) { ?>
                         <a class="home-published-banner" href="{{ $bannerTarget }}" data-banner-public-uuid="{{ $banner->public_uuid }}">
                     <?php } else { ?>
@@ -100,7 +100,7 @@
         </section>
 <?php } elseif ($type === 'benefits') { ?>
 
-        @php($benefitItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [])
+        <?php $benefitItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : []; ?>
         <section {!! $sectionAttributes !!} class="home-benefits" aria-label="{{ $copy('aria_label', $section->label ?: 'Emerald Rozalia benefits') }}">
             <?php foreach ($benefitItems as $item) { ?>
                 <?php if (is_array($item) && filled($item['title'] ?? null)) { ?>
@@ -113,7 +113,7 @@
         </section>
 <?php } elseif ($type === 'collections') { ?>
 
-        @php($collectionItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [])
+        <?php $collectionItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : []; ?>
         <section {!! $sectionAttributes !!} class="home-section home-collections home-collections--managed">
             <div class="home-section-heading"><span></span><h2>{{ $copy('title', $section->label ?: 'SHOP BY COLLECTIONS') }}</h2><span></span></div>
             <div class="home-collection-grid">
@@ -140,8 +140,8 @@
         </section>
 <?php } elseif ($type === 'heritage') { ?>
 
-        @php($heritageButtonUrl = $safeUrl($settings['button_href'] ?? null))
-        @php($heritageBadges = is_array($settings['badges'] ?? null) ? array_values($settings['badges']) : [])
+        <?php $heritageButtonUrl = $safeUrl($settings['button_href'] ?? null); ?>
+        <?php $heritageBadges = is_array($settings['badges'] ?? null) ? array_values($settings['badges']) : []; ?>
         <section {!! $sectionAttributes !!} class="home-heritage home-heritage--managed" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-heritage-copy">
                 <p class="eyebrow">{{ $copy('eyebrow', $section->label ?: 'THE IRISH HERITAGE COLLECTION') }}</p>
@@ -187,7 +187,7 @@
                     <button class="home-carousel-arrow home-carousel-arrow--prev" type="button" data-home-carousel-prev aria-label="Previous {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-left" size="20" /></button>
                     <div class="home-product-grid" data-home-carousel-track>
                         <?php foreach ($homeProductItems as $product) { ?>
-                            @php($productMedia = $product->media->firstWhere('type', 'image'))
+                            <?php $productMedia = $product->media->firstWhere('type', 'image'); ?>
                             <article class="home-product-card">
                                 <a class="home-product-link" href="{{ route('product', $product) }}">
                                     <div class="home-product-media home-managed-media home-managed-media--product" data-public-media-state="{{ $productMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $product->name }} product image">
@@ -215,7 +215,7 @@
         </section>
 <?php } elseif ($type === 'quality') { ?>
 
-        @php($qualityButtonUrl = $safeUrl($settings['button_href'] ?? null))
+        <?php $qualityButtonUrl = $safeUrl($settings['button_href'] ?? null); ?>
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-quality-visual home-managed-media home-managed-media--quality" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
@@ -235,7 +235,7 @@
         </section>
 <?php } elseif ($type === 'franchise') { ?>
 
-        @php($franchiseButtonUrl = $safeUrl($settings['button_href'] ?? null))
+        <?php $franchiseButtonUrl = $safeUrl($settings['button_href'] ?? null); ?>
         <section {!! $sectionAttributes !!} class="home-franchise home-franchise--managed" aria-labelledby="{{ $sectionId }}-title">
             <div>
                 <p class="eyebrow">{{ $copy('eyebrow', 'FRANCHISE OPEN NOW') }}</p>
