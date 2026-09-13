@@ -145,6 +145,6 @@ class AdminDashboardMetricsTest extends TestCase
         $this->assertStringContainsString('data-dashboard-selected-period="last_month"', $html);
         $this->assertStringContainsString('(Last Month)', $html);
         $this->assertStringContainsString('€200.00', $html);
-        $this->assertStringContainsString(route('admin.order-master', ['type' => 'franchise', 'date_from' => $dateFrom, 'date_to' => $dateTo]), $html);
+        $this->assertStringContainsString(htmlspecialchars(route('admin.order-master', ['type' => 'franchise', 'date_from' => $dateFrom, 'date_to' => $dateTo]), ENT_QUOTES, 'UTF-8'), $html);
     }
 }
