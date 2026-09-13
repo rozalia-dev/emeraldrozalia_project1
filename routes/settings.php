@@ -1,7 +1,12 @@
 <?php
 
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\ThemeController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/admin/resource/settings/company-branding/theme', [ThemeController::class, 'index'])
+    ->middleware(['auth', 'admin'])
+    ->name('admin.settings.theme.index');
 
 Route::prefix('admin/resource/settings')->middleware(['auth', 'admin'])->name('admin.settings.')->group(function (): void {
     Route::get('/', [SettingsController::class, 'overview'])->name('overview');
@@ -21,6 +26,9 @@ Route::prefix('admin/settings')->middleware(['auth', 'admin'])->name('admin.sett
     Route::post('/automations', [SettingsController::class, 'storeAutomation'])->name('automations.store');
     Route::post('/automations/{automation}/toggle', [SettingsController::class, 'toggleAutomation'])->name('automations.toggle');
     Route::post('/backups', [SettingsController::class, 'storeBackup'])->name('backups.store');
+    Route::post('/themes/drafts', [ThemeController::class, 'store'])->name('theme.store');
+    Route::patch('/themes/{theme}', [ThemeController::class, 'update'])->name('theme.update');
+    Route::post('/themes/{theme}/action/{action}', [ThemeController::class, 'action'])->name('theme.action');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin/resource')->group(function (): void {

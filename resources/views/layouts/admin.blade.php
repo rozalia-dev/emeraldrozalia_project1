@@ -174,14 +174,28 @@
                 @php
                     $settingsNav = [
                         ['slug' => null, 'label' => 'Settings', 'icon' => 'settings', 'active' => request()->routeIs('admin.settings.overview')],
-                        ['slug' => 'audit-logs', 'label' => 'Audit & Logs', 'icon' => 'file-text'],
+                        ['slug' => 'general-configuration', 'label' => 'General Configuration', 'icon' => 'settings'],
+                        ['slug' => 'company-branding', 'label' => 'Company & Branding', 'icon' => 'briefcase'],
+                        ['theme' => true, 'label' => 'Theme Manager', 'icon' => 'palette'],
+                        ['slug' => 'email-notifications', 'label' => 'Email & Notifications', 'icon' => 'mail'],
+                        ['slug' => 'whatsapp-messaging', 'label' => 'WhatsApp & Messaging', 'icon' => 'message'],
+                        ['slug' => 'payment-gateways', 'label' => 'Payment Gateways', 'icon' => 'credit-card'],
+                        ['slug' => 'localization', 'label' => 'Localization', 'icon' => 'globe'],
+                        ['slug' => 'security-access', 'label' => 'Security & Access', 'icon' => 'check'],
+                        ['slug' => 'api-roles', 'label' => 'Users & Roles / API Roles', 'icon' => 'users'],
+                        ['slug' => 'application-settings', 'label' => 'Application Settings', 'icon' => 'settings'],
+                        ['slug' => 'document-storage', 'label' => 'Document & Storage', 'icon' => 'file-text'],
                         ['slug' => 'integrations', 'label' => 'Integrations', 'icon' => 'refresh'],
-                        ['slug' => 'backup-recovery', 'label' => 'Data Management', 'icon' => 'download'],
+                        ['slug' => 'automations', 'label' => 'Automations', 'icon' => 'refresh'],
+                        ['slug' => 'backup-recovery', 'label' => 'Backup & Recovery', 'icon' => 'download'],
+                        ['slug' => 'audit-logs', 'label' => 'Audit & Logs', 'icon' => 'file-text'],
+                        ['slug' => 'system-maintenance', 'label' => 'System Maintenance', 'icon' => 'refresh'],
+                        ['slug' => 'other-settings', 'label' => 'Other Settings', 'icon' => 'dots'],
                     ];
                 @endphp
                 @foreach($settingsNav as $item)
-                    @php $active = $item['slug'] === null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section') === $item['slug']; @endphp
-                    <a class="{{$active?'active':''}}" href="{{$item['slug'] === null ? route('admin.settings.overview') : route('admin.settings.page', $item['slug'])}}"><span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span></a>
+                    @php $active = !empty($item['theme']) ? request()->routeIs('admin.settings.theme.index') : ($item['slug'] === null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section') === $item['slug']); @endphp
+                    <a class="{{$active?'active':''}}" href="{{!empty($item['theme']) ? route('admin.settings.theme.index') : ($item['slug'] === null ? route('admin.settings.overview') : route('admin.settings.page', $item['slug']))}}"><span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span></a>
                 @endforeach
             </div>
         </details>

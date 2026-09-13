@@ -105,6 +105,7 @@ final class PublishedSiteSettings
         $branding['brand_secondary'] = $this->safeHex($branding['brand_secondary'] ?? null, '#0b1711');
         $branding['brand_accent'] = $this->safeHex($branding['brand_accent'] ?? null, '#7fbd42');
         $sections['company-branding'] = $branding;
+        $theme = app(ThemeVersionService::class)->publicSnapshot($company, 'production', app()->getLocale());
 
         return [
             'meta' => [
@@ -113,6 +114,9 @@ final class PublishedSiteSettings
                 'section_versions' => $versions,
                 'published_at' => $publishedAt,
             ],
+            'theme' => $theme['tokens'],
+            'theme_meta' => $theme['meta'],
+            'theme_assets' => $theme['assets'],
             ...$sections,
         ];
     }
