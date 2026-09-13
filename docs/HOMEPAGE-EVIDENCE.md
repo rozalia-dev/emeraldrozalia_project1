@@ -1,6 +1,6 @@
 # Homepage evidence (P2.5)
 
-The homepage has been rebuilt as a dedicated, reference-ordered composition rather than a generic page template. The approved homepage reference supplied for this task is available as the public static asset `public/assets/brand/home-page-reference.png` and is used as the visual crop source for the live composition while Laravel keeps the links, product data and Try-On destination functional:
+The homepage is a dedicated, reference-ordered composition rather than a generic page template. The supplied full-page artwork and standalone hero artwork are registered as approved baseline media during deployment. They are delivered through the controlled UUID media route and used only when a Page Manager section has no selected media UUID. A selected approved UUID always takes precedence while Laravel keeps links, product data and the Try-On destination functional:
 
 1. hero message and Virtual Try-On placement
 2. five-value benefits band
@@ -11,13 +11,15 @@ The homepage has been rebuilt as a dedicated, reference-ordered composition rath
 7. Ireland franchise CTA
 8. shared footer from the public shell
 
-The homepage visual pass now includes the hero campaign, collection imagery, heritage collage, bestseller imagery, manufacturing strip and franchise visual treatment from the supplied approved reference. The reference is served directly from `public/` so the hero, exact wordmark crop, and all photographic panels do not depend on a Laravel route or a deploy-time `docs/` path. The homepage remains data-aware: seeded product media takes precedence when available, with the approved reference crops providing the branded visual baseline when catalogue media is empty.
+The homepage visual pass now includes the hero campaign, collection imagery, heritage collage, bestseller imagery, manufacturing strip and franchise visual treatment from the supplied approved reference. The homepage remains data-aware: approved product media takes precedence when available, with the approved reference crops providing the branded visual baseline when catalogue media is empty.
 
 ## Shared shell alignment
 
-The homepage and every public route now render the same `layouts.site` shell. Header height, brand slot, navigation gap, utility icon sizing, footer columns and mobile menu breakpoints are shared tokens; the active navigation item is route-aware across the locked eight-item public navigation. Contact Us remains footer-only. The cPanel uses the same centralized `<x-icon>` SVG component for navigation and utility actions. The public templates contain no Unicode/emoji icon glyphs; arrows, account, cart, social, upload, media and status affordances are SVG paths from `resources/views/components/icon.blade.php`.
+The homepage, Contact page, catalog pages, and standard public pages render the same `layouts.site` shell. The attached slim header geometry is now the shared desktop header: 104px tall, approved horizontal wordmark, locked eight-item navigation, and search/account/cart utilities. The active navigation item is route-aware. Contact Us remains footer-only. Header and footer regions are marked as shared shell regions so regression tests can compare them directly. The `factory-reference` presentation remains an intentional approved-artwork exception because its page is a single interactive factory canvas with its own artwork hotspots.
 
-The supplied standalone wordmark files in the repository are currently CRC-invalid. Until a valid standalone copy of the approved logo is supplied, the shell uses the approved homepage reference asset for the visible brand slot and does not render the broken files. This is an asset-integrity gap, not a pixel-approval claim.
+The cPanel uses the same centralized `<x-icon>` SVG component for navigation and utility actions. The public templates contain no Unicode/emoji icon glyphs; arrows, account, cart, social, upload, media and status affordances are SVG paths from `resources/views/components/icon.blade.php`.
+
+For the operator workflow, see [`docs/PUBLIC-MEDIA-EDITING.md`](PUBLIC-MEDIA-EDITING.md). It covers upload, alt text and focal points, approval, Page Manager UUID selection, replacement/version restore, and shared-layout activation.
 
 ## Verification
 
@@ -28,6 +30,6 @@ The expected verification commands are:
 & 'C:\Users\newuser\.config\herd\bin\php84\php.exe' artisan test
 ```
 
-Static source verification for this shell pass is clean: all public and cPanel views resolve through their shared layouts, icon names resolve through the centralized SVG component, named route references resolve, Blade directives are balanced, and the approved reference asset decodes. The current work environment does not include a PHP executable or Composer, so view compilation and the Laravel feature suite could not be re-run here. The connected GitHub status endpoint currently reports no checks for the latest `main` commit, so CI and server-rendered visual verification remain pending.
+Static source verification for this shell pass is clean: standard public views resolve through the shared layout, the media manager link resolves to the approved workflow, icon names resolve through the centralized SVG component, and the approved reference assets decode. The current work environment does not include a PHP executable or Composer, so view compilation and the Laravel feature suite must be verified by branch CI.
 
 Pixel comparison remains tied to the supplied 864×1821 reference and should be confirmed with the Playwright visual suite at the same viewport.

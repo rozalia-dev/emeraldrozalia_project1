@@ -1,0 +1,235 @@
+/* Shared public shell: the supplied slim header is the single header geometry
+   for the homepage, Contact and every other public route. The context forms
+   remain in the DOM for the locale contract but stay out of this visual shell. */
+.site-body .site-context-bar {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.site-body .site-header[data-public-shell-region="header"] {
+    position: relative;
+    z-index: 40;
+    display: flex;
+    width: 100%;
+    height: 104px;
+    min-height: 104px;
+    align-items: center;
+    gap: 24px;
+    padding: 0 25px;
+    background: #010705;
+    border-bottom: 1px solid rgba(96, 137, 73, .18);
+}
+
+.site-body .site-header[data-public-shell-region="header"] .brand {
+    display: flex;
+    width: 267px;
+    height: 100%;
+    flex: 0 0 267px;
+    align-items: center;
+}
+
+.site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+    display: block;
+    width: 267px;
+    height: 72px;
+    object-fit: cover;
+    object-position: center 65%;
+}
+
+.site-body .site-header[data-public-shell-region="header"] nav {
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    flex: 1 1 auto;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.site-body .site-header[data-public-shell-region="header"] nav a {
+    display: inline-flex;
+    height: 100%;
+    min-height: 0;
+    align-items: center;
+    padding: 0;
+    color: #f4f4ef;
+    border-bottom: 2px solid transparent;
+}
+
+.site-body .site-header[data-public-shell-region="header"] nav a.is-active {
+    color: #8cc63e;
+    border-bottom-color: #8cc63e;
+}
+
+.site-body .site-header[data-public-shell-region="header"] .utilities {
+    display: flex;
+    min-width: 108px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 24px;
+    margin-left: 0;
+}
+
+.site-body .site-header[data-public-shell-region="header"] .utilities a {
+    display: inline-flex;
+    min-width: 28px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    color: #f4f4ef;
+}
+
+.site-body .site-header[data-public-shell-region="header"] .utilities a .ui-icon {
+    width: 21px;
+    height: 21px;
+}
+
+.site-body .site-header[data-public-shell-region="header"] .nav-toggle {
+    display: none;
+}
+
+@media (max-width: 1500px) and (min-width: 1101px) {
+    .site-body .site-header[data-public-shell-region="header"] {
+        gap: 18px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand,
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        width: 230px;
+        flex-basis: 230px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] nav {
+        gap: 15px;
+        font-size: 12px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .utilities {
+        min-width: 96px;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 1100px) {
+    .site-body .site-header[data-public-shell-region="header"] {
+        height: 84px;
+        min-height: 84px;
+        padding: 0 18px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand,
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        width: 210px;
+        flex-basis: 210px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        height: 66px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] nav {
+        top: 100%;
+        right: 0;
+        left: 0;
+        display: flex;
+        height: auto;
+        max-height: 0;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 0;
+        padding: 0 18px;
+        overflow: hidden;
+        background: #03100b;
+        border-bottom: 1px solid #294731;
+    }
+    .site-body .site-header[data-public-shell-region="header"] nav:not(.open) {
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .site-body .site-header[data-public-shell-region="header"] nav.open {
+        max-height: 520px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .site-body .site-header[data-public-shell-region="header"] nav a {
+        height: auto;
+        min-height: 44px;
+        padding: 12px 0;
+        border-bottom: 0;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .nav-toggle {
+        display: inline-flex;
+        width: 42px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 1px solid rgba(140, 198, 62, .35);
+        color: #f4f4ef;
+        background: transparent;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .utilities {
+        min-width: 96px;
+        gap: 14px;
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 700px) {
+    .site-body .site-header[data-public-shell-region="header"] {
+        height: 78px;
+        min-height: 78px;
+        gap: 8px;
+        padding: 0 16px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand,
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        width: 190px;
+        flex-basis: 190px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        height: 62px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .utilities {
+        min-width: 0;
+        gap: 7px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .utilities a {
+        min-width: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .site-body .site-header[data-public-shell-region="header"] {
+        gap: 5px;
+        padding: 0 10px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand,
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        width: 145px;
+        flex-basis: 145px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
+        height: 55px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .nav-toggle {
+        width: 36px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .utilities {
+        gap: 2px;
+    }
+    .site-body .site-header[data-public-shell-region="header"] .utilities a {
+        min-width: 27px;
+    }
+}

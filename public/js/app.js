@@ -339,7 +339,7 @@ if(pageBuilder){
         control.addEventListener('input',()=>{checkpointBeforeInput(control);setSectionValue(section,key,control.value)});wrapper.appendChild(control);fields.appendChild(wrapper);
     };
     const addMediaField=(fields,section)=>{
-        const wrapper=document.createElement('label');wrapper.textContent='Approved public media';
+        const wrapper=document.createElement('label');wrapper.textContent='Approved public media (select after approval)';
         const control=document.createElement('select');
         const empty=document.createElement('option');empty.value='';empty.textContent=approvedMedia.length?'Select approved media':'No approved media available';control.appendChild(empty);
         approvedMedia.forEach((media)=>{const option=document.createElement('option');option.value=media.uuid;option.textContent=(media.original_name||media.alt||'Approved asset')+' · '+media.uuid.slice(0,8);option.selected=section.media_uuid===media.uuid;control.appendChild(option)});

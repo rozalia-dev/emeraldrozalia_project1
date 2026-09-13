@@ -149,7 +149,7 @@ class PageComposerContractTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $html = $this->actingAs($admin)->get(route('admin.pages.create'))->assertOk()->getContent();
 
-        foreach (['Drag sections to reorder', 'data-builder-undo', 'Enable JavaScript to edit this block inline.'] as $contract) {
+        foreach (['Drag sections to reorder', 'data-builder-undo', 'Enable JavaScript to edit this block inline.', 'Media Manager', 'select it in each section'] as $contract) {
             $this->assertStringContainsString($contract, $html);
         }
 

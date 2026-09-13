@@ -13,6 +13,9 @@ class PublicContentContractTest extends TestCase
     public function test_public_shell_keeps_the_locked_header_and_footer_contact_rule(): void
     {
         $html = $this->get(route('home'))->assertOk()->getContent();
+        $this->assertStringContainsString('data-public-shell="shared"', $html);
+        $this->assertStringContainsString('data-public-shell-region="header"', $html);
+        $this->assertStringContainsString('data-public-shell-region="footer"', $html);
         $navStart = strpos($html, '<nav data-nav');
         $navEnd = $navStart === false ? false : strpos($html, '</nav>', $navStart);
 
@@ -36,6 +39,36 @@ class PublicContentContractTest extends TestCase
         $this->assertStringContainsString('aria-label="Search"', $html);
         $this->assertStringContainsString('aria-label="Login"', $html);
         $this->assertStringContainsString('aria-label="Cart"', $html);
+    }
+
+    public function test_contact_and_homepage_render_the_same_shared_public_header_and_footer_regions(): void
+    {
+        $home = $this->get(route('home'))->assertOk()->getContent();
+        $contact = $this->get(route('contact'))->assertOk()->getContent();
+
+        foreach ([$home, $contact] as $html) {
+            $this->assertStringContainsString('data-public-shell="shared"', $html);
+            $this->assertStringContainsString('data-public-shell-region="header"', $html);
+            $this->assertStringContainsString('data-public-shell-region="footer"', $html);
+            $this->assertStringContainsString('href="/contact">Contact Us', $html);
+        }
+
+        $extract = static function (string $html, string $start, string $end): string {
+            $startPosition = strpos($html, $start);
+            $endPosition = $startPosition === false ? false : strpos($html, $end, $startPosition);
+
+            return ($startPosition !== false && $endPosition !== false)
+                ? substr($html, $startPosition, $endPosition - $startPosition)
+                : '';
+        };
+
+        $normalizeNavigation = static fn (string $navigation): string => preg_replace('/\s+(?:class|aria-current)="[^"]*"/', '', $navigation) ?: $navigation;
+
+        $this->assertSame(
+            $normalizeNavigation($extract($home, '<nav data-nav', '</nav>')),
+            $normalizeNavigation($extract($contact, '<nav data-nav', '</nav>')),
+            'Home and Contact must use the same configured public navigation snapshot.',
+        );
     }
 
     public function test_published_footer_pages_are_available_without_expanding_the_fixed_header(): void

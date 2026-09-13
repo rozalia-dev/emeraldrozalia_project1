@@ -30,6 +30,7 @@
     $media = is_array($homeMedia ?? null) ? ($homeMedia[$section->media_uuid] ?? null) : null;
     $mediaUrl = is_array($media) ? ($media['url'] ?? null) : null;
     $mediaAlt = is_array($media) ? ($media['alt'] ?? $copy('alt', $section->label ?: 'Homepage media')) : $copy('alt', $section->label ?: 'Homepage media');
+    $heroReferenceMedia = is_array($homeHeroReferenceMedia ?? null) ? $homeHeroReferenceMedia : null;
     $sectionAttributes = 'id="'.$sectionId.'" data-home-section="'.$type.'" data-home-section-uuid="'.$section->uuid.'" data-home-animation="'.$animation.'" data-home-devices="'.$deviceValue.'"';
 @endphp
 
@@ -38,37 +39,43 @@
             $heroPrimaryUrl = $safeUrl($settings['primary_href'] ?? null);
             $heroSecondaryUrl = $safeUrl($settings['secondary_href'] ?? null);
             $heroTertiaryUrl = $safeUrl($settings['tertiary_href'] ?? null);
+            $heroArtUrl = $mediaUrl ?: ($heroReferenceMedia['url'] ?? null);
+            $heroArtAlt = $mediaUrl ? $mediaAlt : ($heroReferenceMedia['alt'] ?? $mediaAlt);
+            $heroUsesReferenceArt = filled($heroArtUrl);
         @endphp
-        <section {!! $sectionAttributes !!} class="home-hero home-hero--managed" aria-labelledby="{{ $sectionId }}-title">
+        <section {!! $sectionAttributes !!} class="home-hero home-hero--managed @if($heroUsesReferenceArt) home-hero--reference-art @endif" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-hero-composition">
+                @if($heroArtUrl)
+                    <img class="home-hero-art" src="{{ $heroArtUrl }}" alt="{{ $heroArtAlt }}" width="{{ $heroReferenceMedia['width'] ?? 864 }}" height="{{ $heroReferenceMedia['height'] ?? 384 }}" fetchpriority="high">
+                @endif
                 <div class="home-hero-copy">
                     <p class="eyebrow">{{ $copy('eyebrow', $section->label ?: 'EMERALD ROZALIA') }}</p>
                     <h1 id="{{ $sectionId }}-title">{{ $copy('title', $section->label ?: 'Emerald Rozalia') }}</h1>
                     <p>{{ $copy('content') }}</p>
                     <div class="home-hero-actions">
                         <?php if ($heroPrimaryUrl) { ?>
-                            <a class="btn" href="{{ $heroPrimaryUrl }}">{{ $copy('primary_label', 'Explore') }} <x-icon name="arrow-right" /></a>
+                            <a class="btn home-hero-action--primary" href="{{ $heroPrimaryUrl }}">{{ $copy('primary_label', 'Explore') }} <x-icon name="arrow-right" /></a>
                         <?php } ?>
                         <?php if ($heroSecondaryUrl) { ?>
-                            <a class="btn ghost" href="{{ $heroSecondaryUrl }}">{{ $copy('secondary_label', 'Shop now') }}</a>
+                            <a class="btn ghost home-hero-action--secondary" href="{{ $heroSecondaryUrl }}">{{ $copy('secondary_label', 'Shop now') }}</a>
                         <?php } ?>
                         <?php if ($heroTertiaryUrl) { ?>
-                            <a class="home-hero-text-link" href="{{ $heroTertiaryUrl }}">{{ $copy('tertiary_label', 'Our story') }} <x-icon name="arrow-right" size="16" /></a>
+                            <a class="home-hero-text-link home-hero-action--tertiary" href="{{ $heroTertiaryUrl }}">{{ $copy('tertiary_label', 'Our story') }} <x-icon name="arrow-right" size="16" /></a>
                         <?php } ?>
                     </div>
                 </div>
-                <div class="home-hero-visual home-managed-media home-managed-media--hero" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
-                    <?php if ($mediaUrl) { ?>
+                <div class="home-hero-visual home-managed-media home-managed-media--hero" data-public-media-state="{{ $mediaUrl ? 'approved' : ($heroReferenceMedia ? 'reference-baseline' : 'awaiting-approved-media') }}" role="img" aria-label="{{ $heroArtAlt }}">
+                    <?php if ($mediaUrl && ! $heroUsesReferenceArt) { ?>
                         <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
                     <?php } else { ?>
-                        <span class="sr-only">Approved homepage media is not configured for this section.</span>
+                        <span class="sr-only">{{ $heroReferenceMedia ? 'The approved reference composition is displayed. Select a different approved media asset in Page Manager to replace it.' : 'Approved homepage media is not configured for this section.' }}</span>
                     <?php } ?>
                 </div>
             </div>
         </section>
 <?php } elseif ($type === 'banners') { ?>
 
-        <section {!! $sectionAttributes !!} class="home-published-banners" data-public-source="published-banner-records" data-banner-position="{{ $copy('position', 'Home - Main Slider') }}" aria-label="Published Emerald Rozalia banners">
+        <section {!! $sectionAttributes !!} class="home-published-banners @if(! isset($banners) || $banners->isEmpty()) home-published-banners--empty @endif" data-public-source="published-banner-records" data-banner-position="{{ $copy('position', 'Home - Main Slider') }}" aria-label="Published Emerald Rozalia banners">
             <?php if (isset($banners) && $banners->isNotEmpty()) { ?>
                 <?php foreach ($banners as $banner) { ?>
                     <?php
@@ -122,7 +129,7 @@
         <section {!! $sectionAttributes !!} class="home-section home-collections home-collections--managed">
             <div class="home-section-heading"><span></span><h2>{{ $copy('title', $section->label ?: 'SHOP BY COLLECTIONS') }}</h2><span></span></div>
             <div class="home-collection-grid">
-                <?php foreach ($collectionItems as $item) { ?>
+                <?php foreach ($collectionItems as $collectionIndex => $item) { ?>
                     <?php if (is_array($item) && filled($item['title'] ?? null)) { ?>
                                 @php
                                     $slug = trim((string) ($item['slug'] ?? ''));
@@ -132,7 +139,7 @@
                                 @endphp
                         <?php if ($collectionUrl) { ?>
                             <a class="home-collection-card" href="{{ $collectionUrl }}">
-                                <div class="home-managed-media home-managed-media--collection" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
+                                <div class="home-managed-media home-managed-media--collection @if(! $collectionMedia) home-reference-media home-reference-media--collection-{{ $collectionIndex + 1 }} @endif" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
                                     <?php if ($collectionMedia) { ?><img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif alt="{{ $collectionMedia['alt'] }}" loading="lazy"><?php } ?>
                                     <?php if (!empty($item['new'])) { ?>
                                         <span class="home-collection-new">NEW</span>
@@ -151,14 +158,14 @@
         <?php $heritageBadges = is_array($settings['badges'] ?? null) ? array_values($settings['badges']) : []; ?>
         <section {!! $sectionAttributes !!} class="home-heritage home-heritage--managed" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-heritage-copy">
-                <p class="eyebrow">{{ $copy('eyebrow', $section->label ?: 'THE IRISH HERITAGE COLLECTION') }}</p>
-                <h2 id="{{ $sectionId }}-title">{{ $copy('title', 'Tradition, Made in Limerick.') }}</h2>
-                <p>{{ $copy('content') }}</p>
+                <h2 id="{{ $sectionId }}-title">{{ $copy('eyebrow', $section->label ?: 'THE IRISH HERITAGE COLLECTION') }}</h2>
+                <p class="home-heritage-tagline">{{ $copy('title', 'Tradition, Made in Limerick.') }}</p>
+                <p class="home-heritage-content">{{ $copy('content') }}</p>
                 <?php if ($heritageButtonUrl) { ?>
                     <a class="btn" href="{{ $heritageButtonUrl }}">{{ $copy('button_label', 'Explore') }} <x-icon name="arrow-right" /></a>
                 <?php } ?>
             </div>
-            <div class="home-heritage-visual home-managed-media home-managed-media--heritage" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
+            <div class="home-heritage-visual home-managed-media home-managed-media--heritage @if(! $mediaUrl) home-reference-media home-reference-media--heritage @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
                     <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
                 <?php } else { ?>
@@ -193,14 +200,14 @@
                 <div class="home-product-carousel">
                     <button class="home-carousel-arrow home-carousel-arrow--prev" type="button" data-home-carousel-prev aria-label="Previous {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-left" size="20" /></button>
                     <div class="home-product-grid" data-home-carousel-track>
-                        <?php foreach ($homeProductItems as $product) { ?>
+                        <?php foreach ($homeProductItems as $productIndex => $product) { ?>
                             <?php
                                 $productMedia = $product->media->firstWhere('type', 'image');
                                 $productMediaDescriptor = $productMedia ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($productMedia, $product->name) : null;
                             ?>
                             <article class="home-product-card">
                                 <a class="home-product-link" href="{{ route('product', $product) }}">
-                                        <div class="home-product-media home-managed-media home-managed-media--product" data-public-media-state="{{ $productMediaDescriptor ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $productMediaDescriptor['alt'] ?? ($product->name.' product image') }}">
+                                        <div class="home-product-media home-managed-media home-managed-media--product @if(! $productMediaDescriptor) home-reference-media home-reference-media--product-{{ ($productIndex % 6) + 1 }} @endif" data-public-media-state="{{ $productMediaDescriptor ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $productMediaDescriptor['alt'] ?? ($product->name.' product image') }}">
                                         <?php if ($productMediaDescriptor) { ?>
                                             <img src="{{ $productMediaDescriptor['url'] }}" @if($productMediaDescriptor['srcset']) srcset="{{ $productMediaDescriptor['srcset'] }}" sizes="{{ $productMediaDescriptor['sizes'] }}" @endif width="{{ $productMediaDescriptor['width'] ?: '' }}" height="{{ $productMediaDescriptor['height'] ?: '' }}" alt="{{ $productMediaDescriptor['alt'] }}" loading="lazy">
                                         <?php } else { ?>
@@ -227,7 +234,7 @@
 
         <?php $qualityButtonUrl = $safeUrl($settings['button_href'] ?? null); ?>
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
-            <div class="home-quality-visual home-managed-media home-managed-media--quality" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
+            <div class="home-quality-visual home-managed-media home-managed-media--quality @if(! $mediaUrl) home-reference-media home-reference-media--quality @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
                     <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
                 <?php } else { ?>
@@ -255,7 +262,7 @@
                     <a class="btn" href="{{ $franchiseButtonUrl }}">{{ $copy('button_label', 'APPLY FOR FRANCHISE') }} <x-icon name="arrow-right" /></a>
                 <?php } ?>
             </div>
-            <div class="home-franchise-visual home-managed-media home-managed-media--franchise" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
+            <div class="home-franchise-visual home-managed-media home-managed-media--franchise @if(! $mediaUrl) home-reference-media home-reference-media--franchise @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
                     <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
                 <?php } else { ?>

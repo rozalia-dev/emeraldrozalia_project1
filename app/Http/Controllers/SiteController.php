@@ -62,6 +62,12 @@ class SiteController extends Controller
             'banners' => $banners,
             'homepage' => $homepage,
             'homeMedia' => $mediaResolver->forUuids($this->homepageMediaUuids($homepage)),
+            // The supplied composition is an approved baseline only. A Page
+            // Manager media_uuid always takes precedence when one is selected.
+            'homeHeroReferenceMedia' => $mediaResolver->forLegacyPath(
+                'assets/brand/home-page-hero-reference@2x.png',
+                'Emerald Rozalia crafted in Limerick homepage hero',
+            ),
         ];
     }
 
