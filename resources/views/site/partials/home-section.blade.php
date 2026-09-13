@@ -83,8 +83,12 @@
                             <img src="{{ $banner->imageUrl() }}" alt="{{ $banner->alt_text ?: $banner->title }}">
                         @endif
                         <div class="home-published-banner__copy">
-                            @if($banner->title)<strong>{{ $banner->title }}</strong>@endif
-                            @if($banner->subtitle)<span>{{ $banner->subtitle }}</span>@endif
+                            @if($banner->title)
+                                <strong>{{ $banner->title }}</strong>
+                            @endif
+                            @if($banner->subtitle)
+                                <span>{{ $banner->subtitle }}</span>
+                            @endif
                         </div>
                     @if($bannerTarget)
                         </a>
@@ -127,7 +131,9 @@
                         @if($collectionUrl)
                             <a class="home-collection-card" href="{{ $collectionUrl }}">
                                 <div class="home-managed-media home-managed-media--collection" data-public-media-state="awaiting-approved-media" role="img" aria-label="{{ $item['title'] }} collection image">
-                                    @if(!empty($item['new']))<span class="home-collection-new">NEW</span>@endif
+                                    @if(!empty($item['new']))
+                                        <span class="home-collection-new">NEW</span>
+                                    @endif
                                 </div>
                                 <div><h3>{{ $item['title'] }}</h3><p>{{ $item['copy'] ?? '' }}</p><span>{{ $copy('card_cta', 'SHOP NOW') }} <b aria-hidden="true"><x-icon name="arrow-right" /></b></span></div>
                             </a>
@@ -146,14 +152,22 @@
                 <p class="eyebrow">{{ $copy('eyebrow', $section->label ?: 'THE IRISH HERITAGE COLLECTION') }}</p>
                 <h2 id="{{ $sectionId }}-title">{{ $copy('title', 'Tradition, Made in Limerick.') }}</h2>
                 <p>{{ $copy('content') }}</p>
-                @if($heritageButtonUrl)<a class="btn" href="{{ $heritageButtonUrl }}">{{ $copy('button_label', 'Explore') }} <x-icon name="arrow-right" /></a>@endif
+                @if($heritageButtonUrl)
+                    <a class="btn" href="{{ $heritageButtonUrl }}">{{ $copy('button_label', 'Explore') }} <x-icon name="arrow-right" /></a>
+                @endif
             </div>
             <div class="home-heritage-visual home-managed-media home-managed-media--heritage" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
-                @if($mediaUrl)<img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">@else<span class="sr-only">Approved homepage media is not configured for this section.</span>@endif
+                @if($mediaUrl)
+                    <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                @else
+                    <span class="sr-only">Approved homepage media is not configured for this section.</span>
+                @endif
             </div>
             <div class="home-heritage-badges" aria-label="{{ $copy('badges_label', 'Irish heritage collection qualities') }}">
                 @foreach($heritageBadges as $badge)
-                    @if(is_array($badge) && filled($badge['title'] ?? null))<div><x-icon name="{{ $safeIcon($badge['icon'] ?? null) }}" size="28" /><span>{{ $badge['title'] }}</span></div>@endif
+                    @if(is_array($badge) && filled($badge['title'] ?? null))
+                        <div><x-icon name="{{ $safeIcon($badge['icon'] ?? null) }}" size="28" /><span>{{ $badge['title'] }}</span></div>
+                    @endif
                 @endforeach
             </div>
         </section>
@@ -167,7 +181,13 @@
             $viewAllUrl = $safeUrl($settings['view_all_href'] ?? '/shop');
         @endphp
         <section {!! $sectionAttributes !!} class="home-section home-bestsellers home-bestsellers--managed" data-home-bestsellers>
-            <div class="home-section-heading home-section-heading--left"><h2>{{ $copy('title', $section->label ?: 'BESTSELLERS') }}</h2><span></span>@if($viewAllUrl)<a href="{{ $viewAllUrl }}">{{ $copy('view_all_label', 'VIEW ALL') }} <x-icon name="arrow-right" /></a>@endif</div>
+            <div class="home-section-heading home-section-heading--left">
+                <h2>{{ $copy('title', $section->label ?: 'BESTSELLERS') }}</h2>
+                <span></span>
+                @if($viewAllUrl)
+                    <a href="{{ $viewAllUrl }}">{{ $copy('view_all_label', 'VIEW ALL') }} <x-icon name="arrow-right" /></a>
+                @endif
+            </div>
             @if($homeProductItems->isNotEmpty())
                 <div class="home-product-carousel">
                     <button class="home-carousel-arrow home-carousel-arrow--prev" type="button" data-home-carousel-prev aria-label="Previous {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-left" size="20" /></button>
@@ -177,7 +197,11 @@
                             <article class="home-product-card">
                                 <a class="home-product-link" href="{{ route('product', $product) }}">
                                     <div class="home-product-media home-managed-media home-managed-media--product" data-public-media-state="{{ $productMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $product->name }} product image">
-                                        @if($productMedia)<img src="{{ Storage::disk($productMedia->disk)->url($productMedia->path) }}" alt="{{ $productMedia->alt_text ?: $product->name }}" loading="lazy">@else<span class="sr-only">Approved product media is not configured.</span>@endif
+                                        @if($productMedia)
+                                            <img src="{{ Storage::disk($productMedia->disk)->url($productMedia->path) }}" alt="{{ $productMedia->alt_text ?: $product->name }}" loading="lazy">
+                                        @else
+                                            <span class="sr-only">Approved product media is not configured.</span>
+                                        @endif
                                     </div>
                                     <span>{{ $product->name }}</span><strong>€{{ number_format((float) $product->price, 2) }}</strong>
                                 </a>
@@ -201,18 +225,40 @@
         @php($qualityButtonUrl = $safeUrl($settings['button_href'] ?? null))
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-quality-visual home-managed-media home-managed-media--quality" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
-                @if($mediaUrl)<img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">@else<span class="sr-only">Approved homepage media is not configured for this section.</span>@endif
+                @if($mediaUrl)
+                    <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                @else
+                    <span class="sr-only">Approved homepage media is not configured for this section.</span>
+                @endif
             </div>
-            <div class="home-quality-copy"><p class="eyebrow">{{ $copy('eyebrow', 'FROM CONCEPT TO CREATION.') }}</p><h2 id="{{ $sectionId }}-title">{{ $copy('title', $section->label ?: 'QUALITY IN EVERY STITCH.') }}</h2><p>{{ $copy('content') }}</p>@if($qualityButtonUrl)<a class="btn ghost" href="{{ $qualityButtonUrl }}">{{ $copy('button_label', 'SEE OUR PROCESS') }} <x-icon name="arrow-right" /></a>@endif</div>
+            <div class="home-quality-copy">
+                <p class="eyebrow">{{ $copy('eyebrow', 'FROM CONCEPT TO CREATION.') }}</p>
+                <h2 id="{{ $sectionId }}-title">{{ $copy('title', $section->label ?: 'QUALITY IN EVERY STITCH.') }}</h2>
+                <p>{{ $copy('content') }}</p>
+                @if($qualityButtonUrl)
+                    <a class="btn ghost" href="{{ $qualityButtonUrl }}">{{ $copy('button_label', 'SEE OUR PROCESS') }} <x-icon name="arrow-right" /></a>
+                @endif
+            </div>
         </section>
         @break
 
     @case('franchise')
         @php($franchiseButtonUrl = $safeUrl($settings['button_href'] ?? null))
         <section {!! $sectionAttributes !!} class="home-franchise home-franchise--managed" aria-labelledby="{{ $sectionId }}-title">
-            <div><p class="eyebrow">{{ $copy('eyebrow', 'FRANCHISE OPEN NOW') }}</p><h2 id="{{ $sectionId }}-title">{{ $copy('title', 'FOR IRELAND') }}</h2><p>{{ $copy('content') }}</p>@if($franchiseButtonUrl)<a class="btn" href="{{ $franchiseButtonUrl }}">{{ $copy('button_label', 'APPLY FOR FRANCHISE') }} <x-icon name="arrow-right" /></a>@endif</div>
+            <div>
+                <p class="eyebrow">{{ $copy('eyebrow', 'FRANCHISE OPEN NOW') }}</p>
+                <h2 id="{{ $sectionId }}-title">{{ $copy('title', 'FOR IRELAND') }}</h2>
+                <p>{{ $copy('content') }}</p>
+                @if($franchiseButtonUrl)
+                    <a class="btn" href="{{ $franchiseButtonUrl }}">{{ $copy('button_label', 'APPLY FOR FRANCHISE') }} <x-icon name="arrow-right" /></a>
+                @endif
+            </div>
             <div class="home-franchise-visual home-managed-media home-managed-media--franchise" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
-                @if($mediaUrl)<img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">@else<span class="sr-only">Approved homepage media is not configured for this section.</span>@endif
+                @if($mediaUrl)
+                    <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                @else
+                    <span class="sr-only">Approved homepage media is not configured for this section.</span>
+                @endif
             </div>
         </section>
         @break
