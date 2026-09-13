@@ -214,7 +214,7 @@ class ProjectScopeTest extends TestCase {
     public function test_tenant_scope_can_isolate_company_records():void {$first=Company::create(['name'=>'Company One','code'=>'C1']);$second=Company::create(['name'=>'Company Two','code'=>'C2']);Category::create(['company_id'=>$first->id,'name'=>'One','slug'=>'one']);Category::create(['company_id'=>$second->id,'name'=>'Two','slug'=>'two']);$this->assertSame(['one'],Category::forCompany($first->id)->pluck('slug')->all());$this->assertSame(['two'],Category::forCompany($second->id)->pluck('slug')->all());}
 
     public function test_product_manager_edit_updates_the_existing_product_without_creating_a_duplicate():void {$admin=User::factory()->create(['is_admin'=>true]);$category=Category::create(['name'=>'Edit Caps','slug'=>'edit-caps','is_active'=>true,'sort_order'=>1]);$product=Product::create(['category_id'=>$category->id,'name'=>'Before Edit','slug'=>'before-edit','sku'=>'EDIT-001','description'=>'Before description','price'=>20,'stock'=>3,'is_active'=>true,'status'=>'active','brand'=>'Emerald Rozalia']);$this->actingAs($admin)->get(route('admin.product.edit',$product))->assertOk()->assertSee(['Edit Product','Before Edit','EDIT-001','Stock Quantity'],false);$payload=['name'=>'After Edit','short_description'=>'Updated short description.','slug'=>'after-edit','sku'=>'EDIT-001','category_id'=>$category->id,'brand'=>'Emerald Rozalia','tags'=>'Updated, Cap','product_type'=>'simple','tax_class'=>'standard','description'=>'Updated full description.','material'=>'Cotton','care'=>'Spot clean','meta_title'=>'After Edit','meta_description'=>'Updated SEO copy.','price'=>'25.00','compare_price'=>'30.00','vat_rate'=>'23','currency'=>'EUR','stock'=>'9','status'=>'active','published_website'=>'1','available_for_sale'=>'1','featured'=>'0','channels'=>['website','franchise'],'order_categories'=>['online'],'save_action'=>'save'];$this->actingAs($admin)->put(route('admin.product.update',$product),$payload)->assertRedirect(route('admin.resource','product-manager'));$this->assertDatabaseCount('products',1);$this->assertDatabaseHas('products',['id'=>$product->id,'name'=>'After Edit','slug'=>'after-edit','sku'=>'EDIT-001','stock'=>9,'price'=>25]);}
-    public function test_online_sales_resource_supports_audited_create_search_update_and_delete():void
+    public function test_online_sales_resource_supports_audited_create_search_update_and_trash():void
     {
         $admin=User::factory()->create(['is_admin'=>true]);
         $this->actingAs($admin)->get('/admin/resource/online-sales')->assertOk()->assertSee(['Online Sales','Add Record','Title / name','Reference','Amount','Date','Action'],false);
@@ -226,8 +226,8 @@ class ProjectScopeTest extends TestCase {
         $this->assertDatabaseHas('audit_logs',['action'=>'online-sales.created']);
         $this->assertDatabaseHas('audit_logs',['action'=>'online-sales.updated']);
         $this->actingAs($admin)->delete('/admin/resource/online-sales/'.$record->id)->assertRedirect();
-        $this->assertDatabaseMissing('admin_records',['id'=>$record->id]);
-        $this->assertDatabaseHas('audit_logs',['action'=>'online-sales.deleted']);
+        $this->assertSoftDeleted('admin_records',['id'=>$record->id]);
+        $this->assertDatabaseHas('audit_logs',['action'=>'online-sales.trashed']);
     }
     public function test_communication_center_can_update_workflow_and_save_a_reply():void
     {
