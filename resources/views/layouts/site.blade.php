@@ -27,7 +27,7 @@
     @endif
     <link rel="stylesheet" href="/css/app.css?v=20260905-public-header-type">
     <link rel="stylesheet" href="/css/theme-runtime.css?v=20260913-batch17-typography">
-    <link rel="stylesheet" href="/css/public-shell.css?v=20260913-shared-shell">
+    <link rel="stylesheet" href="/css/public-shell.css?v=20260913-shared-shell-hero-columns">
     @php($publicAssetCss = static function (string $path) use ($publicAssetUrl): string { $url = $publicAssetUrl($path); return $url ? "url('{$url}')" : 'none'; })
     <style id="public-media-contract">:root{--public-asset-home-reference:{!! e($publicAssetCss('assets/brand/home-page-reference.png')) !!};--public-asset-home-hero:{!! e($publicAssetCss('assets/brand/home-page-hero-reference@2x.png')) !!};--public-asset-home-collections:{!! e($publicAssetCss('assets/brand/home-collections-reference.webp')) !!};--public-asset-bulk-order:{!! e($publicAssetCss('assets/brand/bulk-order-reference.png')) !!};--public-asset-corporate-order:{!! e($publicAssetCss('assets/brand/corporate-order-reference.png')) !!};--public-asset-logo-two-line:{!! e($publicAssetCss('assets/logo/logo_two_line.png')) !!}}</style>
     @stack('styles')

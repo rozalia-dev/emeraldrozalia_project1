@@ -2,7 +2,7 @@
 @section('body-class', 'home-body')
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
-    <link rel="stylesheet" href="/css/home-collections.css?v=20260913-managed-home">
+    <link rel="stylesheet" href="/css/home-collections.css?v=20260913-three-column-hero">
 @endpush
 @section('content')
     @php($homepageSections = $homepage?->sections ?? collect())
@@ -37,6 +37,13 @@
 @push('scripts')
     <script>
         (() => {
+            document.querySelectorAll('[data-home-tryon-photo]').forEach((input) => {
+                const status = input.closest('.home-tryon-upload-panel')?.querySelector('[data-home-tryon-file-name]');
+                input.addEventListener('change', () => {
+                    if (status) status.textContent = input.files?.[0]?.name || 'No photo selected';
+                });
+            });
+
             document.querySelectorAll('[data-home-bestsellers]').forEach((root) => {
                 const track = root.querySelector('[data-home-carousel-track]');
                 const previous = root.querySelector('[data-home-carousel-prev]');

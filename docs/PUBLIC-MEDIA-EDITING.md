@@ -10,7 +10,7 @@ Public page imagery is controlled through approved media records. A page section
 4. Open **Website & Products → Pages**, edit the public page, and open **Page sections**.
 5. In the relevant block, choose the approved asset from **Approved public media (select after approval)**, save the page, and publish the revision. Use **Preview** before publishing.
 
-The homepage hero, heritage, quality, and franchise blocks use the selected section media. Collection cards can select their own media in the card JSON. Homepage product cards use the approved image attached to each live product, so change those through the product media workflow rather than the page hero selector.
+The homepage hero uses the selected section media in the centre image slot; the left copy and right Virtual Try-On panel remain separate layout elements. Heritage, quality, and franchise blocks also use the selected section media. Collection cards can select their own media in the card JSON. Homepage product cards use the approved image attached to each live product, so change those through the product media workflow rather than the page hero selector.
 
 The supplied homepage artwork is the baseline shown when a homepage block has no selected media UUID. Selecting an approved asset replaces that baseline while keeping the section’s layout, links, alt text, responsive behavior, and audit trail intact.
 

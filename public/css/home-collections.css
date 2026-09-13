@@ -588,3 +588,454 @@
         flex-basis: calc((100% - 7px) / 2);
     }
 }
+
+/* The hero is a real layout: editable copy on the left, approved media in
+   the centre and a functional Virtual Try-On panel on the right. The
+   reference asset is cropped into the centre media slot only; it is never
+   used as a flattened page-wide background or click target. */
+.home-page .home-hero--three-column {
+    padding: 0;
+    background: #020b08;
+    border-bottom: 1px solid #2b4c31;
+}
+
+.home-page .home-hero--three-column .home-hero-composition {
+    display: grid;
+    grid-template-columns: minmax(0, 40%) minmax(0, 36%) minmax(0, 24%);
+    width: 100%;
+    max-width: none;
+    height: clamp(360px, 44.444vw, 520px);
+    min-height: 0;
+    aspect-ratio: auto;
+    gap: 0;
+    overflow: hidden;
+    background: #020b08;
+}
+
+.home-page .home-hero--three-column .home-hero-copy {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(24px, 3vw, 42px) clamp(20px, 2.35vw, 42px);
+    pointer-events: auto;
+    background: linear-gradient(90deg, #020b08 0%, #020b08 62%, rgba(2, 11, 8, .82) 100%);
+}
+
+.home-page .home-hero--three-column .home-hero-copy > .eyebrow,
+.home-page .home-hero--three-column .home-hero-copy > h1,
+.home-page .home-hero--three-column .home-hero-copy > p:not(.eyebrow) {
+    position: static;
+    width: auto;
+    height: auto;
+    margin-right: 0;
+    margin-left: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+}
+
+.home-page .home-hero--three-column .home-hero-copy > .eyebrow {
+    margin-top: 0;
+    margin-bottom: 13px;
+    color: #8cc63e;
+    font-size: clamp(.68rem, 1.1vw, .92rem);
+    letter-spacing: .08em;
+}
+
+.home-page .home-hero--three-column .home-hero-copy h1 {
+    max-width: 360px;
+    margin: 0 0 18px;
+    color: #f4f4ee;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', Arial, sans-serif;
+    font-size: clamp(2.45rem, 5.35vw, 5rem);
+    font-weight: 400;
+    line-height: .88;
+    letter-spacing: .015em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .34);
+}
+
+.home-page .home-hero--three-column .home-hero-copy h1 span,
+.home-page .home-hero--three-column .home-hero-copy h1 em {
+    display: block;
+    font-style: normal;
+}
+
+.home-page .home-hero--three-column .home-hero-copy h1 em {
+    color: #168e3e;
+}
+
+.home-page .home-hero--three-column .home-hero-description {
+    max-width: 320px;
+    margin: 0;
+    color: #d8e2dc;
+    font-size: clamp(.72rem, 1.05vw, .96rem);
+    line-height: 1.48;
+}
+
+.home-page .home-hero--three-column .home-hero-actions {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 25px 0 0;
+    pointer-events: auto;
+}
+
+.home-page .home-hero--three-column .home-hero-actions > a {
+    position: static;
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    min-height: 34px;
+    margin: 0;
+    padding: 9px 13px;
+    overflow: visible;
+    color: #f5f5ee !important;
+    font-size: clamp(.62rem, .82vw, .76rem);
+    line-height: 1.2;
+    text-decoration: none;
+    background: #218b3e !important;
+    border: 1px solid #2b9d48 !important;
+    box-shadow: none !important;
+    pointer-events: auto;
+    transform: none !important;
+}
+
+.home-page .home-hero--three-column .home-hero-actions > a.home-hero-action--secondary {
+    background: transparent !important;
+    border-color: #778276 !important;
+}
+
+.home-page .home-hero--three-column .home-hero-actions > a.home-hero-action--tertiary {
+    display: none;
+}
+
+.home-page .home-hero--three-column .home-hero-center {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #081a12;
+}
+
+.home-page .home-hero--three-column .home-hero-center-media {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: #081a12;
+}
+
+.home-page .home-hero--three-column .home-hero-center-media::after {
+    background: linear-gradient(90deg, rgba(2, 11, 8, .15), transparent 26%, transparent 76%, rgba(2, 11, 8, .24)), linear-gradient(0deg, rgba(2, 11, 8, .2), transparent 24%);
+}
+
+.home-page .home-hero--three-column .home-hero-center-image {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.home-page .home-hero--three-column.home-hero--reference-art .home-hero-center-image {
+    /* The reference is 864x384. At the centre slot's aspect ratio this crop
+       retains the model and hat while excluding the reference copy/form. */
+    object-position: 55% center;
+}
+
+.home-page .home-hero--three-column .home-hero-center-caption {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    z-index: 3;
+    color: rgba(244, 244, 238, .68);
+    font-size: 9px;
+    letter-spacing: .18em;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+
+.home-page .home-hero--three-column .home-hero-tryon {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    margin: 12px 14px 12px 0;
+    padding: 15px 13px 11px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow: hidden;
+    color: #f1f5ee;
+    background: linear-gradient(145deg, rgba(2, 22, 13, .98), rgba(3, 14, 10, .98));
+    border: 1px solid #527d37;
+    border-radius: 7px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .28);
+}
+
+.home-page .home-hero--three-column .home-hero-tryon > .eyebrow {
+    margin: 0 0 6px;
+    color: #56a94e;
+    font-size: clamp(.58rem, .78vw, .72rem);
+    letter-spacing: .13em;
+}
+
+.home-page .home-hero--three-column .home-hero-tryon h2 {
+    margin: 0 0 9px;
+    color: #f4f1e9;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.35rem, 2.25vw, 2rem);
+    font-weight: 400;
+    line-height: .98;
+}
+
+.home-page .home-hero--three-column .home-hero-tryon-copy {
+    margin: 0 0 11px;
+    color: #d4dfd5;
+    font-size: clamp(.62rem, .82vw, .76rem);
+    line-height: 1.35;
+}
+
+.home-page .home-tryon-upload-panel {
+    display: grid;
+    place-items: center;
+    gap: 4px;
+    min-height: 102px;
+    padding: 9px 7px 8px;
+    border: 1px dashed #4b773a;
+    border-radius: 5px;
+    background: rgba(7, 28, 17, .56);
+}
+
+.home-page .home-tryon-upload-action,
+.home-page .home-tryon-camera-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.home-page .home-tryon-upload-action {
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    color: #eef1e9;
+    font-size: clamp(.57rem, .72vw, .68rem);
+}
+
+.home-page .home-tryon-upload-action .ui-icon {
+    color: #e8ede6;
+}
+
+.home-page .home-tryon-or {
+    color: #b3c0b4;
+    font-size: .62rem;
+}
+
+.home-page .home-tryon-camera-action {
+    gap: 5px;
+    min-width: 112px;
+    min-height: 24px;
+    padding: 4px 8px;
+    color: #eef1e9;
+    font-size: clamp(.53rem, .7vw, .64rem);
+    border: 1px solid #65766a;
+    border-radius: 3px;
+}
+
+.home-page .home-tryon-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.home-page .home-tryon-upload-action:focus-within,
+.home-page .home-tryon-camera-action:focus-within,
+.home-page .home-tryon-upload-panel:focus-within {
+    outline: 2px solid #d6a634;
+    outline-offset: 2px;
+}
+
+.home-page .home-tryon-upload-panel small {
+    max-width: 100%;
+    overflow: hidden;
+    color: #9fb09f;
+    font-size: .56rem;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-page .home-hero--three-column .home-hero-tryon-start {
+    display: inline-flex;
+    width: 100%;
+    min-height: 28px;
+    margin-top: 10px;
+    padding: 7px 8px;
+    align-items: center;
+    justify-content: center;
+    color: #f3f7ef;
+    font-size: clamp(.58rem, .76vw, .7rem);
+    line-height: 1;
+    background: linear-gradient(90deg, #287f3c, #399c4e);
+    border: 1px solid #4bab55;
+}
+
+.home-page .home-tryon-privacy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 8px 0 8px;
+    color: #c4d1c5;
+    font-size: .56rem;
+    line-height: 1.2;
+}
+
+.home-page .home-tryon-privacy .ui-icon {
+    color: #e9efe7;
+}
+
+.home-page .home-tryon-thumbnails {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin-top: auto;
+}
+
+.home-page .home-tryon-thumbnail {
+    display: block;
+    min-width: 0;
+    aspect-ratio: 1 / 1.12;
+    overflow: hidden;
+    border: 1px solid rgba(229, 232, 217, .65);
+    border-radius: 3px;
+    background-color: #13261a;
+    background-image: var(--public-asset-home-hero);
+    background-repeat: no-repeat;
+    background-size: 252% auto;
+}
+
+.home-page .home-tryon-thumbnail--one { background-position: 48% 48%; }
+.home-page .home-tryon-thumbnail--two { background-position: 55% 46%; }
+.home-page .home-tryon-thumbnail--three { background-position: 62% 46%; }
+.home-page .home-tryon-thumbnail--four { background-position: 70% 44%; }
+
+.home-page .home-published-banners--empty {
+    display: none;
+}
+
+@media (max-width: 900px) and (min-width: 701px) {
+    .home-page .home-hero--three-column .home-hero-composition {
+        grid-template-columns: minmax(0, 39%) minmax(0, 37%) minmax(0, 24%);
+    }
+
+    .home-page .home-hero--three-column .home-hero-copy {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .home-page .home-hero--three-column .home-hero-copy h1 {
+        font-size: clamp(2.1rem, 5.3vw, 3.55rem);
+    }
+
+    .home-page .home-hero--three-column .home-hero-actions {
+        gap: 6px;
+    }
+
+    .home-page .home-hero--three-column .home-hero-actions > a {
+        padding-right: 8px;
+        padding-left: 8px;
+        font-size: .57rem;
+    }
+}
+
+@media (max-width: 700px) {
+    .home-page .home-hero--three-column .home-hero-composition {
+        display: grid;
+        grid-template-columns: 1fr;
+        height: auto;
+        aspect-ratio: auto;
+    }
+
+    .home-page .home-hero--three-column .home-hero-copy {
+        min-height: 330px;
+        padding: 34px 18px 28px;
+        background: linear-gradient(180deg, #020b08, #03140d);
+    }
+
+    .home-page .home-hero--three-column .home-hero-copy h1 {
+        max-width: 420px;
+        font-size: clamp(2.8rem, 13vw, 4.2rem);
+    }
+
+    .home-page .home-hero--three-column .home-hero-description {
+        max-width: 360px;
+        font-size: .86rem;
+    }
+
+    .home-page .home-hero--three-column .home-hero-actions {
+        align-items: stretch;
+        flex-direction: column;
+        max-width: 360px;
+    }
+
+    .home-page .home-hero--three-column .home-hero-actions > a {
+        width: 100%;
+        justify-content: center;
+        font-size: .72rem;
+    }
+
+    .home-page .home-hero--three-column .home-hero-center {
+        height: 360px;
+    }
+
+    .home-page .home-hero--three-column .home-hero-center-image {
+        object-position: 55% center;
+    }
+
+    .home-page .home-hero--three-column .home-hero-tryon {
+        min-height: 390px;
+        margin: 10px 8px 14px;
+        padding: 20px 16px 14px;
+    }
+
+    .home-page .home-hero--three-column .home-hero-tryon h2 {
+        font-size: 2rem;
+    }
+
+    .home-page .home-hero--three-column .home-hero-tryon-copy {
+        font-size: .86rem;
+    }
+
+    .home-page .home-tryon-upload-panel {
+        min-height: 140px;
+    }
+
+    .home-page .home-hero--three-column .home-hero-tryon-start {
+        min-height: 40px;
+        font-size: .78rem;
+    }
+
+    .home-page .home-tryon-privacy,
+    .home-page .home-tryon-upload-panel small {
+        font-size: .68rem;
+    }
+}
