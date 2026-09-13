@@ -30,8 +30,8 @@
         @php
             $heroTitle = $copy('title', $label);
             $heroImage = $sectionMedia;
-            $heroUrl = $safeUrl($settings['url'] ?? $settings['cta_url'] ?? null);
-            $heroCta = $copy('button_label', $copy('cta_label', 'Explore more'));
+            $heroUrl = $safeUrl($settings['url'] ?? $settings['primary_href'] ?? $settings['cta_url'] ?? null);
+            $heroCta = $copy('button_label', $copy('primary_label', $copy('cta_label', 'Explore more')));
         @endphp
         <section id="{{ $sectionId }}" class="managed-page-section managed-page-section--hero" data-managed-section="hero">
             <div class="managed-page-section-copy">
@@ -41,7 +41,14 @@
                 @if($heroUrl)<a class="btn" href="{{ $heroUrl }}">{{ $heroCta }}</a>@endif
             </div>
             @if($heroImage)
-                <figure class="managed-page-section-media"><img src="{{ $heroImage['url'] }}" @if($heroImage['srcset']) srcset="{{ $heroImage['srcset'] }}" sizes="{{ $heroImage['sizes'] }}" @endif width="{{ $heroImage['width'] ?: '' }}" height="{{ $heroImage['height'] ?: '' }}" alt="{{ $heroImage['alt'] ?: $copy('alt', $heroTitle) }}" loading="lazy"></figure>
+                <figure class="managed-page-section-media">
+                    @if(str_starts_with((string) ($heroImage['mime_type'] ?? ''), 'video/'))
+                        <video src="{{ $heroImage['url'] }}" width="{{ $heroImage['width'] ?: '' }}" height="{{ $heroImage['height'] ?: '' }}" muted playsinline loop preload="metadata" aria-label="{{ $heroImage['alt'] ?: $copy('alt', $heroTitle) }}"></video>
+                    @else
+                        <img src="{{ $heroImage['url'] }}" @if($heroImage['srcset']) srcset="{{ $heroImage['srcset'] }}" sizes="{{ $heroImage['sizes'] }}" @endif width="{{ $heroImage['width'] ?: '' }}" height="{{ $heroImage['height'] ?: '' }}" alt="{{ $heroImage['alt'] ?: $copy('alt', $heroTitle) }}" loading="lazy">
+                    @endif
+                </figure>
+
             @endif
         </section>
         @break
@@ -67,7 +74,11 @@
                             @if($itemImage)
                                 <figure class="managed-page-gallery-item">
                                     @if($itemUrl)<a href="{{ $itemUrl }}">@endif
-                                    <img src="{{ $itemImage['url'] }}" @if($itemImage['srcset']) srcset="{{ $itemImage['srcset'] }}" sizes="{{ $itemImage['sizes'] }}" @endif width="{{ $itemImage['width'] ?: '' }}" height="{{ $itemImage['height'] ?: '' }}" alt="{{ $itemImage['alt'] ?: $itemAlt }}" loading="lazy">
+                                    @if(str_starts_with((string) ($itemImage['mime_type'] ?? ''), 'video/'))
+                                        <video src="{{ $itemImage['url'] }}" width="{{ $itemImage['width'] ?: '' }}" height="{{ $itemImage['height'] ?: '' }}" muted playsinline loop preload="metadata" aria-label="{{ $itemImage['alt'] ?: $itemAlt }}"></video>
+                                    @else
+                                        <img src="{{ $itemImage['url'] }}" @if($itemImage['srcset']) srcset="{{ $itemImage['srcset'] }}" sizes="{{ $itemImage['sizes'] }}" @endif width="{{ $itemImage['width'] ?: '' }}" height="{{ $itemImage['height'] ?: '' }}" alt="{{ $itemImage['alt'] ?: $itemAlt }}" loading="lazy">
+                                    @endif
                                     @if($itemUrl)</a>@endif
                                     @if($itemCaption)<figcaption>{{ $itemCaption }}</figcaption>@endif
                                 </figure>

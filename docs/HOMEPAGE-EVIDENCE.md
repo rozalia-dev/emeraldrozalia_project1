@@ -1,6 +1,6 @@
 # Homepage evidence (P2.5)
 
-The homepage is a dedicated, reference-ordered composition rather than a generic page template. The supplied full-page artwork and standalone hero artwork are registered as approved baseline media during deployment. They are delivered through the controlled UUID media route and used only when a Page Manager section has no selected media UUID. A selected approved UUID always takes precedence while Laravel keeps links, product data and the Try-On destination functional:
+The homepage is a dedicated, reference-ordered composition rather than a generic page template. The supplied full-page artwork and standalone hero artwork are registered as approved baseline media during deployment. The hero artwork is rendered as centre-column media only; its copy, CTAs and Virtual Try-On panel are separate server-rendered, accessible elements. Assets are delivered through the controlled UUID media route and used only when a Page Manager section has no selected media UUID. A selected approved UUID always takes precedence while Laravel keeps links, product data and the Try-On destination functional:
 
 1. hero message and Virtual Try-On placement
 2. five-value benefits band
@@ -15,7 +15,7 @@ The homepage visual pass now includes the hero campaign, collection imagery, her
 
 ## Shared shell alignment
 
-The homepage, Contact page, catalog pages, and standard public pages render the same `layouts.site` shell. The attached slim header geometry is now the shared desktop header: 104px tall, approved horizontal wordmark, locked eight-item navigation, and search/account/cart utilities. The active navigation item is route-aware. Contact Us remains footer-only. Header and footer regions are marked as shared shell regions so regression tests can compare them directly. The `factory-reference` presentation remains an intentional approved-artwork exception because its page is a single interactive factory canvas with its own artwork hotspots.
+The homepage, Contact page, catalog pages, and standard public pages render the same `layouts.site` shell. The attached slim header geometry is now the shared desktop header: 84px tall (72px tablet, 66px mobile, 62px narrow mobile), approved horizontal wordmark, locked eight-item navigation, and search/account/cart utilities. The active navigation item is route-aware and its underline sits directly beneath the label. Contact Us remains footer-only. Header and footer regions are marked as shared shell regions so regression tests can compare them directly. The `factory-reference` presentation remains an intentional approved-artwork exception because its page is a single interactive factory canvas with its own artwork hotspots.
 
 The cPanel uses the same centralized `<x-icon>` SVG component for navigation and utility actions. The public templates contain no Unicode/emoji icon glyphs; arrows, account, cart, social, upload, media and status affordances are SVG paths from `resources/views/components/icon.blade.php`.
 

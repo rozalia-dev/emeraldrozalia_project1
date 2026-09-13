@@ -36,6 +36,7 @@
             : (is_array($fallbackProductDescriptor) ? $fallbackProductDescriptor : null);
         $heroVisualUrl = is_array($heroVisual) ? ($heroVisual['url'] ?? null) : null;
         $heroVisualAlt = is_array($heroVisual) ? ($heroVisual['alt'] ?? 'Emerald Rozalia hat') : 'Emerald Rozalia hat';
+        $heroVisualIsVideo = is_array($heroVisual) && str_starts_with((string) ($heroVisual['mime_type'] ?? ''), 'video/');
         $heroId = $heroSection ? 'home-section-' . ($heroSection->uuid ?: $heroSection->id) : 'home-hero';
         $heroDevices = $heroSection && is_array($heroSection->devices) && $heroSection->devices !== [] ? $heroSection->devices : ['desktop', 'tablet', 'mobile'];
         $heroDeviceValue = implode(' ', array_values(array_intersect(['desktop', 'tablet', 'mobile'], $heroDevices)));
@@ -65,7 +66,11 @@
 
                     <div class="home-hero-structured-product" data-public-media-state="{{ is_array($heroMedia) ? 'approved' : (is_array($fallbackProductDescriptor) ? 'product-media' : 'awaiting-approved-media') }}">
                         @if($heroVisualUrl)
-                            <img src="{{ $heroVisualUrl }}" alt="{{ $heroVisualAlt }}" fetchpriority="high">
+                            @if($heroVisualIsVideo)
+                                <video src="{{ $heroVisualUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $heroVisualAlt }}"></video>
+                            @else
+                                <img src="{{ $heroVisualUrl }}" alt="{{ $heroVisualAlt }}" fetchpriority="high">
+                            @endif
                         @else
                             <div class="home-hero-structured-placeholder" role="img" aria-label="Approved hero product media is not configured yet.">Approved hero product media</div>
                         @endif
@@ -129,6 +134,13 @@
 @push('scripts')
     <script>
         (() => {
+            document.querySelectorAll('[data-home-tryon-photo]').forEach((input) => {
+                const status = input.closest('.home-tryon-upload-panel')?.querySelector('[data-home-tryon-file-name]');
+                input.addEventListener('change', () => {
+                    if (status) status.textContent = input.files?.[0]?.name || 'No photo selected';
+                });
+            });
+
             document.querySelectorAll('[data-home-bestsellers]').forEach((root) => {
                 const track = root.querySelector('[data-home-carousel-track]');
                 const previous = root.querySelector('[data-home-carousel-prev]');

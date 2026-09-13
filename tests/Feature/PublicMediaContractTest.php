@@ -89,6 +89,50 @@ class PublicMediaContractTest extends TestCase
             ->assertSee('data-builder-approved-media', false);
     }
 
+    public function test_admin_public_media_preview_resolves_the_uuid_without_exposing_a_storage_path(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['is_admin' => true]);
+        Storage::disk('local')->put('site-media/preview.webp', 'preview image');
+        $asset = MediaAsset::create([
+            'name' => 'Preview image',
+            'disk' => 'local',
+            'path' => 'site-media/preview.webp',
+            'mime_type' => 'image/webp',
+            'approval_status' => 'pending',
+            'active' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.site-media.preview', $asset->uuid))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/webp')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Content-Disposition', 'inline; filename="preview.webp"')
+            ->assertDontSee('site-media/preview.webp', false);
+    }
+
+    public function test_existing_non_home_pages_receive_a_starter_canvas_in_page_manager(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Editorial page',
+            'slug' => 'editorial-page',
+            'status' => 'draft',
+            'locale' => 'en',
+            'template' => 'standard',
+            'navigation_visible' => false,
+            'meta' => ['settings' => ['visibility' => 'public']],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.pages.edit', $page))
+            ->assertOk()
+            ->assertSee('page-builder-block--server', false)
+            ->assertSee('01 · Hero', false)
+            ->assertSee('02 · Content', false);
+    }
+
     public function test_media_manager_uploads_are_pending_and_page_sections_cannot_reference_unapproved_media(): void
     {
         Storage::fake('local');

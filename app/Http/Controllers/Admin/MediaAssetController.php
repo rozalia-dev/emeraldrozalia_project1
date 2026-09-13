@@ -45,9 +45,40 @@ class MediaAssetController extends Controller
             ->get()
             ->groupBy('media_asset_id');
 
+        $visibleAssets = fn () => MediaAsset::query()->visibleToCurrentCompany();
+        $stats = [
+            'total' => $visibleAssets()->count(),
+            'approved' => $visibleAssets()->where('approval_status', 'approved')->where('active', true)->count(),
+            'pending' => $visibleAssets()->where('approval_status', 'pending')->count(),
+            'attention' => $visibleAssets()->whereIn('approval_status', ['rejected', 'archived'])->count(),
+            'trash' => MediaAsset::onlyTrashed()->visibleToCurrentCompany()->count(),
+        ];
+
         return view('admin.media-assets.index', compact(
-            'assets', 'status', 'view', 'usageByAsset', 'versionsByAsset'
+            'assets', 'status', 'view', 'usageByAsset', 'versionsByAsset', 'stats'
         ) + ['statuses' => self::STATUSES]);
+    }
+
+    public function preview(string $asset)
+    {
+        $asset = $this->findAsset($asset);
+        abort_if($asset->trashed(), 404);
+
+        $disk = (string) ($asset->disk ?: 'local');
+        abort_unless(in_array($disk, ['local', 'public'], true), 404);
+        abort_unless($this->safePath($asset->path), 404);
+
+        $storage = Storage::disk($disk);
+        abort_unless($storage->exists($asset->path), 404);
+
+        $mime = $asset->mime_type ?: $storage->mimeType($asset->path);
+
+        return response()->file($storage->path($asset->path), [
+            'Content-Type' => $mime ?: 'application/octet-stream',
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Disposition' => 'inline; filename="'.addcslashes(basename($asset->path), '"\\').'"',
+        ]);
     }
 
     public function store(Request $request, PublicMediaDerivativeService $derivatives): RedirectResponse

@@ -338,25 +338,75 @@ if(pageBuilder){
         if(!textarea)control.type='text';if(textarea)control.rows=3;control.value=sectionValue(section,key,'');control.placeholder=placeholder;
         control.addEventListener('input',()=>{checkpointBeforeInput(control);setSectionValue(section,key,control.value)});wrapper.appendChild(control);fields.appendChild(wrapper);
     };
-    const addMediaField=(fields,section)=>{
-        const wrapper=document.createElement('label');wrapper.textContent='Approved public media (select after approval)';
-        const control=document.createElement('select');
-        const empty=document.createElement('option');empty.value='';empty.textContent=approvedMedia.length?'Select approved media':'No approved media available';control.appendChild(empty);
-        approvedMedia.forEach((media)=>{const option=document.createElement('option');option.value=media.uuid;option.textContent=(media.original_name||media.alt||'Approved asset')+' · '+media.uuid.slice(0,8);option.selected=section.media_uuid===media.uuid;control.appendChild(option)});
-        if(!approvedMedia.some((media)=>media.uuid===section.media_uuid))control.value='';
-        control.addEventListener('change',()=>{checkpointBeforeInput(control);section.media_uuid=control.value||null;sync()});
-        wrapper.appendChild(control);fields.appendChild(wrapper);
+    const mediaName=(media)=>media?.display_name||media?.original_name||media?.alt||'Approved public media';
+    const mediaIsVideo=(media)=>String(media?.mime_type||'').startsWith('video/');
+    const mediaThumbnail=(media,compact=false)=>{
+        const thumb=document.createElement('span');thumb.className=`page-builder-media-thumb${compact?' page-builder-media-thumb--compact':''}`;
+        if(mediaIsVideo(media)){
+            const video=document.createElement('video');video.src=media.url||'';video.muted=true;video.preload='metadata';video.setAttribute('aria-hidden','true');thumb.appendChild(video);
+        }else{
+            const image=document.createElement('img');image.src=media.url||'';image.alt='';image.loading='lazy';thumb.appendChild(image);
+        }
+        return thumb;
     };
+    const closeMediaMenus=()=>pageBuilder.querySelectorAll('[data-page-builder-media-menu]').forEach((menu)=>{menu.hidden=true;menu.closest('[data-page-builder-media-picker]')?.querySelector('[data-page-builder-media-trigger]')?.setAttribute('aria-expanded','false')});
+    const addMediaPicker=(fields,{title='Approved public media',value=null,values=[],multiple=false,onChange=()=>{}}={})=>{
+        const wrapper=document.createElement('div');wrapper.className='page-builder-media-picker';wrapper.setAttribute('data-page-builder-media-picker','true');
+        const heading=document.createElement('div');heading.className='page-builder-media-picker-heading';
+        const label=document.createElement('span');label.className='page-builder-media-label';label.textContent=title;
+        const hint=document.createElement('small');hint.textContent=multiple?'Choose one or more approved assets with visual previews.':'Choose an approved asset with a visual preview.';heading.append(label,hint);
+        const trigger=document.createElement('button');trigger.type='button';trigger.className='page-builder-media-trigger';trigger.setAttribute('data-page-builder-media-trigger','true');trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
+        const menu=document.createElement('div');menu.className='page-builder-media-menu';menu.setAttribute('data-page-builder-media-menu','true');menu.setAttribute('role','listbox');menu.hidden=true;
+        const menuTop=document.createElement('div');menuTop.className='page-builder-media-menu-top';const menuTitle=document.createElement('strong');menuTitle.textContent=multiple?'Select approved media':'Select approved media';const search=document.createElement('input');search.type='search';search.placeholder='Search approved media';search.setAttribute('aria-label','Search approved media');menuTop.append(menuTitle,search);
+        const optionList=document.createElement('div');optionList.className='page-builder-media-options';menu.append(menuTop,optionList);
+        let selected=multiple?(Array.isArray(values)?values.filter(Boolean):[]):(value?[value]:[]);
+        const selectedRecords=()=>selected.map((uuid)=>approvedMedia.find((media)=>media.uuid===uuid)).filter(Boolean);
+        const renderTrigger=()=>{
+            trigger.replaceChildren();
+            const records=selectedRecords();
+            if(!multiple&&records[0]){
+                trigger.append(mediaThumbnail(records[0],true));
+                const copy=document.createElement('span');copy.className='page-builder-media-trigger-copy';const name=document.createElement('strong');name.textContent=mediaName(records[0]);const meta=document.createElement('small');meta.textContent=`${records[0].kind|| (mediaIsVideo(records[0])?'Video':'Image')} · ${records[0].uuid.slice(0,8)}`;copy.append(name,meta);trigger.append(copy);
+            }else if(multiple&&records.length){
+                const stack=document.createElement('span');stack.className='page-builder-media-thumb-stack';records.slice(0,3).forEach((media)=>stack.appendChild(mediaThumbnail(media,true)));trigger.append(stack);const copy=document.createElement('span');copy.className='page-builder-media-trigger-copy';const name=document.createElement('strong');name.textContent=`${selected.length} asset${selected.length===1?'':'s'} selected`;const meta=document.createElement('small');meta.textContent=records.slice(0,2).map(mediaName).join(' · ');copy.append(name,meta);trigger.append(copy);
+            }else{
+                const empty=document.createElement('span');empty.className='page-builder-media-trigger-empty';empty.textContent=approvedMedia.length?(multiple?'Select approved media':'Select approved media'):'No approved media available';trigger.append(empty);
+            }
+            const chevron=document.createElement('span');chevron.className='page-builder-media-chevron';chevron.textContent='⌄';trigger.append(chevron);trigger.setAttribute('aria-expanded',String(!menu.hidden));
+        };
+        const renderOptions=()=>{
+            optionList.replaceChildren();
+            const query=search.value.trim().toLowerCase();
+            const filtered=approvedMedia.filter((media)=>`${mediaName(media)} ${media.alt||''} ${media.kind||''}`.toLowerCase().includes(query));
+            const clear=document.createElement('button');clear.type='button';clear.className='page-builder-media-option page-builder-media-option--clear';clear.setAttribute('role','option');clear.setAttribute('aria-selected',String(selected.length===0));const clearCopy=document.createElement('span');clearCopy.className='page-builder-media-option-copy';const clearName=document.createElement('strong');clearName.textContent=multiple?'Clear selection':'Use no media';const clearMeta=document.createElement('small');clearMeta.textContent='Keep the approved reference artwork or empty state';clearCopy.append(clearName,clearMeta);clear.append(clearCopy);clear.addEventListener('click',()=>{selected=[];onChange(multiple?[]:null);renderTrigger();renderOptions();if(!multiple){menu.hidden=true;trigger.setAttribute('aria-expanded','false')}});optionList.appendChild(clear);
+            if(!filtered.length){const empty=document.createElement('p');empty.className='page-builder-media-options-empty';empty.textContent=approvedMedia.length?'No approved media matches this search.':'Approve media in the Public Media Library first.';optionList.appendChild(empty);return;}
+            filtered.forEach((media)=>{const option=document.createElement('button');option.type='button';option.className='page-builder-media-option';option.setAttribute('role','option');option.setAttribute('aria-selected',String(selected.includes(media.uuid)));option.append(mediaThumbnail(media));const copy=document.createElement('span');copy.className='page-builder-media-option-copy';const name=document.createElement('strong');name.textContent=mediaName(media);const meta=document.createElement('small');meta.textContent=`${media.kind|| (mediaIsVideo(media)?'Video':'Image')} · ${media.width&&media.height?`${media.width} × ${media.height}`:'Dimensions pending'}`;const alt=document.createElement('em');alt.textContent=media.alt||'Alt text not supplied';copy.append(name,meta,alt);option.append(copy);option.addEventListener('click',()=>{if(multiple){selected=selected.includes(media.uuid)?selected.filter((uuid)=>uuid!==media.uuid):[...selected,media.uuid];onChange([...selected]);renderTrigger();renderOptions();}else{selected=[media.uuid];onChange(media.uuid);renderTrigger();menu.hidden=true;trigger.setAttribute('aria-expanded','false');}});optionList.appendChild(option)});
+        };
+        trigger.addEventListener('click',()=>{const opening=menu.hidden;closeMediaMenus();menu.hidden=!opening;if(opening){renderOptions();search.focus()}trigger.setAttribute('aria-expanded',String(opening))});
+        search.addEventListener('input',renderOptions);wrapper.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&!menu.hidden){menu.hidden=true;trigger.setAttribute('aria-expanded','false');trigger.focus()}});
+        wrapper.append(heading,trigger,menu);fields.appendChild(wrapper);renderTrigger();renderOptions();return wrapper;
+    };
+    pageBuilder.addEventListener('click',(event)=>{if(!event.target.closest('[data-page-builder-media-picker]'))closeMediaMenus()});
+    const addMediaField=(fields,section)=>addMediaPicker(fields,{title:'Approved public media',value:section.media_uuid,onChange:(value)=>{checkpoint();section.media_uuid=value||null;sync()}});
     const addSelectField=(fields,section,title,key,options)=>{
         const wrapper=document.createElement('label');wrapper.textContent=title;const control=document.createElement('select');
         const current=sectionValue(section,key,options[0][0]);options.forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.selected=current===value;control.appendChild(option)});
         control.addEventListener('change',()=>{checkpointBeforeInput(control);setSectionValue(section,key,control.value)});wrapper.appendChild(control);fields.appendChild(wrapper);
     };
-    const addJsonField=(fields,section,title,key,{placeholder='',rows=5}={})=>{
-        const wrapper=document.createElement('label');wrapper.textContent=title;
-        const control=document.createElement('textarea');control.rows=rows;control.value=JSON.stringify(settingValue(section,key,[]),null,2);control.placeholder=placeholder;control.spellcheck=false;
-        const parse=()=>{try{const value=control.value.trim()===''?[]:JSON.parse(control.value);if(!Array.isArray(value)&&typeof value!=='object')throw new Error('JSON object or array required');control.setCustomValidity('');control.removeAttribute('aria-invalid');section.settings={...(section.settings||{}),[key]:value};sync()}catch(error){control.setCustomValidity('Enter valid JSON before saving.');control.setAttribute('aria-invalid','true')}};
-        control.addEventListener('input',()=>{checkpointBeforeInput(control);parse()});wrapper.appendChild(control);fields.appendChild(wrapper);
+    const iconOptions=[['clover','Clover'],['star','Star'],['users','People'],['truck','Delivery'],['globe','Globe'],['package','Package'],['settings','Craft'],['home','Home'],['message','Message'],['heart','Heart']];
+    const addRepeaterField=(fields,section,title,key,config)=>{
+        const wrapper=document.createElement('div');wrapper.className='page-builder-repeater';const heading=document.createElement('div');heading.className='page-builder-repeater-heading';const titleNode=document.createElement('strong');titleNode.textContent=title;const add=document.createElement('button');add.type='button';add.className='page-builder-repeater-add';add.textContent=config.addLabel||'Add item';heading.append(titleNode,add);const list=document.createElement('div');list.className='page-builder-repeater-list';wrapper.append(heading,list);fields.appendChild(wrapper);
+        let items=Array.isArray(settingValue(section,key,[]))?settingValue(section,key,[]).filter((item)=>item&&typeof item==='object').map((item)=>({...item})):[];
+        const syncItems=()=>{section.settings={...(section.settings||{}),[key]:items};sync()};
+        const render=()=>{list.replaceChildren();if(!items.length){const empty=document.createElement('p');empty.className='page-builder-repeater-empty';empty.textContent=config.emptyLabel||'No items added yet.';list.appendChild(empty)}items.forEach((item,index)=>{const row=document.createElement('div');row.className='page-builder-repeater-row';const rowHead=document.createElement('div');rowHead.className='page-builder-repeater-row-heading';const rowTitle=document.createElement('span');rowTitle.textContent=`${config.itemLabel||'Item'} ${index+1}`;const remove=document.createElement('button');remove.type='button';remove.className='page-builder-repeater-remove';remove.textContent='Remove';remove.addEventListener('click',()=>{checkpoint();items.splice(index,1);syncItems();render()});rowHead.append(rowTitle,remove);const rowFields=document.createElement('div');rowFields.className='page-builder-repeater-fields';config.fields.forEach((spec)=>{const fieldLabel=document.createElement('label');fieldLabel.textContent=spec.label;let control;if(spec.type==='select'){control=document.createElement('select');(spec.options||[]).forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;option.selected=(item[spec.key]||spec.default||'')===value;control.appendChild(option)})}else if(spec.type==='textarea'){control=document.createElement('textarea');control.rows=2;control.value=item[spec.key]||spec.default||'';control.placeholder=spec.placeholder||''}else if(spec.type==='checkbox'){control=document.createElement('input');control.type='checkbox';control.checked=!!item[spec.key];fieldLabel.className='page-builder-repeater-checkbox'}else{control=document.createElement('input');control.type='text';control.value=item[spec.key]||spec.default||'';control.placeholder=spec.placeholder||''}control.addEventListener(spec.type==='select'||spec.type==='checkbox'?'change':'input',()=>{checkpointBeforeInput(control);item[spec.key]=spec.type==='checkbox'?control.checked:control.value;syncItems()});fieldLabel.appendChild(control);rowFields.appendChild(fieldLabel)});row.append(rowHead,rowFields);list.appendChild(row)})};
+        add.addEventListener('click',()=>{checkpoint();const item={};config.fields.forEach((spec)=>{item[spec.key]=spec.type==='checkbox'?false:(spec.default||'')});items.push(item);syncItems();render()});render();
+    };
+    const addCollectionsField=(fields,section)=>{
+        const config={};const wrapper=document.createElement('div');wrapper.className='page-builder-repeater';const heading=document.createElement('div');heading.className='page-builder-repeater-heading';const title=document.createElement('strong');title.textContent='Collection cards';const add=document.createElement('button');add.type='button';add.className='page-builder-repeater-add';add.textContent='Add collection';heading.append(title,add);const list=document.createElement('div');list.className='page-builder-repeater-list';wrapper.append(heading,list);fields.appendChild(wrapper);
+        let items=Array.isArray(settingValue(section,'items',[]))?settingValue(section,'items',[]).filter((item)=>item&&typeof item==='object').map((item)=>({...item})):[];
+        const syncItems=()=>{section.settings={...(section.settings||{}),items};sync()};
+        const render=()=>{list.replaceChildren();if(!items.length){const empty=document.createElement('p');empty.className='page-builder-repeater-empty';empty.textContent='No collection cards added yet.';list.appendChild(empty)}items.forEach((item,index)=>{const row=document.createElement('div');row.className='page-builder-repeater-row';const rowHead=document.createElement('div');rowHead.className='page-builder-repeater-row-heading';const rowTitle=document.createElement('span');rowTitle.textContent=`Collection ${index+1}`;const remove=document.createElement('button');remove.type='button';remove.className='page-builder-repeater-remove';remove.textContent='Remove';remove.addEventListener('click',()=>{checkpoint();items.splice(index,1);syncItems();render()});rowHead.append(rowTitle,remove);const rowFields=document.createElement('div');rowFields.className='page-builder-repeater-fields page-builder-collection-fields';[['slug','Collection URL slug','baseball-caps'],['title','Card title','BASEBALL CAPS'],['copy','Card description','Classic. Everyday. Made to perform.']].forEach(([key,label,placeholder])=>{const fieldLabel=document.createElement('label');fieldLabel.textContent=label;const input=document.createElement('input');input.type='text';input.value=item[key]||'';input.placeholder=placeholder;input.addEventListener('input',()=>{checkpointBeforeInput(input);item[key]=input.value;syncItems()});fieldLabel.appendChild(input);rowFields.appendChild(fieldLabel)});const newLabel=document.createElement('label');newLabel.className='page-builder-repeater-checkbox';newLabel.textContent='New badge';const newInput=document.createElement('input');newInput.type='checkbox';newInput.checked=!!item.new;newInput.addEventListener('change',()=>{checkpointBeforeInput(newInput);item.new=newInput.checked;syncItems()});newLabel.appendChild(newInput);rowFields.appendChild(newLabel);addMediaPicker(rowFields,{title:'Card media',value:item.media_uuid,onChange:(value)=>{checkpoint();item.media_uuid=value||null;syncItems()}});row.append(rowHead,rowFields);list.appendChild(row)})};
+        add.addEventListener('click',()=>{checkpoint();items.push({slug:'',title:'',copy:'',new:false,media_uuid:null});syncItems();render()});render();
     };
     const addDeviceField=(fields,section)=>{
         const fieldset=document.createElement('fieldset');fieldset.className='page-builder-device-list page-builder-block-device-list';
@@ -389,18 +439,25 @@ if(pageBuilder){
             addTextField(fields,section,'Banner position','position',{placeholder:'Home - Main Slider'});
         }else if(type==='benefits'){
             addTextField(fields,section,'Accessibility label','aria_label',{placeholder:'Emerald Rozalia benefits'});
-            addJsonField(fields,section,'Benefit items (JSON)','items',{placeholder:'[{"icon":"clover","title":"MADE IN LIMERICK","content":"..."}]',rows:7});
+            addRepeaterField(fields,section,'Benefit items','items',{itemLabel:'Benefit',addLabel:'Add benefit',emptyLabel:'No benefits added yet.',fields:[
+                {key:'icon',label:'Icon',type:'select',options:iconOptions,default:'clover'},
+                {key:'title',label:'Title',placeholder:'MADE IN LIMERICK'},
+                {key:'content',label:'Description',type:'textarea',placeholder:'A short benefit description.'}
+            ]});
         }else if(type==='collections'){
             addTextField(fields,section,'Section heading','title',{placeholder:'SHOP BY COLLECTIONS'});
             addTextField(fields,section,'Card link label','card_cta',{placeholder:'SHOP NOW'});
-            addJsonField(fields,section,'Collection cards (JSON)','items',{placeholder:'[{"slug":"baseball-caps","title":"BASEBALL CAPS","copy":"..."}]',rows:8});
+            addCollectionsField(fields,section);
         }else if(type==='heritage'){
             addTextField(fields,section,'Eyebrow','eyebrow',{placeholder:'THE IRISH HERITAGE COLLECTION'});
             addTextField(fields,section,'Heading','title',{placeholder:'Tradition, Made in Limerick.'});
             addTextField(fields,section,'Content','content',{textarea:true,placeholder:'Heritage feature copy.'});
             addTextField(fields,section,'Button label','button_label',{placeholder:'Explore heritage collection'});
             addTextField(fields,section,'Button URL','button_href',{placeholder:'/irish-heritage'});
-            addJsonField(fields,section,'Quality badges (JSON)','badges',{placeholder:'[{"icon":"clover","title":"AUTHENTIC IRISH STYLE"}]',rows:6});
+            addRepeaterField(fields,section,'Quality badges','badges',{itemLabel:'Badge',addLabel:'Add badge',emptyLabel:'No quality badges added yet.',fields:[
+                {key:'icon',label:'Icon',type:'select',options:iconOptions,default:'clover'},
+                {key:'title',label:'Badge title',placeholder:'AUTHENTIC IRISH STYLE'}
+            ]});
         }else if(type==='products'){
             addTextField(fields,section,'Section heading','title',{placeholder:'BESTSELLERS'});
             addTextField(fields,section,'View-all label','view_all_label',{placeholder:'VIEW ALL'});
@@ -417,8 +474,14 @@ if(pageBuilder){
             addTextField(fields,section,'Gallery title','title',{placeholder:'Explore the collection'});
             const currentItems=Array.isArray(section.settings?.items)?section.settings.items:[];
             const selectedIds=currentItems.map((item)=>typeof item==='object'?item?.media_uuid:null).filter(Boolean);
-            const wrapper=document.createElement('fieldset');wrapper.className='page-builder-device-list';const legend=document.createElement('legend');legend.textContent=approvedMedia.length?'Approved gallery assets':'No approved gallery assets available';wrapper.appendChild(legend);
-            approvedMedia.forEach((media)=>{const label=document.createElement('label');const control=document.createElement('input');control.type='checkbox';control.value=media.uuid;control.checked=selectedIds.includes(media.uuid);control.addEventListener('change',()=>{checkpointBeforeInput(control);const items=[...wrapper.querySelectorAll('input:checked')].map((input)=>({media_uuid:input.value}));section.settings={...(section.settings||{}),items};delete section.settings.image;sync()});label.append(control,document.createTextNode(` ${media.original_name||media.alt||'Approved asset'}`));wrapper.appendChild(label)});fields.appendChild(wrapper);
+            addMediaPicker(fields,{title:'Approved gallery media',values:selectedIds,multiple:true,onChange:(values)=>{
+                checkpoint();
+                const byUuid=new Map(approvedMedia.map((media)=>[media.uuid,media]));
+                const previousByUuid=new Map(currentItems.filter((item)=>item&&typeof item==='object'&&item.media_uuid).map((item)=>[item.media_uuid,item]));
+                section.settings={...(section.settings||{}),items:values.map((uuid)=>({...previousByUuid.get(uuid),media_uuid:uuid,alt:previousByUuid.get(uuid)?.alt||byUuid.get(uuid)?.alt||null}))};
+                delete section.settings.image;
+                sync();
+            }});
         }else if(type==='cta'){
             addTextField(fields,section,'Heading','title',{placeholder:'Start a conversation'});
             addTextField(fields,section,'Button label','button_label',{placeholder:'Contact us'});

@@ -33,21 +33,21 @@
     </section>
 
     <section class="contact-options" aria-label="Contact options">
-        <a class="contact-option" href="https://wa.me/353899788187" target="_blank" rel="noopener" aria-label="Chat with Emerald Rozalia on WhatsApp">
+        <a class="contact-option" href="#contact-form" aria-label="Send an enquiry to Emerald Rozalia">
             <span class="contact-option-icon"><x-icon name="phone" size="27" /></span>
-            <span><strong>WHATSAPP</strong><b>0899788187</b><small>Chat with us on WhatsApp</small></span>
+            <span><strong>MESSAGE US</strong><b>Send an enquiry</b><small>Use the form to contact our team</small></span>
         </a>
-        <a class="contact-option" href="mailto:urmos@rozalia.ie" aria-label="Email Emerald Rozalia">
+        <a class="contact-option" href="#contact-form" aria-label="Send an email enquiry to Emerald Rozalia">
             <span class="contact-option-icon"><x-icon name="mail" size="27" /></span>
-            <span><strong>EMAIL US</strong><b>urmos@rozalia.ie</b><small>We aim to reply within 24 hours</small></span>
+            <span><strong>EMAIL ENQUIRY</strong><b>Send us a message</b><small>We’ll route your enquiry to the right team</small></span>
         </a>
-        <a class="contact-option" href="https://emeraldrozalia.ie" target="_blank" rel="noopener" aria-label="Visit the Emerald Rozalia website">
+        <a class="contact-option" href="/shop" aria-label="Explore the Emerald Rozalia shop">
             <span class="contact-option-icon"><x-icon name="globe" size="27" /></span>
-            <span><strong>WEBSITE</strong><b>emeraldrozalia.ie</b><small>Visit our online shop</small></span>
+            <span><strong>SHOP ONLINE</strong><b>Explore Emerald Rozalia</b><small>Browse our hats and caps</small></span>
         </a>
         <a class="contact-option" href="#contact-schedule" aria-label="Choose a live chat or meeting time">
             <span class="contact-option-icon"><x-icon name="message" size="27" /></span>
-            <span><strong>LIVE CHAT</strong><b>Chat with our team</b><small>Mon–Fri · 9:00am–5:30pm (Irish Time)</small></span>
+            <span><strong>LIVE CHAT</strong><b>Chat with our team</b><small>Choose a time to speak with us</small></span>
         </a>
     </section>
 
@@ -144,10 +144,10 @@
             <p>Our manufacturing and support team is based in Limerick, Ireland.</p>
         </article>
         <article class="contact-info-card">
-            <span class="contact-info-icon"><x-icon name="clock" size="25" /></span>
-            <h2>OFFICE HOURS</h2>
-            <p><b>Monday – Friday</b><br>9:00am – 5:30pm (Irish Time)</p>
-            <p><b>Saturday – Sunday</b><br>Closed</p>
+            <span class="contact-info-icon"><x-icon name="message" size="25" /></span>
+            <h2>HOW CAN WE HELP?</h2>
+            <p>Our team can help with product questions, orders and partnership opportunities.</p>
+            <p>Send us a message or choose a time to speak with us.</p>
             <div class="contact-card-divider"></div>
             <p><x-icon name="clover" size="22" /> Emerald Rozalia Limited<br><small>Proudly based in Limerick, Ireland</small></p>
         </article>

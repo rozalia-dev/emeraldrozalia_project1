@@ -25,6 +25,7 @@
 @section('title', $isCreate ? 'Create Page' : 'Edit ' . $page->title)
 
 @push('styles')
+    <link rel="stylesheet" href="/css/page-builder.css?v=20260913-premium-media-picker">
     <style>
         .page-builder-block-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}.page-builder-block-settings label{min-width:0}.page-builder-block-settings label:last-child{grid-column:1/-1}.page-builder-block-settings select{width:100%;padding:8px;border:1px solid #ccdacf;border-radius:4px;background:#fff;color:#253b2d;font:inherit;font-size:13px}.page-builder-block-settings textarea{min-height:74px}.page-builder-block-settings input:focus,.page-builder-block-settings select:focus,.page-builder-block-settings textarea:focus{border-color:#5d9c6c;box-shadow:0 0 0 3px rgba(79,146,91,.13);outline:0}.page-builder-media-guide{margin:8px 0 0;color:#6b7a70;font-size:12px;line-height:1.45}.page-builder-media-guide a{color:#1a713f;font-weight:700;text-decoration:underline;text-underline-offset:2px}@media(max-width:700px){.page-builder-block-settings{grid-template-columns:1fr}.page-builder-block-settings label:last-child{grid-column:auto}}
     </style>

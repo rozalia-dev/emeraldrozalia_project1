@@ -19,7 +19,9 @@ class SiteLayoutVersionLifecycleTest extends TestCase
         $this->withTenant($admin, $company)->get(route('admin.pages.layouts'))
             ->assertOk()
             ->assertSeeText('No shared layout versions yet.')
-            ->assertSeeText('Create the first layout draft');
+            ->assertSeeText('Create the first layout draft')
+            ->assertSeeText('Approved header logo')
+            ->assertDontSee('regions_json', false);
 
         $regions = SiteLayoutVersionService::DEFAULT_REGIONS;
         $regions['header']['announcement']['headline'] = 'A managed public shell';

@@ -29,6 +29,7 @@
     };
     $media = is_array($homeMedia ?? null) ? ($homeMedia[$section->media_uuid] ?? null) : null;
     $mediaUrl = is_array($media) ? ($media['url'] ?? null) : null;
+    $mediaIsVideo = is_array($media) && str_starts_with((string) ($media['mime_type'] ?? ''), 'video/');
     $mediaAlt = is_array($media) ? ($media['alt'] ?? $copy('alt', $section->label ?: 'Homepage media')) : $copy('alt', $section->label ?: 'Homepage media');
     $heroReferenceMedia = is_array($homeHeroReferenceMedia ?? null) ? $homeHeroReferenceMedia : null;
     $sectionAttributes = 'id="'.$sectionId.'" data-home-section="'.$type.'" data-home-section-uuid="'.$section->uuid.'" data-home-animation="'.$animation.'" data-home-devices="'.$deviceValue.'"';
@@ -39,38 +40,78 @@
             $heroPrimaryUrl = $safeUrl($settings['primary_href'] ?? null);
             $heroSecondaryUrl = $safeUrl($settings['secondary_href'] ?? null);
             $heroTertiaryUrl = $safeUrl($settings['tertiary_href'] ?? null);
-            $heroArtUrl = $mediaUrl ?: ($heroReferenceMedia['url'] ?? null);
-            $heroArtAlt = $mediaUrl ? $mediaAlt : ($heroReferenceMedia['alt'] ?? $mediaAlt);
-            $heroUsesReferenceArt = filled($heroArtUrl);
+            $heroTitle = $copy('title', $section->label ?: 'Emerald Rozalia');
+            $heroReferenceUrl = $heroReferenceMedia['url'] ?? null;
+            $heroCenterUrl = $mediaUrl ?: $heroReferenceUrl;
+            $heroCenterAlt = $mediaUrl ? $mediaAlt : ($heroReferenceMedia['alt'] ?? $mediaAlt);
+            $heroUsesReferenceArt = ! $mediaUrl && filled($heroReferenceUrl);
+            $heroPhotoInputId = $sectionId . '-photo';
         @endphp
-        <section {!! $sectionAttributes !!} class="home-hero home-hero--managed @if($heroUsesReferenceArt) home-hero--reference-art @endif" aria-labelledby="{{ $sectionId }}-title">
+        <section {!! $sectionAttributes !!} class="home-hero home-hero--managed home-hero--three-column @if($heroUsesReferenceArt) home-hero--reference-art @endif" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-hero-composition">
-                @if($heroArtUrl)
-                    <img class="home-hero-art" src="{{ $heroArtUrl }}" alt="{{ $heroArtAlt }}" width="{{ $heroReferenceMedia['width'] ?? 864 }}" height="{{ $heroReferenceMedia['height'] ?? 384 }}" fetchpriority="high">
-                @endif
                 <div class="home-hero-copy">
                     <p class="eyebrow">{{ $copy('eyebrow', $section->label ?: 'EMERALD ROZALIA') }}</p>
-                    <h1 id="{{ $sectionId }}-title">{{ $copy('title', $section->label ?: 'Emerald Rozalia') }}</h1>
-                    <p>{{ $copy('content') }}</p>
+                    <h1 id="{{ $sectionId }}-title">
+                        @if($heroTitle === 'CRAFTED IN LIMERICK. WORN EVERYWHERE.')
+                            <span>CRAFTED IN</span><em>LIMERICK.</em><span>WORN</span><span>EVERYWHERE.</span>
+                        @else
+                            {!! nl2br(e($heroTitle)) !!}
+                        @endif
+                    </h1>
+                    <p class="home-hero-description">{{ $copy('content') }}</p>
                     <div class="home-hero-actions">
-                        <?php if ($heroPrimaryUrl) { ?>
-                            <a class="btn home-hero-action--primary" href="{{ $heroPrimaryUrl }}">{{ $copy('primary_label', 'Explore') }} <x-icon name="arrow-right" /></a>
-                        <?php } ?>
                         <?php if ($heroSecondaryUrl) { ?>
-                            <a class="btn ghost home-hero-action--secondary" href="{{ $heroSecondaryUrl }}">{{ $copy('secondary_label', 'Shop now') }}</a>
+                            <a class="btn home-hero-action--primary" href="{{ $heroSecondaryUrl }}">{{ $copy('secondary_label', 'SHOP NEW ARRIVALS') }} <x-icon name="arrow-right" /></a>
                         <?php } ?>
                         <?php if ($heroTertiaryUrl) { ?>
-                            <a class="home-hero-text-link home-hero-action--tertiary" href="{{ $heroTertiaryUrl }}">{{ $copy('tertiary_label', 'Our story') }} <x-icon name="arrow-right" size="16" /></a>
+                            <a class="btn ghost home-hero-action--secondary" href="{{ $heroTertiaryUrl }}">{{ $copy('tertiary_label', 'OUR MANUFACTURING STORY') }} <x-icon name="arrow-right" /></a>
+                        <?php } ?>
+                        <?php if (! $heroSecondaryUrl && $heroPrimaryUrl) { ?>
+                            <a class="btn home-hero-action--primary" href="{{ $heroPrimaryUrl }}">{{ $copy('primary_label', 'START TRY-ON') }} <x-icon name="arrow-right" /></a>
                         <?php } ?>
                     </div>
                 </div>
-                <div class="home-hero-visual home-managed-media home-managed-media--hero" data-public-media-state="{{ $mediaUrl ? 'approved' : ($heroReferenceMedia ? 'reference-baseline' : 'awaiting-approved-media') }}" role="img" aria-label="{{ $heroArtAlt }}">
-                    <?php if ($mediaUrl && ! $heroUsesReferenceArt) { ?>
-                        <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                <div class="home-hero-center" data-public-media-state="{{ $mediaUrl ? 'approved' : ($heroReferenceMedia ? 'reference-baseline' : 'awaiting-approved-media') }}">
+                    <div class="home-hero-center-media home-managed-media home-managed-media--hero" role="img" aria-label="{{ $heroCenterAlt }}">
+                    <?php if ($heroCenterUrl) { ?>
+                        @if($mediaIsVideo)
+                            <video class="home-hero-center-image" src="{{ $heroCenterUrl }}" width="{{ $media['width'] ?: '' }}" height="{{ $media['height'] ?: '' }}" muted playsinline loop preload="metadata" aria-label="{{ $heroCenterAlt }}"></video>
+                        @else
+                            <img class="home-hero-center-image" src="{{ $heroCenterUrl }}" alt="{{ $heroCenterAlt }}" width="{{ $media['width'] ?? ($heroReferenceMedia['width'] ?? 864) }}" height="{{ $media['height'] ?? ($heroReferenceMedia['height'] ?? 384) }}" fetchpriority="high">
+                        @endif
                     <?php } else { ?>
-                        <span class="sr-only">{{ $heroReferenceMedia ? 'The approved reference composition is displayed. Select a different approved media asset in Page Manager to replace it.' : 'Approved homepage media is not configured for this section.' }}</span>
+                        <span class="sr-only">Approved homepage hero media is not configured for this section.</span>
                     <?php } ?>
+                    </div>
+                    <span class="home-hero-center-caption">LIMERICK · IRELAND</span>
                 </div>
+                <aside class="home-hero-tryon" aria-labelledby="{{ $sectionId }}-tryon-title">
+                    <p class="eyebrow">VIRTUAL TRY-ON</p>
+                    <h2 id="{{ $sectionId }}-tryon-title">See It.<br>Love It.<br>Own It.</h2>
+                    <p class="home-hero-tryon-copy">Upload your photo and see how our hats look on you.</p>
+                    <div class="home-tryon-upload-panel">
+                        <label class="home-tryon-upload-action" for="{{ $heroPhotoInputId }}">
+                            <x-icon name="upload" size="23" />
+                            <span>UPLOAD YOUR PHOTO</span>
+                        </label>
+                        <span class="home-tryon-or">or</span>
+                        <label class="home-tryon-camera-action" for="{{ $heroPhotoInputId }}">
+                            <x-icon name="camera" size="14" />
+                            <span>TAKE PHOTO</span>
+                        </label>
+                        <input class="home-tryon-file" id="{{ $heroPhotoInputId }}" type="file" accept="image/jpeg,image/png,image/webp" capture="user" data-home-tryon-photo>
+                        <small data-home-tryon-file-name>No photo selected</small>
+                    </div>
+                    <a class="btn home-hero-tryon-start" href="{{ $heroPrimaryUrl ?: route('virtual-tryon') }}">{{ $copy('primary_label', 'START TRY-ON') }} <x-icon name="arrow-right" /></a>
+                    <p class="home-tryon-privacy"><x-icon name="lock" size="12" /> 100% Private &amp; Secure</p>
+                    <div class="home-tryon-thumbnails" aria-hidden="true">
+                        <span class="home-tryon-thumbnail home-tryon-thumbnail--one"></span>
+                        <span class="home-tryon-thumbnail home-tryon-thumbnail--two"></span>
+                        <span class="home-tryon-thumbnail home-tryon-thumbnail--three"></span>
+                        <span class="home-tryon-thumbnail home-tryon-thumbnail--four"></span>
+                    </div>
+                    <p class="sr-only">Your photo is selected locally in the browser and is not uploaded from this homepage panel.</p>
+                </aside>
             </div>
         </section>
 <?php } elseif ($type === 'banners') { ?>
@@ -90,7 +131,11 @@
                         <div class="home-published-banner" data-banner-public-uuid="{{ $banner->public_uuid }}">
                     <?php } ?>
                         <?php if ($bannerMedia) { ?>
-                            <img src="{{ $bannerMedia['url'] }}" @if($bannerMedia['srcset']) srcset="{{ $bannerMedia['srcset'] }}" sizes="{{ $bannerMedia['sizes'] }}" @endif width="{{ $bannerMedia['width'] ?: '' }}" height="{{ $bannerMedia['height'] ?: '' }}" alt="{{ $bannerMedia['alt'] }}">
+                            @if(str_starts_with((string) ($bannerMedia['mime_type'] ?? ''), 'video/'))
+                                <video src="{{ $bannerMedia['url'] }}" width="{{ $bannerMedia['width'] ?: '' }}" height="{{ $bannerMedia['height'] ?: '' }}" muted playsinline loop preload="metadata" aria-label="{{ $bannerMedia['alt'] }}"></video>
+                            @else
+                                <img src="{{ $bannerMedia['url'] }}" @if($bannerMedia['srcset']) srcset="{{ $bannerMedia['srcset'] }}" sizes="{{ $bannerMedia['sizes'] }}" @endif width="{{ $bannerMedia['width'] ?: '' }}" height="{{ $bannerMedia['height'] ?: '' }}" alt="{{ $bannerMedia['alt'] }}">
+                            @endif
                         <?php } ?>
                         <div class="home-published-banner__copy">
                             <?php if ($banner->title) { ?>
@@ -140,7 +185,13 @@
                         <?php if ($collectionUrl) { ?>
                             <a class="home-collection-card" href="{{ $collectionUrl }}">
                                 <div class="home-managed-media home-managed-media--collection @if(! $collectionMedia) home-reference-media home-reference-media--collection-{{ $collectionIndex + 1 }} @endif" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
-                                    <?php if ($collectionMedia) { ?><img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif alt="{{ $collectionMedia['alt'] }}" loading="lazy"><?php } ?>
+                                    <?php if ($collectionMedia) { ?>
+                                        @if(str_starts_with((string) ($collectionMedia['mime_type'] ?? ''), 'video/'))
+                                            <video src="{{ $collectionMedia['url'] }}" muted playsinline loop preload="metadata" aria-label="{{ $collectionMedia['alt'] }}"></video>
+                                        @else
+                                            <img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif alt="{{ $collectionMedia['alt'] }}" loading="lazy">
+                                        @endif
+                                    <?php } ?>
                                     <?php if (!empty($item['new'])) { ?>
                                         <span class="home-collection-new">NEW</span>
                                     <?php } ?>
@@ -167,7 +218,11 @@
             </div>
             <div class="home-heritage-visual home-managed-media home-managed-media--heritage @if(! $mediaUrl) home-reference-media home-reference-media--heritage @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
-                    <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                    @if($mediaIsVideo)
+                        <video src="{{ $mediaUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $mediaAlt }}"></video>
+                    @else
+                        <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                    @endif
                 <?php } else { ?>
                     <span class="sr-only">Approved homepage media is not configured for this section.</span>
                 <?php } ?>
@@ -236,7 +291,11 @@
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-quality-visual home-managed-media home-managed-media--quality @if(! $mediaUrl) home-reference-media home-reference-media--quality @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
-                    <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                    @if($mediaIsVideo)
+                        <video src="{{ $mediaUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $mediaAlt }}"></video>
+                    @else
+                        <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                    @endif
                 <?php } else { ?>
                     <span class="sr-only">Approved homepage media is not configured for this section.</span>
                 <?php } ?>
@@ -264,7 +323,11 @@
             </div>
             <div class="home-franchise-visual home-managed-media home-managed-media--franchise @if(! $mediaUrl) home-reference-media home-reference-media--franchise @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
-                    <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                    @if($mediaIsVideo)
+                        <video src="{{ $mediaUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $mediaAlt }}"></video>
+                    @else
+                        <img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}">
+                    @endif
                 <?php } else { ?>
                     <span class="sr-only">Approved homepage media is not configured for this section.</span>
                 <?php } ?>

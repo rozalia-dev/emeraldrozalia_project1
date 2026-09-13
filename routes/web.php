@@ -44,6 +44,7 @@ Route::middleware(['auth','admin'])->prefix('admin/resource/site-media')->name('
     Route::get('/',[MediaAssetController::class,'index'])->name('index');
     Route::get('/trash',[MediaAssetController::class,'index'])->defaults('view', 'trash')->name('trash');
     Route::post('/',[MediaAssetController::class,'store'])->name('store');
+    Route::get('/{asset}/preview',[MediaAssetController::class,'preview'])->whereUuid('asset')->name('preview');
     Route::patch('/{asset}',[MediaAssetController::class,'update'])->name('update');
     Route::post('/{asset}/approve',[MediaAssetController::class,'approve'])->name('approve');
     Route::post('/{asset}/reject',[MediaAssetController::class,'reject'])->name('reject');

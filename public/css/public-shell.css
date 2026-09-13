@@ -61,10 +61,10 @@
 
 .site-body .site-header[data-public-shell-region="header"] nav a {
     display: inline-flex;
-    height: 100%;
+    height: auto;
     min-height: 0;
     align-items: center;
-    padding: 0;
+    padding: 3px 0 4px;
     color: #f4f4ef;
     border-bottom: 2px solid transparent;
 }
@@ -99,6 +99,32 @@
 
 .site-body .site-header[data-public-shell-region="header"] .nav-toggle {
     display: none;
+}
+
+.site-body .site-footer .footer-contact {
+    display: grid;
+    gap: 5px;
+    margin: 12px 0 0;
+}
+
+.site-body .site-footer .footer-contact a,
+.site-body .site-footer .footer-contact span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: #c7d1ca;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.site-body .site-footer .footer-contact a:hover {
+    color: #8cc63e;
+}
+
+.site-body .site-footer .footer-contact .ui-icon {
+    flex: none;
+    color: #8cc63e;
 }
 
 @media (max-width: 1500px) and (min-width: 1101px) {

@@ -5,6 +5,11 @@
 @php($siteLayoutRegions = data_get($siteLayout ?? [], 'regions', []))
 @php($siteLayoutMeta = data_get($siteLayout ?? [], 'meta', []))
 @php($footerBrandDescription = data_get($siteLayoutRegions, 'footer.brand_description') ?: data_get($siteBranding, 'description', 'Proudly manufacturing hats and caps in Limerick, Ireland.'))
+@php($footerPhone = data_get($siteBranding, 'phone') ?: config('app.brand_contact.whatsapp', '0899788187'))
+@php($footerEmail = data_get($siteBranding, 'email') ?: config('app.brand_contact.email', 'urmos@rozalia.ie'))
+@php($footerWebsite = data_get($siteBranding, 'website') ?: config('app.brand_contact.website', 'emeraldrozalia.ie'))
+@php($footerLocation = data_get($siteBranding, 'address') ?: config('app.brand_contact.location', 'Limerick, Ireland'))
+@php($footerWebsiteUrl = preg_match('/\Ahttps:\/\//i', (string) $footerWebsite) ? $footerWebsite : 'https://'.ltrim((string) $footerWebsite, '/'))
 @php($siteLayoutService = app(\App\Services\SiteLayoutVersionService::class))
 @php($publicMedia = app(\App\Services\PublicMediaResolver::class))
 @php($publicAssetUrl = static function (string $path) use ($publicMedia): ?string { $asset = $publicMedia->forLegacyPath($path); return $asset['url'] ?? null; })
@@ -110,6 +115,12 @@
     <div class="footer-brand">
         @if($footerLogoUrl)<img class="brand-logo-image" src="{{ $footerLogoUrl }}" alt="{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}">@else<span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>@endif
         <p>{{ $footerBrandDescription }}</p>
+        <div class="footer-contact" aria-label="Emerald Rozalia contact details">
+            @if(filled($footerPhone))<a href="tel:{{ preg_replace('/\D+/', '', (string) $footerPhone) }}"><x-icon name="phone" size="14" /> {{ $footerPhone }}</a>@endif
+            @if(filled($footerEmail))<a href="mailto:{{ $footerEmail }}"><x-icon name="mail" size="14" /> {{ $footerEmail }}</a>@endif
+            @if(filled($footerWebsite))<a href="{{ $footerWebsiteUrl }}" target="_blank" rel="noopener"><x-icon name="globe" size="14" /> {{ $footerWebsite }}</a>@endif
+            @if(filled($footerLocation))<span><x-icon name="globe" size="14" /> {{ $footerLocation }}</span>@endif
+        </div>
         <div class="socials">
             @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
                 @php($socialHref = $layoutUrl($social))

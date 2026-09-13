@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\SiteController;
 use App\Models\{ContentPage, MediaAsset, PageRevision, ProductMedia, VariantMedia};
-use App\Services\PublicMediaResolver;
+use App\Services\{PageSectionBlueprints, PublicMediaResolver};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,6 +14,10 @@ class PageManagerController extends Controller
 {
     private const STATUSES = ['draft', 'review', 'scheduled', 'published', 'unpublished', 'archived'];
     private const HOMEPAGE_SECTION_TYPES = ['hero', 'banners', 'benefits', 'collections', 'heritage', 'products', 'quality', 'franchise', 'content'];
+
+    public function __construct(private readonly PageSectionBlueprints $sectionBlueprints)
+    {
+    }
 
     private function validated(Request $request, ?ContentPage $page = null): array
     {
@@ -215,8 +219,23 @@ class PageManagerController extends Controller
                 default => null,
             };
 
-            return $resolver->describe($media, $fallbackAlt);
+            $descriptor = $resolver->describe($media, $fallbackAlt);
+            $descriptor['kind'] = str_starts_with((string) $descriptor['mime_type'], 'video/') ? 'Video' : 'Image';
+            $descriptor['display_name'] = $descriptor['original_name'] ?: $descriptor['alt'];
+
+            return $descriptor;
         })->values()->all();
+    }
+
+    private function hydrateStarterSections(ContentPage $page): void
+    {
+        if ($page->isHomepage() || $page->sections->isNotEmpty()) {
+            return;
+        }
+
+        $page->setRelation('sections', collect($this->sectionBlueprints->forPage($page))->map(
+            fn (array $section): \App\Models\PageSection => new \App\Models\PageSection($section + ['content_page_id' => $page->id])
+        ));
     }
 
     private function syncSections(ContentPage $page, ?string $payload): void
@@ -284,6 +303,7 @@ class PageManagerController extends Controller
     public function edit(ContentPage $page)
     {
         $page->load(['sections', 'revisions']);
+        $this->hydrateStarterSections($page);
 
         $approvedMedia = $this->approvedMedia();
 
@@ -348,6 +368,9 @@ class PageManagerController extends Controller
         $editingPage = $request->filled('edit')
             ? ContentPage::withTrashed()->with(['sections', 'revisions'])->find($request->integer('edit'))
             : $pages->first();
+        if ($editingPage) {
+            $this->hydrateStarterSections($editingPage);
+        }
 
         return view('admin.pages.index', compact('pages', 'allPages', 'editingPage', 'stats', 'typeCounts', 'tab', 'type'));
     }
@@ -466,6 +489,7 @@ class PageManagerController extends Controller
     public function preview(ContentPage $page, \App\Services\SiteLayoutVersionService $layouts)
     {
         $page->load('sections');
+        $this->hydrateStarterSections($page);
         if ($page->isHomepage()) {
             return view('site.home', [
                 ...app(SiteController::class)->homeData(),

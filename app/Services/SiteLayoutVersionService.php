@@ -423,6 +423,12 @@ final class SiteLayoutVersionService
     private function validatedRegions(array $regions): array
     {
         $regions = $this->mergeRegions(self::DEFAULT_REGIONS, $regions);
+        if (is_array($regions['footer']['newsletter'] ?? null) && array_key_exists('enabled', $regions['footer']['newsletter'])) {
+            $regions['footer']['newsletter']['enabled'] = filter_var(
+                $regions['footer']['newsletter']['enabled'],
+                FILTER_VALIDATE_BOOLEAN,
+            );
+        }
         $errors = $this->regionErrors($regions);
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
@@ -467,6 +473,19 @@ final class SiteLayoutVersionService
                     $errors[$path.'.'.$index.'.href'] = 'Every menu item needs a safe local or HTTPS destination.';
                 }
             }
+        }
+        $canonicalMenu = array_map(
+            static fn (array $link): array => ['label' => $link['label'], 'href' => $link['href']],
+            self::DEFAULT_REGIONS['header']['primary_menu'],
+        );
+        $submittedMenu = array_map(
+            static fn (mixed $link): array => is_array($link)
+                ? ['label' => trim((string) ($link['label'] ?? '')), 'href' => trim((string) ($link['href'] ?? ''))]
+                : ['label' => '', 'href' => ''],
+            array_values((array) data_get($regions, 'header.primary_menu', [])),
+        );
+        if ($submittedMenu !== $canonicalMenu) {
+            $errors['header.primary_menu'] = 'The approved eight-item public navigation is fixed and cannot be changed here.';
         }
         foreach ((array) data_get($regions, 'footer.columns', []) as $columnIndex => $column) {
             if (! is_array($column) || trim((string) ($column['title'] ?? '')) === '') {

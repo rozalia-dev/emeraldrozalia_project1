@@ -76,6 +76,14 @@ class PublicContentContractTest extends TestCase
         );
     }
 
+    public function test_contact_page_uses_the_approved_contact_channels(): void
+    {
+        $this->get(route('contact'))
+            ->assertOk()
+            ->assertSee(['0899788187', 'urmos@rozalia.ie', 'emeraldrozalia.ie', 'Limerick, Ireland'], false)
+            ->assertDontSee('OFFICE HOURS', false);
+    }
+
     public function test_published_footer_pages_are_available_without_expanding_the_fixed_header(): void
     {
         $page = ContentPage::create([
