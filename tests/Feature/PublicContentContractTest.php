@@ -62,7 +62,12 @@ class PublicContentContractTest extends TestCase
                 : '';
         };
 
-        $normalizeNavigation = static fn (string $navigation): string => preg_replace('/\s+(?:class|aria-current)="[^"]*"/', '', $navigation) ?: $navigation;
+        $normalizeNavigation = static function (string $navigation): string {
+            $navigation = preg_replace('/\s+class="[^"]*"/', '', $navigation) ?: $navigation;
+            $navigation = preg_replace('/\s+aria-current=(?:"[^"]*"|&quot;[^&]*&quot;)/', '', $navigation) ?: $navigation;
+
+            return preg_replace('/\s+>/', '>', $navigation) ?: $navigation;
+        };
 
         $this->assertSame(
             $normalizeNavigation($extract($home, '<nav data-nav', '</nav>')),
