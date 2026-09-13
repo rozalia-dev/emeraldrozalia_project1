@@ -3,7 +3,7 @@
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
     <link rel="stylesheet" href="/css/home-collections.css?v=20260913-managed-home">
-    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20260913-structured-hero">
+    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20260913-full-width-background">
 @endpush
 @section('content')
     @php
@@ -27,6 +27,9 @@
             : null;
         $heroMedia = $heroSection && is_array($homeMedia ?? null) && filled($heroSection->media_uuid)
             ? ($homeMedia[$heroSection->media_uuid] ?? null)
+            : null;
+        $heroBackgroundUrl = is_array($heroMedia) && str_starts_with((string) ($heroMedia['mime_type'] ?? ''), 'image/')
+            ? ($heroMedia['url'] ?? null)
             : null;
         // The approved reference artwork is a layout blueprint only. It must
         // never be rendered as the hero image. Use managed hero media first,
@@ -52,7 +55,7 @@
         @endif
 
         @if($heroSection)
-            <section id="{{ $heroId }}" class="home-hero home-hero--structured" data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" aria-labelledby="{{ $heroId }}-title">
+            <section id="{{ $heroId }}" class="home-hero home-hero--structured @if($heroBackgroundUrl) home-hero--has-background @endif" @if($heroBackgroundUrl) style="--home-hero-background-image: url('{{ $heroBackgroundUrl }}');" @endif data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" aria-labelledby="{{ $heroId }}-title">
                 <div class="home-hero-structured-grid">
                     <div class="home-hero-structured-copy">
                         <p class="eyebrow">{{ $heroCopy('eyebrow', $heroSection->label ?: 'IRISH MADE. LIMERICK BORN.') }}</p>
@@ -64,8 +67,8 @@
                         </div>
                     </div>
 
-                    <div class="home-hero-structured-product" data-public-media-state="{{ is_array($heroMedia) ? 'approved' : (is_array($fallbackProductDescriptor) ? 'product-media' : 'awaiting-approved-media') }}">
-                        @if($heroVisualUrl)
+                    <div class="home-hero-structured-product" data-public-media-state="{{ $heroBackgroundUrl ? 'approved-background' : (is_array($fallbackProductDescriptor) ? 'product-media' : 'awaiting-approved-media') }}">
+                        @if(!$heroBackgroundUrl && $heroVisualUrl)
                             @if($heroVisualIsVideo)
                                 <video src="{{ $heroVisualUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $heroVisualAlt }}"></video>
                             @else

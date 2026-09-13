@@ -34,7 +34,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260913-managed-home',
-                '/css/home-hero-layout.css?v=20260913-structured-hero',
+                '/css/home-hero-layout.css?v=20260913-full-width-background',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
