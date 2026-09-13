@@ -3,7 +3,7 @@
 @section('title', 'Banners / Sliders')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/banners-reference.css?v=20260912-1') }}">
+    <link rel="stylesheet" href="{{ asset('css/banners-reference.css?v=20260913-1') }}">
 @endpush
 
 @php
@@ -41,7 +41,7 @@
 @endphp
 
 @section('content')
-<div class="banner-reference-page" data-banner-root data-open-modal="{{ $openModal ?? '' }}" data-current-tab="{{ $tab }}">
+<div class="banner-reference-page" data-banner-root data-open-modal="{{ $openModal ?? '' }}" data-current-tab="{{ $tab }}" data-empty="{{ $isEmpty ? 'true' : 'false' }}">
     <div class="banner-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ route('admin.dashboard') }}">Project 1 Control Panel (cPanel)</a>
         <x-icon name="chevron-right" size="12" />
@@ -65,6 +65,8 @@
         </div>
     </div>
 
+    <div class="banner-data-note" role="status">{{ $dataNote }}</div>
+
     <div class="banner-layout">
         <div class="banner-main">
             <section class="banner-kpis" aria-label="Banner summary metrics">
@@ -74,7 +76,11 @@
                         <div>
                             <small>{{ $metric['label'] }}</small>
                             <strong>{{ $number($metric['value']) }}</strong>
-                            <em class="{{ !empty($metric['negative']) ? 'is-negative' : '' }}">↗ {{ $metric['trend'] }} <span>{{ $metric['trend_note'] }}</span></em>
+                            @if($metric['trend'] !== null)
+                                <em class="{{ !empty($metric['negative']) ? 'is-negative' : '' }}">↗ {{ $metric['trend'] }} <span>{{ $metric['trend_note'] }}</span></em>
+                            @else
+                                <em class="banner-kpi-note">{{ $metric['trend_note'] }}</em>
+                            @endif
                         </div>
                     </article>
                 @endforeach
@@ -201,19 +207,17 @@
                                                 </div>
                                             </details>
                                         </div>
-                                    @else
-                                        <span class="banner-preview-only">Preview</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="11" class="banner-empty-state"><x-icon name="image" size="22" /><strong>No banners match these filters</strong><span>Try another filter or create a new banner / slider.</span><button type="button" class="banner-small-button" data-banner-modal-open="create">Add New Banner / Slider</button></td></tr>
+                            <tr><td colspan="11" class="banner-empty-state"><x-icon name="image" size="22" /><strong>{{ $isEmpty ? 'No banner records yet' : 'No banners match these filters' }}</strong><span>{{ $isEmpty ? 'Save the first banner or slider to populate this workspace.' : 'Try another filter or create a new banner / slider.' }}</span><button type="button" class="banner-small-button" data-banner-modal-open="create">Add New Banner / Slider</button></td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
             <div class="banner-pagination-row">
-                <span>Showing {{ $rows ? (($banners->firstItem() ?? 1).' to '.($banners->lastItem() ?? count($rows))) : 0 }} of {{ $preview ? $stats['total'] : $banners->total() }} banners / sliders</span>
+                <span>Showing {{ $rows ? (($banners->firstItem() ?? 1).' to '.($banners->lastItem() ?? count($rows))) : 0 }} of {{ $banners->total() }} banners / sliders</span>
                 <div>{{ $banners->onEachSide(1)->links('pagination::simple-tailwind') }}</div>
                 <label><span>Rows</span><select data-banner-per-page><option value="10" @selected($banners->perPage() === 10)>10 / page</option><option value="25" @selected($banners->perPage() === 25)>25 / page</option><option value="50" @selected($banners->perPage() === 50)>50 / page</option></select></label>
             </div>
@@ -259,8 +263,8 @@
             @endif
 
             <section class="banner-lower-meta" id="banner-lower-meta">
-                <div><span>Selected UUID</span><strong>{{ $selectedUuid ?: 'Preview data — create a banner to generate a UUID' }}</strong></div>
-                <div><span>Last saved</span><strong>{{ $selected['updated_at'] ?? 'Reference preview' }}</strong></div>
+                <div><span>Selected UUID</span><strong>{{ $selectedUuid ?: 'No banner selected — create a banner to generate a UUID' }}</strong></div>
+                <div><span>Last saved</span><strong>{{ $selected['updated_at'] ?? 'No record selected' }}</strong></div>
                 <button type="button" class="banner-outline-button" data-banner-modal-open="audit"><x-icon name="file-text" size="13" /> View Audit &amp; Revisions</button>
             </section>
         </div>
@@ -404,7 +408,7 @@
                 @endforelse
             </div>
         @else
-            <div class="banner-empty-modal"><x-icon name="shield" size="28" /><strong>Reference preview mode</strong><span>Create a banner to enable revisions and audit traceability.</span></div>
+            <div class="banner-empty-modal"><x-icon name="shield" size="28" /><strong>No banner selected</strong><span>Create or select a saved banner to view revisions and audit traceability.</span></div>
         @endif
         <div class="banner-modal-actions"><button type="button" class="banner-outline-button" data-banner-modal-close>Close</button></div>
     </div>

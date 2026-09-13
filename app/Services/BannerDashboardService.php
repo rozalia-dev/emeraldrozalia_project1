@@ -12,8 +12,7 @@ use Illuminate\Support\Str;
 
 /**
  * Server-first data builder for the Website & Products banner workspace.
- * Empty installations use the supplied reference rows; once PostgreSQL has
- * banner records, every metric, filter and table row is calculated from them.
+ * Metrics, filters, activity and table rows always come from Banner records.
  */
 class BannerDashboardService
 {
@@ -66,21 +65,23 @@ class BannerDashboardService
 
         $allRecords = Banner::withTrashed()->latest('updated_at')->get();
         $liveRecords = $allRecords->filter(fn (Banner $banner): bool => ! $banner->trashed())->values();
-        $preview = $allRecords->isEmpty();
-        $stats = $preview ? $this->previewStats() : $this->stats($liveRecords);
-        $previewRows = $this->previewRows();
-        $rows = $preview
-            ? $this->filteredPreviewRows($previewRows, $request, $tab)
-            : $banners->getCollection()->map(fn (Banner $banner): array => $this->row($banner))->values()->all();
+        $rows = $banners->getCollection()
+            ->map(fn (Banner $banner): array => $this->row($banner))
+            ->values()
+            ->all();
 
         $selected = $this->selectedBanner($request, $banners, $liveRecords, $tab);
-        $selectedRow = $selected ? $this->row($selected) : ($preview ? ($rows[0] ?? null) : null);
+        $selectedRow = $selected ? $this->row($selected) : null;
         $selectedRow = $selectedRow ? array_replace($this->selectedDefaults(), $selectedRow) : null;
+        $stats = $this->stats($liveRecords);
 
         return [
             'banners' => $banners,
             'rows' => $rows,
-            'preview' => $preview,
+            'isEmpty' => $allRecords->isEmpty(),
+            'dataNote' => $allRecords->isEmpty()
+                ? 'No banner records are stored yet. Metrics and activity will populate after the first saved banner.'
+                : 'Metrics, activity and table rows are calculated from Banner records in the current company context.',
             'selectedBanner' => $selectedRow,
             'selectedId' => $selected?->id,
             'selectedUuid' => $selected?->public_uuid,
@@ -105,7 +106,7 @@ class BannerDashboardService
             'positionFilter' => (string) $request->query('position', ''),
             'dateFrom' => (string) $request->query('date_from', ''),
             'dateTo' => (string) $request->query('date_to', ''),
-            'notifications' => $preview ? $this->previewNotifications() : $this->notifications($liveRecords, $stats),
+            'notifications' => $this->notifications($liveRecords, $stats),
         ];
     }
 
@@ -268,55 +269,14 @@ class BannerDashboardService
         ];
     }
 
-    private function previewStats(): array
-    {
-        return [
-            'total' => 48,
-            'active' => 32,
-            'scheduled' => 9,
-            'expired' => 3,
-            'clicks' => 24875,
-            'impressions' => 312450,
-            'ctr' => 7.96,
-            'type_counts' => ['slider' => 20, 'banner' => 18, 'popup' => 8, 'footer' => 1, 'mobile_app' => 1],
-            'latest_uuid' => '7b6f64c0-0c0b-42be-9f5d-67f3a9c2e6d9',
-        ];
-    }
-
-    private function filteredPreviewRows(array $rows, Request $request, string $tab): array
-    {
-        $search = Str::lower(trim((string) $request->query('q', '')));
-        $type = (string) $request->query('type', '');
-        $status = (string) $request->query('status', '');
-        $position = (string) $request->query('position', '');
-
-        return array_values(array_filter($rows, function (array $row) use ($search, $type, $status, $position, $tab): bool {
-            if ($tab === 'sliders' && $row['type'] !== 'slider') return false;
-            if ($tab === 'banners' && $row['type'] !== 'banner') return false;
-            if ($tab === 'top-banner' && $row['position'] !== 'Top Banner') return false;
-            if ($tab === 'popup' && $row['type'] !== 'popup') return false;
-            if ($tab === 'footer' && $row['position'] !== 'Footer Banner') return false;
-            if ($tab === 'mobile_app' && $row['type'] !== 'mobile_app') return false;
-            if ($type !== '' && $row['type'] !== $type) return false;
-            if ($position !== '' && $row['position'] !== $position) return false;
-            if ($status !== '' && $row['status_key'] !== $status && $row['status_value'] !== $status) return false;
-            if ($search !== '') {
-                $haystack = Str::lower(implode(' ', [$row['title'], $row['subtitle'], $row['position'], $row['target_url']]));
-                if (! Str::contains($haystack, $search)) return false;
-            }
-
-            return true;
-        }));
-    }
-
     private function metricCards(array $stats): array
     {
         return [
-            ['label' => 'Total Banners / Sliders', 'value' => $stats['total'], 'kind' => 'number', 'icon' => 'grid', 'tone' => 'green', 'trend' => '14.3%', 'trend_note' => 'vs last 30 days'],
-            ['label' => 'Active', 'value' => $stats['active'], 'kind' => 'number', 'icon' => 'check', 'tone' => 'purple', 'trend' => '12.5%', 'trend_note' => 'vs last 30 days'],
-            ['label' => 'Scheduled', 'value' => $stats['scheduled'], 'kind' => 'number', 'icon' => 'calendar', 'tone' => 'orange', 'trend' => '8.1%', 'trend_note' => 'vs last 30 days'],
-            ['label' => 'Expired', 'value' => $stats['expired'], 'kind' => 'number', 'icon' => 'calendar', 'tone' => 'blue', 'trend' => '25%', 'trend_note' => 'vs last 30 days', 'negative' => true],
-            ['label' => 'Clicks (All Time)', 'value' => $stats['clicks'], 'kind' => 'number', 'icon' => 'eye', 'tone' => 'teal', 'trend' => '18.6%', 'trend_note' => 'vs last 30 days'],
+            ['label' => 'Total Banners / Sliders', 'value' => $stats['total'], 'kind' => 'number', 'icon' => 'grid', 'tone' => 'green', 'trend' => null, 'trend_note' => 'No comparison loaded'],
+            ['label' => 'Active', 'value' => $stats['active'], 'kind' => 'number', 'icon' => 'check', 'tone' => 'purple', 'trend' => null, 'trend_note' => 'No comparison loaded'],
+            ['label' => 'Scheduled', 'value' => $stats['scheduled'], 'kind' => 'number', 'icon' => 'calendar', 'tone' => 'orange', 'trend' => null, 'trend_note' => 'No comparison loaded'],
+            ['label' => 'Expired', 'value' => $stats['expired'], 'kind' => 'number', 'icon' => 'calendar', 'tone' => 'blue', 'trend' => null, 'trend_note' => 'No comparison loaded', 'negative' => true],
+            ['label' => 'Clicks (All Time)', 'value' => $stats['clicks'], 'kind' => 'number', 'icon' => 'eye', 'tone' => 'teal', 'trend' => null, 'trend_note' => 'No comparison loaded'],
         ];
     }
 
@@ -394,75 +354,12 @@ class BannerDashboardService
         ];
     }
 
-    private function previewRows(): array
-    {
-        return [
-            $this->previewRow('New Arrivals 2025', 'Discover the latest collection', 'slider', 'Home - Main Slider', '/collections/new-arrivals', 'Active', 'active', '01 May 2025 — 31 May 2025', 4235, 1, 'brand/home-page-hero-reference@2x.png'),
-            $this->previewRow('Spring Summer 2025', 'Fresh styles for the season', 'slider', 'Home - Main Slider', '/collections/spring-summer-2025', 'Active', 'active', '15 Apr 2025 — 15 Jun 2025', 3876, 2, 'brand/home-collections-reference.webp'),
-            $this->previewRow('Emerald Signature Caps', 'Premium quality. Iconic style.', 'banner', 'Top Banner', '/collections/signature-caps', 'Active', 'active', '01 May 2025 — 31 May 2025', 2451, 1, 'products/irish-heritage-bucket-hat/front.jpg'),
-            $this->previewRow('Premium Accessories', 'Complete your look', 'banner', 'Home - Below Slider', '/collections/accessories', 'Scheduled', 'scheduled', '05 May 2025 — 05 Jun 2025', 0, 3, 'brand/home-page-hero-reference.png'),
-            $this->previewRow('Free Shipping Promo', 'On orders over €50', 'popup', 'Popup (Exit Intent)', '/pages/shipping-info', 'Active', 'active', '20 Apr 2025 — 20 May 2025', 1234, null, 'brand/bulk-order-reference.png'),
-            $this->previewRow('Corporate Gifting', 'Branded gifting for your business', 'banner', 'Home - Middle', '/pages/corporate-gifting', 'Active', 'active', '01 Apr 2025 — 30 Jun 2025', 1987, 4, 'brand/corporate-order-reference.png'),
-            $this->previewRow('Mobile App Download', 'Shop on the go', 'banner', 'Footer Banner', 'https://app.emeraldrozalia.ie', 'Active', 'active', '01 Jan 2025 — 31 Dec 2025', 1654, 5, 'brand/home-page-reference.png', 'external'),
-            $this->previewRow('Member Exclusive Deals', 'Special offers for members', 'popup', 'Popup (Time Delay)', '/pages/membership', 'Expired', 'expired', '01 Apr 2025 — 30 Apr 2025', 897, null, 'brand/home-collections-reference.webp'),
-        ];
-    }
-
-    private function previewRow(string $title, string $subtitle, string $type, string $position, string $target, string $status, string $statusKey, string $schedule, int $clicks, ?int $priority, string $image, string $targetType = 'internal'): array
-    {
-        $devices = self::DEVICES;
-
-        return [
-            'id' => null,
-            'uuid' => null,
-            'title' => $title,
-            'subtitle' => $subtitle,
-            'type' => $type,
-            'type_label' => self::TYPE_LABELS[$type],
-            'position' => $position,
-            'target_url' => $target,
-            'target_type' => $targetType,
-            'status' => $status,
-            'status_key' => $statusKey,
-            'status_value' => $statusKey === 'active' ? 'published' : ($statusKey === 'scheduled' ? 'scheduled' : 'published'),
-            'schedule' => $schedule,
-            'starts_at_value' => '2025-05-01T09:00',
-            'ends_at_value' => '2025-05-31T23:59',
-            'clicks' => $clicks,
-            'impressions' => $clicks * 12,
-            'priority' => $priority,
-            'image_url' => asset('assets/'.$image),
-            'image_path' => 'assets/'.$image,
-            'alt_text' => $title.' — Emerald Rozalia',
-            'title_text' => $title,
-            'aria_label' => $title.' banner link',
-            'devices' => $devices,
-            'specific_pages' => [],
-            'specific_pages_csv' => '',
-            'animation' => 'fade',
-            'autoplay' => true,
-            'autoplay_speed' => 5,
-            'show_arrows' => true,
-            'show_dots' => true,
-            'pause_on_hover' => true,
-            'created_at' => '01 May 2025 09:00 AM',
-            'updated_at' => '01 May 2025 09:00 AM',
-        ];
-    }
-
-    private function previewNotifications(): array
-    {
-        return [
-            ['tone' => 'green', 'text' => 'New Arrivals 2025 is live', 'time' => '10 mins ago'],
-            ['tone' => 'orange', 'text' => 'Premium Accessories starts in 3 days', 'time' => '25 mins ago'],
-            ['tone' => 'blue', 'text' => 'Mobile App Download reached 1,654 clicks', 'time' => '1 hour ago'],
-            ['tone' => 'purple', 'text' => 'Spring Summer 2025 priority updated', 'time' => '2 hours ago'],
-            ['tone' => 'red', 'text' => 'Member Exclusive Deals expired', 'time' => 'Yesterday'],
-        ];
-    }
-
     private function notifications(Collection $records, array $stats): array
     {
+        if ($records->isEmpty()) {
+            return [['tone' => 'blue', 'text' => 'No banner activity recorded yet', 'time' => 'Awaiting first record']];
+        }
+
         $scheduled = $records->filter(fn (Banner $banner): bool => $this->displayStatus($banner)['key'] === 'scheduled')->count();
         $expired = $stats['expired'];
 

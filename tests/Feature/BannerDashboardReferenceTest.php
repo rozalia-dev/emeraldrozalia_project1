@@ -16,7 +16,7 @@ class BannerDashboardReferenceTest extends TestCase
         return User::factory()->create(['is_admin' => true]);
     }
 
-    public function test_banner_dashboard_renders_the_reference_shell_in_preview_mode(): void
+    public function test_banner_dashboard_renders_an_explicit_empty_state_without_fixture_rows(): void
     {
         $admin = $this->admin();
 
@@ -28,10 +28,15 @@ class BannerDashboardReferenceTest extends TestCase
             ->assertSeeText('BANNER TYPES')
             ->assertSeeText('UUID TRACEABILITY')
             ->assertSeeText('EYE-CATCHING VISIBILITY')
-            ->assertSee('/css/banners-reference.css?v=20260912-1', false)
+            ->assertSee('/css/banners-reference.css?v=20260913-1', false)
             ->assertSee('/js/banners-reference.js?v=20260912-1', false)
             ->assertSee('data-banner-root', false)
-            ->assertSee('New Arrivals 2025');
+            ->assertSee('data-empty="true"', false)
+            ->assertSeeText('No banner records yet')
+            ->assertSeeText('No banner activity recorded yet')
+            ->assertSeeText('No UUIDs yet')
+            ->assertSeeText('No comparison loaded')
+            ->assertDontSeeText('New Arrivals 2025');
     }
 
     public function test_banner_lifecycle_filters_revisions_and_settings_are_postgresql_backed(): void
@@ -58,6 +63,10 @@ class BannerDashboardReferenceTest extends TestCase
         $this->actingAs($admin)->get(route('admin.banners.index', ['q' => 'CI Banner', 'device' => 'mobile']))
             ->assertOk()
             ->assertSeeText('CI Banner')
+            ->assertSee('data-empty="false"', false)
+            ->assertSeeText('Metrics, activity and table rows are calculated from Banner records in the current company context.')
+            ->assertSeeText('No comparison loaded')
+            ->assertDontSeeText('14.3%')
             ->assertDontSeeText('New Arrivals 2025');
 
         $this->actingAs($admin)->put(route('admin.banners.update', $banner->id), [
