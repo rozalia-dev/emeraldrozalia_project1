@@ -82,7 +82,7 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES, 'p
         assert.equal(await page.locator('a[href="#"]').count(), 0, 'Communication record page has no placeholder links');
         await page.locator('[data-cc-create]').first().click();
         await page.locator('[data-cc-dialog][open]').waitFor();
-        await page.locator('[data-cc-dialog][open] [data-cc-close]').click();
+        await page.locator('[data-cc-dialog][open] [data-cc-close]').first().click();
 
         await page.goto(base + '/admin/resource/reviews-ratings');
         await page.locator('[data-review-source]').waitFor();
