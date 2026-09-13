@@ -33,8 +33,7 @@
     $sectionAttributes = 'id="'.$sectionId.'" data-home-section="'.$type.'" data-home-section-uuid="'.$section->uuid.'" data-home-animation="'.$animation.'" data-home-devices="'.$deviceValue.'"';
 @endphp
 
-<?php switch ($type): ?>
-    <?php case 'hero': ?>
+<?php switch ($type): case 'hero': ?>
         @php
             $heroPrimaryUrl = $safeUrl($settings['primary_href'] ?? null);
             $heroSecondaryUrl = $safeUrl($settings['secondary_href'] ?? null);
@@ -67,9 +66,8 @@
                 </div>
             </div>
         </section>
-        <?php break; ?>
+        <?php break; case 'banners': ?>
 
-    <?php case 'banners': ?>
         <section {!! $sectionAttributes !!} class="home-published-banners" data-public-source="published-banner-records" data-banner-position="{{ $copy('position', 'Home - Main Slider') }}" aria-label="Published Emerald Rozalia banners">
             @if(isset($banners) && $banners->isNotEmpty())
                 @foreach($banners as $banner)
@@ -100,9 +98,8 @@
                 <p class="home-managed-empty">No published campaign banners are available for this section.</p>
             @endif
         </section>
-        <?php break; ?>
+        <?php break; case 'benefits': ?>
 
-    <?php case 'benefits': ?>
         @php($benefitItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [])
         <section {!! $sectionAttributes !!} class="home-benefits" aria-label="{{ $copy('aria_label', $section->label ?: 'Emerald Rozalia benefits') }}">
             @foreach($benefitItems as $item)
@@ -114,9 +111,8 @@
                 @endif
             @endforeach
         </section>
-        <?php break; ?>
+        <?php break; case 'collections': ?>
 
-    <?php case 'collections': ?>
         @php($collectionItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [])
         <section {!! $sectionAttributes !!} class="home-section home-collections home-collections--managed">
             <div class="home-section-heading"><span></span><h2>{{ $copy('title', $section->label ?: 'SHOP BY COLLECTIONS') }}</h2><span></span></div>
@@ -142,9 +138,8 @@
                 @endforeach
             </div>
         </section>
-        <?php break; ?>
+        <?php break; case 'heritage': ?>
 
-    <?php case 'heritage': ?>
         @php($heritageButtonUrl = $safeUrl($settings['button_href'] ?? null))
         @php($heritageBadges = is_array($settings['badges'] ?? null) ? array_values($settings['badges']) : [])
         <section {!! $sectionAttributes !!} class="home-heritage home-heritage--managed" aria-labelledby="{{ $sectionId }}-title">
@@ -171,9 +166,8 @@
                 @endforeach
             </div>
         </section>
-        <?php break; ?>
+        <?php break; case 'products': ?>
 
-    <?php case 'products': ?>
         @php
             $productLimit = max(1, min(12, (int) ($settings['limit'] ?? 6)));
             $productPool = ($settings['source'] ?? 'new_products') === 'latest' ? ($homeLatestProducts ?? $homeProducts ?? collect()) : ($homeProducts ?? collect());
@@ -219,9 +213,8 @@
                 <p class="home-managed-empty">No published products are available for this section.</p>
             @endif
         </section>
-        <?php break; ?>
+        <?php break; case 'quality': ?>
 
-    <?php case 'quality': ?>
         @php($qualityButtonUrl = $safeUrl($settings['button_href'] ?? null))
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-quality-visual home-managed-media home-managed-media--quality" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
@@ -240,9 +233,8 @@
                 @endif
             </div>
         </section>
-        <?php break; ?>
+        <?php break; case 'franchise': ?>
 
-    <?php case 'franchise': ?>
         @php($franchiseButtonUrl = $safeUrl($settings['button_href'] ?? null))
         <section {!! $sectionAttributes !!} class="home-franchise home-franchise--managed" aria-labelledby="{{ $sectionId }}-title">
             <div>
@@ -261,9 +253,8 @@
                 @endif
             </div>
         </section>
-        <?php break; ?>
+        <?php break; default: ?>
 
-    <?php default: ?>
         <section {!! $sectionAttributes !!} class="home-section home-managed-content">
             <p class="eyebrow">{{ $section->label ?: 'Homepage content' }}</p>
             <h2>{{ $copy('title', $section->label ?: 'Homepage content') }}</h2>
