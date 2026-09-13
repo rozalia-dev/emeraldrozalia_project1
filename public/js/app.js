@@ -4,10 +4,32 @@ if(adminNavToggle&&adminSidebar){
     adminNavToggle.addEventListener('click',()=>{const open=adminSidebar.classList.toggle('open');adminNavToggle.setAttribute('aria-expanded',String(open))});
     adminSidebar.querySelectorAll('a').forEach((link)=>link.addEventListener('click',()=>{adminSidebar.classList.remove('open');adminNavToggle.setAttribute('aria-expanded','false')}));
 }
-document.querySelectorAll('[data-dashboard-period]').forEach((select)=>select.addEventListener('change',()=>{
-    document.querySelectorAll('[data-dashboard-period]').forEach((peer)=>{if(peer!==select)peer.value=select.value});
-    document.querySelectorAll('[data-dashboard-period-label]').forEach((label)=>{label.textContent=`(${select.value})`});
+const dashboardPeriodSelects=[...document.querySelectorAll('[data-dashboard-period]')];
+dashboardPeriodSelects.forEach((select)=>select.addEventListener('change',()=>{
+    dashboardPeriodSelects.forEach((peer)=>{if(peer!==select)peer.value=select.value});
+    if(select.form?.requestSubmit)select.form.requestSubmit();
+    else select.form?.submit();
 }));
+
+const dashboardPage=document.querySelector('[data-dashboard-page]');
+if(dashboardPage){
+    const formatDashboardNumber=(value,format)=>format==='currency'?'€'+Number(value||0).toLocaleString('en-IE',{minimumFractionDigits:2,maximumFractionDigits:2}):Number(value||0).toLocaleString('en-IE');
+    const dashboardNumbers=[...dashboardPage.querySelectorAll('[data-dashboard-animated-number]')];
+    const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const animateDashboardNumber=(element)=>{
+        const target=Number(element.dataset.dashboardValue||0);
+        if(!Number.isFinite(target))return;
+        if(reducedMotion){element.textContent=formatDashboardNumber(target,element.dataset.dashboardFormat);return}
+        const duration=650,start=performance.now();
+        const render=(timestamp)=>{
+            const progress=Math.min(1,(timestamp-start)/duration),eased=1-Math.pow(1-progress,3);
+            element.textContent=formatDashboardNumber(target*eased,element.dataset.dashboardFormat);
+            if(progress<1)requestAnimationFrame(render);
+        };
+        requestAnimationFrame(render);
+    };
+    requestAnimationFrame(()=>dashboardNumbers.forEach(animateDashboardNumber));
+}
 
 const spin=document.querySelector('[data-spin-viewer]');
 if(spin){
