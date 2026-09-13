@@ -3,21 +3,16 @@
 @section('title', $product->name . ' — Emerald Rozalia')
 
 @php
-    $mediaUrl = function ($media) {
-        if (str_starts_with($media->path, 'http://') || str_starts_with($media->path, 'https://') || str_starts_with($media->path, '/')) {
-            return $media->path;
-        }
-        return Storage::disk($media->disk ?: 'public')->url($media->path);
-    };
-    $imageCandidates = collect();
-    if (filled($product->image)) {
-        $imageCandidates->push(str_starts_with($product->image, 'http') || str_starts_with($product->image, '/') ? $product->image : Storage::disk('public')->url($product->image));
-    }
-    $product->media->whereIn('type', ['image', 'gallery'])->each(fn ($media) => $imageCandidates->push($mediaUrl($media)));
-    $galleryImages = $imageCandidates->filter()->unique()->values()->all();
+    $publicMedia = app(\App\Services\PublicMediaResolver::class);
+    $galleryMedia = $product->media
+        ->whereIn('type', ['image', 'gallery'])
+        ->map(fn ($media) => $publicMedia->forProductMedia($media, $product->name))
+        ->filter()
+        ->values();
+    $galleryImages = $galleryMedia->pluck('url')->filter()->unique()->values()->all();
     $spinImages = collect($spinFrames ?? [])->filter()->values()->all();
     $has360 = count($spinImages) >= 2;
-    $spinSource = $spinViewerData ? 'managed' : ($has360 ? 'legacy' : 'none');
+    $spinSource = $spinViewerData ? 'managed' : ($has360 ? 'approved-media' : 'none');
     $thumbnailImages = collect($galleryImages ?: $spinImages)->values()->all();
     $firstImage = $galleryImages[0] ?? $spinImages[0] ?? null;
     $activeVariants = $product->variants->where('is_active', true)->values();
@@ -27,7 +22,7 @@
         'size' => $variant->size,
         'price' => (float) ($variant->price ?? $product->price),
         'stock' => (int) $variant->stock,
-        'image' => $variant->image ? (str_starts_with($variant->image, 'http') || str_starts_with($variant->image, '/') ? $variant->image : Storage::disk('public')->url($variant->image)) : null,
+        'image' => ($variantMedia = $variant->approvedMedia->firstWhere('type', 'image')) ? ($publicMedia->describe($variantMedia, $product->name)['url'] ?? null) : null,
     ])->values()->all();
     $colours = $activeVariants->pluck('colour')->filter()->unique()->values()->all() ?: collect($product->colours ?? [])->filter()->values()->all();
     $sizes = $activeVariants->pluck('size')->filter()->unique()->values()->all() ?: collect($product->sizes ?? [])->filter()->values()->all();
@@ -36,6 +31,12 @@
     $basePrice = (float) $product->price;
     $stock = (int) $product->stock;
     $swatchColours = ['#614a31', '#1d2420', '#9b8365', '#244535', '#d9d2c4', '#232323'];
+    $approvedMediaNames = $galleryMedia->pluck('original_name')
+        ->merge($product->media->where('type', 'spin_360')->map(fn ($media) => basename((string) $media->path)))
+        ->merge($legacySpinReferences ?? [])
+        ->filter()
+        ->unique()
+        ->values();
 @endphp
 
 @push('styles')
@@ -63,6 +64,8 @@
      data-product-price="{{ number_format($basePrice, 2, '.', '') }}"
      data-product-stock="{{ $stock }}"
      data-product-spin-source="{{ $spinSource }}"
+     data-public-media-contract="approved-media-route"
+     data-approved-media-names="{{ $approvedMediaNames->implode(', ') }}"
      data-variant-payload='@json($variantPayload)'>
     <nav class="product-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ route('home') }}">Home</a><x-icon name="chevron-right" size="14" />
@@ -100,7 +103,8 @@
                     </div>
                 </div>
                 <div class="product-stage" data-product-stage tabindex="0" aria-label="{{ $has360 ? 'Interactive 360° product viewer. Drag or swipe to rotate.' : 'Product image viewer. Select Photos to browse approved product images.' }}">
-                    @if($firstImage)<img data-product-stage-image src="{{ $firstImage }}" alt="{{ $product->name }}" draggable="false">@else<div class="product-placeholder" data-product-placeholder><div><x-icon name="image" size="34" /><br>Product imagery will appear here when approved in Product Media Manager.</div></div>@endif
+                    @if($firstImage)<img data-product-stage-image src="{{ $firstImage }}" alt="{{ data_get($galleryMedia->first(), 'alt', $product->name) }}" draggable="false">@else<div class="product-placeholder" data-product-placeholder><div><x-icon name="image" size="34" /><br>Product imagery will appear here when approved in Product Media Manager.</div></div>@endif
+                    @if(($legacySpinReferences ?? collect())->isNotEmpty())<span class="product-sr-status" data-unavailable-media-references>Legacy media references awaiting migration: {{ $legacySpinReferences->map(fn ($reference) => basename((string) $reference))->implode(', ') }}</span>@endif
                     <div class="product-stage-overlay"><button class="stage-arrow" type="button" data-rotate-prev aria-label="Previous angle"><x-icon name="arrow-left" size="18" /></button><button class="stage-arrow" type="button" data-rotate-next aria-label="Next angle"><x-icon name="arrow-right" size="18" /></button></div>
                     <div class="stage-loading" data-stage-loading aria-hidden="true"><span></span></div>
                     <span class="stage-caption" data-stage-caption>Drag to rotate</span><span class="stage-degree" data-stage-degree>0°</span>
@@ -168,7 +172,7 @@
     </section>
 
     @if($related->count())
-        <section class="related-products"><h2>You may also like</h2><div class="related-grid">@foreach($related as $item)<article class="related-card"><a href="{{ route('product', $item) }}"><div class="related-card-media">@if($item->image)<img src="{{ str_starts_with($item->image, 'http') || str_starts_with($item->image, '/') ? $item->image : Storage::disk('public')->url($item->image) }}" alt="{{ $item->name }}" loading="lazy">@else<x-icon name="package" size="34" />@endif</div><div class="related-card-body"><h3>{{ $item->name }}</h3><p>{{ $item->category?->name ?: 'Emerald Rozalia' }}</p><strong>€{{ number_format($item->price, 2) }}</strong></div></a></article>@endforeach</div></section>
+        <section class="related-products"><h2>You may also like</h2><div class="related-grid">@foreach($related as $item)@php($relatedMedia = $item->media->firstWhere('type','image'))@php($relatedImage = $relatedMedia ? $publicMedia->forProductMedia($relatedMedia, $item->name) : null)<article class="related-card"><a href="{{ route('product', $item) }}"><div class="related-card-media" data-public-media-state="{{ $relatedImage ? 'approved' : 'awaiting-approved-media' }}">@if($relatedImage)<img src="{{ $relatedImage['url'] }}" @if($relatedImage['srcset']) srcset="{{ $relatedImage['srcset'] }}" sizes="{{ $relatedImage['sizes'] }}" @endif width="{{ $relatedImage['width'] ?: '' }}" height="{{ $relatedImage['height'] ?: '' }}" alt="{{ $relatedImage['alt'] }}" loading="lazy">@else<x-icon name="package" size="34" />@endif</div><div class="related-card-body"><h3>{{ $item->name }}</h3><p>{{ $item->category?->name ?: 'Emerald Rozalia' }}</p><strong>€{{ number_format($item->price, 2) }}</strong></div></a></article>@endforeach</div></section>
     @endif
 </div>
 @php
@@ -203,7 +207,7 @@
     const caption = page.querySelector('[data-stage-caption]');
     const loading = page.querySelector('[data-stage-loading]');
     const parse = (selector, fallback) => { try { return JSON.parse(viewer?.getAttribute(selector) || '[]') || fallback; } catch (error) { return fallback; } };
-    const normalize = (value) => { if (!value) return ''; if (/^(https?:)?\//.test(value)) return value; if (/^storage\//.test(value)) return '/' + value; return '/storage/' + value.replace(/^\/+/, ''); };
+    const normalize = (value) => { if (typeof value === 'object' && value) value = value.url || ''; if (!value) return ''; return /^(https?:)?\//.test(String(value)) ? String(value) : ''; };
     const spinFrames = parse('data-spin-frames', []).map(normalize).filter(Boolean);
     const galleryFrames = parse('data-gallery-frames', []).map(normalize).filter(Boolean);
     let mode = spinFrames.length >= 2 ? 'spin' : 'gallery';

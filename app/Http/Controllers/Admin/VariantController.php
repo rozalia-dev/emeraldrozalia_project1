@@ -9,7 +9,8 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\VariantMedia;
 use App\Models\VariantSetting;
-use App\Services\AuditTrail;
+use App\Rules\MediaDimensions;
+use App\Services\{AuditTrail, PublicMediaDerivativeService};
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -407,12 +408,12 @@ class VariantController extends Controller
         return back()->with('success', 'Variant settings saved.');
     }
 
-    public function storeMedia(Request $request, ProductVariant $variant): RedirectResponse
+    public function storeMedia(Request $request, ProductVariant $variant, PublicMediaDerivativeService $derivatives): RedirectResponse
     {
         $this->guardTenant($variant);
         $data = $request->validate([
             'type' => ['required', Rule::in(self::MEDIA_TYPES)],
-            'file' => ['required', 'file', 'max:102400', 'mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime'],
+            'file' => ['required', 'file', new MediaDimensions, 'max:102400', 'mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime'],
             'alt_text' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -425,7 +426,11 @@ class VariantController extends Controller
             'alt_text' => $data['alt_text'] ?? null,
             'sort_order' => ((int) $variant->media()->max('sort_order')) + 1,
             'active' => true,
+            'approval_status' => 'pending',
+            'mime_type' => $request->file('file')->getMimeType(),
+            'bytes' => (int) ($request->file('file')->getSize() ?: 0) ?: null,
         ]);
+        $media->updateQuietly(['responsive_variants' => $derivatives->generate($media, 1) ?: null]);
 
         if ($data['type'] === 'image' && blank($variant->image)) {
             $variant->update(['image' => $path, 'updated_by' => auth()->id()]);
@@ -450,6 +455,40 @@ class VariantController extends Controller
         $media->delete();
 
         return back()->with('success', 'Variant media removed.');
+    }
+
+    public function approveMedia(ProductVariant $variant, VariantMedia $media): RedirectResponse
+    {
+        $this->guardTenant($variant);
+        abort_unless($media->product_variant_id === $variant->id, 404);
+
+        $before = $media->toArray();
+        $media->update([
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+            'active' => true,
+        ]);
+        AuditTrail::record('variant.media.approved', $media, $before, $media->fresh()->toArray());
+
+        return back()->with('success', 'Variant media approved for public use.');
+    }
+
+    public function rejectMedia(ProductVariant $variant, VariantMedia $media): RedirectResponse
+    {
+        $this->guardTenant($variant);
+        abort_unless($media->product_variant_id === $variant->id, 404);
+
+        $before = $media->toArray();
+        $media->update([
+            'approval_status' => 'rejected',
+            'approved_at' => null,
+            'approved_by' => null,
+            'active' => false,
+        ]);
+        AuditTrail::record('variant.media.rejected', $media, $before, $media->fresh()->toArray());
+
+        return back()->with('success', 'Variant media removed from public use.');
     }
 
     public function import(Request $request): RedirectResponse

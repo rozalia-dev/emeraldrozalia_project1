@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/css/corporate-order.css?v=20260908-approved">
 <link rel="stylesheet" href="/css/order-fullwidth.css?v=20260910-fullwidth">
 @endpush
+@php($corporateLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
 <div class="corporate-shell" data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE" data-reference-image="/assets/brand/corporate-order-reference.png?v=20260908">
     <section class="corporate-hero" aria-labelledby="corporate-order-title">
@@ -123,7 +124,7 @@
 
     <footer class="corporate-footer">
         <div class="corporate-footer-brand">
-            <img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited">
+            @if($corporateLogo)<img src="{{ $corporateLogo['url'] }}" alt="{{ $corporateLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif
             <p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p>
             <div class="corporate-socials"><x-icon name="instagram" size="17" /><x-icon name="facebook" size="17" /><x-icon name="linkedin" size="17" /><x-icon name="youtube" size="17" /></div>
         </div>

@@ -2,20 +2,15 @@
 
 namespace App\Http\Resources\Api\V1;
 
-use App\Services\TenantContext;
+use App\Services\{PublicMediaResolver, TenantContext};
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $image = $this->image;
-        if (filled($image) && ! Str::startsWith((string) $image, ['http://', 'https://', '/'])) {
-            $image = Storage::disk('public')->url($image);
-        }
+        $image = app(PublicMediaResolver::class)->forProduct($this->resource, $this->name)['url'] ?? null;
 
         return [
             'public_uuid' => $this->public_uuid,

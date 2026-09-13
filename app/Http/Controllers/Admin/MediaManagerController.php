@@ -3,7 +3,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Product,ProductMedia};
-use App\Services\AuditTrail;
+use App\Rules\MediaDimensions;
+use App\Services\{AuditTrail, PublicMediaDerivativeService};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -50,14 +51,14 @@ class MediaManagerController extends Controller
         return view('admin.media-manager.index',compact('products','selected','media','mediaType','mediaStatus','mediaSort'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PublicMediaDerivativeService $derivatives)
     {
         $data = $request->validate([
             'product_id'=>'required|integer|exists:products,id',
             'type'=>['required',Rule::in(self::TYPES)],
             'disk'=>['required',Rule::in(['public','local'])],
             'path'=>'nullable|string|max:255',
-            'file'=>'nullable|file|max:102400|mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime,model/gltf-binary,model/gltf+json,application/pdf',
+            'file'=>['nullable', 'file', new MediaDimensions, 'max:102400', 'mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime,model/gltf-binary,model/gltf+json,application/pdf'],
             'alt_text'=>'nullable|string|max:255',
             'sort_order'=>'nullable|integer|min:0|max:10000',
             'active'=>'nullable|boolean',
@@ -68,7 +69,17 @@ class MediaManagerController extends Controller
         }
         abort_unless(filled($data['path']) && Storage::disk($data['disk'])->exists($data['path']),422,'Provide an existing media path or upload a file.');
         unset($data['file']);
-        $media=ProductMedia::create($data+['active'=>(bool)($data['active']??true)]);
+        $file = $request->file('file');
+        $dimensions = $file ? @getimagesize($file->getRealPath()) : false;
+        $media=ProductMedia::create($data+[
+            'active'=>(bool)($data['active']??true),
+            'approval_status'=>'pending',
+            'mime_type'=>$file?->getMimeType(),
+            'width'=>(int)($dimensions[0] ?? 0) ?: null,
+            'height'=>(int)($dimensions[1] ?? 0) ?: null,
+            'bytes'=>(int)($file?->getSize() ?: 0) ?: null,
+        ]);
+        $media->updateQuietly(['responsive_variants' => $derivatives->generate($media, 1) ?: null]);
         AuditTrail::record('media.created',$media,null,$media->toArray());
         return redirect()->route('admin.media.index',['product_id'=>$media->product_id])->with('success','Media added.');
     }
@@ -84,5 +95,33 @@ class MediaManagerController extends Controller
     {
         $productId=$media->product_id; $before=$media->toArray(); AuditTrail::record('media.deleted',$media,$before,null); $media->delete();
         return redirect()->route('admin.media.index',['product_id'=>$productId])->with('success','Media removed.');
+    }
+
+    public function approve(ProductMedia $media)
+    {
+        $before = $media->toArray();
+        $media->update([
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+            'active' => true,
+        ]);
+        AuditTrail::record('media.approved', $media, $before, $media->fresh()->toArray());
+
+        return back()->with('success', 'Product media approved for public delivery.');
+    }
+
+    public function reject(ProductMedia $media)
+    {
+        $before = $media->toArray();
+        $media->update([
+            'approval_status' => 'rejected',
+            'approved_at' => null,
+            'approved_by' => null,
+            'active' => false,
+        ]);
+        AuditTrail::record('media.rejected', $media, $before, $media->fresh()->toArray());
+
+        return back()->with('success', 'Product media rejected and removed from public delivery.');
     }
 }

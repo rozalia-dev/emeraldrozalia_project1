@@ -54,6 +54,11 @@ class Banner extends Model
         return $this->hasMany(BannerRevision::class)->latest('version');
     }
 
+    public function media(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'media_uuid', 'uuid');
+    }
+
     public function imageUrl(): ?string
     {
         if (! filled($this->image_path)) {

@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/css/bulk-order.css?v=20260908-approved">
 <link rel="stylesheet" href="/css/order-fullwidth.css?v=20260910-fullwidth">
 @endpush
+@php($bulkLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
 <div class="bulk-shell" data-reference-contract="BULK ORDER SOLUTIONS | OUR BULK ORDER PROCESS | REQUEST A BULK QUOTE | WHAT YOU CAN ORDER | QUANTITY, LEAD TIME & PRICING">
     <section class="bulk-hero" aria-labelledby="bulk-order-title">
@@ -140,7 +141,7 @@
     </section>
 
     <footer class="bulk-footer">
-        <div class="bulk-footer-brand"><img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited"><p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p></div>
+        <div class="bulk-footer-brand">@if($bulkLogo)<img src="{{ $bulkLogo['url'] }}" alt="{{ $bulkLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p></div>
         <div><h3>SHOP</h3><a href="/shop">All Hats &amp; Caps</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/irish-traditional">Flat Caps</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/collections">Beanies &amp; More</a></div>
         <div><h3>HELP</h3><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/factory">Size Guide</a><a href="/account">Track Your Order</a></div>
         <div><h3>COMPANY</h3><a href="/factory">About Us</a><a href="/factory">Our Factory</a><a href="/global-network">Sustainability</a><a href="/careers">Careers</a></div>

@@ -5,13 +5,14 @@
 <link rel="stylesheet" href="/css/careers.css?v=20260909-careers-live-layout">
 <link rel="stylesheet" href="/css/careers-fullwidth.css?v=20260910-fullwidth">
 @endpush
+@php($careersLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
-<div class="careers-reference" data-page="careers-live">
+<div class="careers-reference" data-page="careers-live" data-approved-media-source="/assets/logo/logo_two_line.png">
     <section class="career-hero" aria-labelledby="career-title">
         <div class="career-hero-visual" aria-label="Emerald Rozalia careers in Limerick">
             <div class="career-visual-glow"></div>
             <div class="career-visual-brand">
-                <img src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited">
+                @if($careersLogo)<img src="{{ $careersLogo['url'] }}" alt="{{ $careersLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif
                 <span>CAREERS · LIMERICK, IRELAND</span>
             </div>
             <div class="career-visual-copy">
