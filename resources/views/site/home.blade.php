@@ -55,7 +55,7 @@
         @endif
 
         @if($heroSection)
-            <section id="{{ $heroId }}" class="home-hero home-hero--structured @if($heroBackgroundUrl) home-hero--has-background @endif" @if($heroBackgroundUrl) style="--home-hero-background-image: url('{{ $heroBackgroundUrl }}');" @endif data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" aria-labelledby="{{ $heroId }}-title">
+            <section id="{{ $heroId }}" class="home-hero home-hero--structured{{ $heroBackgroundUrl ? ' home-hero--has-background' : '' }}" @if($heroBackgroundUrl) style="--home-hero-background-image: url('{{ $heroBackgroundUrl }}');" @endif data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" aria-labelledby="{{ $heroId }}-title">
                 <div class="home-hero-structured-grid">
                     <div class="home-hero-structured-copy">
                         <p class="eyebrow">{{ $heroCopy('eyebrow', $heroSection->label ?: 'IRISH MADE. LIMERICK BORN.') }}</p>
