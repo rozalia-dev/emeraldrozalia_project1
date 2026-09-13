@@ -80,7 +80,11 @@ class PageComposerContractTest extends TestCase
         $this->actingAs($admin)->get(route('admin.pages.preview', $homepage))
             ->assertOk()
             ->assertSee('data-homepage-page-uuid="'.$homepage->uuid.'"', false)
-            ->assertSee('class="home-hero-composition"', false)
+            ->assertSee('class="home-hero home-hero--structured"', false)
+            ->assertSee('class="home-hero-structured-copy"', false)
+            ->assertSee('class="home-hero-structured-product', false)
+            ->assertSee('class="home-hero-tryon"', false)
+            ->assertSee('data-home-tryon-form', false)
             ->assertSee('class="managed-page-preview-banner"', false)
             ->assertSee('data-public-layout-source="default-layout-fallback"', false);
     }
