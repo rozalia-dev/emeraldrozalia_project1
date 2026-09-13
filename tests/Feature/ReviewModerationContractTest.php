@@ -42,11 +42,16 @@ class ReviewModerationContractTest extends TestCase
         $response->assertOk()
             ->assertSee($review->public_uuid)
             ->assertSee(route('admin.reviews.bulk-status'), false)
-            ->assertSee(route('admin.reviews.import'), false)
+            ->assertSee(route('admin.resource', ['module' => 'reviews-ratings', 'tab' => 'import']), false)
             ->assertSee(route('admin.settings.save', 'application-settings'), false)
             ->assertSee(route('admin.resource', ['module' => 'inbox', 'kind' => 'questions']), false)
             ->assertDontSee('href="#"', false)
             ->assertDontSee('Placeholder Chart', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.resource', ['module' => 'reviews-ratings', 'tab' => 'import']))
+            ->assertOk()
+            ->assertSee(route('admin.reviews.import'), false);
     }
 
     public function test_bulk_review_status_updates_selected_records_and_audits_each_change(): void
