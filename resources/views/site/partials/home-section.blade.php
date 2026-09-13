@@ -33,7 +33,7 @@
     $sectionAttributes = 'id="'.$sectionId.'" data-home-section="'.$type.'" data-home-section-uuid="'.$section->uuid.'" data-home-animation="'.$animation.'" data-home-devices="'.$deviceValue.'"';
 @endphp
 
-<?php switch ($type): case 'hero': ?>
+@if($type === 'hero')
         @php
             $heroPrimaryUrl = $safeUrl($settings['primary_href'] ?? null);
             $heroSecondaryUrl = $safeUrl($settings['secondary_href'] ?? null);
@@ -66,7 +66,7 @@
                 </div>
             </div>
         </section>
-        <?php break; case 'banners': ?>
+@elseif($type === 'banners')
 
         <section {!! $sectionAttributes !!} class="home-published-banners" data-public-source="published-banner-records" data-banner-position="{{ $copy('position', 'Home - Main Slider') }}" aria-label="Published Emerald Rozalia banners">
             @if(isset($banners) && $banners->isNotEmpty())
@@ -98,7 +98,7 @@
                 <p class="home-managed-empty">No published campaign banners are available for this section.</p>
             @endif
         </section>
-        <?php break; case 'benefits': ?>
+@elseif($type === 'benefits')
 
         @php($benefitItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [])
         <section {!! $sectionAttributes !!} class="home-benefits" aria-label="{{ $copy('aria_label', $section->label ?: 'Emerald Rozalia benefits') }}">
@@ -111,7 +111,7 @@
                 @endif
             @endforeach
         </section>
-        <?php break; case 'collections': ?>
+@elseif($type === 'collections')
 
         @php($collectionItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : [])
         <section {!! $sectionAttributes !!} class="home-section home-collections home-collections--managed">
@@ -138,7 +138,7 @@
                 @endforeach
             </div>
         </section>
-        <?php break; case 'heritage': ?>
+@elseif($type === 'heritage')
 
         @php($heritageButtonUrl = $safeUrl($settings['button_href'] ?? null))
         @php($heritageBadges = is_array($settings['badges'] ?? null) ? array_values($settings['badges']) : [])
@@ -166,7 +166,7 @@
                 @endforeach
             </div>
         </section>
-        <?php break; case 'products': ?>
+@elseif($type === 'products')
 
         @php
             $productLimit = max(1, min(12, (int) ($settings['limit'] ?? 6)));
@@ -213,7 +213,7 @@
                 <p class="home-managed-empty">No published products are available for this section.</p>
             @endif
         </section>
-        <?php break; case 'quality': ?>
+@elseif($type === 'quality')
 
         @php($qualityButtonUrl = $safeUrl($settings['button_href'] ?? null))
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
@@ -233,7 +233,7 @@
                 @endif
             </div>
         </section>
-        <?php break; case 'franchise': ?>
+@elseif($type === 'franchise')
 
         @php($franchiseButtonUrl = $safeUrl($settings['button_href'] ?? null))
         <section {!! $sectionAttributes !!} class="home-franchise home-franchise--managed" aria-labelledby="{{ $sectionId }}-title">
@@ -253,11 +253,11 @@
                 @endif
             </div>
         </section>
-        <?php break; default: ?>
+@else
 
         <section {!! $sectionAttributes !!} class="home-section home-managed-content">
             <p class="eyebrow">{{ $section->label ?: 'Homepage content' }}</p>
             <h2>{{ $copy('title', $section->label ?: 'Homepage content') }}</h2>
             <p>{{ $copy('content') }}</p>
         </section>
-<?php endswitch; ?>
+@endif
