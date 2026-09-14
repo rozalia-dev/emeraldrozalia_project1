@@ -44,6 +44,8 @@
         $heroDevices = $heroSection && is_array($heroSection->devices) && $heroSection->devices !== [] ? $heroSection->devices : ['desktop', 'tablet', 'mobile'];
         $heroDeviceValue = implode(' ', array_values(array_intersect(['desktop', 'tablet', 'mobile'], $heroDevices)));
         $heroAnimation = $heroSection && in_array($heroSection->animation, ['none', 'fade', 'rise', 'slide'], true) ? $heroSection->animation : 'none';
+        $heroTitle = $heroCopy('title', 'Crafted in Limerick. Worn Everywhere.');
+        $heroDefaultTitle = strcasecmp($heroTitle, 'Crafted in Limerick. Worn Everywhere.') === 0;
     @endphp
 
     <div class="home-page" data-homepage-page-uuid="{{ $homepage?->uuid ?: 'reserved-homepage-pending' }}" data-homepage-source="{{ $homepage ? 'content-page-active-record' : 'reserved-homepage-fallback' }}" data-homepage-renderer="persisted-page-sections">
@@ -59,7 +61,7 @@
                 <div class="home-hero-structured-grid">
                     <div class="home-hero-structured-copy">
                         <p class="eyebrow">{{ $heroCopy('eyebrow', $heroSection->label ?: 'IRISH MADE. LIMERICK BORN.') }}</p>
-                        <h1 id="{{ $heroId }}-title">{{ $heroCopy('title', 'Crafted in Limerick. Worn Everywhere.') }}</h1>
+                        <h1 id="{{ $heroId }}-title">@if($heroDefaultTitle)<span>CRAFTED IN</span><span class="home-hero-title-accent">LIMERICK.</span><span>WORN EVERYWHERE.</span>@else<span>{{ $heroTitle }}</span>@endif</h1>
                         <p class="home-hero-structured-intro">{{ $heroCopy('content', 'Premium hats and caps made with Irish craftsmanship, contemporary design, and a global outlook.') }}</p>
                         <div class="home-hero-structured-actions">
                             <a class="btn" href="{{ $heroHref($heroSettings['secondary_href'] ?? null, '/shop') }}">{{ $heroCopy('secondary_label', 'SHOP NOW') }} <x-icon name="arrow-right" size="16" /></a>
@@ -74,7 +76,7 @@
                             @else
                                 <img src="{{ $heroVisualUrl }}" alt="{{ $heroVisualAlt }}" fetchpriority="high">
                             @endif
-                        @else
+                        @elseif(!$heroBackgroundUrl)
                             <div class="home-hero-structured-placeholder" role="img" aria-label="Approved hero product media is not configured yet.">Approved hero product media</div>
                         @endif
                     </div>
@@ -82,8 +84,8 @@
                     <aside class="home-hero-tryon" aria-labelledby="{{ $heroId }}-tryon-title">
                         <div class="home-hero-tryon-heading">
                             <p class="eyebrow">VIRTUAL TRY-ON</p>
-                            <h2 id="{{ $heroId }}-tryon-title">See how it looks on you.</h2>
-                            <p>Choose a style, preview your photo locally, then open the full Try-On Studio.</p>
+                            <h2 id="{{ $heroId }}-tryon-title">See It.<br>Love It.<br>Own It.</h2>
+                            <p>Upload your photo and see how our hats look on you.</p>
                         </div>
                         <form action="{{ route('virtual-tryon') }}" method="get" class="home-hero-tryon-form" data-home-tryon-form>
                             <label>
@@ -96,15 +98,16 @@
                                 </select>
                             </label>
                             <label class="home-hero-tryon-upload">
-                                <span>Upload your photo</span>
+                                <span><x-icon name="upload" size="22" /> UPLOAD YOUR PHOTO</span>
                                 <input type="file" accept="image/jpeg,image/png,image/webp" data-home-tryon-upload>
-                                <strong data-home-tryon-file>Choose JPG, PNG or WebP</strong>
+                                <strong data-home-tryon-file>or</strong>
+                                <em><x-icon name="camera" size="15" /> TAKE PHOTO</em>
                             </label>
                             <div class="home-hero-tryon-preview" data-home-tryon-preview hidden>
                                 <img alt="Your selected Try-On preview photo" data-home-tryon-preview-image>
                             </div>
                             <button class="btn home-hero-tryon-submit" type="submit">{{ $heroCopy('primary_label', 'START TRY-ON') }} <x-icon name="arrow-right" size="16" /></button>
-                            <small>Your selected photo is previewed only in this browser. The full Try-On Studio handles fitting and adjustments.</small>
+                            <small class="home-hero-tryon-private">🔒 100% Private &amp; Secure</small>
                         </form>
                     </aside>
                 </div>
