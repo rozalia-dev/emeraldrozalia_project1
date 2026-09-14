@@ -147,6 +147,11 @@ class CommunicationWebhookService
             $conversation = $message
                 ? Conversation::withoutGlobalScopes()->find($message->conversation_id)
                 : null;
+            $channelMismatch = $message && (! $conversation || (string) $conversation->channel !== $provider);
+            if ($channelMismatch) {
+                $message = null;
+                $conversation = null;
+            }
             $event = CommunicationWebhookEvent::withoutGlobalScopes()->create([
                 'company_id' => $conversation?->company_id,
                 'provider' => $provider,
@@ -162,7 +167,9 @@ class CommunicationWebhookService
             if (! $message) {
                 $event->update([
                     'status' => 'ignored',
-                    'failure_reason' => 'Message was not found for this provider event.',
+                    'failure_reason' => $channelMismatch
+                        ? 'The provider does not match the message channel.'
+                        : 'Message was not found for this provider event.',
                     'processed_at' => now(),
                 ]);
                 AuditTrail::record('communication.webhook.ignored', $event, null, $this->eventState($event->fresh()));

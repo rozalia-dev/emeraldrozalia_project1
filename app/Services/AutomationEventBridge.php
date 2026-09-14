@@ -12,6 +12,7 @@ final class AutomationEventBridge
         app(AutomationRuleService::class)->queue('quote.converted', [
             'company_id' => $companyId,
             'quote_uuid' => $event->quote->uuid,
+            'order_id' => $event->order->getKey(),
             'order_uuid' => $event->order->public_uuid,
             'title' => 'Sales quote converted',
             'source' => 'Sales Quote',
@@ -24,7 +25,9 @@ final class AutomationEventBridge
         $companyId = $event->conversation->company_id;
         app(AutomationRuleService::class)->queue('communication.conversation.'.$action, [
             'company_id' => $companyId,
+            'conversation_id' => $event->conversation->getKey(),
             'conversation_uuid' => $event->conversation->uuid,
+            'order_id' => $event->conversation->order_id,
             'title' => $event->conversation->subject ?: 'Communication conversation updated',
             'source' => 'Communication Center',
         ], 'conversation:'.$event->conversation->uuid.':'.$action, $companyId ? (int) $companyId : null);

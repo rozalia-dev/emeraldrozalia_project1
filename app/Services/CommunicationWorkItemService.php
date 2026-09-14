@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\CommunicationAction;
 use App\Models\CommunicationAlert;
+use App\Models\Conversation;
+use App\Models\Order;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -72,6 +74,7 @@ final class CommunicationWorkItemService
 
             $alert = $section === 'alerts-notifications';
             $metadata = $this->metadata($data);
+            $relations = $this->resolveRelations($data);
             $attributes = [
                 'reference' => filled($data['reference'] ?? null) ? $data['reference'] : null,
                 'title' => $data['title'],
@@ -89,6 +92,7 @@ final class CommunicationWorkItemService
                 'data' => $metadata,
                 'created_by' => auth()->id(),
                 'version' => 1,
+                ...$relations,
             ];
             if ($alert) {
                 $attributes['type'] = $data['type'] ?? null;
@@ -130,6 +134,7 @@ final class CommunicationWorkItemService
             }
 
             $metadata = array_merge((array) $record->data, $this->metadata($data));
+            $relations = $this->resolveRelations($data, $record);
             $isAlert = $section === 'alerts-notifications';
             $attributes = [
                 'reference' => array_key_exists('reference', $data) ? ($data['reference'] ?: null) : $record->reference,
@@ -144,6 +149,7 @@ final class CommunicationWorkItemService
                 'due_at' => array_key_exists('due_at', $data) ? ($data['due_at'] ?: null) : $record->due_at,
                 'data' => $metadata,
                 'version' => (int) $record->version + 1,
+                ...$relations,
             ];
             if ($isAlert) {
                 $attributes['type'] = $data['type'] ?? $record->type;
@@ -272,6 +278,7 @@ final class CommunicationWorkItemService
         $keys = [
             'description', 'notes', 'category', 'type', 'priority', 'assigned_to_name',
             'entity', 'source', 'due_at', 'severity', 'correlation_id',
+            'conversation_uuid', 'order_uuid',
         ];
 
         $metadata = [];
@@ -282,6 +289,63 @@ final class CommunicationWorkItemService
         }
 
         return $metadata;
+    }
+
+    private function resolveRelations(array $data, ?Model $record = null): array
+    {
+        $relations = [];
+
+        $conversation = $this->relatedModel(
+            Conversation::class,
+            $data['conversation_id'] ?? null,
+            $data['conversation_uuid'] ?? null,
+        );
+        if ($conversation) {
+            $this->assertRelatedCompany($conversation->company_id, $data['company_id'] ?? $record?->company_id);
+            $relations['conversation_id'] = $conversation->getKey();
+        } elseif ($record && array_key_exists('conversation_id', $data)) {
+            $relations['conversation_id'] = null;
+        }
+
+        $order = $this->relatedModel(
+            Order::class,
+            $data['order_id'] ?? null,
+            $data['order_uuid'] ?? null,
+        );
+        if ($order) {
+            $this->assertRelatedCompany($order->company_id, $data['company_id'] ?? $record?->company_id);
+            $relations['order_id'] = $order->getKey();
+        } elseif ($record && array_key_exists('order_id', $data)) {
+            $relations['order_id'] = null;
+        }
+
+        return $relations;
+    }
+
+    private function relatedModel(string $modelClass, mixed $id, mixed $uuid): ?Model
+    {
+        if (! filled($id) && ! filled($uuid)) {
+            return null;
+        }
+
+        $query = $modelClass::query();
+        $identifierColumn = $modelClass === Order::class ? 'public_uuid' : 'uuid';
+        $model = filled($id)
+            ? $query->whereKey((int) $id)->firstOrFail()
+            : $query->where($identifierColumn, (string) $uuid)->firstOrFail();
+
+        if (filled($id) && filled($uuid) && (string) $model->{$identifierColumn} !== (string) $uuid) {
+            abort(422, 'The related record identifiers do not match.');
+        }
+
+        return $model;
+    }
+
+    private function assertRelatedCompany(mixed $relatedCompanyId, mixed $companyId): void
+    {
+        if (filled($relatedCompanyId) && filled($companyId) && (int) $relatedCompanyId !== (int) $companyId) {
+            abort(409, 'The work item relation belongs to another company context.');
+        }
     }
 
     private function requestHash(string $section, array $data): string

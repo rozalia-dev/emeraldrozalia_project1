@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{AdminRecord, CommunicationAction, CommunicationAlert, User};
+use App\Models\{AdminRecord, CommunicationAction, CommunicationAlert, Company, Conversation, User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -124,6 +124,66 @@ class CommunicationWorkItemContractTest extends TestCase
             ->assertRedirect();
         $this->assertSame('resolved', $alert->fresh()->status);
         $this->assertNotNull($alert->fresh()->resolved_at);
+    }
+
+    public function test_work_items_retain_conversation_links_and_respect_tenant_ownership(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $companyA = Company::create([
+            'name' => 'Communication A',
+            'code' => 'communication-a',
+            'country_code' => 'IE',
+            'base_currency' => 'EUR',
+            'default_locale' => 'en',
+            'active' => true,
+        ]);
+        $companyB = Company::create([
+            'name' => 'Communication B',
+            'code' => 'communication-b',
+            'country_code' => 'IE',
+            'base_currency' => 'EUR',
+            'default_locale' => 'en',
+            'active' => true,
+        ]);
+        $conversationA = Conversation::create([
+            'company_id' => $companyA->id,
+            'channel' => 'email',
+            'contact' => 'a@example.test',
+            'subject' => 'Tenant A conversation',
+            'status' => 'open',
+            'priority' => 'normal',
+        ]);
+        $conversationB = Conversation::create([
+            'company_id' => $companyB->id,
+            'channel' => 'email',
+            'contact' => 'b@example.test',
+            'subject' => 'Tenant B conversation',
+            'status' => 'open',
+            'priority' => 'normal',
+        ]);
+
+        $this->actingAs($admin)->withSession(['company_id' => $companyA->id])
+            ->post(route('admin.communication-center.actions.store'), [
+                'title' => 'Linked follow-up',
+                'status' => 'pending',
+                'conversation_uuid' => $conversationA->uuid,
+                'idempotency_key' => 'linked-follow-up-a',
+            ])
+            ->assertRedirect();
+
+        $action = CommunicationAction::query()->firstOrFail();
+        $this->assertSame($conversationA->id, $action->conversation_id);
+
+        $this->actingAs($admin)->withSession(['company_id' => $companyA->id])
+            ->post(route('admin.communication-center.actions.store'), [
+                'title' => 'Cross-tenant follow-up',
+                'status' => 'pending',
+                'conversation_uuid' => $conversationB->uuid,
+                'idempotency_key' => 'linked-follow-up-b',
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(1, CommunicationAction::query()->count());
     }
 
     public function test_non_admin_cannot_create_or_transition_work_items(): void

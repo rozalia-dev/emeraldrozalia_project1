@@ -282,6 +282,49 @@ class CommunicationContractTest extends TestCase
             ->assertStatus(401);
     }
 
+    public function test_webhook_cannot_update_a_message_through_the_wrong_provider_channel(): void
+    {
+        config(['communication.webhook_secrets.whatsapp' => 'channel-secret']);
+        $conversation = Conversation::create([
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Channel isolation',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'Email message must not be updated by WhatsApp.',
+            'delivery_status' => 'queued',
+        ]);
+        $payload = [
+            'event_id' => 'wrong-channel-event-001',
+            'event_type' => 'message.delivered',
+            'message_uuid' => $message->uuid,
+            'status' => 'delivered',
+        ];
+        $rawPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        $this->call(
+            'POST',
+            '/api/v1/communication/webhooks/whatsapp',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_COMMUNICATION_SIGNATURE' => hash_hmac('sha256', $rawPayload, 'channel-secret'),
+            ],
+            $rawPayload,
+        )->assertOk()
+            ->assertJsonPath('status', 'ignored');
+
+        $this->assertSame('queued', $message->fresh()->delivery_status);
+        $this->assertSame(
+            'The provider does not match the message channel.',
+            CommunicationWebhookEvent::firstOrFail()->failure_reason,
+        );
+    }
+
     public function test_webhook_requires_a_configured_secret(): void
     {
         config(['communication.webhook_secrets.whatsapp' => null]);
