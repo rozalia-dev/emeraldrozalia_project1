@@ -284,6 +284,7 @@ async function runPublicBrowserEvidence() {
         }
 
         const reducedPage = await context.newPage();
+        reducedPage.on('pageerror', error => pageErrors.push(error.message));
         await reducedPage.emulateMedia({reducedMotion: 'reduce'});
         for (const route of publicRoutes) {
             await reducedPage.goto(base + route, {waitUntil: 'domcontentloaded'});
