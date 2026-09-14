@@ -14,6 +14,21 @@
     border: 0 !important;
 }
 
+/* Every keyboard-focusable public control must expose a visible focus ring.
+   This lives in the shared shell so page-specific CSS cannot leave a route
+   without keyboard evidence. */
+.site-body :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--site-focus, #8cc63e) !important;
+    outline-offset: 3px !important;
+}
+
+/* Shop colour and size inputs are intentionally visually hidden; mirror their
+   keyboard focus onto the visible swatch/size proxy instead. */
+.shop-reference-page .shop-colour-choice input:focus-visible + span,
+.shop-reference-page .shop-size-grid input:focus-visible + span {
+    box-shadow: 0 0 0 3px var(--site-focus, #8cc63e) !important;
+}
+
 .site-body .site-header[data-public-shell-region="header"] {
     position: relative;
     z-index: 40;
