@@ -15,7 +15,7 @@ final class CommunicationWorkItemService
     public function query(string $section): Builder
     {
         $model = $this->modelClass($section);
-        $query = $model::withoutGlobalScopes();
+        $query = $model::query()->withoutGlobalScope('tenant');
         $companyId = session('company_id');
 
         if (! $companyId) {
