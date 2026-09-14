@@ -195,9 +195,12 @@ class VideoDashboardTest extends TestCase
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertDatabaseCount('video_plays',1);
         $this->assertSame(0,VideoPlay::firstOrFail()->seconds);
-        // Set the persisted timestamp explicitly so the assertion is independent of
-        // the framework's test clock implementation and mirrors 10 seconds of elapsed time.
-        VideoPlay::query()->update(['updated_at'=>now()->utc()->subSeconds(10)]);
+        // Pin both ends of the wall-clock interval. PostgreSQL stores timestamps at
+        // second precision in this schema, so a real-time sleep can cross a second
+        // boundary and make an intended ten-second interval appear as eleven.
+        $base = now()->utc()->startOfSecond();
+        VideoPlay::query()->update(['updated_at'=>$base]);
+        $this->travelTo($base->copy()->addSeconds(10));
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
         $this->assertSame(10,VideoPlay::firstOrFail()->seconds);
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>10000])->assertUnprocessable();
