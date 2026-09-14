@@ -91,11 +91,23 @@
         });
     };
 
+    let scheduled = false;
     const enhance = () => {
+        scheduled = false;
         enhanceLinks();
         enhanceForms();
     };
+    const scheduleEnhance = () => {
+        if (scheduled) return;
+        scheduled = true;
+        queueMicrotask(enhance);
+    };
 
     enhance();
-    document.addEventListener('admin:content-updated', enhance);
+    document.addEventListener('admin:content-updated', scheduleEnhance);
+    if (document.body && 'MutationObserver' in window) {
+        new MutationObserver((mutations) => {
+            if (mutations.some((mutation) => mutation.addedNodes.length > 0)) scheduleEnhance();
+        }).observe(document.body, {childList: true, subtree: true});
+    }
 })();
