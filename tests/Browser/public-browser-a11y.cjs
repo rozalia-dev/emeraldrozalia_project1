@@ -35,6 +35,7 @@ function normalise(value) {
 
 async function inspectPublicPage(page) {
     return page.evaluate(selector => {
+        const normalise = value => (value || '').replace(/\s+/g, ' ').trim();
         const visible = element => {
             const style = getComputedStyle(element);
             const rect = element.getBoundingClientRect();
@@ -114,6 +115,7 @@ async function inspectPublicPage(page) {
 
 async function inspectFocusedElement(page) {
     return page.evaluate(() => {
+        const normalise = value => (value || '').replace(/\s+/g, ' ').trim();
         const element = document.activeElement;
         if (!element || element === document.body || element === document.documentElement) {
             return { body: true };
