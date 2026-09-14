@@ -421,6 +421,7 @@
                                     'status'=>$record->status,
                                     'record_date'=>$record->record_date?->format('Y-m-d'),
                                     'amount'=>$record->amount,
+                                    'expected_version'=>$record->version ?? null,
                                 ], $record->data ?? []);
                                 $encoded = base64_encode(json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
                             @endphp
@@ -464,14 +465,32 @@
                                     <td>{{ optional($record->created_at)->format('d M Y H:i') }}</td>
                                 @endif
                                 <td class="cc-actions">
-                                    <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ in_array($section, ['email-templates','approval-center'], true) ? $record->uuid : $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
+                                    <button type="button" data-cc-edit="{{ $encoded }}" data-id="{{ in_array($section, ['email-templates','approval-center','action-follow-ups','alerts-notifications'], true) ? $record->uuid : $record->id }}" title="Edit"><x-icon name="pencil" size="14" /></button>
                                     @if($section === 'approval-center' && !in_array($record->status,['approved','rejected'],true))
                                         <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'approve']) }}">@csrf<button type="submit" title="Approve"><x-icon name="check" size="14" /></button></form>
                                         <form method="post" action="{{ route('admin.communication-center.approvals.action',[$record,'reject']) }}">@csrf<button type="submit" title="Reject">×</button></form>
                                     @elseif($section === 'action-follow-ups')
-                                        @if($record->status !== 'completed')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'complete']) }}">@csrf<button type="submit" title="Complete"><x-icon name="check" size="14" /></button></form>@else<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'reopen']) }}">@csrf<button type="submit" title="Reopen"><x-icon name="refresh" size="14" /></button></form>@endif
+                                        @if($record->status !== 'completed')
+                                            <form method="post" action="{{ route('admin.communication-center.actions.action', ['record' => $record->uuid, 'action' => 'complete']) }}">@csrf
+                                                <input type="hidden" name="idempotency_key" value="action-complete-{{ $record->uuid }}">
+                                                <input type="hidden" name="expected_version" value="{{ $record->version }}">
+                                                <button type="submit" title="Complete"><x-icon name="check" size="14" /></button>
+                                            </form>
+                                        @else
+                                            <form method="post" action="{{ route('admin.communication-center.actions.action', ['record' => $record->uuid, 'action' => 'reopen']) }}">@csrf
+                                                <input type="hidden" name="idempotency_key" value="action-reopen-{{ $record->uuid }}">
+                                                <input type="hidden" name="expected_version" value="{{ $record->version }}">
+                                                <button type="submit" title="Reopen"><x-icon name="refresh" size="14" /></button>
+                                            </form>
+                                        @endif
                                     @elseif($section === 'alerts-notifications')
-                                        @if($record->status !== 'acknowledged')<form method="post" action="{{ route('admin.communication-center.record.action',[$section,$record,'acknowledge']) }}">@csrf<button type="submit" title="Acknowledge"><x-icon name="check" size="14" /></button></form>@endif
+                                        @if($record->status !== 'acknowledged')
+                                            <form method="post" action="{{ route('admin.communication-center.alerts.action', ['record' => $record->uuid, 'action' => 'acknowledge']) }}">@csrf
+                                                <input type="hidden" name="idempotency_key" value="alert-acknowledge-{{ $record->uuid }}">
+                                                <input type="hidden" name="expected_version" value="{{ $record->version }}">
+                                                <button type="submit" title="Acknowledge"><x-icon name="check" size="14" /></button>
+                                            </form>
+                                        @endif
                                     @elseif($section === 'email-templates')
                                         <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'duplicate']) }}">@csrf<button type="submit" title="Duplicate">⧉</button></form>
                                         @if($record->status === 'archived')
@@ -480,7 +499,7 @@
                                             <form method="post" action="{{ route('admin.communication-center.templates.action',[$record,'archive']) }}">@csrf<button type="submit" title="Archive"><x-icon name="folder" size="14" /></button></form>
                                         @endif
                                     @endif
-                                    <form method="post" action="{{ $section === 'email-templates' ? route('admin.communication-center.templates.destroy', $record) : ($section === 'approval-center' ? route('admin.communication-center.approvals.destroy', $record) : route('admin.communication-center.record.destroy',[$section,$record])) }}" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button type="submit" title="Delete"><x-icon name="trash" size="14" /></button></form>
+                                    <form method="post" action="@if($section === 'email-templates'){{ route('admin.communication-center.templates.destroy', $record) }}@elseif($section === 'approval-center'){{ route('admin.communication-center.approvals.destroy', $record) }}@elseif($section === 'action-follow-ups'){{ route('admin.communication-center.actions.destroy', ['record' => $record->uuid]) }}@else{{ route('admin.communication-center.alerts.destroy', ['record' => $record->uuid]) }}@endif" onsubmit="return confirm('Delete this record?')">@csrf @method('DELETE')<button type="submit" title="Delete"><x-icon name="trash" size="14" /></button></form>
                                 </td>
                             </tr>
                         @empty
@@ -554,16 +573,23 @@
 
         <dialog class="cc-dialog" data-cc-dialog>
             @php
-                $recordStoreUrl = $section === 'email-templates'
-                    ? route('admin.communication-center.templates.store')
-                    : ($section === 'approval-center' ? route('admin.communication-center.approvals.store') : route('admin.communication-center.record.store', $section));
-                $recordUpdateUrl = $section === 'email-templates'
-                    ? route('admin.communication-center.templates.update', ['template' => '__id__'])
-                    : ($section === 'approval-center' ? route('admin.communication-center.approvals.update', ['approval' => '__id__']) : route('admin.communication-center.record.update', [$section, '__id__']));
+                $recordStoreUrl = match ($section) {
+                    'email-templates' => route('admin.communication-center.templates.store'),
+                    'approval-center' => route('admin.communication-center.approvals.store'),
+                    'action-follow-ups' => route('admin.communication-center.actions.store'),
+                    default => route('admin.communication-center.alerts.store'),
+                };
+                $recordUpdateUrl = match ($section) {
+                    'email-templates' => route('admin.communication-center.templates.update', ['template' => '__id__']),
+                    'approval-center' => route('admin.communication-center.approvals.update', ['approval' => '__id__']),
+                    'action-follow-ups' => route('admin.communication-center.actions.update', ['record' => '__id__']),
+                    default => route('admin.communication-center.alerts.update', ['record' => '__id__']),
+                };
             @endphp
             <form method="post" action="{{ $recordStoreUrl }}" data-cc-form data-store-url="{{ $recordStoreUrl }}" data-update-template="{{ $recordUpdateUrl }}">
                 @csrf
                 <input type="hidden" name="_method" value="PATCH" data-cc-method disabled>
+                <input type="hidden" name="expected_version" value="">
                 <header><div><small>COMMUNICATION CENTER</small><h2 data-cc-dialog-title>{{ $config['create_label'] }}</h2></div><button type="button" data-cc-close>×</button></header>
                 <div class="cc-form-grid">
                     <label>Title / Name<input name="title" required maxlength="180"></label>
@@ -698,34 +724,3 @@
                             <td>{{ \Illuminate\Support\Str::headline($action) }}</td>
                             <td>{{ \Illuminate\Support\Str::headline(str_replace('.',' ',$action)) }}<small>Request: {{ str($activity->request_id)->limit(18) }}</small></td>
                             <td>{{ class_basename((string)$activity->subject_type ?: 'System') }}<small>{{ $activity->subject_id ?: $activity->uuid }}</small></td>
-                            <td>{{ $auditUsers[$activity->user_id] ?? 'System' }}</td>
-                            <td>{{ $activity->ip_address ?: '—' }}</td>
-                            <td><i class="cc-badge cc-badge-{{ $priorityTone(strtolower($severity)) }}">{{ $severity }}</i></td>
-                            <td><button type="button" class="cc-icon-btn" data-cc-audit="{{ $auditPayload }}" aria-label="View audit details for {{ $activity->uuid }}" title="View audit details"><x-icon name="eye" size="14"/></button></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="9"><div class="cc-empty cc-empty-large">No audit activities found.</div></td></tr>
-                    @endforelse
-                    </tbody></table>
-                </div>
-                <footer class="cc-table-footer"><span>Showing {{ $activities->firstItem() ?? 0 }} to {{ $activities->lastItem() ?? 0 }} of {{ number_format($activities->total()) }} activities</span><div class="cc-pager">@if($activities->onFirstPage())<span class="disabled" aria-disabled="true">‹</span>@else<a href="{{ $activities->previousPageUrl() }}" aria-label="Previous page">‹</a>@endif<b>{{ $activities->currentPage() }}</b>@if($activities->hasMorePages())<a href="{{ $activities->nextPageUrl() }}" aria-label="Next page">›</a>@else<span class="disabled" aria-disabled="true">›</span>@endif</div></footer>
-            </main>
-            <aside class="cc-record-side">
-                <section class="cc-side-card"><header><h2>Activity Summary</h2><a href="{{ $pageUrl('communication-reports') }}">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:50"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></section>
-                <section class="cc-side-card"><header><h2>Top Entity Types</h2><a href="{{ $pageUrl('communication-history', ['entity_type' => 'App\\Models\\Conversation']) }}">View Report</a></header><ul class="cc-ranked-list">@foreach($report['by_entity'] as $label=>$count)<li><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></section>
-                <section class="cc-side-card"><header><h2>Quick Actions</h2></header><ul class="cc-quick-list"><li><x-icon name="file-text" size="14"/><a href="{{ $pageUrl('communication-history') }}">View Full Audit Log</a></li><li><x-icon name="download" size="14"/><a href="{{ route('admin.communication-center.export', ['section' => $section] + request()->query()) }}">Export Audit Log</a></li><li><x-icon name="calendar" size="14"/><a href="{{ route('admin.reports.scheduler') }}">Schedule Audit Report</a></li><li><x-icon name="settings" size="14"/><a href="{{ route('admin.settings.page', 'audit-logs') }}">Configure Log Settings</a></li></ul></section>
-            </aside>
-        </section>
-        <section class="cc-bottom-grid">
-            <article class="cc-card"><header><h2>Activities Over Time</h2><a href="{{ $pageUrl('communication-history') }}">View Report</a></header><div class="cc-mini-line">@foreach(range(1,20) as $i)<i style="height:{{ 20+(($i*19)%72) }}%"></i>@endforeach</div></article>
-            <article class="cc-card"><header><h2>Activities by Channel</h2><a href="{{ $pageUrl('communication-history', ['channel' => 'communication']) }}">View Report</a></header><div class="cc-donut-wrap"><div class="cc-donut cc-donut-small" style="--p:52"><span><b>{{ number_format($report['total']) }}</b><small>Total</small></span></div><ul class="cc-legend cc-legend-compact">@foreach($report['by_action'] as $label=>$count)<li><i class="cc-dot cc-dot-{{ $loop->index }}"></i><span>{{ $label }}</span><b>{{ $count }}</b></li>@endforeach</ul></div></article>
-            <article class="cc-card"><header><h2>Top Entity Types</h2></header><div class="cc-bars">@php $barMax=max(1,(int)collect($report['by_entity'])->max()); @endphp @foreach($report['by_entity'] as $label=>$count)<div><span>{{ $label }}</span><i><b style="width:{{ round(($count/$barMax)*100) }}%"></b></i><em>{{ $count }}</em></div>@endforeach</div></article>
-            <article class="cc-card"><header><h2>Activity Heatmap (Time of Day)</h2></header><div class="cc-heatmap">@foreach(range(1,49) as $i)<i style="opacity:{{ .18+(($i*5)%8)/10 }}"></i>@endforeach</div></article>
-        </section>
-        <dialog class="cc-dialog cc-audit-dialog" data-cc-audit-dialog>
-            <header><div><small>IMMUTABLE AUDIT ENTRY</small><h2>Audit Details</h2></div><button type="button" data-cc-audit-close aria-label="Close audit details">×</button></header>
-            <div class="cc-audit-content" data-cc-audit-content></div>
-        </dialog>
-    @endif
-</div>
-@endsection

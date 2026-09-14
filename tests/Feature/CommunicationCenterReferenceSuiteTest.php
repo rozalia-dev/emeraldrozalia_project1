@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\AdminRecord;
 use App\Models\AuditLog;
+use App\Models\CommunicationAction;
+use App\Models\CommunicationAlert;
 use App\Models\Conversation;
 use App\Models\CommunicationTemplate;
 use App\Models\User;
@@ -207,9 +209,9 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
                 'record_date' => '2026-09-10',
             ])->assertRedirect();
 
-        $action = AdminRecord::query()->where('module', 'action-follow-ups')->firstOrFail();
+        $action = CommunicationAction::query()->firstOrFail();
         $this->actingAs($admin)
-            ->post(route('admin.communication-center.record.action', ['action-follow-ups', $action, 'complete']))
+            ->post(route('admin.communication-center.actions.action', ['record' => $action->uuid, 'action' => 'complete']))
             ->assertRedirect();
         $this->assertSame('completed', $action->fresh()->status);
 
@@ -226,9 +228,9 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
                 'record_date' => '2026-09-10',
             ])->assertRedirect();
 
-        $alert = AdminRecord::query()->where('module', 'alerts-notifications')->firstOrFail();
+        $alert = CommunicationAlert::query()->firstOrFail();
         $this->actingAs($admin)
-            ->post(route('admin.communication-center.record.action', ['alerts-notifications', $alert, 'acknowledge']))
+            ->post(route('admin.communication-center.alerts.action', ['record' => $alert->uuid, 'action' => 'acknowledge']))
             ->assertRedirect();
         $this->assertSame('acknowledged', $alert->fresh()->status);
     }

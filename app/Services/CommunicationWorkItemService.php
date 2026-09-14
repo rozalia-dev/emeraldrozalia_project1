@@ -69,18 +69,15 @@ final class CommunicationWorkItemService
 
             $alert = $section === 'alerts-notifications';
             $metadata = $this->metadata($data);
-            $record = $model::create([
+            $attributes = [
                 'reference' => filled($data['reference'] ?? null) ? $data['reference'] : null,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? ($data['notes'] ?? null),
                 'category' => $data['category'] ?? null,
-                'type' => $alert ? ($data['type'] ?? null) : null,
                 'source' => $data['source'] ?? null,
                 'entity' => $data['entity'] ?? null,
                 'priority' => $data['priority'] ?? 'normal',
-                'severity' => $alert ? ($data['severity'] ?? 'low') : null,
                 'status' => $data['status'],
-                'amount' => $alert ? null : ($data['amount'] ?? null),
                 'record_date' => $data['record_date'] ?? now()->toDateString(),
                 'due_at' => $data['due_at'] ?? null,
                 'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
@@ -88,7 +85,14 @@ final class CommunicationWorkItemService
                 'data' => $metadata,
                 'created_by' => auth()->id(),
                 'version' => 1,
-            ]);
+            ];
+            if ($alert) {
+                $attributes['type'] = $data['type'] ?? null;
+                $attributes['severity'] = $data['severity'] ?? 'low';
+            } else {
+                $attributes['amount'] = $data['amount'] ?? null;
+            }
+            $record = $model::create($attributes);
 
             if (blank($record->reference)) {
                 $record->update(['reference' => $this->referenceFor($section, $record->getKey())]);
@@ -123,22 +127,27 @@ final class CommunicationWorkItemService
 
             $metadata = array_merge((array) $record->data, $this->metadata($data));
             $isAlert = $section === 'alerts-notifications';
-            $record->update([
+            $attributes = [
                 'reference' => array_key_exists('reference', $data) ? ($data['reference'] ?: null) : $record->reference,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? ($data['notes'] ?? $record->description),
                 'category' => $data['category'] ?? $record->category,
-                'type' => $isAlert ? ($data['type'] ?? $record->type) : null,
                 'source' => $data['source'] ?? $record->source,
                 'entity' => $data['entity'] ?? $record->entity,
                 'priority' => $data['priority'] ?? $record->priority,
-                'severity' => $isAlert ? ($data['severity'] ?? $record->severity) : null,
-                'amount' => $isAlert ? null : ($data['amount'] ?? $record->amount),
+                'status' => $record->status,
                 'record_date' => $data['record_date'] ?? $record->record_date,
                 'due_at' => array_key_exists('due_at', $data) ? ($data['due_at'] ?: null) : $record->due_at,
                 'data' => $metadata,
                 'version' => (int) $record->version + 1,
-            ]);
+            ];
+            if ($isAlert) {
+                $attributes['type'] = $data['type'] ?? $record->type;
+                $attributes['severity'] = $data['severity'] ?? $record->severity;
+            } else {
+                $attributes['amount'] = $data['amount'] ?? $record->amount;
+            }
+            $record->update($attributes);
             AuditTrail::record('communication.'.$section.'.updated', $record, null, [
                 'uuid' => (string) $record->uuid,
                 'version' => (int) $record->version,
