@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PublicInquiryRequest;
 use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -11,7 +12,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AuditTrail;
 use App\Services\PublicMediaResolver;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SiteController extends Controller
@@ -425,24 +425,10 @@ class SiteController extends Controller
         return view('site.page', compact('page', 'managedPage'));
     }
 
-    public function inquiry(Request $r)
+    public function inquiry(PublicInquiryRequest $request)
     {
-        $meetingTimes = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
-        $requiresMessage = in_array($r->input('type'), ['contact', 'franchise', 'corporate-orders', 'bulk-orders'], true);
-        $requiresConsent = in_array($r->input('type'), ['contact', 'franchise'], true);
-        $d = $r->validate([
-            'type' => ['required', Rule::in(['contact', 'franchise', 'careers', 'corporate-orders', 'bulk-orders'])],
-            'name' => 'required|string|max:120',
-            'email' => 'required|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'company' => 'nullable|string|max:120',
-            'country' => 'nullable|string|max:120',
-            'subject' => 'required_if:type,contact|nullable|string|max:150',
-            'message' => [Rule::requiredIf($requiresMessage), 'nullable', 'string', 'max:5000'],
-            'consent' => $requiresConsent ? ['required', 'accepted'] : ['nullable'],
-            'meeting_date' => 'nullable|required_with:meeting_time|date_format:Y-m-d|after_or_equal:today',
-            'meeting_time' => ['nullable', 'required_with:meeting_date', 'date_format:H:i', Rule::in($meetingTimes)],
-        ]);
+        $d = $request->validated();
+        $r = $request;
         $meeting = array_filter(['date' => $d['meeting_date'] ?? null, 'time' => $d['meeting_time'] ?? null], fn ($value) => filled($value));
         if ($meeting) {
             $slot = CarbonImmutable::createFromFormat('!Y-m-d H:i', $meeting['date'].' '.$meeting['time'], config('app.timezone'));
@@ -453,12 +439,8 @@ class SiteController extends Controller
         unset($d['meeting_date'], $d['meeting_time'], $d['consent'], $d['country']);
         $d['meta'] = ['source' => 'public_'.$d['type'].'_form', 'meeting' => $meeting ?: null, 'country' => $country];
 
-        $idempotencyKey = trim((string) $r->header('Idempotency-Key', ''));
-        if ($idempotencyKey !== '' && ! preg_match('/\A[A-Za-z0-9._:-]{1,100}\z/D', $idempotencyKey)) {
-            throw ValidationException::withMessages([
-                'Idempotency-Key' => 'Use up to 100 letters, numbers, dots, underscores, colons or hyphens.',
-            ]);
-        }
+        $idempotencyKey = (string) ($d['idempotency_key'] ?? '');
+        unset($d['idempotency_key']);
 
         $correlationId = (string) ($r->attributes->get('correlation_id') ?: Str::uuid());
         $customerId = $r->user()?->id;
