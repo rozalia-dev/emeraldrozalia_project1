@@ -12,7 +12,7 @@
         <div class="career-hero-visual" aria-label="Emerald Rozalia careers in Limerick">
             <div class="career-visual-glow"></div>
             <div class="career-visual-brand">
-                @if($careersLogo)<img src="{{ $careersLogo['url'] }}" alt="{{ $careersLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif
+                @if($careersLogo)<img src="{{ $careersLogo['url'] }}" @if($careersLogo['srcset']) srcset="{{ $careersLogo['srcset'] }}" sizes="{{ $careersLogo['sizes'] }}" @endif width="{{ $careersLogo['width'] ?: '' }}" height="{{ $careersLogo['height'] ?: '' }}" alt="{{ $careersLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif
                 <span>CAREERS · LIMERICK, IRELAND</span>
             </div>
             <div class="career-visual-copy">
