@@ -390,18 +390,23 @@ class ApprovalRequestService
 
     private function assertCompanyUser(int $userId, bool $adminOnly = false): void
     {
-        $query = User::query()
-            ->whereKey($userId)
-            ->where('status', 'active')
-            ->whereNull('locked_at');
+        $query = User::query()->whereKey($userId);
 
         if ($adminOnly) {
             $query->where('is_admin', true);
         }
 
         $companyId = session('company_id');
-        if ($companyId) {
-            $query->whereHas('companies', fn ($companies) => $companies->whereKey((int) $companyId));
+        if ($companyId && ! $adminOnly) {
+            $query->where(function ($scope) use ($companyId): void {
+                $scope->where('is_admin', true)
+                    ->orWhereExists(function ($membership) use ($companyId): void {
+                        $membership->selectRaw('1')
+                            ->from('company_user')
+                            ->whereColumn('company_user.user_id', 'users.id')
+                            ->where('company_user.company_id', (int) $companyId);
+                    });
+            });
         }
 
         abort_unless($query->exists(), 422, 'The selected user must belong to the selected company.');

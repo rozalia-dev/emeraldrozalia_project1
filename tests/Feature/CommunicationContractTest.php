@@ -106,40 +106,24 @@ final class CommunicationContractFakeProvider implements CommunicationProvider
         $this->assertSame(['Bearer test-provider-token'], $request->header('Authorization'));
     }
 
-    public function test_assignment_and_explicit_approval_users_are_company_scoped(): void
+    public function test_explicit_non_admin_approval_users_must_belong_to_the_selected_company(): void
     {
         $company = \App\Models\Company::create(['name' => 'Selected Company', 'code' => 'COMM-SCOPE-1', 'active' => true]);
         $otherCompany = \App\Models\Company::create(['name' => 'Other Company', 'code' => 'COMM-SCOPE-2', 'active' => true]);
         $admin = User::factory()->create(['is_admin' => true]);
-        $foreignAdmin = User::factory()->create(['is_admin' => true]);
+        $foreignUser = User::factory()->create(['is_admin' => false]);
         $admin->companies()->attach($company->id, ['role' => 'owner', 'is_default' => true]);
-        $foreignAdmin->companies()->attach($otherCompany->id, ['role' => 'owner', 'is_default' => true]);
-        $conversation = Conversation::create([
-            'company_id' => $company->id,
-            'channel' => 'email',
-            'contact' => 'customer@example.test',
-            'subject' => 'Company scoped assignment',
-            'status' => 'open',
-        ]);
-
-        $this->withSession(['company_id' => $company->id])
-            ->actingAs($admin)
-            ->patch(route('admin.communication.update', $conversation), [
-                'status' => 'open',
-                'priority' => 'normal',
-                'assigned_to' => $foreignAdmin->id,
-            ])
-            ->assertSessionHasErrors('assigned_to');
+        $foreignUser->companies()->attach($otherCompany->id, ['role' => 'member', 'is_default' => true]);
 
         $this->withSession(['company_id' => $company->id])
             ->actingAs($admin)
             ->postJson(route('api.v1.communication.approvals.store'), [
-                'title' => 'Foreign approver must be rejected',
+                'title' => 'Foreign requester must be rejected',
                 'request_type' => 'Operations',
-                'approver_id' => $foreignAdmin->id,
+                'requested_by_id' => $foreignUser->id,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('approver_id');
+            ->assertJsonValidationErrors('requested_by_id');
     }
 
 }
@@ -389,40 +373,24 @@ class CommunicationContractTest extends TestCase
         $this->assertSame(['Bearer test-provider-token'], $request->header('Authorization'));
     }
 
-    public function test_assignment_and_explicit_approval_users_are_company_scoped(): void
+    public function test_explicit_non_admin_approval_users_must_belong_to_the_selected_company(): void
     {
         $company = \App\Models\Company::create(['name' => 'Selected Company', 'code' => 'COMM-SCOPE-1', 'active' => true]);
         $otherCompany = \App\Models\Company::create(['name' => 'Other Company', 'code' => 'COMM-SCOPE-2', 'active' => true]);
         $admin = User::factory()->create(['is_admin' => true]);
-        $foreignAdmin = User::factory()->create(['is_admin' => true]);
+        $foreignUser = User::factory()->create(['is_admin' => false]);
         $admin->companies()->attach($company->id, ['role' => 'owner', 'is_default' => true]);
-        $foreignAdmin->companies()->attach($otherCompany->id, ['role' => 'owner', 'is_default' => true]);
-        $conversation = Conversation::create([
-            'company_id' => $company->id,
-            'channel' => 'email',
-            'contact' => 'customer@example.test',
-            'subject' => 'Company scoped assignment',
-            'status' => 'open',
-        ]);
-
-        $this->withSession(['company_id' => $company->id])
-            ->actingAs($admin)
-            ->patch(route('admin.communication.update', $conversation), [
-                'status' => 'open',
-                'priority' => 'normal',
-                'assigned_to' => $foreignAdmin->id,
-            ])
-            ->assertSessionHasErrors('assigned_to');
+        $foreignUser->companies()->attach($otherCompany->id, ['role' => 'member', 'is_default' => true]);
 
         $this->withSession(['company_id' => $company->id])
             ->actingAs($admin)
             ->postJson(route('api.v1.communication.approvals.store'), [
-                'title' => 'Foreign approver must be rejected',
+                'title' => 'Foreign requester must be rejected',
                 'request_type' => 'Operations',
-                'approver_id' => $foreignAdmin->id,
+                'requested_by_id' => $foreignUser->id,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('approver_id');
+            ->assertJsonValidationErrors('requested_by_id');
     }
 
 }

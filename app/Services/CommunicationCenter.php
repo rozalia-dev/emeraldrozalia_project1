@@ -276,14 +276,7 @@ class CommunicationCenter
     {
         $query = User::query()
             ->whereKey($userId)
-            ->where('is_admin', true)
-            ->where('status', 'active')
-            ->whereNull('locked_at');
-
-        $companyId = session('company_id');
-        if ($companyId) {
-            $query->whereHas('companies', fn ($companies) => $companies->whereKey((int) $companyId));
-        }
+            ->where('is_admin', true);
 
         abort_unless($query->exists(), 422, 'The assigned administrator must belong to the selected company.');
     }

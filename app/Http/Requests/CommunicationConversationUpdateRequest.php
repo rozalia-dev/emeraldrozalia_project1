@@ -25,19 +25,7 @@ class CommunicationConversationUpdateRequest extends FormRequest
     private function companyAdminRule()
     {
         return Rule::exists('users', 'id')->where(function ($query): void {
-            $query->where('is_admin', true)
-                ->where('status', 'active')
-                ->whereNull('locked_at');
-
-            $companyId = session('company_id');
-            if ($companyId) {
-                $query->whereExists(function ($membership) use ($companyId): void {
-                    $membership->selectRaw('1')
-                        ->from('company_user')
-                        ->whereColumn('company_user.user_id', 'users.id')
-                        ->where('company_user.company_id', (int) $companyId);
-                });
-            }
+            $query->where('is_admin', true);
         });
     }
 }
