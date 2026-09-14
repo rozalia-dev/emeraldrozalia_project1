@@ -224,3 +224,10 @@ The status column below is intentionally conservative. Every row remains open fo
 ## Batch 0 exit gate
 
 This matrix is the source of truth for the next implementation batches. Before a row is promoted beyond Partial, attach the source reference, named route/view/controller, data and authorization contract, test ID, exact viewport result, responsive/accessibility result, and same-SHA release evidence.
+
+
+## Browser route contract (B20 supporting evidence)
+
+The new `tests/visual/public-route-contract.spec.cjs` suite provides deterministic browser-level route and interaction coverage for the public storefront. It exercises the shared route family at desktop and mobile Playwright projects, checks HTTP 200 responses and the shared shell, rejects placeholder links and direct storage-media delivery, verifies explicit media-state markers, checks real enquiry POST forms with CSRF tokens, and verifies that the factory route is structured rather than a screenshot hotspot canvas.
+
+Run it with `npm run visual:test` against the configured `PLAYWRIGHT_BASE_URL`. This is supporting route/interaction evidence only; it does not promote any of the 167 guide rows to pixel-verified status. The exact screenshot, responsive, keyboard/focus, reduced-motion, and accessibility results still need to be run and archived before B20 can close.
