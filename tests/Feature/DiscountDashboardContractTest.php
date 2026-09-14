@@ -57,7 +57,7 @@ class DiscountDashboardContractTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.discounts-coupons', ['q' => 'LIVE10']));
 
         $response->assertOk()
-            ->assertSee(['LIVE10', 'Cart Subtotal', 'Online Orders', 'New Customers', '1 / 1', '€10.00', '€90.00', 'Live database value'], false)
+            ->assertSee(['LIVE10', 'Cart Subtotal', 'Online Orders', 'New Customers', 'Unlimited / 1', '€10.00', '€90.00', 'Live database value'], false)
             ->assertDontSee('ER100OFF', false)
             ->assertDontSee('Preview data is shown', false);
         $this->assertSame('LIVE10', $order->fresh()->discount_code);
