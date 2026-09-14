@@ -429,6 +429,7 @@ class SiteController extends Controller
     {
         $d = $request->validated();
         $r = $request;
+        $requiresConsent = in_array((string) ($d['type'] ?? ''), ['contact', 'franchise'], true);
         $meeting = array_filter(['date' => $d['meeting_date'] ?? null, 'time' => $d['meeting_time'] ?? null], fn ($value) => filled($value));
         if ($meeting) {
             $slot = CarbonImmutable::createFromFormat('!Y-m-d H:i', $meeting['date'].' '.$meeting['time'], config('app.timezone'));
