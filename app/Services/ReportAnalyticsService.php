@@ -127,8 +127,9 @@ class ReportAnalyticsService
     private function filters(string $report, Request $request): array
     {
         $read = static fn (string $key, mixed $default = null): mixed => $request->input($key, $request->query($key, $default));
-        $from = $this->date($read('from', '2025-04-01'), '2025-04-01')->startOfDay();
-        $to = $this->date($read('to', '2025-05-01'), '2025-05-01')->endOfDay();
+        $today = now();
+        $from = $this->date($read('from', $today->copy()->startOfMonth()->toDateString()), $today->copy()->startOfMonth()->toDateString())->startOfDay();
+        $to = $this->date($read('to', $today->toDateString()), $today->toDateString())->endOfDay();
         if ($from->gt($to)) [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
 
         return [
