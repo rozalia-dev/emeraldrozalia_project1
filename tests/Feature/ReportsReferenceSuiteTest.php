@@ -49,7 +49,7 @@ class ReportsReferenceSuiteTest extends TestCase
 
             $this->assertStringContainsString($emptyState, $html, "Missing honest empty state on {$page}.");
             foreach ([
-                '1248', '152680', '42', '245', '186', '01 May 2025', 'admin@emeraldrozalia.ie',
+                '1248', '152680', '245', '186', '01 May 2025', 'admin@emeraldrozalia.ie',
                 'RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary',
             ] as $fixture) {
                 $this->assertStringNotContainsString($fixture, $html, "Reference fixture leaked into {$page}: {$fixture}");

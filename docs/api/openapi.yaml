@@ -15,6 +15,8 @@ paths:
         - { name: category, in: query, schema: { type: string, maxLength: 120 } }
         - { name: sort, in: query, schema: { type: string, enum: [newest, price_low, price_high, name] } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 48, default: 12 } }
+        - { name: min_price, in: query, schema: { type: string, pattern: '^\\d+(?:\\.\\d+)?$', maxLength: 12 } }
+        - { name: max_price, in: query, schema: { type: string, pattern: '^\\d+(?:\\.\\d+)?$', maxLength: 12 } }
       responses:
         '200':
           description: Paginated product collection
@@ -41,6 +43,7 @@ paths:
       parameters:
         - { name: position, in: query, schema: { type: string } }
         - { name: device, in: query, schema: { type: string, enum: [desktop, tablet, mobile] } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 48, default: 12 } }
       responses:
         '200':
           description: Paginated banner collection

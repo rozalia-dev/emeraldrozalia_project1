@@ -148,4 +148,34 @@ class Project1Batch1FoundationTest extends TestCase
         $response->assertOk();
         $this->assertMatchesRegularExpression('/^[0-9a-f-]{36}$/i', (string) $response->headers->get('X-Correlation-ID'));
     }
+
+    public function test_catalog_price_filters_use_canonical_minor_unit_boundaries(): void
+    {
+        $included = Product::create([
+            'name' => 'API Boundary Included',
+            'slug' => 'api-boundary-included',
+            'sku' => 'API-BOUNDARY-001',
+            'price' => 10.01,
+            'stock' => 2,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+        $excluded = Product::create([
+            'name' => 'API Boundary Excluded',
+            'slug' => 'api-boundary-excluded',
+            'sku' => 'API-BOUNDARY-002',
+            'price' => 10.00,
+            'stock' => 2,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/v1/products?min_price=10.005')
+            ->assertOk()
+            ->assertJsonFragment(['public_uuid' => $included->public_uuid])
+            ->assertJsonMissing(['public_uuid' => $excluded->public_uuid]);
+
+        $this->getJson('/api/v1/products?min_price=1e1')
+            ->assertStatus(422);
+    }
 }
