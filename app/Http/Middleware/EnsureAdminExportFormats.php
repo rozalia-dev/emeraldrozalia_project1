@@ -42,7 +42,13 @@ class EnsureAdminExportFormats
 
     private function isExportPath(string $path): bool
     {
-        return in_array('export', array_values(array_filter(explode('/', trim($path, '/')))), true);
+        foreach (array_values(array_filter(explode('/', trim($path, '/')))) as $segment) {
+            if ($segment === 'export' || str_ends_with($segment, '-export') || str_starts_with($segment, 'export-')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function convertCsvResponseToPdf(Request $request, Response $response): Response
@@ -66,7 +72,7 @@ class EnsureAdminExportFormats
 
         $csv = $this->responseContent($response);
         $sourceFilename = $this->filenameFromDisposition($disposition)
-            ?: Str($request->path())->replace('/', '-')->append('-'.now()->format('Ymd-His').'.csv')->toString();
+            ?: str($request->path())->replace('/', '-')->append('-'.now()->format('Ymd-His').'.csv')->toString();
         $pdfFilename = preg_replace('/\.csv$/i', '.pdf', $sourceFilename) ?: 'export-'.now()->format('Ymd-His').'.pdf';
         $title = str($pdfFilename)
             ->beforeLast('.')
