@@ -7,17 +7,17 @@
 @section('content')
 @php
     $collectionCards = [
-        ['slug'=>'baseball-caps','title'=>'BASEBALL CAPS','copy'=>'Classic. Everyday. Made to perform.','reference'=>'baseball','href'=>'/shop?category=baseball-caps'],
-        ['slug'=>'bucket-hats','title'=>'BUCKET HATS','copy'=>'Comfortable. Versatile. Timeless.','reference'=>'bucket','href'=>'/shop?category=bucket-hats'],
-        ['slug'=>'snapbacks','title'=>'SNAPBACKS','copy'=>'Modern fit. Stand out.','reference'=>'snapback','href'=>'/shop?category=snapbacks'],
-        ['slug'=>'irish-traditional-flat-caps','title'=>'IRISH TRADITIONAL FLAT CAPS','copy'=>'Authentic style. Irish tradition.','reference'=>'traditional','href'=>'/irish-traditional','new'=>true],
-        ['slug'=>'irish-heritage-hats','title'=>'IRISH HERITAGE HATS','copy'=>'Heritage designs. Timeless elegance.','reference'=>'heritage','href'=>'/irish-heritage'],
-        ['slug'=>'beanies-more','title'=>'BEANIES & MORE','copy'=>'Warm. Stylish. Essential.','reference'=>'beanie','href'=>'/shop?category=beanies-more'],
+        ['slug'=>'baseball-caps','title'=>'BASEBALL CAPS','copy'=>'Classic. Everyday. Made to perform.','href'=>'/shop?category=baseball-caps'],
+        ['slug'=>'bucket-hats','title'=>'BUCKET HATS','copy'=>'Comfortable. Versatile. Timeless.','href'=>'/shop?category=bucket-hats'],
+        ['slug'=>'snapbacks','title'=>'SNAPBACKS','copy'=>'Modern fit. Stand out.','href'=>'/shop?category=snapbacks'],
+        ['slug'=>'irish-traditional-flat-caps','title'=>'IRISH TRADITIONAL FLAT CAPS','copy'=>'Authentic style. Irish tradition.','href'=>'/irish-traditional','new'=>true],
+        ['slug'=>'irish-heritage-hats','title'=>'IRISH HERITAGE HATS','copy'=>'Heritage designs. Timeless elegance.','href'=>'/irish-heritage'],
+        ['slug'=>'beanies-more','title'=>'BEANIES & MORE','copy'=>'Warm. Stylish. Essential.','href'=>'/shop?category=beanies-more'],
     ];
     $publicMedia = app(\App\Services\PublicMediaResolver::class);
 @endphp
 
-<div class="collections-reference-shell" data-approved-reference="hats collection.png">
+<div class="collections-reference-shell" data-public-media-register="collections">
     <span class="sr-only">OUR COLLECTIONS</span>
     <section class="home-benefits collections-benefits" aria-label="Emerald Rozalia benefits">
         <div><span class="home-benefit-icon"><x-icon name="clover" size="34" /></span><b>MADE IN LIMERICK</b><span>Proudly designing &amp; manufacturing in Ireland.</span></div>
@@ -37,7 +37,7 @@
                 @php($collectionMedia = $managedCollection?->media && $managedCollection->media->isApprovedPublic() ? $publicMedia->describe($managedCollection->media, $item['title']) : null)
                 <a class="home-collection-card collections-reference-card" href="{{ $href }}">
                     <div class="collections-reference-photo" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
-                        @if($collectionMedia)<img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif width="{{ $collectionMedia['width'] ?: '' }}" height="{{ $collectionMedia['height'] ?: '' }}" alt="{{ $collectionMedia['alt'] }}" loading="lazy">@endif
+                        @if($collectionMedia)<img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif width="{{ $collectionMedia['width'] ?: '' }}" height="{{ $collectionMedia['height'] ?: '' }}" alt="{{ $collectionMedia['alt'] }}" loading="lazy">@else<span class="collections-media-empty">Approved collection media is not configured.</span>@endif
                         @if(!empty($item['new']))<b class="collections-new-badge">NEW</b>@endif
                     </div>
                     <div><h2>{{ $item['title'] }}</h2><p>{{ $item['copy'] }}</p><span>SHOP NOW <b aria-hidden="true"><x-icon name="arrow-right" /></b></span></div>
