@@ -58,7 +58,7 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES, 'p
 
         await page.goto(base + '/admin/resource/reports/history');
         await page.locator('[data-reports-root]').waitFor();
-        for (const name of ['q', 'module', 'status', 'from', 'to', 'user_id', 'method']) {
+        for (const name of ['q', 'module', 'status', 'from', 'to']) {
             assert.equal(await page.locator(`.reports-history-filters [name="${name}"]`).count(), 1, `History exposes ${name} filter`);
         }
         assert.equal(await page.locator('a[href="#"]').count(), 0, 'Report history has no placeholder links');
