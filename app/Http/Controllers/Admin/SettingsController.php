@@ -13,8 +13,10 @@ use App\Models\IntegrationConnection;
 use App\Models\Language;
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Requests\BackupRestoreRequest;
 use App\Services\AuditTrail;
 use App\Services\PublishedSiteSettings;
+use App\Services\SettingsBackupService;
 use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +29,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Throwable;
 
 class SettingsController extends Controller
 {
@@ -261,22 +264,77 @@ class SettingsController extends Controller
 
     public function storeBackup(): RedirectResponse
     {
-        $this->createBackup();
-        return back()->with('success', 'A settings backup was created and recorded.');
+        $backup = $this->createBackup();
+
+        return back()->with(
+            $backup->status === 'completed' ? 'success' : 'error',
+            $backup->status === 'completed'
+                ? 'A verified settings backup was created and recorded.'
+                : 'The settings backup could not be verified. No usable restore point was created.',
+        );
+    }
+
+    public function restoreBackup(BackupRestoreRequest $request, BackupRun $backup): RedirectResponse
+    {
+        $companyId = session('company_id');
+        abort_if($companyId && $backup->company_id && (int) $backup->company_id !== (int) $companyId, 404);
+
+        $restoredSections = [];
+
+        try {
+            $settings = app(SettingsBackupService::class)->readAndVerify($backup);
+
+            DB::transaction(function () use ($settings, &$restoredSections): void {
+                foreach ($settings as $section => $values) {
+                    if (! in_array((string) $section, self::SECTION_SLUGS, true) || ! is_array($values)) {
+                        continue;
+                    }
+
+                    $defaults = $this->defaults()[$section] ?? [];
+                    $allowed = array_intersect_key($values, $defaults);
+                    $record = AdminRecord::query()
+                        ->where('module', 'system-settings')
+                        ->where('reference', $section)
+                        ->latest('id')
+                        ->first();
+                    $merged = array_merge($defaults, $record?->data ?? [], $allowed);
+                    $this->persistSetting($section, $merged, $record);
+                    $this->syncCompany($section, $merged);
+                    $this->syncConnection($section, $merged);
+                    $restoredSections[] = (string) $section;
+                }
+
+                $backup->forceFill([
+                    'restore_status' => 'completed',
+                    'restored_at' => now(),
+                ])->save();
+            });
+
+            AuditTrail::record('settings.backup.restored', $backup->fresh(), null, [
+                'sections' => $restoredSections,
+                'restored_at' => $backup->fresh()->restored_at?->toIso8601String(),
+            ]);
+        } catch (Throwable $exception) {
+            $backup->forceFill([
+                'restore_status' => 'failed',
+                'restored_at' => null,
+            ])->saveQuietly();
+            AuditTrail::record('settings.backup.restore_failed', $backup->fresh(), null, [
+                'exception' => get_class($exception),
+            ]);
+            throw $exception;
+        }
+
+        return redirect()
+            ->route('admin.settings.page', ['section' => 'backup-recovery', 'tab' => 'restore'])
+            ->with('success', 'Verified settings backup restored for '.count($restoredSections).' section(s).');
     }
 
     public function createBackup(): BackupRun
     {
-        $startedAt = now();
-        $payload = json_encode($this->exportPayload(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $filename = 'settings-backups/settings-'.now()->format('Ymd-His').'-'.Str::lower(Str::random(5)).'.json';
-        $stored = Storage::disk('local')->put($filename, $payload);
-        $backup = BackupRun::create([
-            'type' => 'Settings', 'status' => $stored ? 'completed' : 'failed', 'location' => $stored ? $filename : null,
-            'size_bytes' => $stored ? strlen((string) $payload) : null, 'started_at' => $startedAt, 'completed_at' => now(),
-            'metadata' => ['scope' => 'settings', 'sections' => count(self::SECTION_SLUGS)],
-        ]);
+        $backup = app(SettingsBackupService::class)->create($this->exportPayload(), 'Settings');
         AuditTrail::record('settings.backup.created', $backup, null, $backup->toArray());
+
         return $backup;
     }
 

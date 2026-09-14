@@ -26,6 +26,7 @@ Route::prefix('admin/settings')->middleware(['auth', 'admin'])->name('admin.sett
     Route::post('/automations', [SettingsController::class, 'storeAutomation'])->name('automations.store');
     Route::post('/automations/{automation}/toggle', [SettingsController::class, 'toggleAutomation'])->name('automations.toggle');
     Route::post('/backups', [SettingsController::class, 'storeBackup'])->name('backups.store');
+    Route::post('/backups/{backup}/restore', [SettingsController::class, 'restoreBackup'])->name('backups.restore');
     Route::post('/themes/drafts', [ThemeController::class, 'store'])->name('theme.store');
     Route::patch('/themes/{theme}', [ThemeController::class, 'update'])->name('theme.update');
     Route::post('/themes/{theme}/action/{action}', [ThemeController::class, 'action'])->name('theme.action');
