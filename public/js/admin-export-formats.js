@@ -38,18 +38,17 @@
 
     const enhanceLinks = () => {
         const links = [...document.querySelectorAll('a[href]')].filter((link) => isExportUrl(link.href));
-        const groups = new Map();
+        const processed = new Set();
 
-        links.forEach((link) => {
-            if (link.closest('[data-admin-export-format-pair]')) return;
-            const key = exportKey(link.href);
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key).push(link);
-        });
+        links.forEach((source) => {
+            if (processed.has(source) || !source.isConnected || source.closest('[data-admin-export-format-pair]')) return;
 
-        groups.forEach((group) => {
-            if (!group.length) return;
-            const source = group[0];
+            const key = exportKey(source.href);
+            const siblings = source.parentElement
+                ? [...source.parentElement.children].filter((candidate) => candidate.matches?.('a[href]') && isExportUrl(candidate.href) && exportKey(candidate.href) === key)
+                : [source];
+            siblings.forEach((candidate) => processed.add(candidate));
+
             const wrapper = document.createElement('span');
             wrapper.className = 'admin-export-format-pair';
             wrapper.dataset.adminExportFormatPair = '';
@@ -57,7 +56,7 @@
             wrapper.setAttribute('aria-label', 'Export options');
             wrapper.append(makeOption(source, 'pdf'), makeOption(source, 'csv'));
             source.replaceWith(wrapper);
-            group.slice(1).forEach((duplicate) => duplicate.remove());
+            siblings.filter((duplicate) => duplicate !== source).forEach((duplicate) => duplicate.remove());
         });
     };
 
