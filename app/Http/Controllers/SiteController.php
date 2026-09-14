@@ -89,7 +89,7 @@ class SiteController extends Controller
     {
         return view('site.collections', [
             'categories' => Category::withCount(['products' => fn ($q) => $q->published()])->where('is_active', true)->orderBy('sort_order')->get(),
-            'bestsellers' => Product::with('media')->where('is_active', true)->latest()->limit(6)->get(),
+            'bestsellers' => Product::published()->with('media')->latest()->limit(6)->get(),
             'collections' => ProductCollection::with('media')->where('status', 'active')->where('visibility', 'visible')->orderBy('sort_order')->get(),
         ]);
     }
@@ -251,7 +251,7 @@ class SiteController extends Controller
             ])
             ->withCount('reviews')
             ->withAvg('reviews', 'rating')
-            ->where('is_active', true);
+            ->published();
 
         $search = trim((string) $request->input('q', ''));
         if ($search !== '') {
