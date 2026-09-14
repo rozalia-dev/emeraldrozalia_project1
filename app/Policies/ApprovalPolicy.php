@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\ModelsApproval;
-use App\ModelsUser;
+use App\Models\Approval;
+use App\Models\User;
 use App\Services\TenantContext;
 
 class ApprovalPolicy
