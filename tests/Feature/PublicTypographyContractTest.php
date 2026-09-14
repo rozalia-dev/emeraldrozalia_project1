@@ -28,8 +28,9 @@ class PublicTypographyContractTest extends TestCase
     public function test_factory_reference_route_uses_the_same_base_typography_contract(): void
     {
         $this->get(route('factory'))->assertOk()
-            ->assertSee('class="factory-reference-body', false)
+            ->assertSee('class="factory-page-body', false)
             ->assertSee('/css/theme-runtime.css?v=20260913-batch17-typography', false)
+            ->assertSee('/css/factory.css?v=20260914-public-media-contract', false)
             ->assertSee('--site-base-size:', false)
             ->assertSee('--site-font-family:', false);
     }
