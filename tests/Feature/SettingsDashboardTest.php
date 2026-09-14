@@ -153,7 +153,7 @@ class SettingsDashboardTest extends TestCase
         Storage::disk('local')->put($backup->location, '{"tampered":true}');
         $this->actingAs($admin)->post(route('admin.settings.backups.restore', $backup->fresh()), [
             'confirmation' => 'RESTORE',
-        ])->assertStatus(422);
+        ])->assertRedirect()->assertSessionHasErrors('backup');
         $this->assertSame('failed', $backup->fresh()->restore_status);
     }
 
