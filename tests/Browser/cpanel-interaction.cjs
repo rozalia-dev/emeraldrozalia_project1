@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES, 'package.json'))('playwright');
+const {runPublicBrowserEvidence} = require('./public-browser-a11y.cjs');
 
 (async () => {
     const browser = await chromium.launch({headless: true});
@@ -117,6 +118,8 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES, 'p
         await page.goto(base + '/admin/resource/communication-center');
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false, 'Communication overview has no mobile overflow');
         await page.screenshot({path: path.join(artifacts, 'cpanel-communication-mobile.png'), fullPage: true});
+        await runPublicBrowserEvidence();
+
         assert.deepEqual(errors, [], 'cPanel interaction routes have no browser JavaScript errors');
         console.log('cPanel interaction browser checks passed: report KPI navigation, builder controls, history filters, role tabs/actions, scheduler fields, communication dialog, mobile layout and JavaScript error checks.');
     } catch (error) {
