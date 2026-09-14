@@ -12,6 +12,7 @@
     <section class="checkout-layout" data-checkout data-subtotal="{{ $subtotal }}">
         <form class="checkout-form" method="post" action="{{ route('checkout.store') }}">
             @csrf
+            <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
 
             <fieldset class="checkout-fieldset">
                 <legend>Delivery Details</legend>
@@ -76,7 +77,7 @@
             <h2>Your Order</h2>
             <div class="checkout-items">
                 @foreach($items as $item)
-                    <p><span>{{ $item['quantity'] }} × {{ $item['name'] }}</span><strong>€{{ number_format($item['price'] * $item['quantity'], 2) }}</strong></p>
+                    <p><span>{{ $item['quantity'] }} × {{ $item['name'] }}</span><strong>€{{ number_format($item['line_total'], 2) }}</strong></p>
                 @endforeach
             </div>
             <hr>

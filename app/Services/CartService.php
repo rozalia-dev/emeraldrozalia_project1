@@ -31,6 +31,7 @@ final class CartService
             $item['key'] = (string) ($item['key'] ?? $key);
             $item['price'] = Money::round($item['price'] ?? 0);
             $item['quantity'] = $quantity;
+            $item['line_total'] = Money::multiply($item['price'], $quantity);
             $items[(string) $key] = $item;
         }
 
@@ -43,6 +44,7 @@ final class CartService
         $cart = $this->items();
         $price = Money::round($variant?->price ?? $product->price);
 
+        $newQuantity = ($cart[$key]['quantity'] ?? 0) + max(1, $quantity);
         $cart[$key] = [
             'key' => $key,
             'product_id' => $product->id,
@@ -50,7 +52,8 @@ final class CartService
             'name' => $product->name,
             'sku' => $variant?->sku ?? $product->sku,
             'price' => $price,
-            'quantity' => ($cart[$key]['quantity'] ?? 0) + max(1, $quantity),
+            'quantity' => $newQuantity,
+            'line_total' => Money::multiply($price, $newQuantity),
             'image' => $variant?->image ?? $product->image,
             'options' => $options,
         ];
@@ -69,6 +72,7 @@ final class CartService
             unset($cart[$key]);
         } else {
             $cart[$key]['quantity'] = $quantity;
+            $cart[$key]['line_total'] = Money::multiply($cart[$key]['price'], $quantity);
         }
 
         Session::put('cart', $cart);

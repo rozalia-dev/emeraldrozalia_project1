@@ -82,4 +82,86 @@ class DiscountCheckoutRulesTest extends TestCase
         $this->assertSoftDeleted('discounts', ['id' => $old->id]);
         $this->assertDatabaseHas('discounts', ['code' => 'REUSABLE', 'value' => 10, 'deleted_at' => null]);
     }
+
+    public function test_checkout_replay_is_idempotent_and_conflicting_reuse_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $product = Product::create([
+            'name' => 'Replay Cap',
+            'slug' => 'replay-cap',
+            'sku' => 'REPLAY-001',
+            'price' => 10,
+            'stock' => 5,
+            'is_active' => true,
+        ]);
+        $payload = [
+            'name' => 'Customer',
+            'email' => $user->email,
+            'line1' => '1 Test Street',
+            'city' => 'Limerick',
+            'country' => 'IE',
+            'payment_method' => 'bank_transfer',
+            'notes' => 'Replay-safe checkout',
+        ];
+
+        $this->actingAs($user)->post(route('cart.add', $product), ['quantity' => 2])->assertRedirect();
+        $first = $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'checkout-replay-001')
+            ->post(route('checkout.store'), $payload)
+            ->assertRedirect();
+        $order = $user->orders()->firstOrFail();
+
+        $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'checkout-replay-001')
+            ->post(route('checkout.store'), $payload)
+            ->assertRedirect(route('order.success', $order));
+
+        $this->assertSame(1, $user->orders()->count());
+        $this->assertSame(1, $order->items()->count());
+        $this->assertDatabaseCount('payment_transactions', 1);
+        $this->assertDatabaseCount('reward_transactions', 1);
+        $this->assertDatabaseCount('inventory_movements', 1);
+        $this->assertSame(3, (int) $product->fresh()->stock);
+        $this->assertNotEmpty($order->idempotency_key);
+        $this->assertNotEmpty($order->request_hash);
+
+        $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'checkout-replay-001')
+            ->post(route('checkout.store'), array_replace($payload, ['notes' => 'A different checkout']))
+            ->assertStatus(409);
+    }
+
+    public function test_checkout_reprices_from_locked_live_product_data_before_persisting(): void
+    {
+        $user = User::factory()->create();
+        $product = Product::create([
+            'name' => 'Repriced Cap',
+            'slug' => 'repriced-cap',
+            'sku' => 'REPRICE-001',
+            'price' => 10,
+            'stock' => 5,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)->post(route('cart.add', $product), ['quantity' => 1])->assertRedirect();
+        $product->update(['price' => 12]);
+
+        $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'checkout-reprice-001')
+            ->post(route('checkout.store'), [
+                'name' => 'Customer',
+                'email' => $user->email,
+                'line1' => '1 Test Street',
+                'city' => 'Limerick',
+                'country' => 'IE',
+                'payment_method' => 'cod',
+            ])
+            ->assertRedirect();
+
+        $order = $user->orders()->firstOrFail();
+        $item = $order->items()->firstOrFail();
+        $this->assertSame('12.00', (string) $order->subtotal);
+        $this->assertSame('12.00', (string) $item->unit_price);
+        $this->assertSame('12.00', (string) $order->total);
+    }
 }
