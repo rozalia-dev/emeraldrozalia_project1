@@ -22,7 +22,7 @@
                 <article><x-icon name="globe" size="29" /><strong>Reliable<br>Worldwide Delivery</strong></article>
             </div>
         </div>
-        <div class="corporate-reference corporate-reference--hero" role="img" aria-label="Premium corporate branded caps and Emerald Rozalia presentation packaging"></div>
+        <div class="corporate-reference corporate-reference--hero" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved corporate hero media is not configured"><span class="corporate-media-empty">Approved corporate media is not configured.</span></div>
     </section>
 
     <section class="corporate-audiences" aria-label="Corporate order use cases">
@@ -72,7 +72,7 @@
                         ['quality','PREMIUM QUALITY','Durable materials. Exceptional comfort.'],
                     ] as [$photo,$label,$copy])
                         <article>
-                            <div class="corporate-reference corporate-offer-photo corporate-offer-photo--{{ $photo }}" role="img" aria-label="{{ $label }} example"></div>
+                            <div class="corporate-reference corporate-offer-photo corporate-offer-photo--{{ $photo }}" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved {{ $label }} media is not configured"><span class="corporate-media-empty">Approved media is not configured.</span></div>
                             <strong>{{ $label }}</strong>
                             <p>{{ $copy }}</p>
                         </article>
@@ -118,7 +118,7 @@
 
     <section class="corporate-panel corporate-trusted">
         <h2>TRUSTED BY ORGANISATIONS WORLDWIDE</h2>
-        <div class="corporate-reference corporate-reference--trust" role="img" aria-label="Corporate client logos from the approved reference"></div>
+        <div class="corporate-reference corporate-reference--trust" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved corporate client-logo media is not configured"><span class="corporate-media-empty">Approved client media is not configured.</span></div>
         <p data-public-data-state="awaiting-approved-client-records">Approved client records will appear here when they are published.</p>
     </section>
 
