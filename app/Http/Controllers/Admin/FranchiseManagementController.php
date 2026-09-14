@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -550,7 +551,7 @@ class FranchiseManagementController extends Controller
 
     public function storeAction(FranchiseStoreActionRequest $request, FranchiseStore $store, string $action)
     {
-        $this->authorize('transition', $store);
+        Gate::authorize('transition', $store);
 
         $changes = $request->validated();
         $changes['action'] = $action;

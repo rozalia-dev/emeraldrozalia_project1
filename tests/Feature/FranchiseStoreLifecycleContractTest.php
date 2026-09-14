@@ -98,10 +98,10 @@ class FranchiseStoreLifecycleContractTest extends TestCase
             'default_locale' => 'en',
             'active' => true,
         ]);
-        $permission = Permission::create([
-            'name' => 'franchise.retail.stores.view',
-            'group' => 'Franchise Retail Stores',
-        ]);
+        $permission = Permission::firstOrCreate(
+            ['name' => 'franchise.retail.stores.view'],
+            ['group' => 'Franchise Retail Stores'],
+        );
         $role = Role::create([
             'name' => 'Lifecycle Viewer '.Str::random(6),
             'label' => 'Lifecycle Viewer',
