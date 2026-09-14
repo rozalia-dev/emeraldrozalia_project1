@@ -226,6 +226,7 @@ class SiteController extends Controller
             ],
         ]);
     }
+    public function quality() { return view('site.quality'); }
     public function careers() { return view('site.careers'); }
     public function globalNetwork() { return view('site.global-network'); }
     public function contact() { return view('site.contact'); }
