@@ -62,12 +62,6 @@ class SiteController extends Controller
             'banners' => $banners,
             'homepage' => $homepage,
             'homeMedia' => $mediaResolver->forUuids($this->homepageMediaUuids($homepage)),
-            // The supplied composition is an approved baseline only. A Page
-            // Manager media_uuid always takes precedence when one is selected.
-            'homeHeroReferenceMedia' => $mediaResolver->forLegacyPath(
-                'assets/brand/home-page-hero-reference@2x.png',
-                'Emerald Rozalia crafted in Limerick homepage hero',
-            ),
         ];
     }
 
@@ -129,9 +123,8 @@ class SiteController extends Controller
             ->orderBy('name')->get();
         $selected = $products->firstWhere('id', (int) $request->input('product_id')) ?: $products->first();
         $assetMetaMap = [];
-        $assetReferenceMap = [];
         $mediaResolver = app(PublicMediaResolver::class);
-        $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap, &$assetReferenceMap, $mediaResolver) {
+        $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap, $mediaResolver) {
             $assets = [];
             $managed = $product->tryOnAssets->first(fn ($asset) => $asset->isPublic());
             if ($managed) {
@@ -139,18 +132,14 @@ class SiteController extends Controller
                 $assetMetaMap[$product->id] = $managed->viewerData();
                 return [$product->id => $assets];
             }
-            if (filled($product->try_on_asset)) {
-                $assetReferenceMap[$product->id][] = basename((string) $product->try_on_asset);
-            }
             foreach ($product->media->where('type', 'try_on') as $media) {
                 if ($descriptor = $mediaResolver->forProductMedia($media, $product->name)) {
                     $assets[] = $descriptor['url'];
-                    $assetReferenceMap[$product->id][] = $descriptor['original_name'];
                 }
             }
             return [$product->id => $assets];
         })->all();
-        return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap', 'assetReferenceMap'));
+        return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap'));
     }
 
     public function irishTraditional(Request $request)
@@ -343,11 +332,6 @@ class SiteController extends Controller
         $managedSpin = $product->latestPublicSpin();
         $spinViewerData = $managedSpin?->viewerData();
         $spinFrames = collect($spinViewerData['frames'] ?? []);
-        $rawSpinReferences = $product->getRawOriginal('spin_images');
-        $rawSpinReferences = is_array($rawSpinReferences) ? $rawSpinReferences : json_decode((string) $rawSpinReferences, true);
-        $legacySpinReferences = is_array($rawSpinReferences)
-            ? collect($rawSpinReferences)->filter(fn ($reference): bool => is_string($reference))->values()
-            : collect();
         if (! $managedSpin) {
             $spinFrames = $spinFrames->merge($product->media
                 ->where('type', 'spin_360')
@@ -363,7 +347,7 @@ class SiteController extends Controller
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
             ->with('media')
             ->limit(4)->get();
-        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData', 'legacySpinReferences'));
+        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData'));
     }
 
     public function page(string $page)

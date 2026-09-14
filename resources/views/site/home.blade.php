@@ -113,7 +113,6 @@
                     'homeLatestProducts' => $homeLatestProducts ?? $homeProducts ?? $newProducts ?? collect(),
                     'banners' => $banners ?? collect(),
                     'homeMedia' => $homeMedia ?? [],
-                    'homeHeroReferenceMedia' => $homeHeroReferenceMedia ?? null,
                 ])
             @endif
         @endforeach

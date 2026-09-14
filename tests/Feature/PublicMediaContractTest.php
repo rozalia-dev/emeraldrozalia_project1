@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\{ContentPage, MediaAsset, MediaAssetVersion, Product, ProductCollection, ProductMedia, User};
+use App\Services\PublicMediaResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -316,5 +317,56 @@ class PublicMediaContractTest extends TestCase
         $response = $this->actingAs($admin)->delete(route('admin.site-media.permanent-destroy', $asset->uuid));
         $response->assertSessionHasErrors('media');
         $this->assertSoftDeleted('media_assets', ['id' => $asset->id]);
+    }
+
+    public function test_resolver_rejects_preloaded_unapproved_or_inactive_product_media(): void
+    {
+        $product = Product::create([
+            'name' => 'Resolver Boundary Cap',
+            'slug' => 'resolver-boundary-cap',
+            'sku' => 'MEDIA-BOUNDARY-001',
+            'price' => 35,
+            'stock' => 2,
+            'is_active' => true,
+        ]);
+        $pending = ProductMedia::create([
+            'product_id' => $product->id,
+            'type' => 'image',
+            'disk' => 'public',
+            'path' => 'product-media/pending-boundary.webp',
+            'mime_type' => 'image/webp',
+            'active' => true,
+            'approval_status' => 'pending',
+        ]);
+
+        $product->setRelation('media', collect([$pending]));
+
+        $this->assertNull(app(PublicMediaResolver::class)->forProduct($product));
+
+        $product->update(['is_active' => false]);
+        $this->get(route('media.public', $pending->uuid))->assertNotFound();
+    }
+
+    public function test_public_product_and_try_on_payloads_do_not_emit_legacy_media_paths(): void
+    {
+        $product = Product::create([
+            'name' => 'Legacy Payload Boundary Cap',
+            'slug' => 'legacy-payload-boundary-cap',
+            'sku' => 'MEDIA-BOUNDARY-002',
+            'price' => 35,
+            'stock' => 2,
+            'is_active' => true,
+            'spin_images' => ['/private/legacy-frame.jpg'],
+            'try_on_asset' => '/private/legacy-overlay.png',
+        ]);
+
+        $this->get(route('product', $product))
+            ->assertOk()
+            ->assertDontSee('legacy-frame.jpg', false)
+            ->assertDontSee('legacy-overlay.png', false);
+        $this->get(route('virtual-tryon'))
+            ->assertOk()
+            ->assertDontSee('legacy-frame.jpg', false)
+            ->assertDontSee('legacy-overlay.png', false);
     }
 }

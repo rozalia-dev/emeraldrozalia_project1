@@ -22,7 +22,7 @@
         'size' => $variant->size,
         'price' => (float) ($variant->price ?? $product->price),
         'stock' => (int) $variant->stock,
-        'image' => ($variantMedia = $variant->approvedMedia->firstWhere('type', 'image')) ? ($publicMedia->describe($variantMedia, $product->name)['url'] ?? null) : null,
+        'image' => ($variantMedia = $variant->approvedMedia->firstWhere('type', 'image')) ? ($publicMedia->forVariantMedia($variantMedia, $product->name)['url'] ?? null) : null,
     ])->values()->all();
     $colours = $activeVariants->pluck('colour')->filter()->unique()->values()->all() ?: collect($product->colours ?? [])->filter()->values()->all();
     $sizes = $activeVariants->pluck('size')->filter()->unique()->values()->all() ?: collect($product->sizes ?? [])->filter()->values()->all();
@@ -102,7 +102,6 @@
                 </div>
                 <div class="product-stage" data-product-stage tabindex="0" aria-label="{{ $has360 ? 'Interactive 360° product viewer. Drag or swipe to rotate.' : 'Product image viewer. Select Photos to browse approved product images.' }}">
                     @if($firstImage)<img data-product-stage-image src="{{ $firstImage }}" alt="{{ data_get($galleryMedia->first(), 'alt', $product->name) }}" draggable="false">@else<div class="product-placeholder" data-product-placeholder><div><x-icon name="image" size="34" /><br>Product imagery will appear here when approved in Product Media Manager.</div></div>@endif
-                    @if(($legacySpinReferences ?? collect())->isNotEmpty())<span class="product-sr-status" data-unavailable-media-references>Legacy media references are awaiting migration. Upload approved media in Product Media Manager.</span>@endif
                     <div class="product-stage-overlay"><button class="stage-arrow" type="button" data-rotate-prev aria-label="Previous angle"><x-icon name="arrow-left" size="18" /></button><button class="stage-arrow" type="button" data-rotate-next aria-label="Next angle"><x-icon name="arrow-right" size="18" /></button></div>
                     <div class="stage-loading" data-stage-loading aria-hidden="true"><span></span></div>
                     <span class="stage-caption" data-stage-caption>Drag to rotate</span><span class="stage-degree" data-stage-degree>0°</span>

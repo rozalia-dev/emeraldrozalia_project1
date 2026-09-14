@@ -88,16 +88,31 @@ class PublicMediaResolver
 
     public function forProduct(Product $product, string $type = 'image'): ?array
     {
+        if (! $product->is_active) {
+            return null;
+        }
+
         $media = $product->relationLoaded('media')
             ? $product->media->firstWhere('type', $type)
             : $product->media()->where('type', $type)->first();
 
-        return $media ? $this->describe($media, $product->name) : null;
+        return $media instanceof ProductMedia
+            ? $this->forProductMedia($media, $product->name)
+            : null;
     }
 
     public function forProductMedia(ProductMedia $media, ?string $fallbackAlt = null): ?array
     {
         if ($media->approval_status !== 'approved' || ! $media->active || ! $media->product?->is_active) {
+            return null;
+        }
+
+        return $this->describe($media, $fallbackAlt);
+    }
+
+    public function forVariantMedia(VariantMedia $media, ?string $fallbackAlt = null): ?array
+    {
+        if (! $media->isApprovedPublic()) {
             return null;
         }
 
