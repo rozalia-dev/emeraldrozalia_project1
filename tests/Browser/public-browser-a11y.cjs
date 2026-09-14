@@ -159,16 +159,31 @@ async function inspectFocusedElement(page) {
             && proxyStyle?.display !== 'none'
             && proxyStyle?.visibility !== 'hidden');
         const focusable = [...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')];
+        const className = typeof element.className === 'string' ? element.className : '';
+        const proxyClassName = typeof proxy?.className === 'string' ? proxy.className : '';
 
         return {
             body: false,
             domIndex: focusable.indexOf(element),
             name: normalise(name),
+            tag: element.tagName,
+            type: element.getAttribute('type') || '',
+            id: element.id || '',
+            className,
+            outerHTML: element.outerHTML?.slice(0, 500) || '',
             visible: ownVisible || proxyVisible,
             focusVisible: element.matches(':focus-visible'),
             indicator: (style.outlineStyle !== 'none' && style.outlineWidth !== '0px')
                 || style.boxShadow !== 'none'
                 || proxyStyle?.boxShadow !== 'none',
+            outlineStyle: style.outlineStyle,
+            outlineWidth: style.outlineWidth,
+            outlineColor: style.outlineColor,
+            boxShadow: style.boxShadow,
+            proxyTag: proxy?.tagName || '',
+            proxyClassName,
+            proxyBoxShadow: proxyStyle?.boxShadow || '',
+            bodyClassName: document.body.className,
             ariaHidden: Boolean(element.closest('[aria-hidden="true"]')),
         };
     });
@@ -190,7 +205,11 @@ async function runKeyboardAudit(page, route, viewport) {
         assert.equal(focused.visible, true, route + ' ' + viewport + ' focus should be visible');
         assert.ok(focused.name, route + ' ' + viewport + ' focus should have an accessible name');
         assert.equal(focused.focusVisible, true, route + ' ' + viewport + ' should expose :focus-visible');
-        assert.equal(focused.indicator, true, route + ' ' + viewport + ' should expose a visible focus indicator');
+        assert.equal(
+            focused.indicator,
+            true,
+            route + ' ' + viewport + ' should expose a visible focus indicator; focused=' + JSON.stringify(focused),
+        );
         assert.equal(focused.ariaHidden, false, route + ' ' + viewport + ' should not focus aria-hidden content');
 
         if (visited.has(focused.domIndex)) break;
