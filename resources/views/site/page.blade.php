@@ -35,6 +35,6 @@
 @elseif($page === 'global-network')
     <section class="globe"><div class="hologlobe"><span class="hq-dot">LIMERICK<br><small>GLOBAL HEADQUARTERS</small></span></div><div><h2>A GLOBAL PRESENCE, CONNECTED FROM LIMERICK.</h2><p>Use this page to present verified distributors, retail partners and territories. The system intentionally does not invent partner counts or countries.</p></div></section>
 @else
-    <section class="section"><div class="cards">@foreach(['Irish Traditional Flat Caps','Irish Heritage Hats','Baseball Caps','Bucket Hats','Snapbacks','Beanie Hats','GAA Baseball Caps','GAA Bucket Hats','GAA Beanie Hats'] as $collection)<a class="collection-card" href="/shop"><div class="placeholder-hat"><x-icon name="package" size="48" /></div><h3>{{ $collection }}</h3><span>EXPLORE <x-icon name="arrow-right" /></span></a>@endforeach</div></section>
+    <section class="section managed-page-empty" data-public-media-state="awaiting-approved-page-content"><div><p class="eyebrow">EMERALD ROZALIA</p><h2>This page has not been published yet.</h2><p>An administrator can add and publish this page from Page Manager. Public pages do not invent collection or product imagery while content is awaiting approval.</p><a class="btn" href="/collections">Return to Collections</a></div></section>
 @endif
 @endsection
