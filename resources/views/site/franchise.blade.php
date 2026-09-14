@@ -113,7 +113,7 @@
     </section>
 
     <footer class="fr-compact-footer">
-        <div class="fr-footer-brand">@if($franchiseLogo)<img src="{{ $franchiseLogo['url'] }}" alt="{{ $franchiseLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<span>© {{ date('Y') }} All Rights Reserved.</span></div>
+        <div class="fr-footer-brand">@if($franchiseLogo)<img src="{{ $franchiseLogo['url'] }}" @if($franchiseLogo['srcset']) srcset="{{ $franchiseLogo['srcset'] }}" sizes="{{ $franchiseLogo['sizes'] }}" @endif width="{{ $franchiseLogo['width'] ?: '' }}" height="{{ $franchiseLogo['height'] ?: '' }}" alt="{{ $franchiseLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<span>© {{ date('Y') }} All Rights Reserved.</span></div>
         <nav aria-label="Franchise footer links"><a href="/factory">About Us</a><a href="/contact">Contact Us</a><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/terms-conditions">Terms &amp; Conditions</a><a href="/privacy-policy">Privacy Policy</a></nav>
         <div class="fr-social"><span>FOLLOW US</span><x-icon name="facebook" size="18" /><x-icon name="instagram" size="18" /><x-icon name="music" size="18" /><x-icon name="youtube" size="18" /></div>
     </footer>
