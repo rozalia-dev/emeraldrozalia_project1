@@ -100,7 +100,7 @@
                                                 <summary title="Application actions" aria-label="Application actions"><x-icon name="dots" size="15" /></summary>
                                                 <div>
                                                     @foreach($row['actions'] as $action => $label)
-                                                        <form method="post" action="{{ route('admin.franchise.application.action', ['application' => $row['uuid'], 'action' => $action]) }}" onsubmit="return confirm('{{ $label }} this application?')">@csrf<button type="submit">{{ $label }}</button></form>
+                                                        <form method="post" action="{{ route('admin.franchise.application.action', ['application' => $row['uuid'], 'action' => $action]) }}" onsubmit="return confirm('{{ $label }} this application?')">@csrf @if($action === 'convert')<input type="hidden" name="idempotency_key" value="franchise-application-convert-{{ $row['uuid'] }}">@endif<button type="submit">{{ $label }}</button></form>
                                                     @endforeach
                                                 </div>
                                             </details>

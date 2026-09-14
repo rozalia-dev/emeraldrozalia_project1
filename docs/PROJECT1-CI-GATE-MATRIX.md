@@ -1,7 +1,7 @@
 # Project 1 CI and release gate matrix
 
 **Baseline audited release:** c54e933e36c68f2951e5e05afb32119ea02ea467
-**Current verified release:** completion branch `codex/completion-b1-contract-hardening` at `5479bc3c6efe2d7fe480fd0d45910ea4172f06a1`; GitHub Actions run #447 passed the PostgreSQL validation job with 292 tests and 3,364 assertions
+**Current verified release:** 841e74972e325f7d88f972cc4283125fc11d38b2
 **Repository:** rozalia-dev/emeraldrozalia_project1
 **Production target:** Hetzner, /var/www/emerald-rozalia, https://emeraldrozalia.com
 
@@ -25,9 +25,9 @@ GitHub Actions run #339 (workflow “Validate and deploy production”) complete
 | Navigation | Target hierarchy and source-to-route map | Captured; source mismatch remains open |
 | Asset register | Hash, dimensions, source/archive mapping, exact-logo review | 33 local references registered; 132 archive references missing; two brand PNG verification failures |
 | Public page matrix | Route/data/form/consumer/evidence per public row | Captured; visual/live content proof remains partial |
-| Synchronization | Public write/read to private/admin/report consumers | Captured; the prior banner/settings/communication/report contracts remain verified, and the quote slice now adds a transactional corporate/bulk/franchise enquiry → SalesQuote → approved shared Order path with exact money, tenant, idempotency, inventory, payment and audit assertions; lifecycle/read-model/visual gaps remain |
-| Order engine | One engine with six category projections | Corporate, bulk and franchise quote conversion now creates the shared Order/OrderItem/payment/inventory records and is covered by the PostgreSQL feature suite; the six-category lifecycle, reconciliation, return/refund and browser evidence remains partial |
-| Franchise lifecycle | Application→approval→agreement→onboarding→store→retail→renewal | Public application/quote origin and quote conversion are covered, but the FranchiseManagement application action is not yet the canonical approved-quote conversion path; agreement/store/retail/renewal policy evidence remains partial |
+| Synchronization | Public write/read to private/admin/report consumers | Captured; Batch 8 closes the banner/review boundary, the Banner integrity follow-up removes Banner fixture fallbacks, Batch 9 adds versioned tenant-scoped public settings, Communication Center slices add durable correlation/idempotency, queued delivery, signed callback state, Email Templates, Email Dashboard and Approval Center aggregates, and Batch 10 removes report fixture fallbacks; lifecycle/read-model/visual gaps remain |
+| Order engine | One engine with six category projections | Captured; conversion/transition/reconciliation evidence remains partial |
+| Franchise lifecycle | Application→approval→agreement→onboarding→store→retail→renewal | Captured; complete transition/policy evidence remains partial |
 | UI tokens | Geometry, typography, spacing, responsive and published theme version | Contract captured; measurements/runtime publisher unverified |
 | Visual diffs | Exact supplied-reference screenshots at approved viewports | Not run for all 167 entries; current foundation spec covers four public routes only |
 | Browser/accessibility | Desktop/tablet/mobile journeys, keyboard, focus, labels, contrast, overflow | Missing broad suite |
@@ -47,13 +47,10 @@ Local PHP, Composer and Docker are unavailable in this workspace. Local evidence
 
 ## Next gates
 
-1. Wire FranchiseManagement application conversion to the approved SalesQuote and shared order conversion service, with its own request, idempotency and regression tests.
-2. Reconcile the canonical navigation tree and screenshot dimensions.
-3. Attach the missing ordered guide archive/manifest or record an approved exception.
-4. Add strict visual, responsive and accessibility suites.
-5. Configure and verify real email/WhatsApp/chat adapters, signed callback schemas and worker operations.
-6. Connect the durable Email Templates, Email Dashboard and Approval Center aggregates to approvals/provider rendering, then replace generic follow-up/alert records and connect reports/analytics to versioned reconciled read models.
-7. Complete explicit settings approval/activation/rollback policies and broaden public consumers beyond the shared shell.
-8. Add strict visual/browser/accessibility evidence, direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.
-
-The quote slice was validated on the PostgreSQL job only. Container/release and deployment jobs were skipped for this pull-request branch, and the frozen deployment workflow was not changed.
+1. Reconcile the canonical navigation tree and screenshot dimensions.
+2. Attach the missing ordered guide archive/manifest or record an approved exception.
+3. Add strict visual, responsive and accessibility suites.
+4. Configure and verify real email/WhatsApp/chat adapters, signed callback schemas and worker operations.
+5. Connect the durable Email Templates, Email Dashboard and Approval Center aggregates to approvals/provider rendering, then replace generic follow-up/alert records and connect reports/analytics to versioned reconciled read models.
+6. Complete explicit settings approval/activation/rollback policies and broaden public consumers beyond the shared shell.
+7. Add strict visual/browser/accessibility evidence, direct MySQL lifecycle evidence and an independent backup/restore drill before a guide-complete claim.

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\FranchiseApplicationActionRequest;
 use App\Models\AdminRecord;
 use App\Models\Conversation;
 use App\Models\FranchiseApplication;
@@ -11,6 +12,7 @@ use App\Models\FranchiseStore;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\SalesQuoteService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -423,23 +425,125 @@ class FranchiseManagementController extends Controller
         return back()->with('success', 'Store Setup milestone restored.');
     }
 
-    public function applicationAction(Request $request, FranchiseApplication $application, string $action)
-    {
+    public function applicationAction(
+        FranchiseApplicationActionRequest $request,
+        FranchiseApplication $application,
+        string $action,
+    ) {
         $transitions = [
             'start-review' => ['from' => ['new'], 'to' => 'under-review'],
             'approve' => ['from' => ['under-review'], 'to' => 'approved'],
             'reject' => ['from' => ['new', 'under-review'], 'to' => 'rejected'],
             'start-onboarding' => ['from' => ['approved'], 'to' => 'onboarding'],
-            'convert' => ['from' => ['onboarding'], 'to' => 'converted'],
+            'convert' => ['from' => ['onboarding', 'converted'], 'to' => 'converted'],
         ];
         abort_unless(isset($transitions[$action]), 404);
-        $current = $this->normaliseApplicationStatus($application->status);
-        abort_unless(in_array($current, $transitions[$action]['from'], true), 422, 'This application cannot take that action from its current state.');
-        $before = $application->toArray();
-        $application->update(['status' => $transitions[$action]['to']]);
-        AuditTrail::record('franchise.application.'.$action, $application, $before, $application->fresh()->toArray());
 
-        return back()->with('success', 'Application moved to '.$this->applicationStatuses()[$transitions[$action]['to']].'.');
+        return DB::transaction(function () use ($request, $application, $action, $transitions) {
+            $locked = FranchiseApplication::query()
+                ->whereKey($application->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $current = $this->normaliseApplicationStatus($locked->status);
+
+            if ($action === 'convert') {
+                abort_unless(
+                    in_array($current, $transitions[$action]['from'], true),
+                    422,
+                    'This application cannot be converted from its current state.',
+                );
+
+                $quotes = app(SalesQuoteService::class);
+                $quote = $quotes->visibleQuery()
+                    ->where('franchise_application_id', $locked->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $quote) {
+                    throw ValidationException::withMessages([
+                        'conversion' => 'An approved sales quote is required before activating this franchise application.',
+                    ]);
+                }
+
+                $applicationData = is_array($locked->data) ? $locked->data : [];
+                $idempotencyKey = (string) $request->validated('idempotency_key');
+                $previousApplicationKey = (string) data_get($applicationData, 'conversion_idempotency_key', '');
+
+                if ($current === 'converted') {
+                    if ($previousApplicationKey !== '' && ! hash_equals($previousApplicationKey, $idempotencyKey)) {
+                        abort(409, 'This franchise application was already converted with another idempotency key.');
+                    }
+
+                    if ((string) $quote->status !== 'converted') {
+                        throw ValidationException::withMessages([
+                            'conversion' => 'The application is marked converted but its quote has no completed order.',
+                        ]);
+                    }
+
+                    $order = $quote->order()->withoutGlobalScopes()->first();
+                    if (! $order) {
+                        throw ValidationException::withMessages([
+                            'conversion' => 'The converted quote is missing its shared order.',
+                        ]);
+                    }
+
+                    return redirect()
+                        ->route('admin.order-master.show', [$order->order_type, $order])
+                        ->with('success', 'This franchise application was already converted to the shared order.');
+                }
+
+                if ((int) $quote->company_id > 0
+                    && (int) $locked->company_id > 0
+                    && (int) $quote->company_id !== (int) $locked->company_id
+                ) {
+                    abort(403, 'The franchise quote and application belong to different companies.');
+                }
+
+                if ((string) $quote->status === 'converted') {
+                    $order = $quote->order()->withoutGlobalScopes()->first();
+                    if (! $order) {
+                        throw ValidationException::withMessages([
+                            'conversion' => 'The converted quote is missing its shared order.',
+                        ]);
+                    }
+                } else {
+                    $order = $quotes->convert($quote, $idempotencyKey);
+                }
+
+                $before = $locked->toArray();
+                $applicationData = array_merge($applicationData, [
+                    'converted_quote_uuid' => (string) $quote->uuid,
+                    'converted_order_number' => (string) $order->number,
+                    'conversion_idempotency_key' => $idempotencyKey,
+                    'conversion_correlation_id' => (string) ($quote->correlation_id ?: $locked->correlation_id ?: Str::uuid()),
+                ]);
+                $locked->update([
+                    'status' => 'converted',
+                    'data' => $applicationData,
+                ]);
+                AuditTrail::record('franchise.application.converted', $locked, $before, [
+                    'application_uuid' => (string) $locked->uuid,
+                    'quote_uuid' => (string) $quote->uuid,
+                    'order_number' => (string) $order->number,
+                    'idempotency_key' => $idempotencyKey,
+                ]);
+
+                return redirect()
+                    ->route('admin.order-master.show', [$order->order_type, $order])
+                    ->with('success', 'Franchise application converted to a shared order.');
+            }
+
+            abort_unless(
+                in_array($current, $transitions[$action]['from'], true),
+                422,
+                'This application cannot take that action from its current state.',
+            );
+            $before = $locked->toArray();
+            $locked->update(['status' => $transitions[$action]['to']]);
+            AuditTrail::record('franchise.application.'.$action, $locked, $before, $locked->fresh()->toArray());
+
+            return back()->with('success', 'Application moved to '.$this->applicationStatuses()[$transitions[$action]['to']].'.');
+        });
     }
 
     public function store(Request $request, string $section)
