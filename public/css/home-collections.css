@@ -622,9 +622,16 @@
     inset: 0;
     background: linear-gradient(
         90deg,
-        rgba(0, 0, 0, .78) 0 40%,
-        transparent 40% 74%,
-        rgba(0, 0, 0, .78) 74% 100%
+        rgba(0, 0, 0, .82) 0%,
+        rgba(0, 0, 0, .80) 14%,
+        rgba(0, 0, 0, .64) 26%,
+        rgba(0, 0, 0, .30) 36%,
+        transparent 44%,
+        transparent 68%,
+        rgba(0, 0, 0, .22) 76%,
+        rgba(0, 0, 0, .50) 85%,
+        rgba(0, 0, 0, .74) 93%,
+        rgba(0, 0, 0, .82) 100%
     );
     content: '';
     pointer-events: none;

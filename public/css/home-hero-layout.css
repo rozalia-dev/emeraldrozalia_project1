@@ -28,9 +28,16 @@
     inset: 0;
     background: linear-gradient(
         90deg,
-        rgba(0, 0, 0, .78) 0 24%,
-        transparent 24% 74%,
-        rgba(0, 0, 0, .78) 74% 100%
+        rgba(0, 0, 0, .82) 0%,
+        rgba(0, 0, 0, .78) 12%,
+        rgba(0, 0, 0, .62) 22%,
+        rgba(0, 0, 0, .30) 32%,
+        transparent 40%,
+        transparent 66%,
+        rgba(0, 0, 0, .22) 74%,
+        rgba(0, 0, 0, .48) 82%,
+        rgba(0, 0, 0, .72) 91%,
+        rgba(0, 0, 0, .82) 100%
     );
     content: '';
     pointer-events: none;
