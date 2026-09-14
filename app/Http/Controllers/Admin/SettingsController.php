@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Currency;
 use App\Models\IntegrationConnection;
 use App\Models\Language;
+use App\Models\MaintenanceRun;
 use App\Models\Role;
 use App\Models\User;
 use App\Http\Requests\AutomationRuleRequest;
@@ -19,6 +20,7 @@ use App\Services\AuditTrail;
 use App\Services\PublishedSiteSettings;
 use App\Services\AutomationRuleService;
 use App\Services\IntegrationConnectionService;
+use App\Services\SystemMaintenanceService;
 use App\Services\SettingsBackupService;
 use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -81,7 +83,7 @@ class SettingsController extends Controller
             'overviewStats' => $overviewStats,
             'activeTab' => null, 'tabs' => [], 'values' => [], 'fields' => [],
             'connections' => collect(), 'languages' => collect(), 'currencies' => collect(),
-            'apiRoles' => collect(), 'automations' => collect(), 'backups' => collect(), 'roles' => collect(),
+            'apiRoles' => collect(), 'automations' => collect(), 'backups' => collect(), 'maintenanceRuns' => collect(), 'roles' => collect(),
         ]);
     }
 
@@ -104,6 +106,7 @@ class SettingsController extends Controller
         $apiRoles = AdminRecord::query()->where('module', 'api-roles')->latest('id')->get();
         $automations = AutomationRule::query()->latest('id')->limit(12)->get();
         $backups = BackupRun::query()->latest('started_at')->limit(12)->get();
+        $maintenanceRuns = MaintenanceRun::query()->latest('started_at')->limit(12)->get();
         $roles = Role::query()->withCount('users')->orderBy('name')->limit(12)->get();
 
         $latestAudit = $record?->updated_at ?? AuditLog::query()->where('action', 'like', 'settings.'.$section.'%')->latest('created_at')->value('created_at');
@@ -115,7 +118,7 @@ class SettingsController extends Controller
             'metrics' => $this->metricsFor($category, $latestAudit, $updatedBy), 'activeTab' => $activeTab,
             'tabs' => $tabs, 'values' => $values, 'fields' => $this->fieldDefinitions($section),
             'connections' => $connections, 'languages' => $languages, 'currencies' => $currencies,
-            'apiRoles' => $apiRoles, 'automations' => $automations, 'backups' => $backups, 'roles' => $roles,
+            'apiRoles' => $apiRoles, 'automations' => $automations, 'backups' => $backups, 'maintenanceRuns' => $maintenanceRuns, 'roles' => $roles,
         ]);
     }
 
@@ -192,8 +195,16 @@ class SettingsController extends Controller
             return redirect()->route('admin.settings.page', 'backup-recovery')->with('success', 'A settings backup was created and recorded.');
         }
         if ($action === 'run-maintenance') {
-            AuditTrail::record('settings.maintenance.run', null, null, ['completed_at' => now()->toIso8601String()]);
-            return back()->with('success', 'Scheduled maintenance checks completed.');
+            $run = app(SystemMaintenanceService::class)->run();
+
+            return back()->with(
+                $run->status === 'failed' ? 'error' : ($run->status === 'attention' ? 'warning' : 'success'),
+                $run->status === 'passed'
+                    ? 'All application maintenance checks passed.'
+                    : ($run->status === 'attention'
+                        ? 'Maintenance checks completed with attention items.'
+                        : 'Maintenance checks found failures that require action.'),
+            );
         }
         if ($action === 'rotate-api-keys') {
             AuditTrail::record('settings.api-roles.keys_rotated', null, null, ['rotated_at' => now()->toIso8601String()]);

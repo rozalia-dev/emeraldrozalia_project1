@@ -161,6 +161,32 @@
                     <section class="settings-card settings-channel-card"><div><span class="settings-section-eyebrow">Messaging Channel</span><h2>WhatsApp Cloud API</h2><p>{{$connectionFor('whatsapp')?->provider ?: 'Meta Cloud API'}} · {{$connectionFor('whatsapp')?->health ? $statusLabel($connectionFor('whatsapp')->health) : 'Not tested'}}</p></div><form method="POST" action="{{route('admin.settings.action','test-whatsapp')}}">@csrf<button class="settings-button settings-button--soft" type="submit"><x-icon name="message" size="14" /> Test channel</button></form></section>
                 <?php elseif ($section === 'payment-gateways'): ?>
                     <section class="settings-card settings-channel-card"><div><span class="settings-section-eyebrow">Payment Channel</span><h2>{{$value('default_gateway','Stripe')}}</h2><p>{{$connectionFor('payment')?->provider ?: 'Stripe / Revolut'}} · {{$connectionFor('payment')?->health ? $statusLabel($connectionFor('payment')->health) : 'Not tested'}}</p></div><form method="POST" action="{{route('admin.settings.action','test-payment')}}">@csrf<button class="settings-button settings-button--soft" type="submit"><x-icon name="credit-card" size="14" /> Test gateway</button></form></section>
+                <?php elseif ($section === 'system-maintenance'): ?>
+                    <section class="settings-card settings-table-card">
+                        <div class="settings-card-heading">
+                            <div><h2>Maintenance Runs</h2><p>Application checks are stored with individual results; release, restore and provider gates remain separate.</p></div>
+                            <div class="settings-heading-actions">
+                                <a class="settings-card-link" href="{{route('admin.settings.maintenance.status')}}">JSON status <x-icon name="arrow-right" size="13" /></a>
+                                <form method="POST" action="{{route('admin.settings.action','run-maintenance')}}">@csrf<button class="settings-button settings-button--primary" type="submit"><x-icon name="refresh" size="14" /> Run checks now</button></form>
+                            </div>
+                        </div>
+                        <div class="settings-table-scroll"><table class="settings-table"><thead><tr><th>Run</th><th>Started</th><th>Status</th><th>Checks</th></tr></thead><tbody>
+                            <?php if (count($maintenanceRuns) === 0): ?>
+                                <tr><td colspan="4" class="settings-empty">No maintenance runs have been recorded.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($maintenanceRuns as $maintenanceRun): ?>
+                                    <?php $maintenanceTone = $maintenanceRun->status === 'passed' ? 'healthy' : ($maintenanceRun->status === 'attention' ? 'warning' : ($maintenanceRun->status === 'failed' ? 'danger' : 'neutral')); ?>
+                                    <tr>
+                                        <td><strong>Run {{$maintenanceRun->uuid}}</strong><small>{{optional($maintenanceRun->completed_at)->format('d M Y, H:i') ?: 'In progress'}}</small></td>
+                                        <td>{{optional($maintenanceRun->started_at)->format('d M Y, H:i') ?: 'Not recorded'}}</td>
+                                        <td><span class="settings-status-pill settings-status-pill--{{$maintenanceTone}}"><i></i> {{ $statusLabel($maintenanceRun->status) }}</span></td>
+                                        <td>{{collect($maintenanceRun->checks ?? [])->filter(fn ($check) => ($check['status'] ?? null) === 'passed')->count()}} passed · {{collect($maintenanceRun->checks ?? [])->filter(fn ($check) => ($check['status'] ?? null) === 'attention')->count()}} attention · {{collect($maintenanceRun->checks ?? [])->filter(fn ($check) => ($check['status'] ?? null) === 'failed')->count()}} failed</td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody></table></div>
+                        <p class="settings-card-note">A passing application check does not prove a full PostgreSQL/uploads restore, a worker heartbeat, or an external provider handshake.</p>
+                    </section>
                 <?php elseif ($section === 'audit-logs'): ?>
                     <section class="settings-card settings-table-card"><div class="settings-card-heading"><div><h2>Recent Audit Events</h2><p>Every settings mutation is stored with before and after JSON snapshots.</p></div><span class="settings-heading-count">{{count($recentActivity)}} recent</span></div><div class="settings-activity-list settings-activity-list--wide"><?php if (count($recentActivity) === 0): ?><div class="settings-empty">No audit events for this section yet.</div><?php else: ?><?php foreach ($recentActivity as $entry): ?><div class="settings-activity"><i class="settings-activity-mark settings-activity-mark--{{$entry['tone']}}"></i><span><strong>{{$entry['action']}}</strong><small>{{$entry['description']}} · {{$entry['user']}} · {{$entry['date']}}</small></span></div><?php endforeach; ?><?php endif; ?></div></section>
                 <?php else: ?>

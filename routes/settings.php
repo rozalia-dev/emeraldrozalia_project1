@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SystemMaintenanceController;
 use App\Http\Controllers\Admin\ThemeController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,7 @@ Route::prefix('admin/settings')->middleware(['auth', 'admin'])->name('admin.sett
     Route::post('/automations/{automation}/toggle', [SettingsController::class, 'toggleAutomation'])->name('automations.toggle');
     Route::post('/backups', [SettingsController::class, 'storeBackup'])->name('backups.store');
     Route::post('/backups/{backup}/restore', [SettingsController::class, 'restoreBackup'])->name('backups.restore');
+    Route::get('/maintenance/status', SystemMaintenanceController::class)->name('maintenance.status');
     Route::post('/themes/drafts', [ThemeController::class, 'store'])->name('theme.store');
     Route::patch('/themes/{theme}', [ThemeController::class, 'update'])->name('theme.update');
     Route::post('/themes/{theme}/action/{action}', [ThemeController::class, 'action'])->name('theme.action');
