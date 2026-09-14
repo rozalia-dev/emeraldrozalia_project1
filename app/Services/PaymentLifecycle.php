@@ -13,23 +13,28 @@ final class PaymentLifecycle
 
     public function act(PaymentTransaction $payment, array $changes): PaymentTransaction
     {
+        fwrite(STDERR, "PAYMENT-ACT-1\n");
         $action = (string) ($changes['action'] ?? '');
         if (! in_array($action, self::ACTIONS, true)) {
             throw ValidationException::withMessages(['action' => 'That payment action is not supported.']);
         }
 
         return DB::transaction(function () use ($payment, $changes, $action): PaymentTransaction {
+            fwrite(STDERR, "PAYMENT-ACT-2\n");
             $paymentRecord = PaymentTransaction::query()
                 ->whereKey($payment->getKey())
                 ->firstOrFail();
+            fwrite(STDERR, "PAYMENT-ACT-3\n");
             $order = Order::query()
                 ->whereKey($paymentRecord->order_id)
                 ->lockForUpdate()
                 ->firstOrFail();
+            fwrite(STDERR, "PAYMENT-ACT-4\n");
             $lockedPayment = PaymentTransaction::query()
                 ->whereKey($paymentRecord->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
+            fwrite(STDERR, "PAYMENT-ACT-5\n");
             $latestPaymentId = PaymentTransaction::query()
                 ->where('order_id', $order->id)
                 ->latest('id')
@@ -65,6 +70,7 @@ final class PaymentLifecycle
                 ],
                 $transactionStatus,
             );
+            fwrite(STDERR, "PAYMENT-ACT-6\n");
 
             $lockedPayment->refresh();
             $payload = $this->actionPayload($lockedPayment->payload, $action, $transitionNote);
