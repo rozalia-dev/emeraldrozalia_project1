@@ -93,8 +93,8 @@ class ProjectScopeTest extends TestCase {
         $this->assertDatabaseHas('audit_logs',['action'=>'customer.return_requested','subject_id'=>(string)$return->id]);
         $this->actingAs($owner)->post(route('account.return.store',$order),$payload)->assertRedirect()->assertSessionHas('success','Return/exchange request submitted.');
         $this->assertDatabaseCount('returns',1);
-        $this->actingAs($owner)->post(route('account.return.store',$order),$payload+['reason'=>'Different reason'])->assertStatus(409);
-        $this->actingAs($owner)->post(route('account.return.store',$order),$payload+['idempotency_key'=>'bad key'])->assertSessionHasErrors('idempotency_key');
+        $this->actingAs($owner)->post(route('account.return.store',$order),array_merge($payload,['reason'=>'Different reason']))->assertStatus(409);
+        $this->actingAs($owner)->post(route('account.return.store',$order),array_merge($payload,['idempotency_key'=>'bad key']))->assertSessionHasErrors('idempotency_key');
         $this->post(route('account.return.store',$order),['type'=>'return','reason'=>'Duplicate request'])->assertRedirect()->assertSessionHasErrors('order');
         $this->assertDatabaseCount('returns',1);
         $pending=$owner->orders()->create(['number'=>'ER-RETURN-002','status'=>'processing','payment_status'=>'pending','subtotal'=>10,'shipping'=>0,'total'=>10,'currency'=>'EUR']);
