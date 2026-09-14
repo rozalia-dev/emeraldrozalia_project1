@@ -263,6 +263,7 @@ final class OrderLifecycle
             $stockable->increment('stock', $quantity);
             InventoryMovement::create([
                 'company_id' => $order->company_id,
+                'order_id' => $order->id,
                 'product_id' => $item->product_id,
                 'product_variant_id' => $item->product_variant_id,
                 'quantity' => $quantity,

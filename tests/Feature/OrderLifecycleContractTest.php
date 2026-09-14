@@ -183,6 +183,7 @@ class OrderLifecycleContractTest extends TestCase
             'product_id' => $product->id,
             'quantity' => -2,
             'type' => 'sale',
+            'order_id' => $order->id,
             'reference' => $order->number,
         ]);
 

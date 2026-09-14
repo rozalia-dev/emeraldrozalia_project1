@@ -20,12 +20,25 @@ return new class extends Migration
                 $table->string('inventory_release_reason')->nullable();
             }
         });
+
+        if (Schema::hasTable('inventory_movements') && ! Schema::hasColumn('inventory_movements', 'order_id')) {
+            Schema::table('inventory_movements', function (Blueprint $table): void {
+                $table->foreignId('order_id')->nullable()->constrained('orders')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
         if (! Schema::hasTable('orders')) {
             return;
+        }
+
+        if (Schema::hasTable('inventory_movements') && Schema::hasColumn('inventory_movements', 'order_id')) {
+            Schema::table('inventory_movements', function (Blueprint $table): void {
+                $table->dropForeign(['order_id']);
+                $table->dropColumn('order_id');
+            });
         }
 
         Schema::table('orders', function (Blueprint $table): void {
