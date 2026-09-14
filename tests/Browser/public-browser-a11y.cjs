@@ -280,7 +280,7 @@ async function runPublicBrowserEvidence() {
         for (const viewport of [{name: 'desktop', width: 1440, height: 1000}, {name: 'mobile', width: 390, height: 844}]) {
             await page.setViewportSize({width: viewport.width, height: viewport.height});
             for (const route of publicRoutes) {
-                const keyboard = await runKeyboardAudit(page, base + route, route, viewport.name);
+                const keyboard = await runKeyboardAudit(page, base + route, viewport.name);
                 manifest.keyboard.push({route, viewport: viewport.name, ...keyboard});
             }
         }
