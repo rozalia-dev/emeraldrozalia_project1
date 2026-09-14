@@ -202,6 +202,27 @@ class PublicMediaContractTest extends TestCase
             ->assertSee('id="public-media-contract"', false);
     }
 
+    public function test_public_pages_do_not_render_reference_files_and_factory_has_an_explicit_media_state(): void
+    {
+        foreach (['/', '/collections', '/new-arrivals', '/corporate-orders', '/bulk-orders', '/franchise', '/factory'] as $path) {
+            $response = $this->get($path)->assertOk();
+
+            $response
+                ->assertDontSee('data-approved-reference', false)
+                ->assertDontSee('/assets/brand/home-page-reference.png', false)
+                ->assertDontSee('/assets/brand/home-page-hero-reference@2x.png', false)
+                ->assertDontSee('/assets/brand/home-collections-reference.webp', false)
+                ->assertDontSee('/assets/brand/bulk-order-reference.png', false)
+                ->assertDontSee('/assets/brand/corporate-order-reference.png', false);
+        }
+
+        $this->get('/factory')
+            ->assertSee('data-public-media-register="factory"', false)
+            ->assertSee('Approved manufacturing photography is not configured.', false)
+            ->assertSee('/css/factory.css?v=20260914-public-media-contract', false)
+            ->assertDontSee('how-we-work-reference.png', false);
+    }
+
     public function test_variant_media_must_be_approved_before_public_delivery(): void
     {
         Storage::fake('public');
