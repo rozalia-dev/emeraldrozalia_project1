@@ -43,7 +43,19 @@ class DeliverCommunicationMessage implements ShouldQueue
         $message->increment('delivery_attempts');
         $message->refresh();
 
-        $provider = $providers->for((string) $message->conversation->channel);
+        $channel = (string) $message->conversation->channel;
+        if (! in_array($channel, ['email', 'whatsapp', 'chat'], true)) {
+            $message->update([
+                'delivery_status' => 'awaiting_provider',
+                'failure_code' => 'channel_not_supported',
+                'failure_message' => 'This conversation channel does not have an external delivery adapter.',
+                'failed_at' => null,
+            ]);
+            AuditTrail::record('communication.message.awaiting_provider', $message, null, $communication->messageState($message->fresh()));
+            return;
+        }
+
+        $provider = $providers->for($channel);
         if (! $provider) {
             $message->update([
                 'delivery_status' => 'awaiting_provider',

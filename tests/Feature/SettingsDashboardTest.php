@@ -104,4 +104,57 @@ class SettingsDashboardTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'settings.api-role.created']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'settings.automation.created']);
     }
+
+    public function test_verified_settings_backup_can_be_restored_and_tampering_is_rejected(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'general-configuration'), [
+            'company_name' => 'Before backup',
+            'system_name' => 'Stable system',
+            'primary_email' => 'before@example.test',
+            'default_language' => 'en',
+            'default_currency' => 'EUR',
+            'tab' => 'basic',
+        ])->assertRedirect();
+
+        $this->actingAs($admin)->post(route('admin.settings.backups.store'))
+            ->assertRedirect();
+        $backup = BackupRun::query()->latest('id')->firstOrFail();
+
+        $this->assertSame('completed', $backup->status);
+        $this->assertNotNull($backup->checksum);
+        $this->assertNotNull($backup->verified_at);
+        Storage::disk('local')->assertExists($backup->location);
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'general-configuration'), [
+            'company_name' => 'After backup',
+            'system_name' => 'Changed system',
+            'primary_email' => 'after@example.test',
+            'default_language' => 'en',
+            'default_currency' => 'EUR',
+            'tab' => 'basic',
+        ])->assertRedirect();
+
+        $this->actingAs($admin)->post(route('admin.settings.backups.restore', $backup), [
+            'confirmation' => 'RESTORE',
+        ])->assertRedirect();
+
+        $record = AdminRecord::query()
+            ->where('module', 'system-settings')
+            ->where('reference', 'general-configuration')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('Before backup', data_get($record->data, 'company_name'));
+        $this->assertSame('completed', $backup->fresh()->restore_status);
+        $this->assertNotNull($backup->fresh()->restored_at);
+
+        Storage::disk('local')->put($backup->location, '{"tampered":true}');
+        $this->actingAs($admin)->post(route('admin.settings.backups.restore', $backup->fresh()), [
+            'confirmation' => 'RESTORE',
+        ])->assertRedirect()->assertSessionHasErrors('backup');
+        $this->assertSame('failed', $backup->fresh()->restore_status);
+    }
+
 }

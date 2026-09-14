@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,Inquiry,Product,ProductCollection};
+use App\Http\Requests\{CatalogFilterRequest, PublicInquiryRequest};
+use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -11,7 +12,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AuditTrail;
 use App\Services\PublicMediaResolver;
-use Illuminate\Validation\Rule;
+use App\Services\SalesQuoteService;
+use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 
 class SiteController extends Controller
@@ -36,13 +38,13 @@ class SiteController extends Controller
             ->first();
 
         $homeProducts = Product::with('media')
-            ->where('is_active', true)
+            ->published()
             ->where('is_new', true)
             ->latest()
             ->limit(8)
             ->get();
         $homeLatestProducts = Product::with('media')
-            ->where('is_active', true)
+            ->published()
             ->latest()
             ->limit(8)
             ->get();
@@ -62,12 +64,6 @@ class SiteController extends Controller
             'banners' => $banners,
             'homepage' => $homepage,
             'homeMedia' => $mediaResolver->forUuids($this->homepageMediaUuids($homepage)),
-            // The supplied composition is an approved baseline only. A Page
-            // Manager media_uuid always takes precedence when one is selected.
-            'homeHeroReferenceMedia' => $mediaResolver->forLegacyPath(
-                'assets/brand/home-page-hero-reference@2x.png',
-                'Emerald Rozalia crafted in Limerick homepage hero',
-            ),
         ];
     }
 
@@ -93,15 +89,22 @@ class SiteController extends Controller
     public function collections()
     {
         return view('site.collections', [
-            'categories' => Category::withCount(['products' => fn ($q) => $q->where('is_active', true)])->where('is_active', true)->orderBy('sort_order')->get(),
-            'bestsellers' => Product::with('media')->where('is_active', true)->latest()->limit(6)->get(),
+            'categories' => Category::withCount(['products' => fn ($q) => $q->published()])->where('is_active', true)->orderBy('sort_order')->get(),
+            'bestsellers' => Product::published()->with('media')->latest()->limit(6)->get(),
             'collections' => ProductCollection::with('media')->where('status', 'active')->where('visibility', 'visible')->orderBy('sort_order')->get(),
         ]);
     }
 
-    public function newArrivals(Request $r)
+    public function newArrivals(CatalogFilterRequest $r)
     {
-        $q = Product::with(['category', 'media'])->withCount('reviews')->withAvg('reviews', 'rating')->where('is_active', true)->where('is_new', true);
+        $q = Product::with([
+            'category',
+            'media',
+            'spins' => fn ($spinQuery) => $spinQuery
+                ->where('status', 'published')
+                ->where('visibility', 'public')
+                ->latest('updated_at'),
+        ])->withCount('reviews')->withAvg('reviews', 'rating')->published()->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
         $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
         if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
@@ -109,29 +112,35 @@ class SiteController extends Controller
         if ($materials) $q->where(function ($materialQuery) use ($materials) { foreach ($materials as $material) $materialQuery->orWhereRaw('LOWER(material) LIKE ?', ['%'.strtolower($material).'%']); });
         $colours = array_values(array_filter((array) $r->input('colour', []), fn ($value) => is_string($value) && $value !== ''));
         if ($colours) $q->where(function ($colourQuery) use ($colours) { foreach ($colours as $colour) $colourQuery->orWhereRaw('LOWER(CAST(colours AS TEXT)) LIKE ?', ['%"'.strtolower($colour).'"%']); });
-        if ($r->filled('max_price') && is_numeric($r->input('max_price'))) $q->where('price', '<=', max(0, (float) $r->input('max_price')));
+        if ($r->filled('max_price')) $q->where('price', '<=', Money::round($r->input('max_price')));
         match ($r->input('sort')) {
             'price_low' => $q->orderBy('price'),
             'price_high' => $q->orderByDesc('price'),
             'name' => $q->orderBy('name'),
             default => $q->latest(),
         };
+        $newArrivalsMax = Money::round((string) (Product::query()
+            ->published()
+            ->where('is_new', true)
+            ->max('price') ?? '0'));
+        $priceCeiling = (int) ceil(max(1, Money::toMinor($newArrivalsMax)) / 100);
+
         return view('site.new-arrivals', [
             'products' => $q->paginate(12)->withQueryString(),
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+            'priceCeiling' => max(1, $priceCeiling),
         ]);
     }
 
     public function virtualTryOn(Request $request)
     {
-        $products = Product::where('is_active', true)
+        $products = Product::published()
             ->with(['media', 'tryOnAssets' => fn ($query) => $query->where('status', 'published')->where('visibility', 'public')->latest('updated_at')])
             ->orderBy('name')->get();
         $selected = $products->firstWhere('id', (int) $request->input('product_id')) ?: $products->first();
         $assetMetaMap = [];
-        $assetReferenceMap = [];
         $mediaResolver = app(PublicMediaResolver::class);
-        $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap, &$assetReferenceMap, $mediaResolver) {
+        $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap, $mediaResolver) {
             $assets = [];
             $managed = $product->tryOnAssets->first(fn ($asset) => $asset->isPublic());
             if ($managed) {
@@ -139,34 +148,30 @@ class SiteController extends Controller
                 $assetMetaMap[$product->id] = $managed->viewerData();
                 return [$product->id => $assets];
             }
-            if (filled($product->try_on_asset)) {
-                $assetReferenceMap[$product->id][] = basename((string) $product->try_on_asset);
-            }
             foreach ($product->media->where('type', 'try_on') as $media) {
                 if ($descriptor = $mediaResolver->forProductMedia($media, $product->name)) {
                     $assets[] = $descriptor['url'];
-                    $assetReferenceMap[$product->id][] = $descriptor['original_name'];
                 }
             }
             return [$product->id => $assets];
         })->all();
-        return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap', 'assetReferenceMap'));
+        return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap'));
     }
 
-    public function irishTraditional(Request $request)
+    public function irishTraditional(CatalogFilterRequest $request)
     {
         return $this->categoryLanding($request, 'irish-traditional-flat-caps', 'IRISH TRADITIONAL', 'FLAT CAPS', 'Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');
     }
 
-    public function irishHeritage(Request $request)
+    public function irishHeritage(CatalogFilterRequest $request)
     {
         return $this->categoryLanding($request, 'irish-heritage-hats', 'IRISH HERITAGE', 'HATS', 'Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');
     }
 
-    private function categoryLanding(Request $request, string $slug, string $eyebrow, string $title, string $intro)
+    private function categoryLanding(CatalogFilterRequest $request, string $slug, string $eyebrow, string $title, string $intro)
     {
         $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
-        $query = $category->exists ? $category->products()->with(['category', 'media'])->where('is_active', true) : Product::whereRaw('1 = 0');
+        $query = $category->exists ? $category->products()->with(['category', 'media'])->published() : Product::whereRaw('1 = 0');
         if ($request->filled('q')) $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('sku', 'like', '%'.$request->q.'%'));
         match ($request->input('sort')) {
             'price_low' => $query->orderBy('price'),
@@ -180,22 +185,63 @@ class SiteController extends Controller
     public function factory() { return view('site.factory'); }
     public function corporateOrders() { return view('site.corporate-order'); }
     public function bulkOrders() { return view('site.bulk-order'); }
-    public function franchise() { return view('site.franchise'); }
+    public function franchise()
+    {
+        $stores = FranchiseStore::query()
+            ->whereIn('status', ['active', 'open'])
+            ->get(['territory', 'address']);
+        $activeProducts = Product::published()->count();
+        $countries = $stores
+            ->map(fn (FranchiseStore $store): ?string => strtoupper(trim((string) data_get($store->address, 'country'))))
+            ->filter()
+            ->unique()
+            ->count();
+
+        return view('site.franchise', [
+            'franchiseMetrics' => [
+                [
+                    'icon' => 'home',
+                    'value' => $stores->count() ?: '—',
+                    'label' => "Active retail partner".($stores->count() === 1 ? '' : 's').'<br>recorded',
+                    'state' => $stores->isNotEmpty() ? 'live' : 'not-configured',
+                ],
+                [
+                    'icon' => 'globe',
+                    'value' => $countries ?: '—',
+                    'label' => ($countries === 1 ? 'Country' : 'Countries').'<br>recorded',
+                    'state' => $countries ? 'live' : 'not-configured',
+                ],
+                [
+                    'icon' => 'tag',
+                    'value' => $activeProducts ?: '—',
+                    'label' => 'Active product'.($activeProducts === 1 ? '' : 's').'<br>in catalog',
+                    'state' => $activeProducts ? 'live' : 'not-configured',
+                ],
+                [
+                    'icon' => 'calendar',
+                    'value' => '—',
+                    'label' => 'Heritage year<br>not configured',
+                    'state' => 'not-configured',
+                ],
+            ],
+        ]);
+    }
+    public function quality() { return view('site.quality'); }
     public function careers() { return view('site.careers'); }
     public function globalNetwork() { return view('site.global-network'); }
     public function contact() { return view('site.contact'); }
 
-    public function shop(Request $request)
+    public function shop(CatalogFilterRequest $request)
     {
         return $this->shopCatalog($request);
     }
 
-    public function category(Request $request, Category $category)
+    public function category(CatalogFilterRequest $request, Category $category)
     {
         return $this->shopCatalog($request, $category);
     }
 
-    private function shopCatalog(Request $request, ?Category $activeCategory = null)
+    private function shopCatalog(CatalogFilterRequest $request, ?Category $activeCategory = null)
     {
         $query = Product::query()
             ->with([
@@ -207,7 +253,7 @@ class SiteController extends Controller
             ])
             ->withCount('reviews')
             ->withAvg('reviews', 'rating')
-            ->where('is_active', true);
+            ->published();
 
         $search = trim((string) $request->input('q', ''));
         if ($search !== '') {
@@ -253,8 +299,8 @@ class SiteController extends Controller
             });
         }
 
-        $minPrice = $request->filled('min_price') && is_numeric($request->input('min_price')) ? max(0, (float) $request->input('min_price')) : null;
-        $maxPrice = $request->filled('max_price') && is_numeric($request->input('max_price')) ? max(0, (float) $request->input('max_price')) : null;
+        $minPrice = $request->filled('min_price') ? Money::round($request->input('min_price')) : null;
+        $maxPrice = $request->filled('max_price') ? Money::round($request->input('max_price')) : null;
         if ($minPrice !== null) $query->where('price', '>=', $minPrice);
         if ($maxPrice !== null) $query->where('price', '<=', $maxPrice);
 
@@ -290,13 +336,13 @@ class SiteController extends Controller
 
         $categories = Category::query()
             ->websiteVisible()
-            ->withCount(['products' => fn ($productQuery) => $productQuery->where('is_active', true)])
+            ->withCount(['products' => fn ($productQuery) => $productQuery->published()])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $catalogMax = (float) (Product::where('is_active', true)->max('price') ?? 0);
-        $priceCeiling = max(50, (int) (ceil(max(1, $catalogMax) / 10) * 10));
+        $catalogMax = Money::round((string) (Product::published()->max('price') ?? '0'));
+        $priceCeiling = max(50, (int) (ceil(max(1, Money::toMinor($catalogMax)) / 1000) * 10));
 
         return view('site.shop', [
             'products' => $products,
@@ -310,7 +356,7 @@ class SiteController extends Controller
             'sort' => $sort,
             'perPage' => $perPage,
             'priceCeiling' => $priceCeiling,
-            'totalCatalog' => Product::where('is_active', true)->count(),
+            'totalCatalog' => Product::published()->count(),
             'materialOptions' => ['Tweed', 'Wool', 'Cotton', 'Linen', 'Leather', 'Felt'],
             'sizeOptions' => ['XS', 'S', 'M', 'L', 'XL', 'One Size'],
             'colourOptions' => [
@@ -328,7 +374,7 @@ class SiteController extends Controller
 
     public function product(Product $product)
     {
-        abort_unless($product->is_active, 404);
+        abort_unless($product->isPubliclyPublished(), 404);
         $product->load([
             'variants',
             'reviews.user',
@@ -343,11 +389,6 @@ class SiteController extends Controller
         $managedSpin = $product->latestPublicSpin();
         $spinViewerData = $managedSpin?->viewerData();
         $spinFrames = collect($spinViewerData['frames'] ?? []);
-        $rawSpinReferences = $product->getRawOriginal('spin_images');
-        $rawSpinReferences = is_array($rawSpinReferences) ? $rawSpinReferences : json_decode((string) $rawSpinReferences, true);
-        $legacySpinReferences = is_array($rawSpinReferences)
-            ? collect($rawSpinReferences)->filter(fn ($reference): bool => is_string($reference))->values()
-            : collect();
         if (! $managedSpin) {
             $spinFrames = $spinFrames->merge($product->media
                 ->where('type', 'spin_360')
@@ -358,12 +399,12 @@ class SiteController extends Controller
                 }));
         }
         $spinFrames = $spinFrames->filter()->unique()->values()->all();
-        $related = Product::where('is_active', true)
+        $related = Product::published()
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
             ->with('media')
             ->limit(4)->get();
-        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData', 'legacySpinReferences'));
+        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData'));
     }
 
     public function page(string $page)
@@ -388,24 +429,11 @@ class SiteController extends Controller
         return view('site.page', compact('page', 'managedPage'));
     }
 
-    public function inquiry(Request $r)
+    public function inquiry(PublicInquiryRequest $request)
     {
-        $meetingTimes = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
-        $requiresMessage = in_array($r->input('type'), ['contact', 'franchise', 'corporate-orders', 'bulk-orders'], true);
-        $requiresConsent = in_array($r->input('type'), ['contact', 'franchise'], true);
-        $d = $r->validate([
-            'type' => ['required', Rule::in(['contact', 'franchise', 'careers', 'corporate-orders', 'bulk-orders'])],
-            'name' => 'required|string|max:120',
-            'email' => 'required|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'company' => 'nullable|string|max:120',
-            'country' => 'nullable|string|max:120',
-            'subject' => 'required_if:type,contact|nullable|string|max:150',
-            'message' => [Rule::requiredIf($requiresMessage), 'nullable', 'string', 'max:5000'],
-            'consent' => $requiresConsent ? ['required', 'accepted'] : ['nullable'],
-            'meeting_date' => 'nullable|required_with:meeting_time|date_format:Y-m-d|after_or_equal:today',
-            'meeting_time' => ['nullable', 'required_with:meeting_date', 'date_format:H:i', Rule::in($meetingTimes)],
-        ]);
+        $d = $request->validated();
+        $r = $request;
+        $requiresConsent = in_array((string) ($d['type'] ?? ''), ['contact', 'franchise'], true);
         $meeting = array_filter(['date' => $d['meeting_date'] ?? null, 'time' => $d['meeting_time'] ?? null], fn ($value) => filled($value));
         if ($meeting) {
             $slot = CarbonImmutable::createFromFormat('!Y-m-d H:i', $meeting['date'].' '.$meeting['time'], config('app.timezone'));
@@ -416,12 +444,8 @@ class SiteController extends Controller
         unset($d['meeting_date'], $d['meeting_time'], $d['consent'], $d['country']);
         $d['meta'] = ['source' => 'public_'.$d['type'].'_form', 'meeting' => $meeting ?: null, 'country' => $country];
 
-        $idempotencyKey = trim((string) $r->header('Idempotency-Key', ''));
-        if ($idempotencyKey !== '' && ! preg_match('/\A[A-Za-z0-9._:-]{1,100}\z/D', $idempotencyKey)) {
-            throw ValidationException::withMessages([
-                'Idempotency-Key' => 'Use up to 100 letters, numbers, dots, underscores, colons or hyphens.',
-            ]);
-        }
+        $idempotencyKey = (string) ($d['idempotency_key'] ?? '');
+        unset($d['idempotency_key']);
 
         $correlationId = (string) ($r->attributes->get('correlation_id') ?: Str::uuid());
         $customerId = $r->user()?->id;
@@ -515,6 +539,10 @@ class SiteController extends Controller
                     'consent_captured' => (bool) $consentCapturedAt,
                     'message_uuid' => (string) $message->uuid,
                 ]);
+                $quoteService = app(SalesQuoteService::class);
+                if ($quoteService->orderTypeForInquiryType((string) $d['type']) !== null) {
+                    $quoteService->createFromInquiry($inquiry, $conversation, $application);
+                }
             });
         } catch (QueryException $exception) {
             if ($idempotencyKey === '') {

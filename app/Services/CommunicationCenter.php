@@ -6,6 +6,7 @@ use App\Events\CommunicationConversationChanged;
 use App\Jobs\DeliverCommunicationMessage;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +31,7 @@ class CommunicationCenter
         $message = null;
 
         DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
-            $lockedConversation = Conversation::query()
-                ->forCurrentCompany()
+            $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -101,8 +101,7 @@ class CommunicationCenter
         $message = null;
 
         DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
-            $lockedConversation = Conversation::query()
-                ->forCurrentCompany()
+            $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -169,13 +168,16 @@ class CommunicationCenter
         $updated = null;
 
         DB::transaction(function () use (&$updated, $conversation, $data): void {
-            $lockedConversation = Conversation::query()
-                ->forCurrentCompany()
+            $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
             if (! $lockedConversation) {
                 throw (new ModelNotFoundException())->setModel(Conversation::class, [$conversation->getKey()]);
+            }
+
+            if (array_key_exists('assigned_to', $data) && $data['assigned_to'] !== null) {
+                $this->assertCompanyAdmin((int) $data['assigned_to']);
             }
 
             $before = $this->conversationState($lockedConversation);
@@ -258,6 +260,25 @@ class CommunicationCenter
         ];
     }
 
+    private function visibleConversationQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $table = (new Conversation())->getTable();
+        $query = Conversation::withoutGlobalScopes()
+            ->whereNull($table.'.deleted_at');
+        $companyId = session('company_id');
+
+        if (! $companyId) {
+            return $query;
+        }
+
+        return $query->where(function (\Illuminate\Database\Eloquent\Builder $visible) use ($table, $companyId): void {
+            $visible->where($table.'.company_id', (int) $companyId);
+            if (auth()->user()?->is_admin) {
+                $visible->orWhereNull($table.'.company_id');
+            }
+        });
+    }
+
     private function correlationId(): string
     {
         $candidate = app()->bound('request') ? request()->attributes->get('correlation_id') : null;
@@ -265,6 +286,15 @@ class CommunicationCenter
         return is_string($candidate) && Str::isUuid($candidate)
             ? $candidate
             : (string) Str::uuid();
+    }
+
+    private function assertCompanyAdmin(int $userId): void
+    {
+        $query = User::query()
+            ->whereKey($userId)
+            ->where('is_admin', true);
+
+        abort_unless($query->exists(), 422, 'The assigned administrator must belong to the selected company.');
     }
 
     private function dispatchChanged(?Conversation $conversation, string $action): void

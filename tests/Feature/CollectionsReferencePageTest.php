@@ -33,7 +33,7 @@ class CollectionsReferencePageTest extends TestCase
             'BESTSELLERS',
             'VIEW ALL',
             '/css/collections.css?v=20260908-approved',
-            'data-approved-reference="hats collection.png"',
+            'data-public-media-register="collections"',
         ], false)->assertDontSee('IMAGE PENDING', false);
     }
 

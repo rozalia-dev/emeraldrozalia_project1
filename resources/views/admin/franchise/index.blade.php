@@ -95,12 +95,30 @@
                                     <td class="fm-actions">
                                         <button type="button" title="View" data-fm-view="{{ base64_encode(json_encode($row['edit'], JSON_UNESCAPED_UNICODE)) }}"><x-icon name="eye" size="15" /></button>
                                         <button type="button" title="Edit" data-fm-edit="{{ base64_encode(json_encode($row['edit'], JSON_UNESCAPED_UNICODE)) }}" data-id="{{ $row['id'] }}"><x-icon name="pencil" size="15" /></button>
+                                        @if($section === 'franchise-retail-stores' && !empty($row['lifecycle_actions']))
+                                            <details class="fm-row-menu">
+                                                <summary title="Store lifecycle actions" aria-label="Store lifecycle actions"><x-icon name="dots" size="15" /></summary>
+                                                <div>
+                                                    @foreach($row['lifecycle_actions'] as $action => $label)
+                                                        <form method="post" action="{{ route('admin.franchise.store.action', ['store' => $row['uuid'], 'action' => $action]) }}" onsubmit="return confirm('{{ $label }} this store?')">
+                                                            @csrf
+                                                            <input type="hidden" name="idempotency_key" value="franchise-store-{{ $row['uuid'] }}-{{ $row['version'] }}-{{ $action }}">
+                                                            <input type="hidden" name="expected_version" value="{{ $row['version'] }}">
+                                                            @if(in_array($action, ['suspend', 'terminate'], true))
+                                                                <input name="reason" required maxlength="1000" placeholder="Reason" aria-label="Reason for {{ strtolower($label) }}">
+                                                            @endif
+                                                            <button type="submit">{{ $label }}</button>
+                                                        </form>
+                                                    @endforeach
+                                                </div>
+                                            </details>
+                                        @endif
                                         @if($section === 'franchise-applications' && !empty($row['actions']))
                                             <details class="fm-row-menu">
                                                 <summary title="Application actions" aria-label="Application actions"><x-icon name="dots" size="15" /></summary>
                                                 <div>
                                                     @foreach($row['actions'] as $action => $label)
-                                                        <form method="post" action="{{ route('admin.franchise.application.action', ['application' => $row['uuid'], 'action' => $action]) }}" onsubmit="return confirm('{{ $label }} this application?')">@csrf<button type="submit">{{ $label }}</button></form>
+                                                        <form method="post" action="{{ route('admin.franchise.application.action', ['application' => $row['uuid'], 'action' => $action]) }}" onsubmit="return confirm('{{ $label }} this application?')">@csrf @if($action === 'convert')<input type="hidden" name="idempotency_key" value="franchise-application-convert-{{ $row['uuid'] }}">@endif<button type="submit">{{ $label }}</button></form>
                                                     @endforeach
                                                 </div>
                                             </details>

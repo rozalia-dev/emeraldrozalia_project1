@@ -294,11 +294,15 @@ class ApprovalRequestService
         }
 
         if (array_key_exists('requested_by_id', $payload)) {
+            $this->assertCompanyUser((int) $payload['requested_by_id']);
             $attributes['requested_by'] = $payload['requested_by_id'];
         } elseif ($creating) {
             $attributes['requested_by'] = auth()->id();
         }
         if (array_key_exists('approver_id', $payload)) {
+            if ($payload['approver_id'] !== null) {
+                $this->assertCompanyUser((int) $payload['approver_id'], true);
+            }
             $attributes['approver_id'] = $payload['approver_id'];
         }
         if (session()->has('company_id')) {
@@ -382,6 +386,30 @@ class ApprovalRequestService
         if ($companyId && (int) $approval->company_id !== (int) $companyId) {
             abort(404);
         }
+    }
+
+    private function assertCompanyUser(int $userId, bool $adminOnly = false): void
+    {
+        $query = User::query()->whereKey($userId);
+
+        if ($adminOnly) {
+            $query->where('is_admin', true);
+        }
+
+        $companyId = session('company_id');
+        if ($companyId && ! $adminOnly) {
+            $query->where(function ($scope) use ($companyId): void {
+                $scope->where('is_admin', true)
+                    ->orWhereExists(function ($membership) use ($companyId): void {
+                        $membership->selectRaw('1')
+                            ->from('company_user')
+                            ->whereColumn('company_user.user_id', 'users.id')
+                            ->where('company_user.company_id', (int) $companyId);
+                    });
+            });
+        }
+
+        abort_unless($query->exists(), 422, 'The selected user must belong to the selected company.');
     }
 
     private function userUuid(?int $userId): ?string

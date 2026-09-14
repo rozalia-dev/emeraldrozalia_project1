@@ -21,7 +21,7 @@ class PublicMediaController extends Controller
                 ->where('uuid', $uuid)
                 ->where('active', true)
                 ->where('approval_status', 'approved')
-                ->whereHas('product', fn ($query) => $query->where('is_active', true))
+                ->whereHas('product', fn ($query) => $query->published())
                 ->first();
         }
 
@@ -31,7 +31,7 @@ class PublicMediaController extends Controller
                 ->where('uuid', $uuid)
                 ->where('active', true)
                 ->where('approval_status', 'approved')
-                ->whereHas('variant', fn ($query) => $query->where('is_active', true)->whereHas('product', fn ($productQuery) => $productQuery->where('is_active', true)))
+                ->whereHas('variant', fn ($query) => $query->where('is_active', true)->whereHas('product', fn ($productQuery) => $productQuery->published()))
                 ->first();
         }
 

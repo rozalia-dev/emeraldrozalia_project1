@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ReviewStoreRequest;
 use App\Models\{AdminRecord, Product, Review};
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
-    public function store(Request $request, Product $product)
+    public function store(ReviewStoreRequest $request, Product $product)
     {
-        $data = $request->validate([
-            'rating' => ['required', 'integer', 'min:1', 'max:5'],
-            'title' => ['nullable', 'max:120'],
-            'body' => ['nullable', 'max:2000'],
-        ]);
+        abort_unless($product->is_active, 404);
+        $data = $request->validated();
 
         $settingsRecord = AdminRecord::query()
             ->where('module', 'system-settings')

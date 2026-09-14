@@ -6,7 +6,7 @@
 @endpush
 @php($franchiseLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
-<div class="franchise-reference" data-approved-reference="franchise page.png">
+<div class="franchise-reference" data-public-media-register="franchise" data-public-media-state="awaiting-approved-media">
     <section class="fr-hero" aria-labelledby="franchise-title">
         <div class="fr-hero-copy">
             <div class="fr-breadcrumb"><a href="/">Home</a><span>›</span><span>Franchise Opportunity</span></div>
@@ -20,7 +20,7 @@
                 <article><x-icon name="globe" size="32" /><strong>Global<br>Opportunity</strong></article>
             </div>
         </div>
-        <div class="fr-store-image fr-store-image--hero" role="img" aria-label="Emerald Rozalia franchise retail store"></div>
+        <div class="fr-store-image fr-store-image--hero" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise retail-store media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
     </section>
 
     <section class="fr-main-band" id="franchise-enquiry">
@@ -62,13 +62,12 @@
         </aside>
     </section>
 
-    <section class="fr-advantage">
+    <section class="fr-advantage" data-public-data-state="{{ collect($franchiseMetrics)->contains(fn ($metric) => $metric['state'] === 'live') ? 'live' : 'awaiting-approved-records' }}">
         <h2>THE EMERALD ROZALIA ADVANTAGE</h2>
         <div class="fr-metrics">
-            <article><x-icon name="home" size="34" /><strong>35+</strong><span>Retail Partners<br>Worldwide</span></article>
-            <article><x-icon name="globe" size="34" /><strong>12</strong><span>Countries<br>Represented</span></article>
-            <article><x-icon name="tag" size="34" /><strong>100+</strong><span>Premium Styles<br>and Counting</span></article>
-            <article><x-icon name="calendar" size="34" /><strong>10+</strong><span>Years of Heritage<br>&amp; Experience</span></article>
+            @foreach($franchiseMetrics as $metric)
+                <article data-metric-state="{{ $metric['state'] }}"><x-icon name="{{ $metric['icon'] }}" size="34" /><strong>{{ $metric['value'] }}</strong><span>{!! $metric['label'] !!}</span></article>
+            @endforeach
         </div>
     </section>
 
@@ -84,7 +83,7 @@
                 <li><x-icon name="check" size="15" />Access to new collections &amp; innovations</li>
             </ul>
         </article>
-        <div class="fr-store-image fr-store-image--interior" role="img" aria-label="Emerald Rozalia store interior"></div>
+        <div class="fr-store-image fr-store-image--interior" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise store-interior media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
         <article class="fr-list-card fr-ideal">
             <h2>IDEAL PARTNER</h2>
             <ul>
@@ -95,7 +94,7 @@
             </ul>
         </article>
         <div class="fr-world-card">
-            <div class="fr-world-image" role="img" aria-label="Limerick and Irish heritage"></div>
+            <div class="fr-world-image" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise heritage media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
             <blockquote>“ From Limerick to the world.<br>A brand. A legacy. An opportunity.<br>Let's build it together. ”</blockquote>
         </div>
     </section>
@@ -114,7 +113,7 @@
     </section>
 
     <footer class="fr-compact-footer">
-        <div class="fr-footer-brand">@if($franchiseLogo)<img src="{{ $franchiseLogo['url'] }}" alt="{{ $franchiseLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<span>© {{ date('Y') }} All Rights Reserved.</span></div>
+        <div class="fr-footer-brand">@if($franchiseLogo)<img src="{{ $franchiseLogo['url'] }}" @if($franchiseLogo['srcset']) srcset="{{ $franchiseLogo['srcset'] }}" sizes="{{ $franchiseLogo['sizes'] }}" @endif width="{{ $franchiseLogo['width'] ?: '' }}" height="{{ $franchiseLogo['height'] ?: '' }}" alt="{{ $franchiseLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<span>© {{ date('Y') }} All Rights Reserved.</span></div>
         <nav aria-label="Franchise footer links"><a href="/factory">About Us</a><a href="/contact">Contact Us</a><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/terms-conditions">Terms &amp; Conditions</a><a href="/privacy-policy">Privacy Policy</a></nav>
         <div class="fr-social"><span>FOLLOW US</span><x-icon name="facebook" size="18" /><x-icon name="instagram" size="18" /><x-icon name="music" size="18" /><x-icon name="youtube" size="18" /></div>
     </footer>

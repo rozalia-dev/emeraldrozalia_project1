@@ -12,7 +12,7 @@ This is a bounded implementation slice. It does not claim completion of the 519-
 |---|---|---|
 | Public enquiry to cPanel | Public contact, corporate, bulk, careers and franchise forms continue to create one Inquiry→Conversation→Message path. Conversation records now carry company, customer/order/store links when known, correlation ID, request hash, idempotency key and consent version/timestamp. | `SiteController::inquiry`; `CommunicationContractTest::test_public_submission_stores_shared_conversation_contract_and_is_idempotent`; existing public form feature suites |
 | cPanel reply | Admin replies use `CommunicationCenter::sendReply`, a conversation row lock and message idempotency hash. The new message is `queued` and dispatched after commit. | `ResourceController::storeMessage`; `CommunicationContractTest::test_admin_reply_is_queued_and_key_reuse_is_safe` |
-| Provider boundary | `CommunicationProvider` and `CommunicationProviderRegistry` resolve an explicit channel adapter from configuration. A missing adapter transitions a message to `awaiting_provider`; it cannot report delivery success. | `DeliverCommunicationMessage`; `CommunicationContractTest::test_missing_provider_never_reports_delivery_success` |
+| Provider boundary | `CommunicationProvider` and `CommunicationProviderRegistry` resolve either an explicitly configured adapter or the built-in channel HTTP adapter when its endpoint is configured. The adapter sends a normalized, correlated, idempotency-keyed JSON payload and returns only validated provider states. A missing endpoint transitions a message to `awaiting_provider`; it cannot report delivery success. | `HttpCommunicationProvider`; `DeliverCommunicationMessage`; `CommunicationContractTest::test_default_http_provider_sends_a_correlated_idempotent_payload` |
 | Delivery state | Messages retain provider ID, delivery attempts, delivered/failed timestamps and safe failure code/message. Provider exceptions enter retry state with three attempts and `[60, 300, 900]` second backoff. | `DeliverCommunicationMessage` |
 | Signed callback | `POST /api/v1/communication/webhooks/{provider}` validates the raw-body HMAC-SHA256 signature, accepts email/WhatsApp/chat provider keys, records a UUID event ledger and applies monotonic delivery transitions. | `CommunicationWebhookController`; `CommunicationWebhookService`; signed/duplicate/bad-signature assertions in `CommunicationContractTest` |
 | Duplicate/privacy boundary | `(provider, external_event_id)` is unique. Webhook payloads are redacted recursively for body/message/content/email/phone/token/secret/authorization and related contact keys before persistence. | `communication_webhook_events` migration; redaction assertions in `CommunicationContractTest` |
@@ -24,9 +24,10 @@ This is a bounded implementation slice. It does not claim completion of the 519-
 
 The adapter and webhook secret environment variables are intentionally blank in `.env.example`:
 
-- `COMMUNICATION_EMAIL_PROVIDER`
-- `COMMUNICATION_WHATSAPP_PROVIDER`
-- `COMMUNICATION_CHAT_PROVIDER`
+- `COMMUNICATION_EMAIL_PROVIDER`, `COMMUNICATION_WHATSAPP_PROVIDER`, `COMMUNICATION_CHAT_PROVIDER`
+- `COMMUNICATION_EMAIL_ENDPOINT`, `COMMUNICATION_WHATSAPP_ENDPOINT`, `COMMUNICATION_CHAT_ENDPOINT`
+- `COMMUNICATION_EMAIL_TOKEN`, `COMMUNICATION_WHATSAPP_TOKEN`, `COMMUNICATION_CHAT_TOKEN`
+- `COMMUNICATION_HTTP_TIMEOUT`
 - `COMMUNICATION_EMAIL_WEBHOOK_SECRET`
 - `COMMUNICATION_WHATSAPP_WEBHOOK_SECRET`
 - `COMMUNICATION_CHAT_WEBHOOK_SECRET`
@@ -35,7 +36,7 @@ Until an adapter is installed and a signed callback is tested, outbound messages
 
 ## Explicit remaining gaps
 
-- No production email, WhatsApp or chat adapter is enabled or verified in this slice.
+- No live email, WhatsApp or chat credentials are enabled or verified in this slice. The built-in HTTP adapters are available but remain dormant until a channel endpoint, token and signed callback secret are supplied.
 - Approval, action/follow-up and alert surfaces still use their existing generic `AdminRecord` workflow; their durable domain contracts are not yet complete.
 - Communication reports/analytics still require the later reports and integrations contract, including removal of fixture fallbacks and export reconciliation.
 - The guide’s exact screenshot archive, ordered 167-row visual acceptance, responsive browser journeys and accessibility evidence remain incomplete, including Archive 063 for the Email Dashboard.

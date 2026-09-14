@@ -2,37 +2,38 @@
 
 namespace App\Policies;
 
-use App\Models\{Review,User};
+use App\Models\{Review, User};
 
 class ReviewPolicy
 {
-    public function before(User $user, string $ability): ?bool
-    {
-        return $user->is_admin ? true : null;
-    }
-
     public function viewAny(User $user): bool
     {
-        return $user->is_admin;
+        return $user->is_admin
+            || $user->hasAnyPermission(['reviews.view', 'website.reviews.view', 'reports.view']);
     }
 
     public function view(User $user, Review $review): bool
     {
-        return $user->is_admin || $review->user_id === $user->id;
+        return $this->viewAny($user) && $this->sameCompany($review);
     }
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->is_admin
+            || $user->hasAnyPermission(['reviews.create', 'reviews.edit', 'website.reviews.edit']);
     }
 
     public function update(User $user, Review $review): bool
     {
-        return $review->user_id === $user->id;
+        return ($user->is_admin
+                || $user->hasAnyPermission(['reviews.edit', 'website.reviews.edit']))
+            && $this->sameCompany($review);
     }
 
-    public function delete(User $user, Review $review): bool
+    private function sameCompany(Review $review): bool
     {
-        return $review->user_id === $user->id;
+        $companyId = session('company_id');
+
+        return $companyId === null || (int) $review->company_id === (int) $companyId;
     }
 }

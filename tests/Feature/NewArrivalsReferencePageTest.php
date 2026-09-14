@@ -32,7 +32,8 @@ class NewArrivalsReferencePageTest extends TestCase
                 'LOVE IT OR RETURN IT',
                 'STAY IN THE LOOP',
                 '/css/new-arrivals.css?v=20260908-approved',
-                'data-approved-reference="new arrival page.png"',
+                'data-public-media-register="new-arrivals"',
+                'data-public-media-state="awaiting-approved-media"',
             ], false);
     }
 

@@ -30,6 +30,7 @@ final class SiteLayoutVersionService
                 ['label' => 'BULK ORDER', 'href' => '/bulk-orders'],
                 ['label' => 'FRANCHISE APPLY', 'href' => '/franchise'],
                 ['label' => 'HIRING APPLY', 'href' => '/careers'],
+                ['label' => 'CONTACT US', 'href' => '/contact'],
             ],
             'utility_menu' => [
                 ['label' => 'Search', 'icon' => 'search', 'href' => '/shop'],

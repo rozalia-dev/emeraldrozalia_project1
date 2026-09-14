@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class InventoryMovement extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded = [];
 
     protected $casts = [
@@ -20,5 +23,10 @@ class InventoryMovement extends Model
     public function variant()
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 }

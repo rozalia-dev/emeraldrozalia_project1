@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\AdminRecord;
+use App\Models\Approval;
 use App\Models\Conversation;
 use App\Models\Order;
+use App\Models\Permission;
+use App\Models\ReturnRequest;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -22,6 +26,161 @@ class ReportsReferenceSuiteTest extends TestCase
         ];
         foreach ($pages as $page => $heading) {
             $this->actingAs($admin)->get(route('admin.reports.'.$page))->assertOk()->assertSeeText($heading)->assertSee('/css/reports-reference.css?v=20260913-b20-1', false);
+        }
+    }
+
+    public function test_report_center_has_no_reference_fixtures_when_the_selected_window_is_empty(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $window = ['from' => '2040-01-01', 'to' => '2040-01-31'];
+        $pages = [
+            'overview' => 'No report, order or schedule records exist for the selected period.',
+            'approvals' => 'No approval requests found for the selected period.',
+            'custom' => 'No saved custom reports exist yet.',
+            'history' => 'No report runs match the selected filters.',
+            'returns' => 'No return requests found for the selected period.',
+            'scheduler' => 'No report schedules have been saved yet.',
+        ];
+
+        foreach ($pages as $page => $emptyState) {
+            $html = $this->actingAs($admin)->get(route('admin.reports.'.$page, $window))
+                ->assertOk()
+                ->getContent();
+
+            $this->assertStringContainsString($emptyState, $html, "Missing honest empty state on {$page}.");
+            foreach ([
+                '1248', '152680', '245', '186', '01 May 2025', 'admin@emeraldrozalia.ie',
+                'RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary',
+            ] as $fixture) {
+                $this->assertStringNotContainsString($fixture, $html, "Reference fixture leaked into {$page}: {$fixture}");
+            }
+        }
+
+        $rolesHtml = $this->actingAs($admin)->get(route('admin.reports.roles', $window))->assertOk()->getContent();
+        foreach (['1248', '152680', 'RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary'] as $fixture) {
+            $this->assertStringNotContainsString($fixture, $rolesHtml, "Reference fixture leaked into roles: {$fixture}");
+        }
+    }
+
+    public function test_report_center_sections_render_from_persisted_live_records(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true, 'name' => 'Live Report Admin']);
+        $customer = User::factory()->create(['name' => 'Live Report Customer']);
+        $order = Order::create([
+            'user_id' => $customer->id,
+            'number' => 'LIVE-REPORT-CENTER-001',
+            'order_type' => 'online',
+            'status' => 'delivered',
+            'payment_status' => 'paid',
+            'subtotal' => 321.50,
+            'shipping' => 0,
+            'discount' => 0,
+            'total' => 321.50,
+            'currency' => 'EUR',
+            'email' => $customer->email,
+        ]);
+        $order->items()->create([
+            'name' => 'Live Report Product',
+            'sku' => 'LIVE-REPORT-SKU',
+            'quantity' => 1,
+            'unit_price' => 321.50,
+            'total' => 321.50,
+        ]);
+        ReturnRequest::create([
+            'user_id' => $customer->id,
+            'order_id' => $order->id,
+            'number' => 'RET-LIVE-REPORT-001',
+            'type' => 'return',
+            'reason' => 'Live contract reason',
+            'status' => 'requested',
+        ]);
+        Approval::create([
+            'requested_by' => $admin->id,
+            'status' => 'pending',
+            'request_type' => 'Discount',
+            'title' => 'Live Approval Contract',
+            'requester_name' => $admin->name,
+            'reference' => 'APR-LIVE-REPORT-001',
+            'source' => 'Reports contract',
+            'priority' => 'high',
+            'record_date' => today(),
+        ]);
+        $custom = AdminRecord::create([
+            'module' => 'custom-reports',
+            'reference' => 'live-report-definition',
+            'title' => 'Live Report Definition',
+            'status' => 'active',
+            'record_date' => today(),
+            'user_id' => $admin->id,
+            'data' => [
+                'module' => 'Franchise Reports',
+                'report_type' => 'Summary Report',
+                'data_source' => 'Operational Database',
+                'favorite' => true,
+            ],
+        ]);
+        AdminRecord::create([
+            'module' => 'report-runs',
+            'reference' => 'live-report-run',
+            'title' => 'Live Report Run',
+            'status' => 'success',
+            'record_date' => today(),
+            'user_id' => $admin->id,
+            'data' => [
+                'module' => 'Franchise Reports',
+                'records' => 1,
+                'duration_seconds' => 0.25,
+                'duration' => '0.25s',
+                'delivery' => 'Manual run',
+            ],
+        ]);
+        AdminRecord::create([
+            'module' => 'report-schedules',
+            'reference' => 'live-report-schedule',
+            'title' => 'Live Report Schedule',
+            'status' => 'active',
+            'record_date' => today(),
+            'user_id' => $admin->id,
+            'data' => [
+                'report' => $custom->title,
+                'frequency' => 'Weekly',
+                'time' => '09:00',
+                'recipients' => $admin->email,
+                'format' => 'CSV',
+            ],
+        ]);
+        $role = Role::create([
+            'name' => 'Live Report Role',
+            'label' => 'Live Report Role',
+            'description' => 'Role created by the report contract test.',
+            'is_active' => true,
+            'level' => 4,
+        ]);
+        $permission = Permission::create([
+            'name' => 'reports.contract.view',
+            'group' => 'Reports',
+            'module' => 'Reports',
+            'action' => 'view',
+        ]);
+        $role->permissions()->attach($permission->id, ['access_level' => 'view']);
+        $role->users()->attach($admin->id, ['assignment_type' => 'primary', 'status' => 'active', 'assigned_at' => now()]);
+
+        $pages = [
+            'overview' => ['Live Report Definition', 'Live Report Run', 'Live Report Schedule', 'Franchise Reports'],
+            'approvals' => ['Live Approval Contract', 'Discount', 'APR-LIVE-REPORT-001'],
+            'custom' => ['Live Report Definition', 'Franchise Reports'],
+            'history' => ['Live Report Run', 'Franchise Reports', '0.25s'],
+            'returns' => ['RET-LIVE-REPORT-001', 'LIVE-REPORT-CENTER-001', 'Live Report Product'],
+            'roles' => ['Live Report Role', 'Role created by the report contract test.'],
+            'scheduler' => ['Live Report Schedule', $admin->email, 'Weekly'],
+        ];
+
+        foreach ($pages as $page => $expected) {
+            $response = $this->actingAs($admin)->get(route('admin.reports.'.$page));
+            $response->assertOk();
+            foreach ($expected as $value) {
+                $response->assertSee($value, false);
+            }
         }
     }
 

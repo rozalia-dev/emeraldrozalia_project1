@@ -19,7 +19,7 @@ Route::prefix('api/v1')->middleware(['web', 'throttle:60,1'])->name('api.v1.')->
 });
 
 Route::prefix('api/v1/communication/templates')
-    ->middleware(['web', 'auth', 'admin', 'throttle:60,1'])
+    ->middleware(['web', 'auth', 'communication.permission', 'throttle:60,1'])
     ->name('api.v1.communication.templates.')
     ->group(function (): void {
         Route::get('/', [CommunicationTemplateController::class, 'apiIndex'])->name('index');
@@ -33,7 +33,7 @@ Route::prefix('api/v1/communication/templates')
     });
 
 Route::prefix('api/v1/communication/email')
-    ->middleware(['web', 'auth', 'admin', 'throttle:60,1'])
+    ->middleware(['web', 'auth', 'communication.permission', 'throttle:60,1'])
     ->name('api.v1.communication.email.')
     ->group(function (): void {
         Route::get('/', [CommunicationEmailController::class, 'index'])->name('index');
@@ -44,7 +44,7 @@ Route::prefix('api/v1/communication/email')
     });
 
 Route::prefix('api/v1/communication/approvals')
-    ->middleware(['web', 'auth', 'admin', 'throttle:60,1'])
+    ->middleware(['web', 'auth', 'communication.permission', 'throttle:60,1'])
     ->name('api.v1.communication.approvals.')
     ->group(function (): void {
         Route::get('/', [CommunicationApprovalController::class, 'apiIndex'])->name('index');

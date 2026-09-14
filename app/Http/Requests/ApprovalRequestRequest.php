@@ -3,14 +3,16 @@
 namespace App\Http\Requests;
 
 use App\Models\Approval;
+use App\Http\Requests\Concerns\AuthorizesCommunication;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ApprovalRequestRequest extends FormRequest
 {
+    use AuthorizesCommunication;
     public function authorize(): bool
     {
-        return (bool) $this->user()?->is_admin;
+        return $this->communicationAuthorized($this->isMethod('POST') ? 'create' : 'edit');
     }
 
     protected function prepareForValidation(): void
@@ -44,10 +46,10 @@ class ApprovalRequestRequest extends FormRequest
             'priority' => ['sometimes', 'nullable', 'string', Rule::in(['low', 'normal', 'medium', 'high', 'urgent'])],
             'requested_by' => ['sometimes', 'nullable', 'string', 'max:180'],
             'requester_name' => ['sometimes', 'nullable', 'string', 'max:180'],
-            'requested_by_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'requested_by_id' => ['sometimes', 'nullable', 'integer', $this->companyUserRule()],
             'approver' => ['sometimes', 'nullable', 'string', 'max:180'],
             'approver_name' => ['sometimes', 'nullable', 'string', 'max:180'],
-            'approver_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'approver_id' => ['sometimes', 'nullable', 'integer', $this->companyAdminRule()],
             'entity' => ['sometimes', 'nullable', 'string', 'max:180'],
             'entity_type' => ['sometimes', 'nullable', 'string', 'max:120'],
             'entity_uuid' => ['sometimes', 'nullable', 'uuid'],
@@ -64,5 +66,30 @@ class ApprovalRequestRequest extends FormRequest
     public function approvalPayload(): array
     {
         return $this->validated();
+    }
+
+    private function companyUserRule()
+    {
+        return Rule::exists('users', 'id')->where(function ($query): void {
+            $companyId = session('company_id');
+            if ($companyId) {
+                $query->where(function ($scope) use ($companyId): void {
+                    $scope->where('is_admin', true)
+                        ->orWhereExists(function ($membership) use ($companyId): void {
+                            $membership->selectRaw('1')
+                                ->from('company_user')
+                                ->whereColumn('company_user.user_id', 'users.id')
+                                ->where('company_user.company_id', (int) $companyId);
+                        });
+                });
+            }
+        });
+    }
+
+    private function companyAdminRule()
+    {
+        return Rule::exists('users', 'id')->where(function ($query): void {
+            $query->where('is_admin', true);
+        });
     }
 }

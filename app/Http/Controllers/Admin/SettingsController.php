@@ -11,10 +11,17 @@ use App\Models\Company;
 use App\Models\Currency;
 use App\Models\IntegrationConnection;
 use App\Models\Language;
+use App\Models\MaintenanceRun;
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Requests\AutomationRuleRequest;
+use App\Http\Requests\BackupRestoreRequest;
 use App\Services\AuditTrail;
 use App\Services\PublishedSiteSettings;
+use App\Services\AutomationRuleService;
+use App\Services\IntegrationConnectionService;
+use App\Services\SystemMaintenanceService;
+use App\Services\SettingsBackupService;
 use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +34,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Throwable;
 
 class SettingsController extends Controller
 {
@@ -75,7 +83,7 @@ class SettingsController extends Controller
             'overviewStats' => $overviewStats,
             'activeTab' => null, 'tabs' => [], 'values' => [], 'fields' => [],
             'connections' => collect(), 'languages' => collect(), 'currencies' => collect(),
-            'apiRoles' => collect(), 'automations' => collect(), 'backups' => collect(), 'roles' => collect(),
+            'apiRoles' => collect(), 'automations' => collect(), 'backups' => collect(), 'maintenanceRuns' => collect(), 'roles' => collect(),
         ]);
     }
 
@@ -98,6 +106,7 @@ class SettingsController extends Controller
         $apiRoles = AdminRecord::query()->where('module', 'api-roles')->latest('id')->get();
         $automations = AutomationRule::query()->latest('id')->limit(12)->get();
         $backups = BackupRun::query()->latest('started_at')->limit(12)->get();
+        $maintenanceRuns = MaintenanceRun::query()->latest('started_at')->limit(12)->get();
         $roles = Role::query()->withCount('users')->orderBy('name')->limit(12)->get();
 
         $latestAudit = $record?->updated_at ?? AuditLog::query()->where('action', 'like', 'settings.'.$section.'%')->latest('created_at')->value('created_at');
@@ -109,7 +118,7 @@ class SettingsController extends Controller
             'metrics' => $this->metricsFor($category, $latestAudit, $updatedBy), 'activeTab' => $activeTab,
             'tabs' => $tabs, 'values' => $values, 'fields' => $this->fieldDefinitions($section),
             'connections' => $connections, 'languages' => $languages, 'currencies' => $currencies,
-            'apiRoles' => $apiRoles, 'automations' => $automations, 'backups' => $backups, 'roles' => $roles,
+            'apiRoles' => $apiRoles, 'automations' => $automations, 'backups' => $backups, 'maintenanceRuns' => $maintenanceRuns, 'roles' => $roles,
         ]);
     }
 
@@ -186,8 +195,16 @@ class SettingsController extends Controller
             return redirect()->route('admin.settings.page', 'backup-recovery')->with('success', 'A settings backup was created and recorded.');
         }
         if ($action === 'run-maintenance') {
-            AuditTrail::record('settings.maintenance.run', null, null, ['completed_at' => now()->toIso8601String()]);
-            return back()->with('success', 'Scheduled maintenance checks completed.');
+            $run = app(SystemMaintenanceService::class)->run();
+
+            return back()->with(
+                $run->status === 'failed' ? 'error' : ($run->status === 'attention' ? 'warning' : 'success'),
+                $run->status === 'passed'
+                    ? 'All application maintenance checks passed.'
+                    : ($run->status === 'attention'
+                        ? 'Maintenance checks completed with attention items.'
+                        : 'Maintenance checks found failures that require action.'),
+            );
         }
         if ($action === 'rotate-api-keys') {
             AuditTrail::record('settings.api-roles.keys_rotated', null, null, ['rotated_at' => now()->toIso8601String()]);
@@ -197,11 +214,15 @@ class SettingsController extends Controller
         $service = match ($action) { 'test-email' => 'email', 'test-whatsapp' => 'whatsapp', default => 'payment' };
         $provider = match ($service) { 'email' => 'SMTP', 'whatsapp' => 'Meta Cloud API', default => 'Stripe / Revolut' };
         $connection = IntegrationConnection::query()->firstOrNew(['service' => $service]);
-        $before = $connection->exists ? $connection->toArray() : null;
-        $connection->fill(['provider' => $provider, 'enabled' => true, 'health' => 'healthy', 'tested_at' => now()]);
+        $connection->fill(['provider' => $provider, 'enabled' => true]);
         $connection->save();
-        AuditTrail::record('settings.'.$service.'.tested', $connection, $before, $connection->fresh()->toArray());
-        return back()->with('success', $provider.' connection test completed successfully.');
+
+        $probe = app(IntegrationConnectionService::class)->probe($connection->fresh());
+
+        return back()->with(
+            in_array($probe['health'], ['ready', 'configured'], true) ? 'success' : 'warning',
+            $probe['message'],
+        );
     }
 
     public function storeApiRole(Request $request): RedirectResponse
@@ -240,43 +261,93 @@ class SettingsController extends Controller
         return back()->with('success', 'API role cloned.');
     }
 
-    public function storeAutomation(Request $request): RedirectResponse
+    public function storeAutomation(AutomationRuleRequest $request, AutomationRuleService $automations): RedirectResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:180'], 'event' => ['required', 'string', 'max:120'], 'actions' => ['nullable', 'string', 'max:500'], 'enabled' => ['nullable', 'boolean']]);
-        $automation = AutomationRule::create([
-            'name' => $data['name'], 'event' => $data['event'], 'conditions' => [],
-            'actions' => array_values(array_filter(array_map('trim', explode(',', (string) ($data['actions'] ?? ''))))), 'enabled' => $request->boolean('enabled'),
-        ]);
-        AuditTrail::record('settings.automation.created', $automation, null, $automation->toArray());
-        return back()->with('success', 'Automation workflow created.');
+        $automations->create($request->validated());
+
+        return back()->with('success', 'Automation workflow created and is ready for supported events.');
     }
 
-    public function toggleAutomation(AutomationRule $automation): RedirectResponse
+    public function toggleAutomation(AutomationRule $automation, AutomationRuleService $automations): RedirectResponse
     {
-        $before = $automation->toArray();
-        $automation->update(['enabled' => ! $automation->enabled]);
-        AuditTrail::record('settings.automation.toggled', $automation, $before, $automation->fresh()->toArray());
+        $automations->toggle($automation);
+
         return back()->with('success', 'Automation status updated.');
     }
 
     public function storeBackup(): RedirectResponse
     {
-        $this->createBackup();
-        return back()->with('success', 'A settings backup was created and recorded.');
+        $backup = $this->createBackup();
+
+        return back()->with(
+            $backup->status === 'completed' ? 'success' : 'error',
+            $backup->status === 'completed'
+                ? 'A verified settings backup was created and recorded.'
+                : 'The settings backup could not be verified. No usable restore point was created.',
+        );
+    }
+
+    public function restoreBackup(BackupRestoreRequest $request, BackupRun $backup): RedirectResponse
+    {
+        $companyId = session('company_id');
+        abort_if($companyId && $backup->company_id && (int) $backup->company_id !== (int) $companyId, 404);
+
+        $restoredSections = [];
+
+        try {
+            $settings = app(SettingsBackupService::class)->readAndVerify($backup);
+
+            DB::transaction(function () use ($settings, $backup, &$restoredSections): void {
+                foreach ($settings as $section => $values) {
+                    if (! in_array((string) $section, self::SECTION_SLUGS, true) || ! is_array($values)) {
+                        continue;
+                    }
+
+                    $defaults = $this->defaults()[$section] ?? [];
+                    $allowed = array_intersect_key($values, $defaults);
+                    $record = AdminRecord::query()
+                        ->where('module', 'system-settings')
+                        ->where('reference', $section)
+                        ->latest('id')
+                        ->first();
+                    $merged = array_merge($defaults, $record?->data ?? [], $allowed);
+                    $this->persistSetting($section, $merged, $record);
+                    $this->syncCompany($section, $merged);
+                    $this->syncConnection($section, $merged);
+                    $restoredSections[] = (string) $section;
+                }
+
+                $backup->forceFill([
+                    'restore_status' => 'completed',
+                    'restored_at' => now(),
+                ])->save();
+            });
+
+            AuditTrail::record('settings.backup.restored', $backup->fresh(), null, [
+                'sections' => $restoredSections,
+                'restored_at' => $backup->fresh()->restored_at?->toIso8601String(),
+            ]);
+        } catch (Throwable $exception) {
+            $backup->forceFill([
+                'restore_status' => 'failed',
+                'restored_at' => null,
+            ])->saveQuietly();
+            AuditTrail::record('settings.backup.restore_failed', $backup->fresh(), null, [
+                'exception' => get_class($exception),
+            ]);
+            throw $exception;
+        }
+
+        return redirect()
+            ->route('admin.settings.page', ['section' => 'backup-recovery', 'tab' => 'restore'])
+            ->with('success', 'Verified settings backup restored for '.count($restoredSections).' section(s).');
     }
 
     public function createBackup(): BackupRun
     {
-        $startedAt = now();
-        $payload = json_encode($this->exportPayload(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $filename = 'settings-backups/settings-'.now()->format('Ymd-His').'-'.Str::lower(Str::random(5)).'.json';
-        $stored = Storage::disk('local')->put($filename, $payload);
-        $backup = BackupRun::create([
-            'type' => 'Settings', 'status' => $stored ? 'completed' : 'failed', 'location' => $stored ? $filename : null,
-            'size_bytes' => $stored ? strlen((string) $payload) : null, 'started_at' => $startedAt, 'completed_at' => now(),
-            'metadata' => ['scope' => 'settings', 'sections' => count(self::SECTION_SLUGS)],
-        ]);
+        $backup = app(SettingsBackupService::class)->create($this->exportPayload(), 'Settings');
         AuditTrail::record('settings.backup.created', $backup, null, $backup->toArray());
+
         return $backup;
     }
 

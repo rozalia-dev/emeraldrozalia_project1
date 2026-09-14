@@ -11,9 +11,11 @@ class CorporateOrderPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_corporate_order_page_renders_approved_reference_contract(): void
+    public function test_corporate_order_page_renders_live_contract_without_unmanaged_reference_fixture(): void
     {
-        $this->get('/corporate-orders')
+        $response = $this->get('/corporate-orders');
+
+        $response
             ->assertOk()
             ->assertSee([
                 'CORPORATE',
@@ -27,10 +29,11 @@ class CorporateOrderPageTest extends TestCase
                 "LET'S WORK TOGETHER",
                 '/css/corporate-order.css?v=20260908-approved',
                 '/css/order-fullwidth.css?v=20260910-fullwidth',
-                '/assets/brand/corporate-order-reference.png?v=20260908',
+                'data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE"',
+                'data-public-data-state="awaiting-approved-client-records"',
             ], false);
 
-        $this->assertFileExists(public_path('assets/brand/corporate-order-reference.png'));
+        $this->assertStringNotContainsString('corporate-order-reference.png', $response->getContent());
     }
 
     public function test_corporate_quote_requires_requirements_message(): void

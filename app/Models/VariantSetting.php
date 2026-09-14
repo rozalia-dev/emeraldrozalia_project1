@@ -1,8 +1,11 @@
 <?php
 namespace App\Models;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 class VariantSetting extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded=[];
     protected function casts():array{return ['auto_generate_sku'=>'boolean','auto_manage_stock'=>'boolean','sync_variant_stock'=>'boolean','track_variant_inventory'=>'boolean','backorder'=>'boolean','price_rounding'=>'integer','low_stock_threshold'=>'integer'];}
     public static function current(bool $persist=false):self

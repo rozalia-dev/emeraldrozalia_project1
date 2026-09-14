@@ -58,8 +58,8 @@ $asset=TryOnAsset::create([
 ]);
 
 TryOnVisit::insert([
-    ['try_on_asset_id'=>$asset->id,'visitor_hash'=>hash('sha256','tryon-a'),'day'=>now()->toDateString(),'device'=>'desktop_web','converted'=>true,'session_seconds'=>72,'created_at'=>now(),'updated_at'=>now()],
-    ['try_on_asset_id'=>$asset->id,'visitor_hash'=>hash('sha256','tryon-b'),'day'=>now()->toDateString(),'device'=>'mobile_ar','converted'=>false,'session_seconds'=>38,'created_at'=>now(),'updated_at'=>now()],
+    ['try_on_asset_id'=>$asset->id,'company_id'=>$companyId,'visitor_hash'=>hash('sha256','tryon-a'),'day'=>now()->toDateString(),'device'=>'desktop_web','converted'=>true,'session_seconds'=>72,'created_at'=>now(),'updated_at'=>now()],
+    ['try_on_asset_id'=>$asset->id,'company_id'=>$companyId,'visitor_hash'=>hash('sha256','tryon-b'),'day'=>now()->toDateString(),'device'=>'mobile_ar','converted'=>false,'session_seconds'=>38,'created_at'=>now(),'updated_at'=>now()],
 ]);
 
 echo $asset->uuid."\n";

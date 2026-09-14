@@ -12,7 +12,7 @@ Public page imagery is controlled through approved media records. A page section
 
 The homepage hero uses the selected section media in the centre image slot; the left copy and right Virtual Try-On panel remain separate layout elements. Heritage, quality, and franchise blocks also use the selected section media. Collection cards can select their own media in the card editor. Homepage product cards use the approved image attached to each live product, so change those through the product media workflow rather than the page hero selector. Existing non-home pages receive the same reusable starter canvas in Page Manager; their sections can then be edited, reordered, or replaced in the same workspace.
 
-The supplied homepage artwork is the baseline shown when a homepage block has no selected media UUID. Selecting an approved asset replaces that baseline while keeping the section’s layout, links, alt text, responsive behavior, and audit trail intact.
+Reference screenshots and generic placeholder artwork are not used as public page fallbacks. Assets explicitly registered as approved baseline artwork (for example, the Contact destination) are still delivered through their approved UUID records. All other page blocks render an explicit neutral awaiting-media state until an approved asset is selected; selecting one keeps the section’s layout, links, alt text, responsive behavior, and audit trail intact.
 
 ## Replace or recover an existing asset
 

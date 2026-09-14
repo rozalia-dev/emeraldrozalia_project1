@@ -71,6 +71,11 @@ class Conversation extends Model
         return $this->belongsTo(FranchiseApplication::class);
     }
 
+    public function salesQuote()
+    {
+        return $this->hasOne(SalesQuote::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'uuid';
@@ -79,10 +84,53 @@ class Conversation extends Model
     public function scopeForCurrentCompany(Builder $query): Builder
     {
         $companyId = session('company_id');
+        if (! $companyId) {
+            return $query;
+        }
 
-        return $companyId
-            ? $query->where($query->getModel()->getTable().'.company_id', (int) $companyId)
-            : $query;
+        $table = $query->getModel()->getTable();
+        $query->withoutGlobalScope('tenant')->where(function (Builder $visible) use ($table, $companyId): void {
+            $visible->where($table.'.company_id', (int) $companyId);
+
+            // Global administrators may still resolve legacy conversations whose
+            // tenant was not recoverable during the ownership backfill. New
+            // records are always assigned by BelongsToTenant.
+            if (auth()->user()?->is_admin) {
+                $visible->orWhereNull($table.'.company_id');
+            }
+        });
+
+        return $query;
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field ??= $this->getRouteKeyName();
+        $table = $this->getTable();
+
+        // Implicit binding can run before the appended web middleware has
+        // established the selected company. Build from the model query (no
+        // global scopes), then apply the visibility rule explicitly.
+        $query = $this->newModelQuery()
+            ->whereNull($this->getQualifiedDeletedAtColumn())
+            ->where($table.'.'.$field, $value);
+
+        $companyId = session('company_id');
+        if ($companyId) {
+            $query->where(function (Builder $visible) use ($table, $companyId): void {
+                $visible->where($table.'.company_id', (int) $companyId);
+                if (auth()->user()?->is_admin) {
+                    $visible->orWhereNull($table.'.company_id');
+                }
+            });
+        }
+
+        return $query->first();
+    }
+
+    public function resolveSoftDeletableRouteBinding($value, $field = null)
+    {
+        return $this->resolveRouteBinding($value, $field);
     }
 
     public function resolveRouteBindingQuery($query, $value, $field = null)

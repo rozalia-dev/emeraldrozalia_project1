@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
     use BelongsToTenant;
+
+    public const PUBLIC_STATUSES = ['active', 'published'];
 
     protected $guarded = [];
     protected $casts = [
@@ -22,6 +25,21 @@ class Product extends Model
         'price' => 'decimal:2',
         'compare_price' => 'decimal:2',
     ];
+
+    public function scopePublished(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query
+            ->where($table.'.is_active', true)
+            ->whereIn($table.'.status', self::PUBLIC_STATUSES);
+    }
+
+    public function isPubliclyPublished(): bool
+    {
+        return (bool) $this->is_active
+            && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
+    }
 
     public function category() { return $this->belongsTo(Category::class); }
     public function variants() { return $this->hasMany(ProductVariant::class); }

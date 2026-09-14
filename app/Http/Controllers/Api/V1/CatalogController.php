@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\ProductIndexRequest;
 use App\Http\Resources\Api\V1\BannerResource;
 use App\Http\Resources\Api\V1\ProductResource;
 use App\Models\{Banner,Product};
+use App\Support\Money;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CatalogController extends Controller
@@ -16,8 +17,7 @@ class CatalogController extends Controller
     {
         $query = Product::query()
             ->with(['category', 'media'])
-            ->where('is_active', true)
-            ->whereIn('status', ['active', 'published']);
+            ->published();
 
         $search = trim((string) $request->input('q', ''));
         if ($search !== '') {
@@ -30,8 +30,8 @@ class CatalogController extends Controller
         if ($request->filled('category')) {
             $query->whereHas('category', fn ($category) => $category->where('slug', $request->input('category')));
         }
-        if ($request->filled('min_price')) $query->where('price', '>=', (float) $request->input('min_price'));
-        if ($request->filled('max_price')) $query->where('price', '<=', (float) $request->input('max_price'));
+        if ($request->filled('min_price')) $query->where('price', '>=', Money::round((string) $request->input('min_price')));
+        if ($request->filled('max_price')) $query->where('price', '<=', Money::round((string) $request->input('max_price')));
 
         match ($request->input('sort', 'newest')) {
             'price_low' => $query->orderBy('price')->orderBy('name'),
@@ -47,7 +47,7 @@ class CatalogController extends Controller
 
     public function product(Product $product): ProductResource
     {
-        abort_unless($product->is_active && in_array($product->status, ['active', 'published'], true), 404);
+        abort_unless($product->isPubliclyPublished(), 404);
 
         $product->load([
             'category',

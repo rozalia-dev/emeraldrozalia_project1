@@ -31,7 +31,6 @@
     $mediaUrl = is_array($media) ? ($media['url'] ?? null) : null;
     $mediaIsVideo = is_array($media) && str_starts_with((string) ($media['mime_type'] ?? ''), 'video/');
     $mediaAlt = is_array($media) ? ($media['alt'] ?? $copy('alt', $section->label ?: 'Homepage media')) : $copy('alt', $section->label ?: 'Homepage media');
-    $heroReferenceMedia = is_array($homeHeroReferenceMedia ?? null) ? $homeHeroReferenceMedia : null;
     $sectionAttributes = 'id="'.$sectionId.'" data-home-section="'.$type.'" data-home-section-uuid="'.$section->uuid.'" data-home-animation="'.$animation.'" data-home-devices="'.$deviceValue.'"';
 @endphp
 
@@ -41,13 +40,11 @@
             $heroSecondaryUrl = $safeUrl($settings['secondary_href'] ?? null);
             $heroTertiaryUrl = $safeUrl($settings['tertiary_href'] ?? null);
             $heroTitle = $copy('title', $section->label ?: 'Emerald Rozalia');
-            $heroReferenceUrl = $heroReferenceMedia['url'] ?? null;
-            $heroCenterUrl = $mediaUrl ?: $heroReferenceUrl;
-            $heroCenterAlt = $mediaUrl ? $mediaAlt : ($heroReferenceMedia['alt'] ?? $mediaAlt);
-            $heroUsesReferenceArt = ! $mediaUrl && filled($heroReferenceUrl);
+            $heroCenterUrl = $mediaUrl;
+            $heroCenterAlt = $mediaAlt;
             $heroPhotoInputId = $sectionId . '-photo';
         @endphp
-        <section {!! $sectionAttributes !!} class="home-hero home-hero--managed home-hero--three-column @if($heroUsesReferenceArt) home-hero--reference-art @endif" aria-labelledby="{{ $sectionId }}-title">
+        <section {!! $sectionAttributes !!} class="home-hero home-hero--managed home-hero--three-column" aria-labelledby="{{ $sectionId }}-title">
             <div class="home-hero-composition">
                 <div class="home-hero-copy">
                     <p class="eyebrow">{{ $copy('eyebrow', $section->label ?: 'EMERALD ROZALIA') }}</p>
@@ -71,13 +68,13 @@
                         <?php } ?>
                     </div>
                 </div>
-                <div class="home-hero-center" data-public-media-state="{{ $mediaUrl ? 'approved' : ($heroReferenceMedia ? 'reference-baseline' : 'awaiting-approved-media') }}">
+                <div class="home-hero-center" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}">
                     <div class="home-hero-center-media home-managed-media home-managed-media--hero" role="img" aria-label="{{ $heroCenterAlt }}">
                     <?php if ($heroCenterUrl) { ?>
                         @if($mediaIsVideo)
                             <video class="home-hero-center-image" src="{{ $heroCenterUrl }}" width="{{ $media['width'] ?: '' }}" height="{{ $media['height'] ?: '' }}" muted playsinline loop preload="metadata" aria-label="{{ $heroCenterAlt }}"></video>
                         @else
-                            <img class="home-hero-center-image" src="{{ $heroCenterUrl }}" alt="{{ $heroCenterAlt }}" width="{{ $media['width'] ?? ($heroReferenceMedia['width'] ?? 864) }}" height="{{ $media['height'] ?? ($heroReferenceMedia['height'] ?? 384) }}" fetchpriority="high">
+                        <img class="home-hero-center-image" src="{{ $heroCenterUrl }}" alt="{{ $heroCenterAlt }}" width="{{ $media['width'] ?? 864 }}" height="{{ $media['height'] ?? 384 }}" fetchpriority="high">
                         @endif
                     <?php } else { ?>
                         <span class="sr-only">Approved homepage hero media is not configured for this section.</span>
@@ -184,7 +181,7 @@
                                 @endphp
                         <?php if ($collectionUrl) { ?>
                             <a class="home-collection-card" href="{{ $collectionUrl }}">
-                                <div class="home-managed-media home-managed-media--collection @if(! $collectionMedia) home-reference-media home-reference-media--collection-{{ $collectionIndex + 1 }} @endif" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
+                                <div class="home-managed-media home-managed-media--collection" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
                                     <?php if ($collectionMedia) { ?>
                                         @if(str_starts_with((string) ($collectionMedia['mime_type'] ?? ''), 'video/'))
                                             <video src="{{ $collectionMedia['url'] }}" muted playsinline loop preload="metadata" aria-label="{{ $collectionMedia['alt'] }}"></video>
@@ -216,7 +213,7 @@
                     <a class="btn" href="{{ $heritageButtonUrl }}">{{ $copy('button_label', 'Explore') }} <x-icon name="arrow-right" /></a>
                 <?php } ?>
             </div>
-            <div class="home-heritage-visual home-managed-media home-managed-media--heritage @if(! $mediaUrl) home-reference-media home-reference-media--heritage @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
+            <div class="home-heritage-visual home-managed-media home-managed-media--heritage" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
                     @if($mediaIsVideo)
                         <video src="{{ $mediaUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $mediaAlt }}"></video>
@@ -262,7 +259,7 @@
                             ?>
                             <article class="home-product-card">
                                 <a class="home-product-link" href="{{ route('product', $product) }}">
-                                        <div class="home-product-media home-managed-media home-managed-media--product @if(! $productMediaDescriptor) home-reference-media home-reference-media--product-{{ ($productIndex % 6) + 1 }} @endif" data-public-media-state="{{ $productMediaDescriptor ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $productMediaDescriptor['alt'] ?? ($product->name.' product image') }}">
+                                        <div class="home-product-media home-managed-media home-managed-media--product" data-public-media-state="{{ $productMediaDescriptor ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $productMediaDescriptor['alt'] ?? ($product->name.' product image') }}">
                                         <?php if ($productMediaDescriptor) { ?>
                                             <img src="{{ $productMediaDescriptor['url'] }}" @if($productMediaDescriptor['srcset']) srcset="{{ $productMediaDescriptor['srcset'] }}" sizes="{{ $productMediaDescriptor['sizes'] }}" @endif width="{{ $productMediaDescriptor['width'] ?: '' }}" height="{{ $productMediaDescriptor['height'] ?: '' }}" alt="{{ $productMediaDescriptor['alt'] }}" loading="lazy">
                                         <?php } else { ?>
@@ -289,7 +286,7 @@
 
         <?php $qualityButtonUrl = $safeUrl($settings['button_href'] ?? null); ?>
         <section {!! $sectionAttributes !!} class="home-quality home-quality--managed" aria-labelledby="{{ $sectionId }}-title">
-            <div class="home-quality-visual home-managed-media home-managed-media--quality @if(! $mediaUrl) home-reference-media home-reference-media--quality @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
+            <div class="home-quality-visual home-managed-media home-managed-media--quality" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
                     @if($mediaIsVideo)
                         <video src="{{ $mediaUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $mediaAlt }}"></video>
@@ -321,7 +318,7 @@
                     <a class="btn" href="{{ $franchiseButtonUrl }}">{{ $copy('button_label', 'APPLY FOR FRANCHISE') }} <x-icon name="arrow-right" /></a>
                 <?php } ?>
             </div>
-            <div class="home-franchise-visual home-managed-media home-managed-media--franchise @if(! $mediaUrl) home-reference-media home-reference-media--franchise @endif" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
+            <div class="home-franchise-visual home-managed-media home-managed-media--franchise" data-public-media-state="{{ $mediaUrl ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $mediaAlt }}">
                 <?php if ($mediaUrl) { ?>
                     @if($mediaIsVideo)
                         <video src="{{ $mediaUrl }}" muted playsinline loop preload="metadata" aria-label="{{ $mediaAlt }}"></video>

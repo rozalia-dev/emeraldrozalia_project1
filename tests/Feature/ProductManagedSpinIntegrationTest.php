@@ -83,7 +83,7 @@ class ProductManagedSpinIntegrationTest extends TestCase
         $response = $this->get(route('product', $product));
 
         $response->assertOk();
-        $response->assertSee('Legacy media references are awaiting migration.', false);
+        $response->assertDontSee('Legacy media references are awaiting migration.', false);
         $response->assertDontSee('/legacy-spin-001.jpg', false);
         $response->assertDontSee('/legacy-spin-002.jpg', false);
         $response->assertDontSee('/360/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/frames/0', false);

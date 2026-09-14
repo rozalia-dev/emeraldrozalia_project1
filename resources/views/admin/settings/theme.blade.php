@@ -108,7 +108,7 @@
                     </div>
                 @endif
             </section>
-            <section class="theme-card theme-assets-card"><div class="theme-card-heading"><div><h2>Approved brand assets</h2><p>References are restricted to the approved Emerald Rozalia identity.</p></div><x-icon name="image" size="17" /></div><div class="theme-assets-list">@foreach($assetReferences as $asset)<div><span class="theme-asset-icon"><x-icon name="image" size="14" /></span><span><strong>{{$asset['role']}}</strong><code>{{$asset['path']}}</code></span><span class="theme-status theme-status--healthy">Approved</span></div>@endforeach</div><p class="theme-assets-note">Public media picker and UUID-backed derivatives are delivered in Batch 19. This theme cannot register a private filesystem path.</p></section>
+            <section class="theme-card theme-assets-card"><div class="theme-card-heading"><div><h2>Approved brand assets</h2><p>References are restricted to the approved Emerald Rozalia identity.</p></div><x-icon name="image" size="17" /></div><div class="theme-assets-list">@forelse($assetReferences as $asset)<div><span class="theme-asset-icon"><x-icon name="image" size="14" /></span><span><strong>{{$asset['role']}}</strong><code>{{$asset['original_name'] ?: 'Approved logo'}}</code><small>{{$asset['uuid']}}</small></span><span class="theme-status theme-status--healthy">Approved</span></div>@empty<div class="theme-assets-empty"><x-icon name="image" size="14" /> No approved identity media is available.</div>@endforelse</div><p class="theme-assets-note">Public logo delivery uses approved UUID-backed media descriptors. Storage paths are never exposed to public routes.</p></section>
         </aside>
     </div>
 </div>

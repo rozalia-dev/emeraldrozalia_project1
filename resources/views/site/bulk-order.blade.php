@@ -21,7 +21,7 @@
                 <article><x-icon name="globe" size="26" /><strong>Worldwide<br>Delivery</strong></article>
             </div>
         </div>
-        <div class="bulk-reference bulk-reference--hero" role="img" aria-label="Custom branded Emerald Rozalia caps and premium flat cap displayed for bulk ordering"></div>
+        <div class="bulk-reference bulk-reference--hero" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved bulk-order hero media is not configured"><span class="bulk-media-empty">Approved bulk-order media is not configured.</span></div>
     </section>
 
     <section class="bulk-value-strip" aria-label="Bulk order service commitments">
@@ -66,7 +66,7 @@
                         ['bucket','BUCKET HATS','Comfortable, durable and perfect for every occasion.'],
                     ] as [$photo,$label,$copy])
                         <article>
-                            <div class="bulk-reference bulk-product-photo bulk-product-photo--{{ $photo }}" role="img" aria-label="{{ $label }} example"></div>
+                            <div class="bulk-reference bulk-product-photo bulk-product-photo--{{ $photo }}" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved {{ $label }} media is not configured"><span class="bulk-media-empty">Approved media is not configured.</span></div>
                             <strong>{{ $label }}</strong>
                             <p>{{ $copy }}</p>
                         </article>
@@ -111,7 +111,7 @@
     <section class="bulk-trust-grid">
         <div class="bulk-panel bulk-trusted">
             <h2>TRUSTED BY ORGANISATIONS WORLDWIDE</h2>
-            <div class="bulk-reference bulk-reference--trust" role="img" aria-label="Organisation logos shown in the approved bulk-order reference"></div>
+            <div class="bulk-reference bulk-reference--trust" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved bulk-order client-logo media is not configured"><span class="bulk-media-empty">Approved client media is not configured.</span></div>
             <p>... and hundreds of businesses that trust us to represent their brand with quality.</p>
         </div>
         <div class="bulk-panel bulk-why">
@@ -137,11 +137,11 @@
             <article><x-icon name="users" size="34" /><strong>MEET OUR TEAM</strong><span>The people behind<br>our quality.</span></article>
             <article><x-icon name="package" size="34" /><strong>EXPLORE<br>OUR RANGE</strong><span>Discover materials,<br>styles &amp; options.</span></article>
         </div>
-        <div class="bulk-reference bulk-reference--factory" role="img" aria-label="Emerald Rozalia factory in Limerick"></div>
+        <div class="bulk-reference bulk-reference--factory" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved factory media is not configured"><span class="bulk-media-empty">Approved factory media is not configured.</span></div>
     </section>
 
     <footer class="bulk-footer">
-        <div class="bulk-footer-brand">@if($bulkLogo)<img src="{{ $bulkLogo['url'] }}" alt="{{ $bulkLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p></div>
+        <div class="bulk-footer-brand">@if($bulkLogo)<img src="{{ $bulkLogo['url'] }}" @if($bulkLogo['srcset']) srcset="{{ $bulkLogo['srcset'] }}" sizes="{{ $bulkLogo['sizes'] }}" @endif width="{{ $bulkLogo['width'] ?: '' }}" height="{{ $bulkLogo['height'] ?: '' }}" alt="{{ $bulkLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p></div>
         <div><h3>SHOP</h3><a href="/shop">All Hats &amp; Caps</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/irish-traditional">Flat Caps</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/collections">Beanies &amp; More</a></div>
         <div><h3>HELP</h3><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/factory">Size Guide</a><a href="/account">Track Your Order</a></div>
         <div><h3>COMPANY</h3><a href="/factory">About Us</a><a href="/factory">Our Factory</a><a href="/global-network">Sustainability</a><a href="/careers">Careers</a></div>

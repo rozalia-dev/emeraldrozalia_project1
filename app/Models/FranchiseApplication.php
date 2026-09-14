@@ -26,4 +26,9 @@ class FranchiseApplication extends Model
     {
         return $this->hasOne(Conversation::class);
     }
+
+    public function salesQuote(): HasOne
+    {
+        return $this->hasOne(SalesQuote::class);
+    }
 }

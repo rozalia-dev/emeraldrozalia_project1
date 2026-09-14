@@ -2,7 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\{ContentPage, MediaAsset, MediaAssetVersion, Product, ProductCollection, ProductMedia, User};
+use App\Models\{ContentPage, MediaAsset, MediaAssetVersion, Product, ProductCollection, ProductMedia, ProductSpin, ProductVideo, TryOnAsset, User};
+use App\Services\PublicMediaResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -201,6 +202,27 @@ class PublicMediaContractTest extends TestCase
             ->assertSee('id="public-media-contract"', false);
     }
 
+    public function test_public_pages_do_not_render_reference_files_and_factory_has_an_explicit_media_state(): void
+    {
+        foreach (['/', '/collections', '/new-arrivals', '/corporate-orders', '/bulk-orders', '/franchise', '/be-a-store-owner', '/quality', '/factory'] as $path) {
+            $response = $this->get($path)->assertOk();
+
+            $response
+                ->assertDontSee('data-approved-reference', false)
+                ->assertDontSee('/assets/brand/home-page-reference.png', false)
+                ->assertDontSee('/assets/brand/home-page-hero-reference@2x.png', false)
+                ->assertDontSee('/assets/brand/home-collections-reference.webp', false)
+                ->assertDontSee('/assets/brand/bulk-order-reference.png', false)
+                ->assertDontSee('/assets/brand/corporate-order-reference.png', false);
+        }
+
+        $this->get('/factory')
+            ->assertSee('data-public-media-register="factory"', false)
+            ->assertSee('Approved manufacturing photography is not configured.', false)
+            ->assertSee('/css/factory.css?v=20260914-public-media-contract', false)
+            ->assertDontSee('how-we-work-reference.png', false);
+    }
+
     public function test_variant_media_must_be_approved_before_public_delivery(): void
     {
         Storage::fake('public');
@@ -317,4 +339,128 @@ class PublicMediaContractTest extends TestCase
         $response->assertSessionHasErrors('media');
         $this->assertSoftDeleted('media_assets', ['id' => $asset->id]);
     }
+
+    public function test_resolver_rejects_preloaded_unapproved_or_inactive_product_media(): void
+    {
+        $product = Product::create([
+            'name' => 'Resolver Boundary Cap',
+            'slug' => 'resolver-boundary-cap',
+            'sku' => 'MEDIA-BOUNDARY-001',
+            'price' => 35,
+            'stock' => 2,
+            'is_active' => true,
+        ]);
+        $pending = ProductMedia::create([
+            'product_id' => $product->id,
+            'type' => 'image',
+            'disk' => 'public',
+            'path' => 'product-media/pending-boundary.webp',
+            'mime_type' => 'image/webp',
+            'active' => true,
+            'approval_status' => 'pending',
+        ]);
+
+        $product->setRelation('media', collect([$pending]));
+
+        $this->assertNull(app(PublicMediaResolver::class)->forProduct($product));
+
+        $product->update(['is_active' => false]);
+        $this->get(route('media.public', $pending->uuid))->assertNotFound();
+    }
+
+    public function test_public_product_and_try_on_payloads_do_not_emit_legacy_media_paths(): void
+    {
+        $product = Product::create([
+            'name' => 'Legacy Payload Boundary Cap',
+            'slug' => 'legacy-payload-boundary-cap',
+            'sku' => 'MEDIA-BOUNDARY-002',
+            'price' => 35,
+            'stock' => 2,
+            'is_active' => true,
+            'spin_images' => ['/private/legacy-frame.jpg'],
+            'try_on_asset' => '/private/legacy-overlay.png',
+        ]);
+
+        $this->get(route('product', $product))
+            ->assertOk()
+            ->assertDontSee('legacy-frame.jpg', false)
+            ->assertDontSee('legacy-overlay.png', false);
+        $this->get(route('virtual-tryon'))
+            ->assertOk()
+            ->assertDontSee('legacy-frame.jpg', false)
+            ->assertDontSee('legacy-overlay.png', false);
+    }
+    public function test_draft_products_are_hidden_from_catalogue_and_all_public_asset_routes(): void
+    {
+        $product = Product::create([
+            'name' => 'Draft Boundary Cap',
+            'slug' => 'draft-boundary-cap',
+            'sku' => 'MEDIA-DRAFT-001',
+            'price' => 35,
+            'stock' => 2,
+            'status' => 'draft',
+            'is_active' => true,
+        ]);
+        $media = ProductMedia::create([
+            'product_id' => $product->id,
+            'type' => 'image',
+            'disk' => 'public',
+            'path' => 'product-media/draft-boundary.webp',
+            'mime_type' => 'image/webp',
+            'approval_status' => 'approved',
+            'active' => true,
+        ]);
+        $spin = ProductSpin::create([
+            'product_id' => $product->id,
+            'title' => 'Draft boundary spin',
+            'category' => 'product',
+            'status' => 'published',
+            'visibility' => 'public',
+            'frames' => [
+                'spins/draft-boundary/000.jpg',
+                'spins/draft-boundary/001.jpg',
+            ],
+            'settings' => ProductSpin::DEFAULTS,
+            'seo' => [],
+            'hotspots' => [],
+        ]);
+        $tryon = TryOnAsset::create([
+            'product_id' => $product->id,
+            'title' => 'Draft boundary try-on',
+            'type' => 'ar_ai',
+            'status' => 'published',
+            'visibility' => 'public',
+            'files' => ['preview' => 'tryons/draft-boundary/preview/overlay.png'],
+            'settings' => TryOnAsset::DEFAULTS,
+            'seo' => [],
+        ]);
+        $video = ProductVideo::create([
+            'product_id' => $product->id,
+            'disk' => 'local',
+            'path' => 'videos/draft-boundary.mp4',
+            'active' => true,
+            'metadata' => [
+                'title' => 'Draft boundary video',
+                'platform' => 'Website',
+                'visibility' => 'public',
+            ],
+        ]);
+
+        $this->assertFalse($product->isPubliclyPublished());
+        $this->assertNull(app(PublicMediaResolver::class)->forProductMedia($media));
+        $this->assertFalse($spin->isPublic());
+        $this->assertFalse($tryon->isPublic());
+        $this->assertFalse($video->isPubliclyPlayable());
+
+        $this->get('/shop')->assertOk()->assertDontSee('Draft Boundary Cap', false);
+        $this->getJson('/api/v1/products')->assertOk()->assertJsonMissing([
+            'public_uuid' => $product->public_uuid,
+        ]);
+        $this->get(route('product', $product))->assertNotFound();
+        $this->get(route('media.public', $media->uuid))->assertNotFound();
+        $this->get(route('spins.show', $spin->uuid))->assertNotFound();
+        $this->get(route('tryons.asset', [$tryon->uuid, 'preview']))->assertNotFound();
+        $this->get(route('videos.watch', $video->uuid))->assertNotFound();
+    }
+
 }

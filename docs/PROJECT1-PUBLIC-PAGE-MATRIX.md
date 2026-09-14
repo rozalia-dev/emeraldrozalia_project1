@@ -21,14 +21,14 @@ A static Blade view or a named route is not visual completion. Every row needs a
 | 076 | gaa bucket hats | GET /category/{category:slug} | SiteController::category → site.shop | Category, Product | GET /cart/{product} | No dedicated GAA browser suite | Partial |
 | 077 | gaa beanie hats page | GET /category/{category:slug} | SiteController::category → site.shop | Category, Product | GET /cart/{product} | No dedicated GAA browser suite | Partial |
 | 078 | gaa footbal club page | GET /category/{category:slug} | SiteController::category → site.shop | Category, Product | GET /cart/{product} | No dedicated GAA browser suite | Partial |
-| 079 | quality | GET /quality via content.page | SiteController::page → site.page | Published ContentPage if present; fallback route allowed | POST /enquiry only if page supplies form | No dedicated quality suite | Partial · managed page/source gap |
+| 079 | quality | GET /quality | SiteController::quality → site.quality | Structured quality page; approved media register | GET /collections, /factory, /corporate-orders | ProjectScopeTest; PublicRouteInteractionContractTest | Partial · visual/browser evidence pending |
 | 080 | Manufacturing and Franchise | GET /factory | SiteController::factory → site.factory | Static factory view and approved assets | POST /enquiry only if page supplies form | No dedicated factory suite | Partial |
 | 081 | how we work 1 | GET /how-we-work via content.page | SiteController::page → site.page | Published ContentPage if present | — | No dedicated how-we-work suite | Partial · managed page/source gap |
 | 082 | how we work | GET /how-we-work via content.page | SiteController::page → site.page | Published ContentPage if present | — | No dedicated how-we-work suite | Partial · managed page/source gap |
 | 083 | corporate order page | GET /corporate-orders | SiteController::corporateOrders → site.corporate-order | Static page; inquiry context | POST /enquiry type=corporate-orders → Inquiry + Conversation | CorporateOrderPageTest | Partial |
 | 084 | bulk order | GET /bulk-orders | SiteController::bulkOrders → site.bulk-order | Static page; inquiry context | POST /enquiry type=bulk-orders → Inquiry + Conversation | BulkOrderPageTest | Partial |
 | 085 | franchise page | GET /franchise | SiteController::franchise → site.franchise | Static page; franchise context | POST /enquiry type=franchise → Inquiry + FranchiseApplication + Conversation | FranchisePageTest | Partial |
-| 086 | be a store owner | GET /be-a-store-owner via content.page | SiteController::page → site.page | Published ContentPage if present | POST /enquiry only if page supplies form | No dedicated store-owner page suite | Partial · route/content gap |
+| 086 | be a store owner | GET /be-a-store-owner | SiteController::franchise → site.franchise | Shared franchise application and live metrics | POST /enquiry type=franchise → Inquiry + Conversation | ProjectScopeTest; FranchisePageTest | Partial · alias shares single franchise workflow; visual evidence pending |
 | 087 | build career with us | GET /careers | SiteController::careers → site.careers | Static page; careers form context | POST /enquiry type=careers → Inquiry + Conversation | CareersReferencePageTest | Partial |
 | 088 | contact us | GET /contact | SiteController::contact → site.contact | Static page; meeting fields | POST /enquiry type=contact → Inquiry + Conversation | Contact/informational coverage; screenshot pending | Partial |
 | 089 | global network | GET /global-network | SiteController::globalNetwork → site.global-network | Static page; Limerick marker must be Ireland | — | No dedicated global-network suite | Partial · map/data proof pending |
@@ -42,9 +42,9 @@ A static Blade view or a named route is not visual completion. Every row needs a
 
 ## Shared public rules
 
-- Header order: HOME, SHOP, COLLECTIONS, NEW ARRIVALS, CORPORATE ORDER, BULK ORDER, FRANCHISE APPLY, HIRING APPLY.
+- Header order: HOME, SHOP, COLLECTIONS, NEW ARRIVALS, CORPORATE ORDER, BULK ORDER, FRANCHISE APPLY, HIRING APPLY, CONTACT US.
 - Utilities: Language, Currency, Search, Login, Cart.
-- Contact values are footer-only.
+- The Contact Us page link appears in the public header; phone, email, and address values remain footer-only.
 - Use the exact supplied Emerald Rozalia logo/wordmark. Do not add an unauthorized logo or shield.
 - Virtual Try-On is a hero/product experience; 360° is connected to product detail through public UUID routes.
 - Limerick must be located in Ireland in the global-network composition.

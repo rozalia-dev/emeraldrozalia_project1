@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class TryOnAsset extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded = [];
     protected $casts = ['files'=>'array','settings'=>'array','seo'=>'array'];
 
@@ -42,7 +45,6 @@ class TryOnAsset extends Model
 
     protected static function booted(): void
     {
-        static::addGlobalScope('product_tenant', fn ($query) => $query->whereHas('product', fn ($product) => $product->when(session('company_id'), fn ($product, $companyId) => $product->where('products.company_id', (int) $companyId))));
         static::creating(fn ($asset) => $asset->uuid ??= (string) Str::uuid());
     }
 
@@ -66,7 +68,7 @@ class TryOnAsset extends Model
         return $this->status === 'published'
             && $this->visibility === 'public'
             && $this->previewPath() !== null
-            && (bool) $this->product?->is_active;
+            && (bool) $this->product?->isPubliclyPublished();
     }
 
     public function previewUrl(): ?string

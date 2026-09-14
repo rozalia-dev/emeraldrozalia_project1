@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ReturnRequest;
 use App\Services\AuditTrail;
+use App\Services\OrderLifecycle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,9 +35,9 @@ class OrderMasterOverviewController extends Controller
         'buyer' => ['label'=>'Buyer Orders','prefix'=>'BUYR','tone'=>'red','icon'=>'user'],
     ];
 
-    private const ORDER_STATUSES = ['pending','approved','processing','shipped','completed','cancelled','refunded'];
-    private const PAYMENT_STATUSES = ['unpaid','pending','paid','failed','refunded','pay_on_delivery'];
-    private const FULFILLMENT_STATUSES = ['pending','on_hold','picking','packed','ready_to_ship','shipped','delivered','closed'];
+    private const ORDER_STATUSES = OrderLifecycle::ORDER_STATUSES;
+    private const PAYMENT_STATUSES = OrderLifecycle::PAYMENT_STATUSES;
+    private const FULFILLMENT_STATUSES = OrderLifecycle::FULFILLMENT_STATUSES;
 
     public function index(Request $request): View
     {

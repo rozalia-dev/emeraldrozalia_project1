@@ -16,7 +16,7 @@ class OrderMasterDashboardsReferenceTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
 
         foreach ([
-            'online' => 'Online Orders', 'bulk' => 'Bulk Orders', 'buyer' => 'Buyer Orders',
+            'online' => 'Online Orders', 'corporate' => 'Corporate Orders', 'bulk' => 'Bulk Orders', 'buyer' => 'Buyer Orders',
             'franchise' => 'Franchise Orders', 'franchise_retail' => 'Franchise Retail Orders',
         ] as $type => $label) {
             $this->actingAs($admin)->get(route('admin.order-master', $type))
@@ -42,5 +42,22 @@ class OrderMasterDashboardsReferenceTest extends TestCase
             ->assertOk()
             ->assertSee([$order->number, 'PostgreSQL Customer', '€120.00', 'Delivered', 'Website'], false)
             ->assertDontSee('ONL-250501-0001', false);
+    }
+
+    public function test_empty_category_dashboard_is_an_honest_live_empty_state(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $response = $this->actingAs($admin)->get(route('admin.order-master', 'online'))
+            ->assertOk()
+            ->assertSee([
+                'All time', 'Awaiting live order data', 'No live orders recorded',
+                'No product sales data yet.', 'No entity performance data yet.',
+                'No fulfillment data yet.', 'No order activity has been recorded yet.',
+            ], false);
+
+        foreach (['ONL-250501-0001', '6,248', '€2,145,780.25', '18.72%', 'John Smith'] as $fixtureValue) {
+            $this->assertStringNotContainsString($fixtureValue, $response->getContent(), "Fixture value leaked into the empty order master: {$fixtureValue}");
+        }
     }
 }

@@ -17,13 +17,15 @@
         .invoice-actions{display:flex;gap:10px;margin-top:30px}.invoice-actions button,.invoice-actions a{padding:11px 16px;border:1px solid #0b3a27;background:#0b3a27;color:#fff;text-decoration:none;cursor:pointer;font-size:11px}.invoice-actions a{background:#fff;color:#0b3a27}
         footer{margin-top:38px;padding-top:15px;border-top:1px solid #dce4dc;color:#66746a;font-size:10px}
         .invoice-logo-image{display:block;width:230px;height:65px;object-fit:cover;object-position:center 65%}
+        .invoice-logo-missing{display:grid;width:230px;height:65px;place-items:center;border:1px dashed #9aa79d;color:#536158;font:700 15px Georgia,serif;text-align:center}
         @media print{body{padding:0} .invoice-actions{display:none}}
         @media(max-width:600px){body{padding:18px}.meta{grid-template-columns:1fr}header{flex-direction:column}.brand-copy{text-align:left}.table-wrap{overflow:auto}table{min-width:600px}}
     </style>
 </head>
 <body>
     <header>
-        <img class="invoice-logo-image" src="{{asset('assets/logo/logo_two_line.png')}}" alt="Emerald Rozalia Limited">
+        @php($invoiceLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
+        @if($invoiceLogo)<img class="invoice-logo-image" src="{{ $invoiceLogo['url'] }}" @if($invoiceLogo['srcset']) srcset="{{ $invoiceLogo['srcset'] }}" sizes="{{ $invoiceLogo['sizes'] }}" @endif width="{{ $invoiceLogo['width'] ?: '' }}" height="{{ $invoiceLogo['height'] ?: '' }}" alt="{{ $invoiceLogo['alt'] }}">@else<span class="invoice-logo-missing">Emerald Rozalia Limited</span>@endif
         <div class="brand-copy"><strong>ORDER INVOICE</strong><br>Order {{ $order->number }}<br>{{ $order->created_at?->format('d M Y') }}</div>
     </header>
 

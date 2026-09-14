@@ -2,14 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuthorizesCommunication;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class CommunicationEmailIndexRequest extends FormRequest
 {
+    use AuthorizesCommunication;
     public function authorize(): bool
     {
-        return (bool) $this->user()?->is_admin;
+        return $this->communicationAuthorized('view');
     }
 
     public function rules(): array

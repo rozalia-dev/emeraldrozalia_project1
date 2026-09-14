@@ -53,7 +53,7 @@ class VideoPlaybackController extends Controller
         $day = now()->toDateString();
         $now = now()->utc();
         VideoPlay::query()->insertOrIgnore([
-            'product_media_id'=>$video->id,'session_hash'=>$hash,'day'=>$day,
+            'product_media_id'=>$video->id,'company_id'=>$video->company_id,'session_hash'=>$hash,'day'=>$day,
             'started_at'=>$now,'seconds'=>0,'created_at'=>$now,'updated_at'=>$now,
         ]);
         DB::transaction(function () use ($video,$hash,$day,$data,$now): void {

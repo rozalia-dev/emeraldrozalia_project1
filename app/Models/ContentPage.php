@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class ContentPage extends Model
 {
-    use SoftDeletes;
+    use BelongsToTenant, SoftDeletes;
 
     protected $guarded = [];
 
@@ -21,6 +23,19 @@ class ContentPage extends Model
         'published_at' => 'datetime',
         'archived_at' => 'datetime',
     ];
+
+    protected static function applyTenantScope(Builder $builder, int $companyId): void
+    {
+        $table = $builder->getModel()->getTable();
+
+        $builder->where(function (Builder $query) use ($table, $companyId): void {
+            $query->where($table.'.company_id', $companyId)
+                ->orWhere(function (Builder $globalPage) use ($table): void {
+                    $globalPage->whereNull($table.'.company_id')
+                        ->where($table.'.is_reserved', true);
+                });
+        });
+    }
 
     protected static function booted(): void
     {

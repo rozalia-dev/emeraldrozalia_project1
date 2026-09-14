@@ -1,12 +1,15 @@
 <?php
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductMedia extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded = [];
 
     protected function casts(): array
@@ -31,13 +34,13 @@ class ProductMedia extends Model
         return $query
             ->where('approval_status', 'approved')
             ->where('active', true)
-            ->whereHas('product', fn (Builder $productQuery) => $productQuery->where('is_active', true));
+            ->whereHas('product', fn (Builder $productQuery) => $productQuery->published());
     }
 
     public function isApprovedPublic(): bool
     {
         return $this->approval_status === 'approved'
             && (bool) $this->active
-            && (bool) $this->product?->is_active;
+            && (bool) $this->product?->isPubliclyPublished();
     }
 }

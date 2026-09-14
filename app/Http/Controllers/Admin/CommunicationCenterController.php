@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CommunicationWorkItemActionRequest;
+use App\Http\Requests\CommunicationWorkItemRequest;
 use App\Models\Approval;
 use App\Models\AdminRecord;
 use App\Models\AuditLog;
@@ -11,6 +13,7 @@ use App\Models\ConversationMessage;
 use App\Models\CommunicationTemplate;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\CommunicationWorkItemService;
 use App\Services\ApprovalRequestService;
 use App\Services\CommunicationTemplateService;
 use Illuminate\Database\Eloquent\Builder;
@@ -154,7 +157,9 @@ class CommunicationCenterController extends Controller
             ]);
         }
 
-        $query = AdminRecord::query()->where('module', $section);
+        $query = in_array($section, ['action-follow-ups', 'alerts-notifications'], true)
+            ? app(CommunicationWorkItemService::class)->query($section)
+            : AdminRecord::query()->where('module', $section);
         $this->applyRecordFilters($query, $request, $config);
         $records = $query->latest('id')->paginate(10)->withQueryString();
 
@@ -281,6 +286,78 @@ class CommunicationCenterController extends Controller
         return back()->with('success', Str::headline($action).' completed.');
     }
 
+    public function storeAction(CommunicationWorkItemRequest $request): RedirectResponse
+    {
+        app(CommunicationWorkItemService::class)->create('action-follow-ups', $request->validated());
+
+        return back()->with('success', 'Action created.');
+    }
+
+    public function updateAction(CommunicationWorkItemRequest $request, string $record): RedirectResponse
+    {
+        app(CommunicationWorkItemService::class)->update('action-follow-ups', $record, $request->validated());
+
+        return back()->with('success', 'Action updated.');
+    }
+
+    public function destroyAction(string $record): RedirectResponse
+    {
+        app(CommunicationWorkItemService::class)->destroy('action-follow-ups', $record);
+
+        return back()->with('success', 'Action moved to trash.');
+    }
+
+    public function actionAction(
+        CommunicationWorkItemActionRequest $request,
+        string $record,
+        string $action,
+    ): RedirectResponse {
+        app(CommunicationWorkItemService::class)->transition(
+            'action-follow-ups',
+            $record,
+            $action,
+            $request->validated(),
+        );
+
+        return back()->with('success', Str::headline($action).' completed.');
+    }
+
+    public function storeAlert(CommunicationWorkItemRequest $request): RedirectResponse
+    {
+        app(CommunicationWorkItemService::class)->create('alerts-notifications', $request->validated());
+
+        return back()->with('success', 'Alert created.');
+    }
+
+    public function updateAlert(CommunicationWorkItemRequest $request, string $record): RedirectResponse
+    {
+        app(CommunicationWorkItemService::class)->update('alerts-notifications', $record, $request->validated());
+
+        return back()->with('success', 'Alert updated.');
+    }
+
+    public function destroyAlert(string $record): RedirectResponse
+    {
+        app(CommunicationWorkItemService::class)->destroy('alerts-notifications', $record);
+
+        return back()->with('success', 'Alert moved to trash.');
+    }
+
+    public function alertAction(
+        CommunicationWorkItemActionRequest $request,
+        string $record,
+        string $action,
+    ): RedirectResponse {
+        app(CommunicationWorkItemService::class)->transition(
+            'alerts-notifications',
+            $record,
+            $action,
+            $request->validated(),
+        );
+
+        return back()->with('success', Str::headline($action).' completed.');
+    }
+
     public function export(Request $request, string $section): StreamedResponse
     {
         $config = $this->config($section);
@@ -401,7 +478,9 @@ class CommunicationCenterController extends Controller
             }, 'approval-center-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
         }
 
-        $query = AdminRecord::query()->where('module', $section);
+        $query = in_array($section, ['action-follow-ups', 'alerts-notifications'], true)
+            ? app(CommunicationWorkItemService::class)->query($section)
+            : AdminRecord::query()->where('module', $section);
         $this->applyRecordFilters($query, $request, $config);
         $rows = $query->latest('id')->limit(10000)->get();
 
@@ -749,7 +828,7 @@ class CommunicationCenterController extends Controller
 
         if ($section === 'communication-center') {
             $approvals = Approval::query()->forCurrentCompany()->whereIn('status', ['pending', 'in-progress'])->count();
-            $alerts = AdminRecord::query()->where('module', 'alerts-notifications')->whereIn('status', ['unread', 'in-progress', 'escalated'])->count();
+            $alerts = app(CommunicationWorkItemService::class)->query('alerts-notifications')->whereIn('status', ['unread', 'in-progress', 'escalated'])->count();
 
             return [
                 $this->metric('Total Conversations', $total, 'message', 'blue', 'Live communication records'),
@@ -848,7 +927,9 @@ class CommunicationCenterController extends Controller
             return $this->approvalMetrics();
         }
 
-        $rows = AdminRecord::query()->where('module', $section)->get();
+        $rows = in_array($section, ['action-follow-ups', 'alerts-notifications'], true)
+            ? app(CommunicationWorkItemService::class)->query($section)->get()
+            : AdminRecord::query()->where('module', $section)->get();
         $count = fn (string ...$statuses) => $rows->whereIn('status', $statuses)->count();
 
         if ($section === 'approval-center') {
@@ -1011,7 +1092,7 @@ class CommunicationCenterController extends Controller
             'closed' => $this->applyDateRange(Conversation::query()->where('status', 'closed'), $request)->count(),
             'recent' => $this->applyDateRange(Conversation::query(), $request)->latest('id')->limit(5)->get(),
             'approval_recent' => Approval::query()->forCurrentCompany()->with(['requestedBy', 'approver'])->latest('id')->limit(5)->get(),
-            'alert_recent' => AdminRecord::query()->where('module', 'alerts-notifications')->latest('id')->limit(5)->get(),
+            'alert_recent' => app(CommunicationWorkItemService::class)->query('alerts-notifications')->latest('id')->limit(5)->get(),
         ];
     }
 
@@ -1039,16 +1120,18 @@ class CommunicationCenterController extends Controller
             return $this->approvalSummary();
         }
 
-        $rows = AdminRecord::query()->where('module', $section)->latest('id')->get();
+        $rows = in_array($section, ['action-follow-ups', 'alerts-notifications'], true)
+            ? app(CommunicationWorkItemService::class)->query($section)->latest('id')->get()
+            : AdminRecord::query()->where('module', $section)->latest('id')->get();
 
         return [
             'total' => $rows->count(),
             'recent' => $rows->take(5),
             'status_counts' => $rows->groupBy('status')->map->count()->sortDesc(),
-            'category_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'category', 'General'))->map->count()->sortDesc()->take(7),
-            'source_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'source', 'Communication Center'))->map->count()->sortDesc()->take(7),
-            'priority_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'priority', 'normal'))->map->count()->sortDesc(),
-            'severity_counts' => $rows->groupBy(fn (AdminRecord $row) => (string) data_get($row->data, 'severity', 'low'))->map->count()->sortDesc(),
+            'category_counts' => $rows->groupBy(fn ($row) => (string) data_get($row->data, 'category', 'General'))->map->count()->sortDesc()->take(7),
+            'source_counts' => $rows->groupBy(fn ($row) => (string) data_get($row->data, 'source', 'Communication Center'))->map->count()->sortDesc()->take(7),
+            'priority_counts' => $rows->groupBy(fn ($row) => (string) data_get($row->data, 'priority', 'normal'))->map->count()->sortDesc(),
+            'severity_counts' => $rows->groupBy(fn ($row) => (string) data_get($row->data, 'severity', 'low'))->map->count()->sortDesc(),
         ];
     }
 
@@ -1259,17 +1342,17 @@ class CommunicationCenterController extends Controller
 
     private function metaCount(Collection $rows, string $key, string $value): int
     {
-        return $rows->filter(fn (AdminRecord $row) => Str::lower((string) data_get($row->data, $key)) === $value)->count();
+        return $rows->filter(fn ($row) => Str::lower((string) data_get($row->data, $key)) === $value)->count();
     }
 
     private function sumMeta(Collection $rows, string $key): int
     {
-        return (int) $rows->sum(fn (AdminRecord $row) => (int) data_get($row->data, $key, 0));
+        return (int) $rows->sum(fn ($row) => (int) data_get($row->data, $key, 0));
     }
 
     private function averageMetaDuration(Collection $rows, string $key): string
     {
-        $values = $rows->map(fn (AdminRecord $row) => data_get($row->data, $key))
+        $values = $rows->map(fn ($row) => data_get($row->data, $key))
             ->filter(fn ($value) => is_numeric($value))
             ->map(fn ($value) => (float) $value);
         if ($values->isEmpty()) {

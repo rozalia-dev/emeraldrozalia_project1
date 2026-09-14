@@ -176,7 +176,7 @@ class PageManagerController extends Controller
             ->where('uuid', $value)
             ->where('approval_status', 'approved')
             ->where('active', true)
-            ->whereHas('product', fn ($query) => $query->where('is_active', true))
+            ->whereHas('product', fn ($query) => $query->published())
             ->exists()) {
             return $value;
         }
@@ -187,7 +187,7 @@ class PageManagerController extends Controller
             ->where('active', true)
             ->whereHas('variant', fn ($query) => $query
                 ->where('is_active', true)
-                ->whereHas('product', fn ($productQuery) => $productQuery->where('is_active', true)))
+                ->whereHas('product', fn ($productQuery) => $productQuery->published()))
             ->exists() ? $value : null;
     }
 
@@ -198,7 +198,7 @@ class PageManagerController extends Controller
         $productMedia = ProductMedia::query()
             ->where('approval_status', 'approved')
             ->where('active', true)
-            ->whereHas('product', fn ($query) => $query->where('is_active', true))
+            ->whereHas('product', fn ($query) => $query->published())
             ->with('product')
             ->latest('created_at')
             ->get();
@@ -207,7 +207,7 @@ class PageManagerController extends Controller
             ->where('active', true)
             ->whereHas('variant', fn ($query) => $query
                 ->where('is_active', true)
-                ->whereHas('product', fn ($productQuery) => $productQuery->where('is_active', true)))
+                ->whereHas('product', fn ($productQuery) => $productQuery->published()))
             ->with('variant.product')
             ->latest('created_at')
             ->get();

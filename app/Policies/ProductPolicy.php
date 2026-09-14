@@ -13,7 +13,7 @@ class ProductPolicy
 
     public function view(?User $user, Product $product): bool
     {
-        return $product->is_active && in_array($product->status, ['active', 'published'], true);
+        return $product->isPubliclyPublished();
     }
 
     public function update(User $user, Product $product): bool

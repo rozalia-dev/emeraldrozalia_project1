@@ -1,6 +1,10 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminRecordRequest;
+use App\Http\Requests\CommunicationConversationUpdateRequest;
+use App\Http\Requests\CommunicationReplyRequest;
+use App\Http\Requests\{ReviewBulkStatusRequest, ReviewImportRequest, ReviewStatusRequest};
 use App\Models\AdminRecord;
 use App\Models\Category;
 use App\Models\Product;
@@ -32,7 +36,7 @@ class ResourceController extends Controller {
     ];
     private const GENERIC_STATUSES=['active','draft','planned','in-progress','completed','on-hold','new','pending','approved','rejected','open','closed','archived'];
     private function valid(string $module):void { abort_unless(in_array($module,$this->modules,true),404); }
-    private function data(Request $r):array { return $r->validate(['title'=>['required','string','max:180'],'reference'=>['nullable','string','max:100'],'status'=>['required','string',Rule::in(self::GENERIC_STATUSES)],'amount'=>['nullable','numeric','min:0','max:999999999.99'],'record_date'=>['nullable','date'],'notes'=>['nullable','string','max:3000']]); }
+    private function data(AdminRecordRequest $r):array { return $r->validate(['title'=>['required','string','max:180'],'reference'=>['nullable','string','max:100'],'status'=>['required','string',Rule::in(self::GENERIC_STATUSES)],'amount'=>['nullable','numeric','min:0','max:999999999.99'],'record_date'=>['nullable','date'],'notes'=>['nullable','string','max:3000']]); }
     public function index(Request $request,string $module):View {
         $this->valid($module);
         if($module==='product-manager')return $this->productManager($request);
@@ -146,6 +150,7 @@ class ResourceController extends Controller {
     }
     private function reviewsRatings(Request $request): View
     {
+        Gate::authorize('viewAny', Review::class);
         $tab = (string) $request->query('tab', 'all');
         $tabs = ['all', 'pending', 'approved', 'rejected', 'flagged', 'import'];
         $tab = in_array($tab, $tabs, true) ? $tab : 'all';
@@ -278,11 +283,10 @@ class ResourceController extends Controller {
             'reviewSettings',
         ));
     }
-    public function updateReviewStatus(Request $request, Review $review): RedirectResponse
+    public function updateReviewStatus(ReviewStatusRequest $request, Review $review): RedirectResponse
     {
-        $data = $request->validate([
-            'status' => ['required', Rule::in(['pending', 'approved', 'rejected', 'flagged'])],
-        ]);
+        Gate::authorize('update', $review);
+        $data = $request->validated();
         $before = $review->toArray();
         $review->update(['status' => $data['status']]);
         AuditTrail::record('review.status.updated', $review, $before, $review->fresh()->toArray());
@@ -290,16 +294,16 @@ class ResourceController extends Controller {
         return back()->with('success', 'Review status updated.');
     }
 
-    public function bulkReviewStatus(Request $request): RedirectResponse
+    public function bulkReviewStatus(ReviewBulkStatusRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', Rule::exists('reviews', 'id')],
-            'status' => ['required', Rule::in(['pending', 'approved', 'rejected', 'flagged'])],
-        ]);
+        Gate::authorize('viewAny', Review::class);
+        $data = $request->validated();
 
         DB::transaction(function () use ($data): void {
-            Review::query()->whereIn('id', $data['ids'])->lockForUpdate()->get()->each(function (Review $review) use ($data): void {
+            $reviews = Review::query()->whereIn('id', $data['ids'])->lockForUpdate()->get();
+            abort_unless($reviews->count() === count(array_unique($data['ids'])), 404);
+            $reviews->each(function (Review $review) use ($data): void {
+                Gate::authorize('update', $review);
                 $before = $review->toArray();
                 $review->update(['status' => $data['status']]);
                 AuditTrail::record('review.status.bulk_updated', $review, $before, $review->fresh()->toArray());
@@ -309,9 +313,10 @@ class ResourceController extends Controller {
         return back()->with('success', count($data['ids']).' review status update(s) saved.');
     }
 
-    public function importReviews(Request $request): RedirectResponse
+    public function importReviews(ReviewImportRequest $request): RedirectResponse
     {
-        $data = $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:4096']]);
+        Gate::authorize('create', Review::class);
+        $data = $request->validated();
         $handle = fopen($data['file']->getRealPath(), 'rb');
         abort_unless(is_resource($handle), 422, 'The review import file could not be opened.');
 
@@ -347,6 +352,7 @@ class ResourceController extends Controller {
                 $review = Review::query()->where('user_id', $user->id)->where('product_id', $product->id)->first();
                 $payload = ['rating' => $rating, 'title' => trim((string) ($record['title'] ?? '')) ?: null, 'body' => trim((string) ($record['body'] ?? '')) ?: null, 'status' => 'pending'];
                 if ($review) {
+                    Gate::authorize('update', $review);
                     $before = $review->toArray();
                     $review->update($payload);
                     AuditTrail::record('review.import.updated', $review, $before, $review->fresh()->toArray());
@@ -402,26 +408,18 @@ class ResourceController extends Controller {
         $categories=Category::query()->where('is_active',true)->orderBy('sort_order')->orderBy('name')->get(['id','name']);
         return view('admin.product-manager.index',compact('products','categories','stats','tabs','tab','search','categoryId','minPrice','maxPrice','rating','featured'));
     }
-    public function updateConversation(Request $request, Conversation $conversation)
+    public function updateConversation(CommunicationConversationUpdateRequest $request, Conversation $conversation)
     {
-        $data = $request->validate([
-            'status' => ['required', Rule::in(['new', 'open', 'pending', 'closed'])],
-            'priority' => ['required', Rule::in(['low', 'normal', 'high', 'urgent'])],
-            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_admin', true)],
-            'follow_up_at' => ['nullable', 'date'],
-        ]);
+        $data = $request->validated();
 
         app(CommunicationCenter::class)->updateConversation($conversation, $data);
 
         return back()->with('success', 'Conversation updated.');
     }
 
-    public function storeMessage(Request $request, Conversation $conversation)
+    public function storeMessage(CommunicationReplyRequest $request, Conversation $conversation)
     {
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:5000'],
-            'mode' => ['nullable', Rule::in(['reply', 'internal_note'])],
-        ]);
+        $data = $request->validated();
         $idempotencyKey = $request->header('Idempotency-Key');
 
         $key = is_string($idempotencyKey) ? $idempotencyKey : null;
@@ -435,8 +433,8 @@ class ResourceController extends Controller {
 
         return back()->with('success', 'Reply queued in Communication Center.');
     }
-    public function store(Request $r,string $module){$this->valid($module);Gate::authorize('create',AdminRecord::class);$d=$this->data($r);$record=AdminRecord::create(['module'=>$module,'title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'user_id'=>auth()->id(),'data'=>['notes'=>$d['notes']??null]]);AuditTrail::record($module.'.created',$record,null,$record->toArray());return back()->with('success','Record created.');}
-    public function update(Request $r,string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);Gate::authorize('update',$record);$before=$record->toArray();$d=$this->data($r);$record->update(['title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'data'=>array_merge($record->data??[],['notes'=>$d['notes']??null])]);AuditTrail::record($module.'.updated',$record,$before,$record->fresh()->toArray());return back()->with('success','Record updated.');}
+    public function store(AdminRecordRequest $r,string $module){$this->valid($module);Gate::authorize('create',AdminRecord::class);$d=$this->data($r);$record=AdminRecord::create(['module'=>$module,'title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'user_id'=>auth()->id(),'data'=>['notes'=>$d['notes']??null]]);AuditTrail::record($module.'.created',$record,null,$record->toArray());return back()->with('success','Record created.');}
+    public function update(AdminRecordRequest $r,string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);Gate::authorize('update',$record);$before=$record->toArray();$d=$this->data($r);$record->update(['title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'data'=>array_merge($record->data??[],['notes'=>$d['notes']??null])]);AuditTrail::record($module.'.updated',$record,$before,$record->fresh()->toArray());return back()->with('success','Record updated.');}
     public function destroy(string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);Gate::authorize('trash',$record);$before=$record->toArray();$record->delete();$after=$record->toArray();$after['deleted_at']=$record->deleted_at?->toISOString();AuditTrail::record($module.'.trashed',$record,$before,$after);return back()->with('success','Record moved to trash.');}
     private function findGenericRecord(string $module, int $id, bool $withTrashed = false): AdminRecord
     {

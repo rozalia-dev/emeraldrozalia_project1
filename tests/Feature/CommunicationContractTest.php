@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\CommunicationProvider;
 use App\Jobs\DeliverCommunicationMessage;
 use App\Models\CommunicationWebhookEvent;
 use App\Models\Company;
@@ -10,9 +11,122 @@ use App\Models\ConversationMessage;
 use App\Models\User;
 use App\Services\CommunicationCenter;
 use App\Services\CommunicationProviderRegistry;
+use App\Support\CommunicationSendResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as ClientRequest;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
+
+
+final class CommunicationContractFakeProvider implements CommunicationProvider
+{
+    public static array $messageUuids = [];
+
+    public function send(ConversationMessage $message): CommunicationSendResult
+    {
+        self::$messageUuids[] = (string) $message->uuid;
+
+        return new CommunicationSendResult('accepted', 'provider-message-001');
+    }
+    public function test_configured_fake_provider_updates_delivery_state_without_fabricating_delivery(): void
+    {
+        config(['communication.channels.whatsapp' => CommunicationContractFakeProvider::class]);
+        CommunicationContractFakeProvider::$messageUuids = [];
+
+        $conversation = Conversation::create([
+            'channel' => 'whatsapp',
+            'contact' => '+353 87 000 0003',
+            'subject' => 'Configured provider',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'Provider-backed reply.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-contract-001',
+        ]);
+
+        (new DeliverCommunicationMessage($message->id))->handle(
+            app(CommunicationProviderRegistry::class),
+            app(CommunicationCenter::class),
+        );
+
+        $message->refresh();
+        $this->assertSame([$message->uuid], CommunicationContractFakeProvider::$messageUuids);
+        $this->assertSame('queued', $message->delivery_status);
+        $this->assertSame('provider-message-001', $message->provider_message_id);
+        $this->assertSame(1, $message->delivery_attempts);
+        $this->assertNull($message->delivered_at);
+    }
+
+    public function test_default_http_provider_sends_a_correlated_idempotent_payload(): void
+    {
+        config([
+            'communication.channels.email' => null,
+            'communication.endpoints.email' => 'https://email-provider.test/messages',
+            'communication.tokens.email' => 'test-provider-token',
+        ]);
+        Http::fake([
+            'https://email-provider.test/*' => Http::response([
+                'status' => 'accepted',
+                'id' => 'email-provider-001',
+            ], 202),
+        ]);
+
+        $conversation = Conversation::create([
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Provider payload',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'A real adapter boundary.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-http-001',
+            'payload' => ['correlation_id' => '11111111-2222-4333-8444-555555555555'],
+        ]);
+
+        $provider = app(CommunicationProviderRegistry::class)->for('email');
+        $this->assertNotNull($provider);
+        $result = $provider->send($message);
+
+        $this->assertSame('accepted', $result->status);
+        $this->assertSame('email-provider-001', $result->providerMessageId);
+        $recorded = Http::recorded();
+        $this->assertCount(1, $recorded);
+        /** @var ClientRequest $request */
+        $request = $recorded[0][0];
+        $this->assertSame('https://email-provider.test/messages', $request->url());
+        $this->assertSame('email', $request->data()['channel']);
+        $this->assertSame('customer@example.test', $request->data()['to']);
+        $this->assertSame('provider-http-001', $request->data()['idempotency_key']);
+        $this->assertSame('11111111-2222-4333-8444-555555555555', $request->data()['correlation_id']);
+        $this->assertSame(['Bearer test-provider-token'], $request->header('Authorization'));
+    }
+
+    public function test_explicit_non_admin_approval_users_must_belong_to_the_selected_company(): void
+    {
+        $company = \App\Models\Company::create(['name' => 'Selected Company', 'code' => 'COMM-SCOPE-1', 'active' => true]);
+        $otherCompany = \App\Models\Company::create(['name' => 'Other Company', 'code' => 'COMM-SCOPE-2', 'active' => true]);
+        $admin = User::factory()->create(['is_admin' => true]);
+        $foreignUser = User::factory()->create(['is_admin' => false]);
+        $admin->companies()->attach($company->id, ['role' => 'owner', 'is_default' => true]);
+        $foreignUser->companies()->attach($otherCompany->id, ['role' => 'member', 'is_default' => true]);
+
+        $this->withSession(['company_id' => $company->id])
+            ->actingAs($admin)
+            ->postJson(route('api.v1.communication.approvals.store'), [
+                'title' => 'Foreign requester must be rejected',
+                'request_type' => 'Operations',
+                'requested_by_id' => $foreignUser->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('requested_by_id');
+    }
+
+}
 
 class CommunicationContractTest extends TestCase
 {
@@ -168,6 +282,49 @@ class CommunicationContractTest extends TestCase
             ->assertStatus(401);
     }
 
+    public function test_webhook_cannot_update_a_message_through_the_wrong_provider_channel(): void
+    {
+        config(['communication.webhook_secrets.whatsapp' => 'channel-secret']);
+        $conversation = Conversation::create([
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Channel isolation',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'Email message must not be updated by WhatsApp.',
+            'delivery_status' => 'queued',
+        ]);
+        $payload = [
+            'event_id' => 'wrong-channel-event-001',
+            'event_type' => 'message.delivered',
+            'message_uuid' => $message->uuid,
+            'status' => 'delivered',
+        ];
+        $rawPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        $this->call(
+            'POST',
+            '/api/v1/communication/webhooks/whatsapp',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_COMMUNICATION_SIGNATURE' => hash_hmac('sha256', $rawPayload, 'channel-secret'),
+            ],
+            $rawPayload,
+        )->assertOk()
+            ->assertJsonPath('status', 'ignored');
+
+        $this->assertSame('queued', $message->fresh()->delivery_status);
+        $this->assertSame(
+            'The provider does not match the message channel.',
+            CommunicationWebhookEvent::firstOrFail()->failure_reason,
+        );
+    }
+
     public function test_webhook_requires_a_configured_secret(): void
     {
         config(['communication.webhook_secrets.whatsapp' => null]);
@@ -182,4 +339,101 @@ class CommunicationContractTest extends TestCase
             '{}',
         )->assertStatus(503);
     }
+    public function test_configured_fake_provider_updates_delivery_state_without_fabricating_delivery(): void
+    {
+        config(['communication.channels.whatsapp' => CommunicationContractFakeProvider::class]);
+        CommunicationContractFakeProvider::$messageUuids = [];
+
+        $conversation = Conversation::create([
+            'channel' => 'whatsapp',
+            'contact' => '+353 87 000 0003',
+            'subject' => 'Configured provider',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'Provider-backed reply.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-contract-001',
+        ]);
+
+        (new DeliverCommunicationMessage($message->id))->handle(
+            app(CommunicationProviderRegistry::class),
+            app(CommunicationCenter::class),
+        );
+
+        $message->refresh();
+        $this->assertSame([$message->uuid], CommunicationContractFakeProvider::$messageUuids);
+        $this->assertSame('queued', $message->delivery_status);
+        $this->assertSame('provider-message-001', $message->provider_message_id);
+        $this->assertSame(1, $message->delivery_attempts);
+        $this->assertNull($message->delivered_at);
+    }
+
+    public function test_default_http_provider_sends_a_correlated_idempotent_payload(): void
+    {
+        config([
+            'communication.channels.email' => null,
+            'communication.endpoints.email' => 'https://email-provider.test/messages',
+            'communication.tokens.email' => 'test-provider-token',
+        ]);
+        Http::fake([
+            'https://email-provider.test/*' => Http::response([
+                'status' => 'accepted',
+                'id' => 'email-provider-001',
+            ], 202),
+        ]);
+
+        $conversation = Conversation::create([
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Provider payload',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'A real adapter boundary.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-http-001',
+            'payload' => ['correlation_id' => '11111111-2222-4333-8444-555555555555'],
+        ]);
+
+        $provider = app(CommunicationProviderRegistry::class)->for('email');
+        $this->assertNotNull($provider);
+        $result = $provider->send($message);
+
+        $this->assertSame('accepted', $result->status);
+        $this->assertSame('email-provider-001', $result->providerMessageId);
+        $recorded = Http::recorded();
+        $this->assertCount(1, $recorded);
+        /** @var ClientRequest $request */
+        $request = $recorded[0][0];
+        $this->assertSame('https://email-provider.test/messages', $request->url());
+        $this->assertSame('email', $request->data()['channel']);
+        $this->assertSame('customer@example.test', $request->data()['to']);
+        $this->assertSame('provider-http-001', $request->data()['idempotency_key']);
+        $this->assertSame('11111111-2222-4333-8444-555555555555', $request->data()['correlation_id']);
+        $this->assertSame(['Bearer test-provider-token'], $request->header('Authorization'));
+    }
+
+    public function test_explicit_non_admin_approval_users_must_belong_to_the_selected_company(): void
+    {
+        $company = \App\Models\Company::create(['name' => 'Selected Company', 'code' => 'COMM-SCOPE-1', 'active' => true]);
+        $otherCompany = \App\Models\Company::create(['name' => 'Other Company', 'code' => 'COMM-SCOPE-2', 'active' => true]);
+        $admin = User::factory()->create(['is_admin' => true]);
+        $foreignUser = User::factory()->create(['is_admin' => false]);
+        $admin->companies()->attach($company->id, ['role' => 'owner', 'is_default' => true]);
+        $foreignUser->companies()->attach($otherCompany->id, ['role' => 'member', 'is_default' => true]);
+
+        $this->withSession(['company_id' => $company->id])
+            ->actingAs($admin)
+            ->postJson(route('api.v1.communication.approvals.store'), [
+                'title' => 'Foreign requester must be rejected',
+                'request_type' => 'Operations',
+                'requested_by_id' => $foreignUser->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('requested_by_id');
+    }
+
 }
