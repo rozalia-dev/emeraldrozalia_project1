@@ -243,7 +243,9 @@ class ProjectScopeTest extends TestCase {
         $direct=Conversation::withoutGlobalScopes()->whereKey($conversation->getKey())->first();
         $visible=Conversation::query()->forCurrentCompany()->whereKey($conversation->getKey())->first();
         fwrite(STDOUT,"\\nPROJECT_SCOPE_DIAGNOSTIC session_company=".var_export(session('company_id'),true)." conversation_company=".var_export($conversation->company_id,true)." direct=".($direct?'yes':'no')." visible=".($visible?'yes':'no')." admin=".var_export((bool)auth()->user()?->is_admin,true)."\\n");
-        $this->patch(route('admin.communication.update',$conversation),['status'=>'pending','priority'=>'high','assigned_to'=>$admin->id,'follow_up_at'=>'2026-09-09 10:00'])->assertRedirect();
+        $communicationResponse=$this->patch(route('admin.communication.update',$conversation),['status'=>'pending','priority'=>'high','assigned_to'=>$admin->id,'follow_up_at'=>'2026-09-09 10:00']);
+        fwrite(STDOUT,"PROJECT_SCOPE_RESPONSE status={$communicationResponse->status()} body=".substr(preg_replace('/\\s+/',' ',$communicationResponse->getContent()),0,500)."\\n");
+        $communicationResponse->assertRedirect();
         $this->assertSame('pending',$conversation->fresh()->status);
         $this->assertSame('high',$conversation->fresh()->priority);
         $this->assertSame($admin->id,$conversation->fresh()->assigned_to);

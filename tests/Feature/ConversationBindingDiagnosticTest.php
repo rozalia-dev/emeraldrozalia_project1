@@ -25,7 +25,7 @@ class ConversationBindingDiagnosticTest extends TestCase
         ]);
 
         $company = Company::create(['name' => 'Diagnostic Company', 'code' => 'DIAG-'.str()->random(8)]);
-        session(['company_id' => $company->id]);
+        session()->forget('company_id');
 
         $url = route('admin.communication.update', $conversation);
         $direct = Conversation::withoutGlobalScopes()->whereKey($conversation->getKey())->first();
