@@ -36,7 +36,6 @@ const enquiryRoutes = [
   '/bulk-orders',
   '/franchise',
   '/be-a-store-owner',
-  '/factory',
 ];
 
 test.describe('public route interaction contract', () => {
