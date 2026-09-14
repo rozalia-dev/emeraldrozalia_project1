@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{AuditLog, Order, PaymentTransaction, User};
+use App\Models\{AuditLog, InventoryMovement, Order, PaymentTransaction, User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
