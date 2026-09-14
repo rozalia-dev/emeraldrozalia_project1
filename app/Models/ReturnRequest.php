@@ -13,6 +13,11 @@ class ReturnRequest extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'correlation_id' => 'string',
+        'version' => 'integer',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -85,11 +85,16 @@ class ProjectScopeTest extends TestCase {
     public function test_returns_are_status_eligible_deduplicated_and_audited():void {
         $owner=User::factory()->create();
         $order=$owner->orders()->create(['number'=>'ER-RETURN-001','status'=>'completed','payment_status'=>'paid','subtotal'=>20,'shipping'=>0,'total'=>20,'currency'=>'EUR']);
-        $this->actingAs($owner)->post(route('account.return.store',$order),['type'=>'exchange','reason'=>'Size change','details'=>'Please exchange for the next size.'])->assertRedirect()->assertSessionHas('success','Return/exchange request submitted.');
+        $payload=['type'=>'exchange','reason'=>'Size change','details'=>'Please exchange for the next size.','idempotency_key'=>'return-replay-001'];
+        $this->actingAs($owner)->post(route('account.return.store',$order),$payload)->assertRedirect()->assertSessionHas('success','Return/exchange request submitted.');
         $return=ReturnRequest::firstOrFail();
         $this->assertSame('exchange',$return->type);
         $this->assertSame('requested',$return->status);
         $this->assertDatabaseHas('audit_logs',['action'=>'customer.return_requested','subject_id'=>(string)$return->id]);
+        $this->actingAs($owner)->post(route('account.return.store',$order),$payload)->assertRedirect()->assertSessionHas('success','Return/exchange request submitted.');
+        $this->assertDatabaseCount('returns',1);
+        $this->actingAs($owner)->post(route('account.return.store',$order),$payload+['reason'=>'Different reason'])->assertStatus(409);
+        $this->actingAs($owner)->post(route('account.return.store',$order),$payload+['idempotency_key'=>'bad key'])->assertSessionHasErrors('idempotency_key');
         $this->post(route('account.return.store',$order),['type'=>'return','reason'=>'Duplicate request'])->assertRedirect()->assertSessionHasErrors('order');
         $this->assertDatabaseCount('returns',1);
         $pending=$owner->orders()->create(['number'=>'ER-RETURN-002','status'=>'processing','payment_status'=>'pending','subtotal'=>10,'shipping'=>0,'total'=>10,'currency'=>'EUR']);

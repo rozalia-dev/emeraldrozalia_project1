@@ -30,6 +30,7 @@
                     @if(in_array($order->status, ['shipped', 'completed'], true))
                         <form method="post" action="{{ route('account.return.store', $order) }}">
                             @csrf
+                            <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
                             <select name="type" aria-label="Request type"><option value="return">Return</option><option value="exchange">Exchange</option></select>
                             <input name="reason" placeholder="Reason" required>
                             <input name="details" placeholder="Details (optional)">

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\{AddressRequest, ProfileUpdateRequest, ReturnRequestRequest};
 use App\Models\{Address, Order, PaymentTransaction, ReturnRequest};
-use App\Services\AuditTrail;
+use App\Services\{AuditTrail, ReturnRequestService};
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class AccountController extends Controller
@@ -54,88 +54,54 @@ class AccountController extends Controller
         ]);
     }
 
-    public function profile(Request $request): RedirectResponse
+    public function profile(ProfileUpdateRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'phone' => ['nullable', 'string', 'max:40'],
-        ]);
-
-        auth()->user()->update($data);
+        $user = auth()->user();
+        $before = $user->only(['name', 'phone']);
+        $user->update($request->validated());
+        AuditTrail::record('customer.profile_updated', $user, $before, $user->fresh()->only(['name', 'phone']));
 
         return back()->with('success', 'Profile updated.');
     }
 
-    public function addressStore(Request $request): RedirectResponse
+    public function addressStore(AddressRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'label' => ['required', 'string', 'max:40'],
-            'name' => ['required', 'string', 'max:120'],
-            'phone' => ['nullable', 'string', 'max:40'],
-            'line1' => ['required', 'string', 'max:180'],
-            'line2' => ['nullable', 'string', 'max:180'],
-            'city' => ['required', 'string', 'max:120'],
-            'county' => ['nullable', 'string', 'max:120'],
-            'postcode' => ['nullable', 'string', 'max:30'],
-            'country' => ['required', 'string', 'size:2'],
-            'is_default' => ['nullable', 'boolean'],
-        ]);
-
-        if ($request->boolean('is_default')) {
-            auth()->user()->addresses()->update(['is_default' => false]);
-        }
-
-        auth()->user()->addresses()->create($data + ['is_default' => $request->boolean('is_default')]);
+        $data = $request->validated();
+        $isDefault = $request->boolean('is_default');
+        $address = null;
+        DB::transaction(function () use (&$address, $data, $isDefault): void {
+            $user = auth()->user();
+            if ($isDefault) {
+                $user->addresses()->lockForUpdate()->update(['is_default' => false]);
+            }
+            $address = $user->addresses()->create($data + ['is_default' => $isDefault]);
+            AuditTrail::record('customer.address_created', $address, null, $address->toArray());
+        });
 
         return back()->with('success', 'Address saved.');
     }
 
     public function addressDelete(Address $address): RedirectResponse
     {
-        abort_unless($address->user_id === auth()->id(), 403);
+        Gate::authorize('delete', $address);
+        $before = $address->toArray();
         $address->delete();
+        AuditTrail::record('customer.address_deleted', $address, $before, null);
 
         return back()->with('success', 'Address removed.');
     }
 
-    public function returnStore(Request $request, Order $order): RedirectResponse
+    public function returnStore(ReturnRequestRequest $request, Order $order, ReturnRequestService $returns): RedirectResponse
     {
-        abort_unless($order->user_id === auth()->id(), 403);
-
-        if (!in_array($order->status, ['shipped', 'completed'], true)) {
-            throw ValidationException::withMessages([
-                'order' => 'Returns and exchanges can be requested after an order has shipped.',
-            ]);
-        }
-
-        if (ReturnRequest::query()
-            ->where('user_id', auth()->id())
-            ->where('order_id', $order->id)
-            ->whereIn('status', ['requested', 'approved', 'received', 'inspecting'])
-            ->exists()) {
-            throw ValidationException::withMessages([
-                'order' => 'An open return or exchange already exists for this order.',
-            ]);
-        }
-
-        $data = $request->validate([
-            'type' => ['required', 'in:return,exchange'],
-            'reason' => ['required', 'string', 'max:150'],
-            'details' => ['nullable', 'string', 'max:2000'],
-        ]);
-        $return = ReturnRequest::create($data + [
-            'user_id' => auth()->id(),
-            'order_id' => $order->id,
-            'number' => 'RET-'.strtoupper(Str::random(8)),
-        ]);
-        AuditTrail::record('customer.return_requested', $return, null, $return->toArray());
+        Gate::authorize('view', $order);
+        $returns->submit($order, $request->validated());
 
         return back()->with('success', 'Return/exchange request submitted.');
     }
 
     public function invoice(Order $order): View
     {
-        abort_unless($order->user_id === auth()->id(), 403);
+        Gate::authorize('invoice', $order);
         $order->load(['items', 'payments']);
 
         return view('account.invoice', compact('order'));
