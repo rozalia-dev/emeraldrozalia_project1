@@ -36,7 +36,7 @@ class FranchisePageTest extends TestCase
                 'BE PART OF OUR JOURNEY.',
                 'APPLY NOW',
                 '/css/franchise.css?v=20260908-approved-reference',
-                'data-approved-reference="franchise page.png"',
+                'data-public-media-register="franchise"',
             ], false);
     }
 
