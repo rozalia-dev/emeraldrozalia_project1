@@ -53,12 +53,15 @@ final class CommunicationWorkItemService
             $requestHash = $this->requestHash($section, $data);
 
             if ($idempotencyKey !== '') {
-                $existing = $this->query($section)
+                $existing = $model::withoutGlobalScopes()
                     ->where('idempotency_key', $idempotencyKey)
                     ->lockForUpdate()
                     ->first();
 
                 if ($existing) {
+                    if (! $this->query($section)->whereKey($existing->getKey())->exists()) {
+                        abort(409, 'This idempotency key belongs to another company context.');
+                    }
                     if (! hash_equals((string) $existing->request_hash, $requestHash)) {
                         abort(409, 'This idempotency key was already used for a different work item.');
                     }

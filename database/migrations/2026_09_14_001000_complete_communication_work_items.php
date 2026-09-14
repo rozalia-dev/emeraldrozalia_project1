@@ -58,6 +58,7 @@ return new class extends Migration
                 $table->string('category', 120)->nullable();
                 $table->string('source', 120)->nullable();
                 $table->string('entity', 180)->nullable();
+                $table->string('priority', 20)->default('normal')->index();
                 $table->string('severity', 30)->default('low')->index();
                 $table->string('status', 30)->default('unread')->index();
                 $table->date('record_date')->nullable()->index();
@@ -70,6 +71,12 @@ return new class extends Migration
                 $table->unsignedInteger('version')->default(1);
                 $table->timestampsTz();
                 $table->softDeletesTz();
+            });
+        }
+
+        if (Schema::hasTable('communication_alerts') && ! Schema::hasColumn('communication_alerts', 'priority')) {
+            Schema::table('communication_alerts', function (Blueprint $table): void {
+                $table->string('priority', 20)->default('normal')->index();
             });
         }
 
