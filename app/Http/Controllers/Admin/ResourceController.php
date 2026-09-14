@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\{ReviewBulkStatusRequest, ReviewImportRequest, ReviewStatusRequest};
 use App\Models\AdminRecord;
 use App\Models\Category;
 use App\Models\Product;
@@ -146,6 +147,7 @@ class ResourceController extends Controller {
     }
     private function reviewsRatings(Request $request): View
     {
+        Gate::authorize('viewAny', Review::class);
         $tab = (string) $request->query('tab', 'all');
         $tabs = ['all', 'pending', 'approved', 'rejected', 'flagged', 'import'];
         $tab = in_array($tab, $tabs, true) ? $tab : 'all';
@@ -278,11 +280,10 @@ class ResourceController extends Controller {
             'reviewSettings',
         ));
     }
-    public function updateReviewStatus(Request $request, Review $review): RedirectResponse
+    public function updateReviewStatus(ReviewStatusRequest $request, Review $review): RedirectResponse
     {
-        $data = $request->validate([
-            'status' => ['required', Rule::in(['pending', 'approved', 'rejected', 'flagged'])],
-        ]);
+        Gate::authorize('update', $review);
+        $data = $request->validated();
         $before = $review->toArray();
         $review->update(['status' => $data['status']]);
         AuditTrail::record('review.status.updated', $review, $before, $review->fresh()->toArray());
@@ -290,16 +291,16 @@ class ResourceController extends Controller {
         return back()->with('success', 'Review status updated.');
     }
 
-    public function bulkReviewStatus(Request $request): RedirectResponse
+    public function bulkReviewStatus(ReviewBulkStatusRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', Rule::exists('reviews', 'id')],
-            'status' => ['required', Rule::in(['pending', 'approved', 'rejected', 'flagged'])],
-        ]);
+        Gate::authorize('viewAny', Review::class);
+        $data = $request->validated();
 
         DB::transaction(function () use ($data): void {
-            Review::query()->whereIn('id', $data['ids'])->lockForUpdate()->get()->each(function (Review $review) use ($data): void {
+            $reviews = Review::query()->whereIn('id', $data['ids'])->lockForUpdate()->get();
+            abort_unless($reviews->count() === count(array_unique($data['ids'])), 404);
+            $reviews->each(function (Review $review) use ($data): void {
+                Gate::authorize('update', $review);
                 $before = $review->toArray();
                 $review->update(['status' => $data['status']]);
                 AuditTrail::record('review.status.bulk_updated', $review, $before, $review->fresh()->toArray());
@@ -309,9 +310,10 @@ class ResourceController extends Controller {
         return back()->with('success', count($data['ids']).' review status update(s) saved.');
     }
 
-    public function importReviews(Request $request): RedirectResponse
+    public function importReviews(ReviewImportRequest $request): RedirectResponse
     {
-        $data = $request->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:4096']]);
+        Gate::authorize('create', Review::class);
+        $data = $request->validated();
         $handle = fopen($data['file']->getRealPath(), 'rb');
         abort_unless(is_resource($handle), 422, 'The review import file could not be opened.');
 
@@ -347,6 +349,7 @@ class ResourceController extends Controller {
                 $review = Review::query()->where('user_id', $user->id)->where('product_id', $product->id)->first();
                 $payload = ['rating' => $rating, 'title' => trim((string) ($record['title'] ?? '')) ?: null, 'body' => trim((string) ($record['body'] ?? '')) ?: null, 'status' => 'pending'];
                 if ($review) {
+                    Gate::authorize('update', $review);
                     $before = $review->toArray();
                     $review->update($payload);
                     AuditTrail::record('review.import.updated', $review, $before, $review->fresh()->toArray());
