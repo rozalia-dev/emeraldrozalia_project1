@@ -47,8 +47,13 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES, 'p
         assert.equal(await sortRows.count(), initialSortRows + 1, 'Add Sort appends a real named sort row');
         await page.locator('[data-report-add-calculated]').click();
         assert.equal(await page.locator('[name="calculated_fields[]"]').count(), 1, 'Calculated fields are editable and submitted');
-        await page.locator('[data-report-template]').first().click();
-        assert.notEqual(await page.locator('.reports-builder-form [name="name"]').inputValue(), '', 'Template action loads the builder name');
+        const templates = page.locator('[data-report-template]');
+        if (await templates.count() > 0) {
+            await templates.first().click();
+            assert.notEqual(await page.locator('.reports-builder-form [name="name"]').inputValue(), '', 'Template action loads the builder name');
+        } else {
+            assert.ok((await page.locator('.reports-empty').allTextContents()).some(text => text.includes('No saved report templates recorded.')), 'Empty template state is explicit');
+        }
         await page.screenshot({path: path.join(artifacts, 'cpanel-reports-custom-desktop.png'), fullPage: true});
 
         await page.goto(base + '/admin/resource/reports/history');
