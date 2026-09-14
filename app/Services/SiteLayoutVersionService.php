@@ -484,8 +484,16 @@ final class SiteLayoutVersionService
                 : ['label' => '', 'href' => ''],
             array_values((array) data_get($regions, 'header.primary_menu', [])),
         );
-        if ($submittedMenu !== $canonicalMenu) {
-            $errors['header.primary_menu'] = 'The approved eight-item public navigation is fixed and cannot be changed here.';
+        $submittedBaseMenu = array_slice($submittedMenu, 0, count($canonicalMenu));
+        if ($submittedBaseMenu !== $canonicalMenu) {
+            $errors['header.primary_menu'] = 'The approved eight-item public navigation must remain first and in its fixed order.';
+        }
+        foreach (array_slice($submittedMenu, count($canonicalMenu)) as $index => $link) {
+            $label = mb_strtolower(trim((string) ($link['label'] ?? '')));
+            $href = trim((string) ($link['href'] ?? ''));
+            if ($label === 'contact us' || trim($href, '/') === 'contact' || str_ends_with($href, '/contact')) {
+                $errors['header.primary_menu.'.(count($canonicalMenu) + $index).'.label'] = 'Contact Us is footer-only and cannot be added to the primary menu.';
+            }
         }
         foreach ((array) data_get($regions, 'footer.columns', []) as $columnIndex => $column) {
             if (! is_array($column) || trim((string) ($column['title'] ?? '')) === '') {

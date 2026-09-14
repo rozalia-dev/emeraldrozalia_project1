@@ -1,7 +1,9 @@
 @php
     $regionValue = static fn (string $path, mixed $fallback = ''): mixed => data_get($editorRegions, $path, $fallback);
     $regionList = static fn (string $path, array $fallback = []): array => array_values((array) data_get($editorRegions, $path, $fallback));
-    $primaryMenu = array_values($defaults['header']['primary_menu'] ?? []);
+    $primaryMenuDefaults = array_values($defaults['header']['primary_menu'] ?? []);
+    $primaryMenu = $regionList('header.primary_menu', $primaryMenuDefaults);
+    $primaryMenuAdditional = array_slice($primaryMenu, count($primaryMenuDefaults));
     $utilityMenu = $regionList('header.utility_menu', $defaults['header']['utility_menu'] ?? []);
     $footerColumns = $regionList('footer.columns', $defaults['footer']['columns'] ?? []);
     $socialLinks = $regionList('footer.social_links', []);
@@ -35,11 +37,11 @@
 
     <section class="layout-editor-group">
         <div class="layout-editor-group-heading">
-            <div><span class="layout-editor-number">03</span><div><h3>Primary menu</h3><p>The approved eight-item public navigation is shown here in its fixed order. Contact Us remains footer-only.</p></div></div>
-            <span class="layout-editor-badge">Fixed public navigation</span>
+            <div><span class="layout-editor-number">03</span><div><h3>Primary menu</h3><p>The approved eight-item public navigation stays first and in order. Add optional items below; Contact Us remains footer-only.</p></div></div>
+            <button class="layout-editor-add" type="button" data-layout-add="primary-menu">Add menu item</button>
         </div>
         <div class="layout-repeat-list" data-layout-list="primary-menu">
-            @foreach($primaryMenu as $index => $item)
+            @foreach($primaryMenuDefaults as $index => $item)
                 <div class="layout-repeat-row" data-layout-row data-layout-index="{{ $index }}">
                     <div class="layout-repeat-row-heading"><strong>Menu item {{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</strong><span class="layout-editor-lock">Locked</span></div>
                     <div class="layout-editor-fields">
@@ -48,7 +50,18 @@
                     </div>
                 </div>
             @endforeach
+            @foreach($primaryMenuAdditional as $offset => $item)
+                @php($index = count($primaryMenuDefaults) + $offset)
+                <div class="layout-repeat-row" data-layout-row data-layout-index="{{ $index }}">
+                    <div class="layout-repeat-row-heading"><strong>Added menu item {{ str_pad((string) ($offset + 1), 2, '0', STR_PAD_LEFT) }}</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div>
+                    <div class="layout-editor-fields">
+                        <label>Label<input name="regions[header][primary_menu][{{ $index }}][label]" maxlength="120" value="{{ data_get($item, 'label') }}" placeholder="ABOUT US"></label>
+                        <label>Destination<input name="regions[header][primary_menu][{{ $index }}][href]" value="{{ data_get($item, 'href') }}" placeholder="/about"></label>
+                    </div>
+                </div>
+            @endforeach
         </div>
+        <template data-layout-template="primary-menu"><div class="layout-repeat-row" data-layout-row data-layout-index="__INDEX__"><div class="layout-repeat-row-heading"><strong>New menu item</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields"><label>Label<input name="regions[header][primary_menu][__INDEX__][label]" maxlength="120" placeholder="ABOUT US"></label><label>Destination<input name="regions[header][primary_menu][__INDEX__][href]" placeholder="/about"></label></div></div></template>
     </section>
 
     <section class="layout-editor-group">
