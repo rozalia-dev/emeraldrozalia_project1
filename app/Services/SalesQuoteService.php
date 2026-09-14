@@ -66,7 +66,7 @@ final class SalesQuoteService
 
         $currency = strtoupper((string) (
             $inquiry->company_id
-                ? DB::table('companies')->whereKey($inquiry->company_id)->value('base_currency')
+                ? DB::table('companies')->where('id', $inquiry->company_id)->value('base_currency')
                 : null
         ) ?: 'EUR');
 
