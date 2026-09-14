@@ -234,7 +234,7 @@
                             </div>
                             <div class="shop-card-media-tools">
                                 @if($hasSpin)<a href="{{ route('product', $product) }}#product-360" title="360° product view">360°</a>@endif
-                                @if($hasTryOn)<a href="{{ route('virtual-tryon', ['product_id'=>$product->id]) }}" title="Virtual try-on"><x-icon name="camera" size="14" /></a>@endif
+                                @if($hasTryOn)<a href="{{ route('virtual-tryon', ['product_id'=>$product->id]) }}" title="Virtual try-on" aria-label="Open virtual try-on for {{ $product->name }}"><x-icon name="camera" size="14" /></a>@endif
                             </div>
                             @auth
                                 <form method="post" action="{{ route('wishlist.toggle', $product) }}" class="shop-wishlist-form">@csrf<button type="submit" aria-label="Toggle {{ $product->name }} wishlist"><x-icon name="heart" size="16" /></button></form>
