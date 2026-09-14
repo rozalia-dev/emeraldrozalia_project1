@@ -28,6 +28,7 @@ class BannerDashboardReferenceTest extends TestCase
             ->assertSeeText('BANNER TYPES')
             ->assertSeeText('UUID TRACEABILITY')
             ->assertSeeText('EYE-CATCHING VISIBILITY')
+            ->assertSeeText('Trash')
             ->assertSee('/css/banners-reference.css?v=20260913-1', false)
             ->assertSee('/js/banners-reference.js?v=20260912-1', false)
             ->assertSee('data-banner-root', false)
@@ -100,6 +101,15 @@ class BannerDashboardReferenceTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'trash']))->assertRedirect();
         $this->assertSoftDeleted('banners', ['id' => $copy->id]);
+
+        $this->actingAs($admin)->get(route('admin.banners.index', ['tab' => 'trash']))
+            ->assertOk()
+            ->assertSee('data-current-tab="trash"', false)
+            ->assertSeeText('CI Banner Updated Copy')
+            ->assertSeeText('Trashed')
+            ->assertSeeText('Restore')
+            ->assertSeeText('Delete permanently');
+
         $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'restore']))->assertRedirect();
         $this->assertNotSoftDeleted('banners', ['id' => $copy->id]);
         $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'trash']))->assertRedirect();
