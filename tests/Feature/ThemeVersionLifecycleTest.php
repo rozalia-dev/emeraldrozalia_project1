@@ -53,6 +53,35 @@ class ThemeVersionLifecycleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'settings.theme.activated']);
     }
 
+    public function test_public_theme_logo_references_are_uuid_backed_and_storage_paths_stay_private(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $company = Company::create(['name' => 'Media Theme Tenant', 'code' => 'MEDIA-THEME', 'active' => true]);
+        $this->activateTheme($admin, $company, 'Media-backed theme', '#075b2f');
+
+        $snapshot = app(ThemeVersionService::class)->publicSnapshot($company);
+        foreach (['header_logo', 'footer_logo'] as $role) {
+            $asset = $snapshot['assets'][$role] ?? null;
+
+            $this->assertIsArray($asset);
+            $this->assertNotEmpty($asset['uuid']);
+            $this->assertStringContainsString(
+                route('media.public', ['uuid' => $asset['uuid']]),
+                $asset['url'],
+            );
+            $this->assertArrayNotHasKey('path', $asset);
+        }
+
+        $html = $this->withSession(['company_id' => $company->id])->get('/')->assertOk()->getContent();
+
+        $this->assertStringContainsString(
+            route('media.public', ['uuid' => $snapshot['assets']['header_logo']['uuid']]),
+            $html,
+        );
+        $this->assertStringNotContainsString('src="/assets/logo/logo_one_line.png"', $html);
+        $this->assertStringNotContainsString('src="/assets/logo/logo_two_line.png"', $html);
+    }
+
     public function test_invalid_theme_tokens_are_rejected_without_creating_a_revision(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
