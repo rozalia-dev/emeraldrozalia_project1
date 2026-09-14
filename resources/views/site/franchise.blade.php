@@ -6,7 +6,7 @@
 @endpush
 @php($franchiseLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
-<div class="franchise-reference" data-approved-reference="franchise page.png">
+<div class="franchise-reference" data-public-media-register="franchise" data-public-media-state="awaiting-approved-media">
     <section class="fr-hero" aria-labelledby="franchise-title">
         <div class="fr-hero-copy">
             <div class="fr-breadcrumb"><a href="/">Home</a><span>›</span><span>Franchise Opportunity</span></div>
@@ -20,7 +20,7 @@
                 <article><x-icon name="globe" size="32" /><strong>Global<br>Opportunity</strong></article>
             </div>
         </div>
-        <div class="fr-store-image fr-store-image--hero" role="img" aria-label="Emerald Rozalia franchise retail store"></div>
+        <div class="fr-store-image fr-store-image--hero" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise retail-store media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
     </section>
 
     <section class="fr-main-band" id="franchise-enquiry">
@@ -83,7 +83,7 @@
                 <li><x-icon name="check" size="15" />Access to new collections &amp; innovations</li>
             </ul>
         </article>
-        <div class="fr-store-image fr-store-image--interior" role="img" aria-label="Emerald Rozalia store interior"></div>
+        <div class="fr-store-image fr-store-image--interior" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise store-interior media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
         <article class="fr-list-card fr-ideal">
             <h2>IDEAL PARTNER</h2>
             <ul>
@@ -94,7 +94,7 @@
             </ul>
         </article>
         <div class="fr-world-card">
-            <div class="fr-world-image" role="img" aria-label="Limerick and Irish heritage"></div>
+            <div class="fr-world-image" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise heritage media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
             <blockquote>“ From Limerick to the world.<br>A brand. A legacy. An opportunity.<br>Let's build it together. ”</blockquote>
         </div>
     </section>
