@@ -42,9 +42,9 @@ A static Blade view or a named route is not visual completion. Every row needs a
 
 ## Shared public rules
 
-- Header order: HOME, SHOP, COLLECTIONS, NEW ARRIVALS, CORPORATE ORDER, BULK ORDER, FRANCHISE APPLY, HIRING APPLY.
+- Header order: HOME, SHOP, COLLECTIONS, NEW ARRIVALS, CORPORATE ORDER, BULK ORDER, FRANCHISE APPLY, HIRING APPLY, CONTACT US.
 - Utilities: Language, Currency, Search, Login, Cart.
-- Contact values are footer-only.
+- The Contact Us page link appears in the public header; phone, email, and address values remain footer-only.
 - Use the exact supplied Emerald Rozalia logo/wordmark. Do not add an unauthorized logo or shield.
 - Virtual Try-On is a hero/product experience; 360° is connected to product detail through public UUID routes.
 - Limerick must be located in Ireland in the global-network composition.
