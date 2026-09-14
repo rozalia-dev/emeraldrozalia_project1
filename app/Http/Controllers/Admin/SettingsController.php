@@ -284,7 +284,7 @@ class SettingsController extends Controller
         try {
             $settings = app(SettingsBackupService::class)->readAndVerify($backup);
 
-            DB::transaction(function () use ($settings, &$restoredSections): void {
+            DB::transaction(function () use ($settings, $backup, &$restoredSections): void {
                 foreach ($settings as $section => $values) {
                     if (! in_array((string) $section, self::SECTION_SLUGS, true) || ! is_array($values)) {
                         continue;
