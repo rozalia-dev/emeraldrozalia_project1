@@ -6,6 +6,7 @@ use App\Events\CommunicationConversationChanged;
 use App\Jobs\DeliverCommunicationMessage;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -178,6 +179,10 @@ class CommunicationCenter
                 throw (new ModelNotFoundException())->setModel(Conversation::class, [$conversation->getKey()]);
             }
 
+            if (array_key_exists('assigned_to', $data) && $data['assigned_to'] !== null) {
+                $this->assertCompanyAdmin((int) $data['assigned_to']);
+            }
+
             $before = $this->conversationState($lockedConversation);
             $attributes = [];
             foreach (['status', 'priority', 'assigned_to'] as $field) {
@@ -265,6 +270,22 @@ class CommunicationCenter
         return is_string($candidate) && Str::isUuid($candidate)
             ? $candidate
             : (string) Str::uuid();
+    }
+
+    private function assertCompanyAdmin(int $userId): void
+    {
+        $query = User::query()
+            ->whereKey($userId)
+            ->where('is_admin', true)
+            ->where('status', 'active')
+            ->whereNull('locked_at');
+
+        $companyId = session('company_id');
+        if ($companyId) {
+            $query->whereHas('companies', fn ($companies) => $companies->whereKey((int) $companyId));
+        }
+
+        abort_unless($query->exists(), 422, 'The assigned administrator must belong to the selected company.');
     }
 
     private function dispatchChanged(?Conversation $conversation, string $action): void

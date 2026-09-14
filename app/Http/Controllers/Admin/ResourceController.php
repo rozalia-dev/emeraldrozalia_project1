@@ -2,6 +2,8 @@
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminRecordRequest;
+use App\Http\Requests\CommunicationConversationUpdateRequest;
+use App\Http\Requests\CommunicationReplyRequest;
 use App\Http\Requests\{ReviewBulkStatusRequest, ReviewImportRequest, ReviewStatusRequest};
 use App\Models\AdminRecord;
 use App\Models\Category;
@@ -406,26 +408,18 @@ class ResourceController extends Controller {
         $categories=Category::query()->where('is_active',true)->orderBy('sort_order')->orderBy('name')->get(['id','name']);
         return view('admin.product-manager.index',compact('products','categories','stats','tabs','tab','search','categoryId','minPrice','maxPrice','rating','featured'));
     }
-    public function updateConversation(Request $request, Conversation $conversation)
+    public function updateConversation(CommunicationConversationUpdateRequest $request, Conversation $conversation)
     {
-        $data = $request->validate([
-            'status' => ['required', Rule::in(['new', 'open', 'pending', 'closed'])],
-            'priority' => ['required', Rule::in(['low', 'normal', 'high', 'urgent'])],
-            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_admin', true)],
-            'follow_up_at' => ['nullable', 'date'],
-        ]);
+        $data = $request->validated();
 
         app(CommunicationCenter::class)->updateConversation($conversation, $data);
 
         return back()->with('success', 'Conversation updated.');
     }
 
-    public function storeMessage(Request $request, Conversation $conversation)
+    public function storeMessage(CommunicationReplyRequest $request, Conversation $conversation)
     {
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:5000'],
-            'mode' => ['nullable', Rule::in(['reply', 'internal_note'])],
-        ]);
+        $data = $request->validated();
         $idempotencyKey = $request->header('Idempotency-Key');
 
         $key = is_string($idempotencyKey) ? $idempotencyKey : null;

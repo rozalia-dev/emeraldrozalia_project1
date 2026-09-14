@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\CommunicationProvider;
 use App\Jobs\DeliverCommunicationMessage;
 use App\Models\CommunicationWebhookEvent;
 use App\Models\Company;
@@ -10,9 +11,138 @@ use App\Models\ConversationMessage;
 use App\Models\User;
 use App\Services\CommunicationCenter;
 use App\Services\CommunicationProviderRegistry;
+use App\Support\CommunicationSendResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as ClientRequest;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
+
+
+final class CommunicationContractFakeProvider implements CommunicationProvider
+{
+    public static array $messageUuids = [];
+
+    public function send(ConversationMessage $message): CommunicationSendResult
+    {
+        self::$messageUuids[] = (string) $message->uuid;
+
+        return new CommunicationSendResult('accepted', 'provider-message-001');
+    }
+    public function test_configured_fake_provider_updates_delivery_state_without_fabricating_delivery(): void
+    {
+        config(['communication.channels.whatsapp' => CommunicationContractFakeProvider::class]);
+        CommunicationContractFakeProvider::$messageUuids = [];
+
+        $conversation = Conversation::create([
+            'channel' => 'whatsapp',
+            'contact' => '+353 87 000 0003',
+            'subject' => 'Configured provider',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'Provider-backed reply.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-contract-001',
+        ]);
+
+        (new DeliverCommunicationMessage($message->id))->handle(
+            app(CommunicationProviderRegistry::class),
+            app(CommunicationCenter::class),
+        );
+
+        $message->refresh();
+        $this->assertSame([$message->uuid], CommunicationContractFakeProvider::$messageUuids);
+        $this->assertSame('queued', $message->delivery_status);
+        $this->assertSame('provider-message-001', $message->provider_message_id);
+        $this->assertSame(1, $message->delivery_attempts);
+        $this->assertNull($message->delivered_at);
+    }
+
+    public function test_default_http_provider_sends_a_correlated_idempotent_payload(): void
+    {
+        config([
+            'communication.channels.email' => null,
+            'communication.endpoints.email' => 'https://email-provider.test/messages',
+            'communication.tokens.email' => 'test-provider-token',
+        ]);
+        Http::fake([
+            'https://email-provider.test/*' => Http::response([
+                'status' => 'accepted',
+                'id' => 'email-provider-001',
+            ], 202),
+        ]);
+
+        $conversation = Conversation::create([
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Provider payload',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'A real adapter boundary.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-http-001',
+            'payload' => ['correlation_id' => '11111111-2222-4333-8444-555555555555'],
+        ]);
+
+        $provider = app(CommunicationProviderRegistry::class)->for('email');
+        $this->assertNotNull($provider);
+        $result = $provider->send($message);
+
+        $this->assertSame('accepted', $result->status);
+        $this->assertSame('email-provider-001', $result->providerMessageId);
+        $recorded = Http::recorded();
+        $this->assertCount(1, $recorded);
+        /** @var ClientRequest $request */
+        $request = $recorded[0][0];
+        $this->assertSame('https://email-provider.test/messages', $request->url());
+        $this->assertSame('email', $request->data()['channel']);
+        $this->assertSame('customer@example.test', $request->data()['to']);
+        $this->assertSame('provider-http-001', $request->data()['idempotency_key']);
+        $this->assertSame('11111111-2222-4333-8444-555555555555', $request->data()['correlation_id']);
+        $this->assertSame(['Bearer test-provider-token'], $request->header('Authorization'));
+    }
+
+    public function test_assignment_and_explicit_approval_users_are_company_scoped(): void
+    {
+        $company = \App\Models\Company::create(['name' => 'Selected Company', 'code' => 'COMM-SCOPE-1', 'active' => true]);
+        $otherCompany = \App\Models\Company::create(['name' => 'Other Company', 'code' => 'COMM-SCOPE-2', 'active' => true]);
+        $admin = User::factory()->create(['is_admin' => true]);
+        $foreignAdmin = User::factory()->create(['is_admin' => true]);
+        $admin->companies()->attach($company->id, ['role' => 'owner', 'is_default' => true]);
+        $foreignAdmin->companies()->attach($otherCompany->id, ['role' => 'owner', 'is_default' => true]);
+        $conversation = Conversation::create([
+            'company_id' => $company->id,
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Company scoped assignment',
+            'status' => 'open',
+        ]);
+
+        $this->withSession(['company_id' => $company->id])
+            ->actingAs($admin)
+            ->patch(route('admin.communication.update', $conversation), [
+                'status' => 'open',
+                'priority' => 'normal',
+                'assigned_to' => $foreignAdmin->id,
+            ])
+            ->assertSessionHasErrors('assigned_to');
+
+        $this->withSession(['company_id' => $company->id])
+            ->actingAs($admin)
+            ->postJson(route('api.v1.communication.approvals.store'), [
+                'title' => 'Foreign approver must be rejected',
+                'request_type' => 'Operations',
+                'approver_id' => $foreignAdmin->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('approver_id');
+    }
+
+}
 
 class CommunicationContractTest extends TestCase
 {
@@ -182,4 +312,117 @@ class CommunicationContractTest extends TestCase
             '{}',
         )->assertStatus(503);
     }
+    public function test_configured_fake_provider_updates_delivery_state_without_fabricating_delivery(): void
+    {
+        config(['communication.channels.whatsapp' => CommunicationContractFakeProvider::class]);
+        CommunicationContractFakeProvider::$messageUuids = [];
+
+        $conversation = Conversation::create([
+            'channel' => 'whatsapp',
+            'contact' => '+353 87 000 0003',
+            'subject' => 'Configured provider',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'Provider-backed reply.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-contract-001',
+        ]);
+
+        (new DeliverCommunicationMessage($message->id))->handle(
+            app(CommunicationProviderRegistry::class),
+            app(CommunicationCenter::class),
+        );
+
+        $message->refresh();
+        $this->assertSame([$message->uuid], CommunicationContractFakeProvider::$messageUuids);
+        $this->assertSame('queued', $message->delivery_status);
+        $this->assertSame('provider-message-001', $message->provider_message_id);
+        $this->assertSame(1, $message->delivery_attempts);
+        $this->assertNull($message->delivered_at);
+    }
+
+    public function test_default_http_provider_sends_a_correlated_idempotent_payload(): void
+    {
+        config([
+            'communication.channels.email' => null,
+            'communication.endpoints.email' => 'https://email-provider.test/messages',
+            'communication.tokens.email' => 'test-provider-token',
+        ]);
+        Http::fake([
+            'https://email-provider.test/*' => Http::response([
+                'status' => 'accepted',
+                'id' => 'email-provider-001',
+            ], 202),
+        ]);
+
+        $conversation = Conversation::create([
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Provider payload',
+            'status' => 'open',
+        ]);
+        $message = $conversation->messages()->create([
+            'direction' => 'outbound',
+            'body' => 'A real adapter boundary.',
+            'delivery_status' => 'queued',
+            'idempotency_key' => 'provider-http-001',
+            'payload' => ['correlation_id' => '11111111-2222-4333-8444-555555555555'],
+        ]);
+
+        $provider = app(CommunicationProviderRegistry::class)->for('email');
+        $this->assertNotNull($provider);
+        $result = $provider->send($message);
+
+        $this->assertSame('accepted', $result->status);
+        $this->assertSame('email-provider-001', $result->providerMessageId);
+        $recorded = Http::recorded();
+        $this->assertCount(1, $recorded);
+        /** @var ClientRequest $request */
+        $request = $recorded[0][0];
+        $this->assertSame('https://email-provider.test/messages', $request->url());
+        $this->assertSame('email', $request->data()['channel']);
+        $this->assertSame('customer@example.test', $request->data()['to']);
+        $this->assertSame('provider-http-001', $request->data()['idempotency_key']);
+        $this->assertSame('11111111-2222-4333-8444-555555555555', $request->data()['correlation_id']);
+        $this->assertSame(['Bearer test-provider-token'], $request->header('Authorization'));
+    }
+
+    public function test_assignment_and_explicit_approval_users_are_company_scoped(): void
+    {
+        $company = \App\Models\Company::create(['name' => 'Selected Company', 'code' => 'COMM-SCOPE-1', 'active' => true]);
+        $otherCompany = \App\Models\Company::create(['name' => 'Other Company', 'code' => 'COMM-SCOPE-2', 'active' => true]);
+        $admin = User::factory()->create(['is_admin' => true]);
+        $foreignAdmin = User::factory()->create(['is_admin' => true]);
+        $admin->companies()->attach($company->id, ['role' => 'owner', 'is_default' => true]);
+        $foreignAdmin->companies()->attach($otherCompany->id, ['role' => 'owner', 'is_default' => true]);
+        $conversation = Conversation::create([
+            'company_id' => $company->id,
+            'channel' => 'email',
+            'contact' => 'customer@example.test',
+            'subject' => 'Company scoped assignment',
+            'status' => 'open',
+        ]);
+
+        $this->withSession(['company_id' => $company->id])
+            ->actingAs($admin)
+            ->patch(route('admin.communication.update', $conversation), [
+                'status' => 'open',
+                'priority' => 'normal',
+                'assigned_to' => $foreignAdmin->id,
+            ])
+            ->assertSessionHasErrors('assigned_to');
+
+        $this->withSession(['company_id' => $company->id])
+            ->actingAs($admin)
+            ->postJson(route('api.v1.communication.approvals.store'), [
+                'title' => 'Foreign approver must be rejected',
+                'request_type' => 'Operations',
+                'approver_id' => $foreignAdmin->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('approver_id');
+    }
+
 }

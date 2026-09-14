@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CommunicationReplyRequest extends FormRequest
 {
@@ -15,6 +16,7 @@ class CommunicationReplyRequest extends FormRequest
     {
         return [
             'body' => ['required', 'string', 'max:10000'],
+            'mode' => ['sometimes', Rule::in(['reply', 'internal_note'])],
         ];
     }
 }

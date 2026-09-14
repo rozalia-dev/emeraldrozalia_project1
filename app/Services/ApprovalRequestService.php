@@ -294,11 +294,15 @@ class ApprovalRequestService
         }
 
         if (array_key_exists('requested_by_id', $payload)) {
+            $this->assertCompanyUser((int) $payload['requested_by_id']);
             $attributes['requested_by'] = $payload['requested_by_id'];
         } elseif ($creating) {
             $attributes['requested_by'] = auth()->id();
         }
         if (array_key_exists('approver_id', $payload)) {
+            if ($payload['approver_id'] !== null) {
+                $this->assertCompanyUser((int) $payload['approver_id'], true);
+            }
             $attributes['approver_id'] = $payload['approver_id'];
         }
         if (session()->has('company_id')) {
@@ -382,6 +386,25 @@ class ApprovalRequestService
         if ($companyId && (int) $approval->company_id !== (int) $companyId) {
             abort(404);
         }
+    }
+
+    private function assertCompanyUser(int $userId, bool $adminOnly = false): void
+    {
+        $query = User::query()
+            ->whereKey($userId)
+            ->where('status', 'active')
+            ->whereNull('locked_at');
+
+        if ($adminOnly) {
+            $query->where('is_admin', true);
+        }
+
+        $companyId = session('company_id');
+        if ($companyId) {
+            $query->whereHas('companies', fn ($companies) => $companies->whereKey((int) $companyId));
+        }
+
+        abort_unless($query->exists(), 422, 'The selected user must belong to the selected company.');
     }
 
     private function userUuid(?int $userId): ?string
