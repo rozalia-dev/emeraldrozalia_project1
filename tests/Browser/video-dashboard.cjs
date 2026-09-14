@@ -82,10 +82,19 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES,'pa
         await page.locator('[data-bulk-action=draft]').click();
         await page.waitForFunction(() => JSON.parse(document.querySelector('#vd-video-data').textContent).some(v=>v.title==='Browser Cap Video' && v.status==='draft'));
         assert.equal((await visitor.request.get(record.playback)).status(),404,'Unpublishing revokes public access');
-        const downloadPromise = page.waitForEvent('download');
-        await page.locator('.vd-quick-actions a[href*="/videos/export"]').click();
-        const download = await downloadPromise;
-        assert.match(download.suggestedFilename(),/^videos-.*\.csv$/);
+
+        const csvPromise = page.waitForEvent('download');
+        await page.locator('.vd-quick-actions a[href*="/videos/export"][href*="format=csv"]').click();
+        const csvDownload = await csvPromise;
+        assert.match(csvDownload.suggestedFilename(),/^videos-.*\.csv$/);
+
+        const pdfPromise = page.waitForEvent('download');
+        await page.locator('.vd-quick-actions a[href*="/videos/export"][href*="format=pdf"]').click();
+        const pdfDownload = await pdfPromise;
+        assert.match(pdfDownload.suggestedFilename(),/^videos-.*\.pdf$/);
+        const pdfPath = await pdfDownload.path();
+        assert.equal(fs.readFileSync(pdfPath).subarray(0,4).toString(),'%PDF','PDF export returns a valid PDF document');
+
         await page.locator('[data-delete-video="'+record.id+'"]').waitFor();
         page.once('dialog',dialog => dialog.accept());
         await page.locator('[data-delete-video="'+record.id+'"]').click();
@@ -93,7 +102,7 @@ const {chromium} = createRequire(path.join(process.env.VIDEO_BROWSER_MODULES,'pa
         assert.equal((await context.request.get(record.playback)).status(),404,'Deleted file is no longer accessible');
         assert.deepEqual(errors,[],'No browser JavaScript errors');
         await visitor.close();
-        console.log('Video browser checks passed: login, upload, thumbnail, captions, preview, settings, publishing, public playback, analytics, audit, search, mobile layout, bulk draft, export and deletion.');
+        console.log('Video browser checks passed: login, upload, thumbnail, captions, preview, settings, publishing, public playback, analytics, audit, search, mobile layout, bulk draft, PDF/CSV exports and deletion.');
     } catch (error) {
         await page.screenshot({path:path.join(artifacts,'videos-failure.png'),fullPage:true}).catch(()=>{});
         console.error('Browser failure URL:',page.url());
