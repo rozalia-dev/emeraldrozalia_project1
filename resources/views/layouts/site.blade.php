@@ -65,16 +65,16 @@
     </div>
 </div>
 <header class="site-header" data-public-shell-region="header">
-    @php
-        $headerLogo = data_get($siteSettings, 'theme_assets.header_logo', []);
-        if (! is_array($headerLogo) || ! \Illuminate\Support\Str::isUuid((string) ($headerLogo['uuid'] ?? ''))) {
-            $headerLogo = $publicMedia->forLegacyPath('assets/logo/logo_one_line.png', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited'));
-        }
-        $headerLogoUrl = data_get($headerLogo, 'url');
-        $headerLogoAlt = data_get($siteLayoutRegions, 'header.logo.alt', data_get($headerLogo, 'alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')));
-    @endphp
+    @php($headerLogo = data_get($siteSettings, 'theme_assets.header_logo', []))
+    @php($headerLogo = is_array($headerLogo) && \Illuminate\Support\Str::isUuid((string) ($headerLogo['uuid'] ?? '')) ? $headerLogo : $publicMedia->forLegacyPath('assets/logo/logo_one_line.png', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
+    @php($headerLogoUrl = data_get($headerLogo, 'url'))
+    @php($headerLogoAlt = data_get($siteLayoutRegions, 'header.logo.alt', data_get($headerLogo, 'alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited'))))
     <a href="{{ url('/') }}" class="brand">
-        @if($headerLogoUrl)<img class="brand-logo-image" src="{{ $headerLogoUrl }}" @if(data_get($headerLogo, 'srcset')) srcset="{{ data_get($headerLogo, 'srcset') }}" sizes="{{ data_get($headerLogo, 'sizes') }}" @endif width="{{ data_get($headerLogo, 'width') ?: '' }}" height="{{ data_get($headerLogo, 'height') ?: '' }}" alt="{{ $headerLogoAlt }}">@else<span class="brand-logo-missing">{{ data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited') }}</span>@endif
+        @if($headerLogoUrl)
+            <img class="brand-logo-image" src="{{ $headerLogoUrl }}" alt="{{ $headerLogoAlt }}">
+        @else
+            <span class="brand-logo-missing">{{ data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited') }}</span>
+        @endif
     </a>
     <button class="nav-toggle" type="button" data-nav-toggle aria-label="Open menu"><x-icon name="menu" size="22" /></button>
     <nav data-nav aria-label="Primary">
@@ -116,16 +116,16 @@
 @endif
 <main>@yield('content')</main>
 <footer class="site-footer" data-public-shell-region="footer">
-    @php
-        $footerLogo = data_get($siteSettings, 'theme_assets.footer_logo', []);
-        if (! is_array($footerLogo) || ! \Illuminate\Support\Str::isUuid((string) ($footerLogo['uuid'] ?? ''))) {
-            $footerLogo = $publicMedia->forLegacyPath('assets/logo/logo_two_line.png', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited'));
-        }
-        $footerLogoUrl = data_get($footerLogo, 'url');
-        $footerLogoAlt = data_get($footerLogo, 'alt', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited'));
-    @endphp
+    @php($footerLogo = data_get($siteSettings, 'theme_assets.footer_logo', []))
+    @php($footerLogo = is_array($footerLogo) && \Illuminate\Support\Str::isUuid((string) ($footerLogo['uuid'] ?? '')) ? $footerLogo : $publicMedia->forLegacyPath('assets/logo/logo_two_line.png', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
+    @php($footerLogoUrl = data_get($footerLogo, 'url'))
+    @php($footerLogoAlt = data_get($footerLogo, 'alt', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
     <div class="footer-brand">
-        @if($footerLogoUrl)<img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">@else<span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>@endif
+        @if($footerLogoUrl)
+            <img class="brand-logo-image" src="{{ $footerLogoUrl }}" alt="{{ $footerLogoAlt }}">
+        @else
+            <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
+        @endif
         <p>{{ $footerBrandDescription }}</p>
         <div class="footer-contact" aria-label="Emerald Rozalia contact details">
             @if(filled($footerPhone))<a href="tel:{{ preg_replace('/\D+/', '', (string) $footerPhone) }}"><x-icon name="phone" size="14" /> {{ $footerPhone }}</a>@endif
