@@ -200,8 +200,9 @@ async function runKeyboardAudit(page, route, viewport) {
     return {stops, uniqueStops: visited.size};
 }
 
-async function assertPublicContract(page, route, viewport) {
-    const response = await page.goto(route, {waitUntil: 'domcontentloaded'});
+async function assertPublicContract(page, url, viewport) {
+    const route = new URL(url).pathname;
+    const response = await page.goto(url, {waitUntil: 'domcontentloaded'});
     assert.ok(response, route + ' should return a response');
     assert.equal(response.status(), 200, route + ' should return HTTP 200');
 
