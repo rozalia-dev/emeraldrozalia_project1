@@ -98,6 +98,20 @@ class Conversation extends Model
         return $query;
     }
 
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field ??= $this->getRouteKeyName();
+
+        // Implicit binding can run before the appended web middleware has
+        // established the selected company. Start without the tenant scope,
+        // then apply the same explicit visibility rule used by admin actions.
+        $query = static::query()
+            ->withoutGlobalScope('tenant')
+            ->where($field, $value);
+
+        return $this->scopeForCurrentCompany($query)->first();
+    }
+
     public function resolveRouteBindingQuery($query, $value, $field = null)
     {
         return $this->scopeForCurrentCompany(
