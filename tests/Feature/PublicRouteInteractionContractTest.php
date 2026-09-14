@@ -61,7 +61,7 @@ class PublicRouteInteractionContractTest extends TestCase
 
     public function test_public_media_empty_states_are_explicit_on_editorial_routes(): void
     {
-        foreach (['/', '/collections', '/new-arrivals', '/corporate-orders', '/bulk-orders', '/franchise', '/factory'] as $path) {
+        foreach (['/', '/collections', '/new-arrivals', '/corporate-orders', '/bulk-orders', '/franchise', '/be-a-store-owner', '/quality', '/factory'] as $path) {
             $this->get($path)
                 ->assertOk()
                 ->assertSee('data-public-media-state="', false);
