@@ -13,7 +13,7 @@ class PublicTypographyContractTest extends TestCase
     {
         foreach ([
             'home', 'shop', 'collections', 'new.arrivals', 'corporate.orders', 'bulk.orders',
-            'franchise', 'be-a-store-owner', 'quality', 'careers', 'global.network', 'contact', 'virtual-tryon',
+            'franchise', 'store.owner', 'quality', 'careers', 'global.network', 'contact', 'virtual-tryon',
             'irish.traditional', 'irish.heritage',
         ] as $routeName) {
             $response = $this->get(route($routeName))->assertOk();
