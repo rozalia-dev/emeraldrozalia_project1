@@ -249,7 +249,9 @@ class ProjectScopeTest extends TestCase {
         $this->assertSame('pending',$conversation->fresh()->status);
         $this->assertSame('high',$conversation->fresh()->priority);
         $this->assertSame($admin->id,$conversation->fresh()->assigned_to);
-        $this->actingAs($admin)->post(route('admin.communication.message.store',$conversation),['body'=>'Thanks — our team will respond shortly.'])->assertRedirect();
+        $replyResponse=$this->actingAs($admin)->post(route('admin.communication.message.store',$conversation),['body'=>'Thanks — our team will respond shortly.']);
+        fwrite(STDOUT,"PROJECT_SCOPE_REPLY status={$replyResponse->status()} session_company=".var_export(session('company_id'),true)." conversation_company=".var_export($conversation->fresh()->company_id,true)." body=".substr(preg_replace('/\\s+/',' ',$replyResponse->getContent()),0,500)."\\n");
+        $replyResponse->assertRedirect();
         $this->assertDatabaseHas('conversation_messages',['conversation_id'=>$conversation->id,'direction'=>'outbound','body'=>'Thanks — our team will respond shortly.']);
         $this->assertSame('open',$conversation->fresh()->status);
         $this->actingAs($admin)->get('/admin/resource/communication-center?q=customer@example.com&status=open')->assertOk()->assertSee(['Retail enquiry','customer@example.com','Thanks — our team will respond shortly.'],false);
