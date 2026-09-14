@@ -37,7 +37,7 @@ class CareersReferencePageTest extends TestCase
 
         $response->assertDontSee('/assets/brand/careers-reference.png', false)
             ->assertDontSee('data-approved-reference', false)
-            ->assertSee('/assets/logo/logo_two_line.png', false);
+            ->assertSee('data-public-media-register="careers"', false);
     }
 
     public function test_career_application_enters_inquiry_and_communication_centre(): void
