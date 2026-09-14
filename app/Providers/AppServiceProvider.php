@@ -4,6 +4,7 @@ use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,Invent
 use App\Services\{PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 class AppServiceProvider extends ServiceProvider {
@@ -29,6 +30,11 @@ class AppServiceProvider extends ServiceProvider {
                 $record->public_uuid ??= (string) Str::uuid();
             });
         }
+
+        Event::listen(\App\Events\SalesQuoteConverted::class, [\App\Services\AutomationEventBridge::class, 'salesQuoteConverted']);
+        Event::listen(\App\Events\CommunicationConversationChanged::class, [\App\Services\AutomationEventBridge::class, 'conversationChanged']);
+        Event::listen(\App\Events\ApprovalRequestChanged::class, [\App\Services\AutomationEventBridge::class, 'approvalChanged']);
+        Event::listen(\App\Events\CommunicationTemplateChanged::class, [\App\Services\AutomationEventBridge::class, 'templateChanged']);
 
         View::composer('layouts.site', function ($view): void {
             $siteSettings = app(PublishedSiteSettings::class)->forCompany();

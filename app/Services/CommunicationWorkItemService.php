@@ -81,6 +81,7 @@ final class CommunicationWorkItemService
                 'entity' => $data['entity'] ?? null,
                 'priority' => $data['priority'] ?? 'normal',
                 'status' => $data['status'],
+                'company_id' => $data['company_id'] ?? session('company_id'),
                 'record_date' => $data['record_date'] ?? now()->toDateString(),
                 'due_at' => $data['due_at'] ?? null,
                 'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,

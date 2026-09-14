@@ -13,9 +13,11 @@ use App\Models\IntegrationConnection;
 use App\Models\Language;
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Requests\AutomationRuleRequest;
 use App\Http\Requests\BackupRestoreRequest;
 use App\Services\AuditTrail;
 use App\Services\PublishedSiteSettings;
+use App\Services\AutomationRuleService;
 use App\Services\SettingsBackupService;
 use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -243,22 +245,17 @@ class SettingsController extends Controller
         return back()->with('success', 'API role cloned.');
     }
 
-    public function storeAutomation(Request $request): RedirectResponse
+    public function storeAutomation(AutomationRuleRequest $request, AutomationRuleService $automations): RedirectResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:180'], 'event' => ['required', 'string', 'max:120'], 'actions' => ['nullable', 'string', 'max:500'], 'enabled' => ['nullable', 'boolean']]);
-        $automation = AutomationRule::create([
-            'name' => $data['name'], 'event' => $data['event'], 'conditions' => [],
-            'actions' => array_values(array_filter(array_map('trim', explode(',', (string) ($data['actions'] ?? ''))))), 'enabled' => $request->boolean('enabled'),
-        ]);
-        AuditTrail::record('settings.automation.created', $automation, null, $automation->toArray());
-        return back()->with('success', 'Automation workflow created.');
+        $automations->create($request->validated());
+
+        return back()->with('success', 'Automation workflow created and is ready for supported events.');
     }
 
-    public function toggleAutomation(AutomationRule $automation): RedirectResponse
+    public function toggleAutomation(AutomationRule $automation, AutomationRuleService $automations): RedirectResponse
     {
-        $before = $automation->toArray();
-        $automation->update(['enabled' => ! $automation->enabled]);
-        AuditTrail::record('settings.automation.toggled', $automation, $before, $automation->fresh()->toArray());
+        $automations->toggle($automation);
+
         return back()->with('success', 'Automation status updated.');
     }
 
