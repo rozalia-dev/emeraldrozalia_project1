@@ -69,7 +69,7 @@
     @php($headerLogoAlt = data_get($siteBranding, 'trading_name') ?: data_get($siteLayoutRegions, 'header.logo.alt', data_get($headerLogo, 'alt', 'Emerald Rozalia Limited')))
     <a href="{{ url('/') }}" class="brand">
         @if($headerLogoUrl)
-            <img class="brand-logo-image" src="{{ $headerLogoUrl }}" alt="{{ $headerLogoAlt }}">
+            <img class="brand-logo-image" src="{{ $headerLogoUrl }}" @if(data_get($headerLogo, 'srcset')) srcset="{{ data_get($headerLogo, 'srcset') }}" sizes="{{ data_get($headerLogo, 'sizes') }}" @endif width="{{ data_get($headerLogo, 'width') ?: '' }}" height="{{ data_get($headerLogo, 'height') ?: '' }}" alt="{{ $headerLogoAlt }}">
         @else
             <span class="brand-logo-missing">{{ data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited') }}</span>
         @endif
@@ -120,7 +120,7 @@
     @php($footerLogoAlt = data_get($siteBranding, 'legal_name') ?: data_get($siteLayoutRegions, 'footer.logo.alt', data_get($footerLogo, 'alt', 'Emerald Rozalia Limited')))
     <div class="footer-brand">
         @if($footerLogoUrl)
-            <img class="brand-logo-image" src="{{ $footerLogoUrl }}" alt="{{ $footerLogoAlt }}">
+            <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
         @else
             <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
         @endif
