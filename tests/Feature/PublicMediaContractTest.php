@@ -204,7 +204,7 @@ class PublicMediaContractTest extends TestCase
 
     public function test_public_pages_do_not_render_reference_files_and_factory_has_an_explicit_media_state(): void
     {
-        foreach (['/', '/collections', '/new-arrivals', '/corporate-orders', '/bulk-orders', '/franchise', '/factory'] as $path) {
+        foreach (['/', '/collections', '/new-arrivals', '/corporate-orders', '/bulk-orders', '/franchise', '/be-a-store-owner', '/quality', '/factory'] as $path) {
             $response = $this->get($path)->assertOk();
 
             $response
