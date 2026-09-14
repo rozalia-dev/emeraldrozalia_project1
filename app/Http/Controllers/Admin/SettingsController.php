@@ -18,6 +18,7 @@ use App\Http\Requests\BackupRestoreRequest;
 use App\Services\AuditTrail;
 use App\Services\PublishedSiteSettings;
 use App\Services\AutomationRuleService;
+use App\Services\IntegrationConnectionService;
 use App\Services\SettingsBackupService;
 use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -202,11 +203,15 @@ class SettingsController extends Controller
         $service = match ($action) { 'test-email' => 'email', 'test-whatsapp' => 'whatsapp', default => 'payment' };
         $provider = match ($service) { 'email' => 'SMTP', 'whatsapp' => 'Meta Cloud API', default => 'Stripe / Revolut' };
         $connection = IntegrationConnection::query()->firstOrNew(['service' => $service]);
-        $before = $connection->exists ? $connection->toArray() : null;
-        $connection->fill(['provider' => $provider, 'enabled' => true, 'health' => 'healthy', 'tested_at' => now()]);
+        $connection->fill(['provider' => $provider, 'enabled' => true]);
         $connection->save();
-        AuditTrail::record('settings.'.$service.'.tested', $connection, $before, $connection->fresh()->toArray());
-        return back()->with('success', $provider.' connection test completed successfully.');
+
+        $probe = app(IntegrationConnectionService::class)->probe($connection->fresh());
+
+        return back()->with(
+            in_array($probe['health'], ['ready', 'configured'], true) ? 'success' : 'warning',
+            $probe['message'],
+        );
     }
 
     public function storeApiRole(Request $request): RedirectResponse
