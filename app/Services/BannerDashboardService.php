@@ -296,6 +296,7 @@ class BannerDashboardService
             'popup' => 'Popup',
             'footer' => 'Footer',
             'mobile_app' => 'Mobile App',
+            'trash' => 'Trash',
         ];
     }
 
