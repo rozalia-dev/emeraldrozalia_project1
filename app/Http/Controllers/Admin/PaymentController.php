@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PaymentActionRequest;
 use App\Models\{Order, PaymentTransaction};
-use App\Services\AuditTrail;
+use App\Services\PaymentLifecycle;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -36,6 +37,7 @@ class PaymentController extends Controller
 
     public function index(Request $request): View
     {
+        Gate::authorize('viewAny', PaymentTransaction::class);
         $requestedTab = $request->string('tab')->toString();
         $tab = array_key_exists($requestedTab, self::TABS) ? $requestedTab : 'all';
 
@@ -90,32 +92,11 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function action(Request $request, PaymentTransaction $payment): RedirectResponse
+    public function action(PaymentActionRequest $request, PaymentTransaction $payment, PaymentLifecycle $lifecycle): RedirectResponse
     {
-        $data = $request->validate([
-            'action' => ['required', 'in:capture,refund,cancel'],
-        ]);
-        $payment->load('order');
-
-        $allowedStatuses = match ($data['action']) {
-            'capture' => ['pending', 'awaiting_payment', 'pay_on_delivery'],
-            'refund' => ['paid', 'captured', 'partially_refunded'],
-            'cancel' => ['pending', 'awaiting_payment', 'pay_on_delivery'],
-        };
-        abort_unless(in_array(strtolower((string) $payment->status), $allowedStatuses, true), 422, 'This payment cannot make that state transition.');
-
-        DB::transaction(function () use ($payment, $data): void {
-            $before = $payment->toArray();
-            $payload = $payment->payload ?: [];
-
-            match ($data['action']) {
-                'capture' => $this->capture($payment, $payload),
-                'refund' => $this->refund($payment, $payload),
-                'cancel' => $this->cancel($payment, $payload),
-            };
-
-            AuditTrail::record('admin.payment_'.$data['action'], $payment, $before, $payment->fresh()->toArray());
-        });
+        Gate::authorize('update', $payment);
+        $data = $request->validated();
+        $lifecycle->act($payment, $data);
 
         return back()->with('success', match ($data['action']) {
             'capture' => 'Payment captured and reconciled.',
@@ -126,6 +107,7 @@ class PaymentController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
+        Gate::authorize('viewAny', PaymentTransaction::class);
         $transactions = PaymentTransaction::query()->with(['order.user'])->latest('created_at')->get();
         $orders = Order::query()->with('user')->latest('created_at')->get();
         $rows = $this->filterRows(
@@ -142,42 +124,6 @@ class PaymentController extends Controller
             }
             fclose($handle);
         }, 'payments-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
-    }
-
-    private function capture(PaymentTransaction $payment, array $payload): void
-    {
-        $payment->update([
-            'status' => 'paid',
-            'payload' => array_merge($payload, [
-                'captured_at' => now()->toIso8601String(),
-                'reconciliation_status' => 'reconciled',
-            ]),
-        ]);
-        $payment->order?->update(['payment_status' => 'paid']);
-    }
-
-    private function refund(PaymentTransaction $payment, array $payload): void
-    {
-        $payment->update([
-            'status' => 'refunded',
-            'payload' => array_merge($payload, [
-                'refunded_at' => now()->toIso8601String(),
-                'reconciliation_status' => 'reconciled',
-            ]),
-        ]);
-        $payment->order?->update(['payment_status' => 'refunded', 'status' => 'refunded']);
-    }
-
-    private function cancel(PaymentTransaction $payment, array $payload): void
-    {
-        $payment->update([
-            'status' => 'cancelled',
-            'payload' => array_merge($payload, [
-                'cancelled_at' => now()->toIso8601String(),
-                'reconciliation_status' => 'unreconciled',
-            ]),
-        ]);
-        $payment->order?->update(['payment_status' => 'failed', 'status' => 'cancelled']);
     }
 
     private function liveRows(Collection $transactions, Collection $orders): Collection
@@ -269,6 +215,7 @@ class PaymentController extends Controller
         return (object) [
             'payment_id' => $payment->id,
             'order_id' => $order?->id,
+            'order_version' => $order?->version,
             'reference' => $payment->transaction_id ?: 'Payment transaction #'.$payment->id,
             'uuid' => $payment->public_uuid ?: 'Not assigned',
             'order_reference' => $order?->number ?: 'Not linked to an order',
@@ -311,6 +258,7 @@ class PaymentController extends Controller
         return (object) [
             'payment_id' => null,
             'order_id' => $order->id,
+            'order_version' => $order->version,
             'reference' => $order->number ?: 'Order payment',
             'uuid' => $order->public_uuid ?: 'Not assigned',
             'order_reference' => $order->number ?: 'Not recorded',

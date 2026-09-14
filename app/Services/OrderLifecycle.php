@@ -39,9 +39,9 @@ final class OrderLifecycle
     ];
 
     private const ORDER_TRANSITIONS = [
-        'pending' => ['approved', 'processing', 'cancelled'],
-        'approved' => ['processing', 'cancelled'],
-        'processing' => ['shipped', 'cancelled'],
+        'pending' => ['approved', 'processing', 'cancelled', 'refunded'],
+        'approved' => ['processing', 'cancelled', 'refunded'],
+        'processing' => ['shipped', 'cancelled', 'refunded'],
         'shipped' => ['completed', 'refunded'],
         'completed' => ['refunded'],
         'cancelled' => [],
@@ -78,9 +78,9 @@ final class OrderLifecycle
         'closed' => [],
     ];
 
-    public function transition(Order $order, array $changes): Order
+    public function transition(Order $order, array $changes, ?string $transactionStatus = null): Order
     {
-        return DB::transaction(function () use ($order, $changes): Order {
+        return DB::transaction(function () use ($order, $changes, $transactionStatus): Order {
             $locked = Order::query()->lockForUpdate()->findOrFail($order->getKey());
             $expectedVersion = $changes['expected_version'] ?? null;
 
@@ -145,20 +145,14 @@ final class OrderLifecycle
             ]);
 
             if ($nextPayment !== $currentPayment) {
-                PaymentTransaction::create([
-                    'order_id' => $locked->id,
-                    'provider' => $locked->payment_method ?: 'manual',
-                    'amount' => $locked->total,
-                    'currency' => $locked->currency ?: 'EUR',
-                    'status' => $nextPayment,
-                    'payload' => [
-                        'source' => 'admin_order_lifecycle',
-                        'order_type' => $locked->order_type,
-                        'previous_status' => $currentPayment,
-                        'transition_note' => $changes['transition_note'] ?? null,
-                        'order_version' => $nextVersion,
-                    ],
-                ]);
+                $this->recordPaymentState(
+                    $locked,
+                    $currentPayment,
+                    $nextPayment,
+                    $transactionStatus ?: $nextPayment,
+                    $changes,
+                    $nextVersion,
+                );
             }
 
             $after = $locked->fresh()->toArray();
@@ -174,6 +168,58 @@ final class OrderLifecycle
 
             return $locked->fresh(['items', 'payments']);
         });
+    }
+
+    private function recordPaymentState(
+        Order $order,
+        string $previousStatus,
+        string $orderStatus,
+        string $transactionStatus,
+        array $changes,
+        int $orderVersion,
+    ): void {
+        $transaction = PaymentTransaction::query()
+            ->where('order_id', $order->id)
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+        $payload = is_array($transaction?->payload) ? $transaction->payload : [];
+        $history = is_array($payload['status_history'] ?? null) ? $payload['status_history'] : [];
+        $history[] = [
+            'from_order_status' => $previousStatus,
+            'to_order_status' => $orderStatus,
+            'transaction_status' => $transactionStatus,
+            'note' => $changes['transition_note'] ?? null,
+            'order_version' => $orderVersion,
+            'recorded_at' => now()->toIso8601String(),
+            'source' => 'order_lifecycle',
+        ];
+        $payload['status_history'] = $history;
+        $payload['last_order_status'] = $orderStatus;
+        $payload['last_transition_note'] = $changes['transition_note'] ?? null;
+
+        if ($transaction) {
+            $transaction->update([
+                'status' => $transactionStatus,
+                'payload' => $payload,
+            ]);
+
+            return;
+        }
+
+        PaymentTransaction::create([
+            'order_id' => $order->id,
+            'provider' => $order->payment_method ?: 'manual',
+            'amount' => $order->total,
+            'currency' => $order->currency ?: 'EUR',
+            'status' => $transactionStatus,
+            'payload' => [
+                ...$payload,
+                'source' => 'order_lifecycle',
+                'order_type' => $order->order_type,
+                'previous_order_payment_status' => $previousStatus,
+            ],
+        ]);
     }
 
     private function assertTransition(
