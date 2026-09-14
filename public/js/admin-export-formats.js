@@ -3,7 +3,7 @@
         try {
             const url = new URL(value, window.location.origin);
             return url.origin === window.location.origin
-                && url.pathname.split('/').filter(Boolean).includes('export');
+                && url.pathname.split('/').filter(Boolean).some((segment) => segment === 'export' || segment.endsWith('-export') || segment.startsWith('export-'));
         } catch (error) {
             return false;
         }
