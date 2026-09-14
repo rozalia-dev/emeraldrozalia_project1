@@ -75,8 +75,18 @@
         @endif
     </a>
     <button class="nav-toggle" type="button" data-nav-toggle aria-label="Open menu"><x-icon name="menu" size="22" /></button>
+    @php($sitePrimaryMenu = (array) data_get($siteLayoutRegions, 'header.primary_menu', []))
+    @php($sitePrimaryMenuHasContact = false)
+    @foreach($sitePrimaryMenu as $sitePrimaryMenuItem)
+        @if($layoutPath($layoutUrl($sitePrimaryMenuItem)) === '/contact')
+            @php($sitePrimaryMenuHasContact = true)
+        @endif
+    @endforeach
+    @if(! $sitePrimaryMenuHasContact)
+        @php($sitePrimaryMenu[] = ['label' => 'CONTACT US', 'href' => '/contact'])
+    @endif
     <nav data-nav aria-label="Primary">
-        @foreach((array) data_get($siteLayoutRegions, 'header.primary_menu', []) as $navItem)
+        @foreach($sitePrimaryMenu as $navItem)
             @php($navHref = $layoutUrl($navItem))
             @if($navHref)
                 @php($navPath = $layoutPath($navHref))
