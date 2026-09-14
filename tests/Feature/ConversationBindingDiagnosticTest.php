@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Company;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +23,9 @@ class ConversationBindingDiagnosticTest extends TestCase
             'priority' => 'normal',
             'metadata' => ['name' => 'Diagnostic'],
         ]);
+
+        $company = Company::create(['name' => 'Diagnostic Company', 'code' => 'DIAG-'.str()->random(8)]);
+        session(['company_id' => $company->id]);
 
         $url = route('admin.communication.update', $conversation);
         $direct = Conversation::withoutGlobalScopes()->whereKey($conversation->getKey())->first();
