@@ -39,6 +39,9 @@ final class IntegrationConnectionService
 
         $gate = app(ExternalServiceGate::class)->status($service);
         $state = $this->state($service, $connection, $gate);
+        if ($state['health'] === 'configured' && $state['runtime_live']) {
+            $state['health'] = 'ready';
+        }
         $message = match ($state['health']) {
             'not_configured' => 'Required provider configuration is missing: '.implode(', ', $state['missing']).'.',
             'blocked' => 'Configuration is present, but the runtime activation gate is disabled. Keep this integration disabled until the core site and callback verification are complete.',
