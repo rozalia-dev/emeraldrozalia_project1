@@ -15,21 +15,23 @@
 }
 
 /* Every public element that the browser identifies as keyboard focus-visible
-   must expose a literal visible ring. Keep this selector deliberately broad:
-   page-specific components may introduce focusable elements outside the usual
-   anchor/button/form-control set. */
-.site-body *:focus-visible {
-    outline: 2px solid #8cc63e !important;
+   must expose a literal visible ring. This deliberately high-specificity rule
+   outranks page-specific !important focus resets that load after this shared
+   stylesheet. Set every outline longhand so a later width reset cannot hide it. */
+html body.site-body.site-body[class] *:focus-visible {
+    outline-width: 2px !important;
+    outline-style: solid !important;
+    outline-color: var(--site-focus, #8cc63e) !important;
     outline-offset: 3px !important;
 }
 
 /* Respect the user's reduced-motion preference even when a page-specific
-   stylesheet is loaded after this shared shell. The important durations keep
-   keyboard/hover transitions and decorative keyframes from reintroducing motion. */
+   stylesheet is loaded after this shared shell. The stronger selector ensures
+   later page !important declarations cannot reintroduce motion. */
 @media (prefers-reduced-motion: reduce) {
-    .site-body *,
-    .site-body *::before,
-    .site-body *::after {
+    html body.site-body.site-body[class] *,
+    html body.site-body.site-body[class] *::before,
+    html body.site-body.site-body[class] *::after {
         animation-name: none !important;
         animation-duration: 0s !important;
         animation-delay: 0s !important;
