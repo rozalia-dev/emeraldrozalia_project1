@@ -30,6 +30,15 @@
     box-shadow: 0 0 0 3px #8cc63e !important;
 }
 
+/* Shop category cards used a transition shorthand, which also animated the
+   outline from 0px when keyboard focus arrived. Limit the transition to hover
+   styling so the accessibility focus ring is visible on the first frame. */
+.site-body.shop-reference-page .shop-category-strip a {
+    transition-property: border-color, color, background-color !important;
+    transition-duration: 150ms !important;
+    transition-timing-function: ease !important;
+}
+
 .site-body .site-header[data-public-shell-region="header"] {
     position: relative;
     z-index: 40;
