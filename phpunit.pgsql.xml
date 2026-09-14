@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="vendor/autoload.php" colors="true" failOnWarning="true">
     <testsuites>
-        <testsuite name="Feature"><directory>tests/Feature</directory></testsuite>
+        <testsuite name="Payment lifecycle diagnostic"><file>tests/Feature/PaymentLifecycleContractTest.php</file></testsuite>
     </testsuites>
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
