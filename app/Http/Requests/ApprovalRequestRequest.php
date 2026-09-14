@@ -66,7 +66,7 @@ class ApprovalRequestRequest extends FormRequest
         return $this->validated();
     }
 
-    private function companyUserRule(): Rule
+    private function companyUserRule()
     {
         return Rule::exists('users', 'id')->where(function ($query): void {
             $query->where('status', 'active')
@@ -84,7 +84,7 @@ class ApprovalRequestRequest extends FormRequest
         });
     }
 
-    private function companyAdminRule(): Rule
+    private function companyAdminRule()
     {
         return Rule::exists('users', 'id')->where(function ($query): void {
             $query->where('is_admin', true)

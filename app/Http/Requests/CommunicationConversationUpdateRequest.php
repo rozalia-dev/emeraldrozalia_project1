@@ -22,7 +22,7 @@ class CommunicationConversationUpdateRequest extends FormRequest
         ];
     }
 
-    private function companyAdminRule(): Rule
+    private function companyAdminRule()
     {
         return Rule::exists('users', 'id')->where(function ($query): void {
             $query->where('is_admin', true)
