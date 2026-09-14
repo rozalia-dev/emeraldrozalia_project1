@@ -211,7 +211,10 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
 
         $action = CommunicationAction::query()->firstOrFail();
         $this->actingAs($admin)
-            ->post(route('admin.communication-center.actions.action', ['record' => $action->uuid, 'action' => 'complete']))
+            ->post(route('admin.communication-center.actions.action', ['record' => $action->uuid, 'action' => 'complete']), [
+                'idempotency_key' => 'reference-action-complete',
+                'expected_version' => $action->version,
+            ])
             ->assertRedirect();
         $this->assertSame('completed', $action->fresh()->status);
 
@@ -230,7 +233,10 @@ class CommunicationCenterReferenceSuiteTest extends TestCase
 
         $alert = CommunicationAlert::query()->firstOrFail();
         $this->actingAs($admin)
-            ->post(route('admin.communication-center.alerts.action', ['record' => $alert->uuid, 'action' => 'acknowledge']))
+            ->post(route('admin.communication-center.alerts.action', ['record' => $alert->uuid, 'action' => 'acknowledge']), [
+                'idempotency_key' => 'reference-alert-ack',
+                'expected_version' => $alert->version,
+            ])
             ->assertRedirect();
         $this->assertSame('acknowledged', $alert->fresh()->status);
     }
