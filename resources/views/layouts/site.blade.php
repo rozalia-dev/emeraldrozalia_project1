@@ -70,7 +70,7 @@
         if (! is_array($headerLogo) || ! \Illuminate\Support\Str::isUuid((string) ($headerLogo['uuid'] ?? ''))) {
             $headerLogo = $publicMedia->forLegacyPath('assets/logo/logo_one_line.png', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited'));
         }
-        $headerLogoUrl = data_get($siteLayoutRegions, 'header.logo.url') ?: data_get($headerLogo, 'url');
+        $headerLogoUrl = data_get($headerLogo, 'url');
         $headerLogoAlt = data_get($siteLayoutRegions, 'header.logo.alt', data_get($headerLogo, 'alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')));
     @endphp
     <a href="{{ url('/') }}" class="brand">
