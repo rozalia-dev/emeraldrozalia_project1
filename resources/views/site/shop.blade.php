@@ -139,7 +139,7 @@
                 <details class="shop-filter-group" open>
                     <summary>PRICE <x-icon name="chevron-down" size="13" /></summary>
                     <div class="shop-price-head"><span>€0</span><strong id="shop-price-value">€{{ $currentMax }}</strong></div>
-                    <input class="shop-price-range" type="range" name="max_price" min="0" max="{{ $priceCeiling }}" step="1" value="{{ $currentMax }}" oninput="document.getElementById('shop-price-value').textContent='€'+this.value">
+                    <input class="shop-price-range" type="range" name="max_price" aria-label="Maximum price" min="0" max="{{ $priceCeiling }}" step="1" value="{{ $currentMax }}" oninput="document.getElementById('shop-price-value').textContent='€'+this.value">
                     <div class="shop-price-inputs">
                         <label>Min €<input type="number" name="min_price" min="0" step="1" value="{{ request('min_price') }}" placeholder="0"></label>
                         <label>Max €<input type="number" min="0" step="1" value="{{ request('max_price') }}" placeholder="{{ $priceCeiling }}" data-shop-max-price-mirror></label>

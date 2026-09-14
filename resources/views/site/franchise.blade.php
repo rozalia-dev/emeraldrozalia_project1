@@ -42,9 +42,9 @@
             <form method="post" action="{{ route('inquiry') }}">
                 @csrf
                 <input type="hidden" name="type" value="franchise">
-                <input name="name" value="{{ old('name') }}" placeholder="Full Name *" autocomplete="name" required>
-                <input name="email" type="email" value="{{ old('email') }}" placeholder="Email Address *" autocomplete="email" required>
-                <input name="phone" value="{{ old('phone') }}" placeholder="Phone Number *" autocomplete="tel" required>
+                <input name="name" value="{{ old('name') }}" placeholder="Full Name *" aria-label="Full name" autocomplete="name" required>
+                <input name="email" type="email" value="{{ old('email') }}" placeholder="Email Address *" aria-label="Email address" autocomplete="email" required>
+                <input name="phone" value="{{ old('phone') }}" placeholder="Phone Number *" aria-label="Phone number" autocomplete="tel" required>
                 <div class="fr-form-row">
                     <select name="country" aria-label="Country" required>
                         <option value="">Country *</option>
@@ -52,9 +52,9 @@
                             <option value="{{ $country }}" @selected(old('country')===$country)>{{ $country }}</option>
                         @endforeach
                     </select>
-                    <input name="company" value="{{ old('company') }}" placeholder="Preferred City / Region *" required>
+                    <input name="company" value="{{ old('company') }}" placeholder="Preferred City / Region *" aria-label="Preferred city or region" required>
                 </div>
-                <textarea name="message" placeholder="Tell us about yourself and your interest in franchising with us *" required>{{ old('message') }}</textarea>
+                <textarea name="message" placeholder="Tell us about yourself and your interest in franchising with us *" aria-label="Franchise interest and background" required>{{ old('message') }}</textarea>
                 <label class="fr-consent"><input type="checkbox" name="consent" value="1" @checked(old('consent')) required><span>I agree to the <a href="/privacy-policy">Privacy Policy</a> and <a href="/terms-conditions">Terms &amp; Conditions</a>.</span></label>
                 <button type="submit">SUBMIT ENQUIRY</button>
             </form>

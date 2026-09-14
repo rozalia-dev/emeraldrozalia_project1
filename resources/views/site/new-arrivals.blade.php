@@ -68,7 +68,7 @@
                     <div class="arrival-colours">
                         @foreach($colourOptions as $colour => $hex)
                             <label class="arrival-colour" title="{{ str($colour)->headline() }}">
-                                <input type="checkbox" name="colour[]" value="{{ $colour }}" @checked(in_array($colour,$selectedColours,true))>
+                                <input type="checkbox" name="colour[]" value="{{ $colour }}" aria-label="{{ str($colour)->headline() }}" @checked(in_array($colour,$selectedColours,true))>
                                 <span style="background:{{ $hex }}"></span>
                             </label>
                         @endforeach
@@ -90,7 +90,7 @@
                     <strong>PRICE</strong>
                     @php($selectedMaxPrice = min($priceCeiling, max(0, (int) request('max_price', $priceCeiling))))
                     <div class="arrival-price-head"><span>€0</span><span id="arrival-price-value">€{{ $selectedMaxPrice }}</span></div>
-                    <input type="range" name="max_price" min="0" max="{{ $priceCeiling }}" step="1" value="{{ $selectedMaxPrice }}" oninput="document.getElementById('arrival-price-value').textContent='€'+this.value">
+                    <input type="range" name="max_price" aria-label="Maximum price" min="0" max="{{ $priceCeiling }}" step="1" value="{{ $selectedMaxPrice }}" oninput="document.getElementById('arrival-price-value').textContent='€'+this.value">
                 </div>
 
                 <button class="arrival-apply" type="submit">APPLY FILTERS</button>
