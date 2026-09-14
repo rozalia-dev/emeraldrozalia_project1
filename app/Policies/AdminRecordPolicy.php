@@ -14,7 +14,7 @@ class AdminRecordPolicy
 
     public function view(User $user, AdminRecord $record): bool
     {
-        return $user->is_admin;
+        return $user->is_admin && $this->sameCompany($record);
     }
 
     public function create(User $user): bool
@@ -24,26 +24,33 @@ class AdminRecordPolicy
 
     public function update(User $user, AdminRecord $record): bool
     {
-        return $user->is_admin;
+        return $user->is_admin && $this->sameCompany($record);
     }
 
     public function archive(User $user, AdminRecord $record): bool
     {
-        return $user->is_admin && ! $record->trashed();
+        return $user->is_admin && $this->sameCompany($record) && ! $record->trashed();
     }
 
     public function trash(User $user, AdminRecord $record): bool
     {
-        return $user->is_admin && ! $record->trashed();
+        return $user->is_admin && $this->sameCompany($record) && ! $record->trashed();
     }
 
     public function restore(User $user, AdminRecord $record): bool
     {
-        return $user->is_admin && $record->trashed();
+        return $user->is_admin && $this->sameCompany($record) && $record->trashed();
     }
 
     public function permanentlyDelete(User $user, AdminRecord $record): bool
     {
-        return $user->is_admin && $record->trashed();
+        return $user->is_admin && $this->sameCompany($record) && $record->trashed();
+    }
+
+    private function sameCompany(AdminRecord $record): bool
+    {
+        $companyId = session('company_id');
+
+        return $companyId === null || (int) $record->company_id === (int) $companyId;
     }
 }

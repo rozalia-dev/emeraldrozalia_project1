@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminRecordRequest;
 use App\Http\Requests\{ReviewBulkStatusRequest, ReviewImportRequest, ReviewStatusRequest};
 use App\Models\AdminRecord;
 use App\Models\Category;
@@ -33,7 +34,7 @@ class ResourceController extends Controller {
     ];
     private const GENERIC_STATUSES=['active','draft','planned','in-progress','completed','on-hold','new','pending','approved','rejected','open','closed','archived'];
     private function valid(string $module):void { abort_unless(in_array($module,$this->modules,true),404); }
-    private function data(Request $r):array { return $r->validate(['title'=>['required','string','max:180'],'reference'=>['nullable','string','max:100'],'status'=>['required','string',Rule::in(self::GENERIC_STATUSES)],'amount'=>['nullable','numeric','min:0','max:999999999.99'],'record_date'=>['nullable','date'],'notes'=>['nullable','string','max:3000']]); }
+    private function data(AdminRecordRequest $r):array { return $r->validate(['title'=>['required','string','max:180'],'reference'=>['nullable','string','max:100'],'status'=>['required','string',Rule::in(self::GENERIC_STATUSES)],'amount'=>['nullable','numeric','min:0','max:999999999.99'],'record_date'=>['nullable','date'],'notes'=>['nullable','string','max:3000']]); }
     public function index(Request $request,string $module):View {
         $this->valid($module);
         if($module==='product-manager')return $this->productManager($request);
@@ -438,8 +439,8 @@ class ResourceController extends Controller {
 
         return back()->with('success', 'Reply queued in Communication Center.');
     }
-    public function store(Request $r,string $module){$this->valid($module);Gate::authorize('create',AdminRecord::class);$d=$this->data($r);$record=AdminRecord::create(['module'=>$module,'title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'user_id'=>auth()->id(),'data'=>['notes'=>$d['notes']??null]]);AuditTrail::record($module.'.created',$record,null,$record->toArray());return back()->with('success','Record created.');}
-    public function update(Request $r,string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);Gate::authorize('update',$record);$before=$record->toArray();$d=$this->data($r);$record->update(['title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'data'=>array_merge($record->data??[],['notes'=>$d['notes']??null])]);AuditTrail::record($module.'.updated',$record,$before,$record->fresh()->toArray());return back()->with('success','Record updated.');}
+    public function store(AdminRecordRequest $r,string $module){$this->valid($module);Gate::authorize('create',AdminRecord::class);$d=$this->data($r);$record=AdminRecord::create(['module'=>$module,'title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'user_id'=>auth()->id(),'data'=>['notes'=>$d['notes']??null]]);AuditTrail::record($module.'.created',$record,null,$record->toArray());return back()->with('success','Record created.');}
+    public function update(AdminRecordRequest $r,string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);Gate::authorize('update',$record);$before=$record->toArray();$d=$this->data($r);$record->update(['title'=>$d['title'],'reference'=>$d['reference']??null,'status'=>$d['status'],'amount'=>$d['amount']??null,'record_date'=>$d['record_date']??null,'data'=>array_merge($record->data??[],['notes'=>$d['notes']??null])]);AuditTrail::record($module.'.updated',$record,$before,$record->fresh()->toArray());return back()->with('success','Record updated.');}
     public function destroy(string $module,AdminRecord $record){$this->valid($module);abort_unless($record->module===$module,404);Gate::authorize('trash',$record);$before=$record->toArray();$record->delete();$after=$record->toArray();$after['deleted_at']=$record->deleted_at?->toISOString();AuditTrail::record($module.'.trashed',$record,$before,$after);return back()->with('success','Record moved to trash.');}
     private function findGenericRecord(string $module, int $id, bool $withTrashed = false): AdminRecord
     {
