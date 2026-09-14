@@ -20,6 +20,7 @@ use App\Support\Money;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -285,7 +286,7 @@ class CheckoutController extends Controller
 
     public function success(Order $order): View
     {
-        abort_unless($order->user_id === auth()->id(), 403);
+        Gate::authorize('view', $order);
 
         return view('site.order-success', compact('order'));
     }

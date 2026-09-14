@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Requests\{CartAddRequest, CartUpdateRequest};
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\CartService;
@@ -13,15 +14,10 @@ class CartController extends Controller
         return view('site.cart', ['items'=>$cart->items(), 'subtotal'=>$cart->subtotal()]);
     }
 
-    public function add(Request $request, Product $product, CartService $cart)
+    public function add(CartAddRequest $request, Product $product, CartService $cart)
     {
         abort_unless($product->is_active, 404);
-        $data=$request->validate([
-            'variant_id'=>'nullable|integer|exists:product_variants,id',
-            'quantity'=>'required|integer|min:1|max:50',
-            'colour'=>'nullable|string|max:80',
-            'size'=>'nullable|string|max:80',
-        ]);
+        $data=$request->validated();
         $variant=null;
         if (!empty($data['variant_id'])) {
             $variant=$product->variants()->whereKey($data['variant_id'])->where('is_active',true)->firstOrFail();
@@ -33,9 +29,9 @@ class CartController extends Controller
         return redirect()->route('cart')->with('success','Product added to cart.');
     }
 
-    public function update(Request $request, string $key, CartService $cart)
+    public function update(CartUpdateRequest $request, string $key, CartService $cart)
     {
-        $data=$request->validate(['quantity'=>'required|integer|min:0|max:50']);
+        $data=$request->validated();
         if ($data['quantity']>0) {
             $item=$cart->items()[$key]??null;
             if ($item) {
