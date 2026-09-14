@@ -124,31 +124,42 @@ async function inspectFocusedElement(page) {
     const labelled = element.labels?.length
       ? [...element.labels].map((label) => label.innerText).join(' ')
       : '';
-    const imageAlt = [...element.querySelectorAll?.('img[alt]') || []]
+    const parentLabel = element.closest('label')?.innerText || '';
+    const imageAlt = [...(element.querySelectorAll?.('img[alt]') || [])]
       .map((image) => image.alt)
       .join(' ');
     const accessibleName = element.getAttribute('aria-label')
       || labelledBy
       || labelled
+      || parentLabel
       || element.getAttribute('alt')
       || imageAlt
       || element.innerText
       || element.textContent
       || element.value
       || '';
+    const focusProxy = element.nextElementSibling;
+    const proxyRect = focusProxy?.getBoundingClientRect();
+    const proxyStyle = focusProxy ? getComputedStyle(focusProxy) : null;
+    const ownVisible = rect.width > 0 && rect.height > 0
+      && style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && style.opacity !== '0';
+    const proxyVisible = Boolean(proxyRect && proxyRect.width > 0 && proxyRect.height > 0
+      && proxyStyle?.display !== 'none'
+      && proxyStyle?.visibility !== 'hidden');
     const focusableElements = [...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')];
 
     return {
       valid: true,
       domIndex: focusableElements.indexOf(element),
-      visible: rect.width > 0 && rect.height > 0
-        && style.display !== 'none'
-        && style.visibility !== 'hidden',
+      visible: ownVisible || proxyVisible,
       name: accessibleName.replace(/\s+/g, ' ').trim(),
       focusVisible: element.matches(':focus-visible'),
-      indicator: style.outlineStyle !== 'none'
-        && style.outlineWidth !== '0px'
-        || style.boxShadow !== 'none',
+      indicator: (style.outlineStyle !== 'none'
+        && style.outlineWidth !== '0px')
+        || style.boxShadow !== 'none'
+        || proxyStyle?.boxShadow !== 'none',
       ariaHidden: Boolean(element.closest('[aria-hidden="true"]')),
     };
   });
