@@ -79,10 +79,23 @@ class Conversation extends Model
     public function scopeForCurrentCompany(Builder $query): Builder
     {
         $companyId = session('company_id');
+        if (! $companyId) {
+            return $query;
+        }
 
-        return $companyId
-            ? $query->where($query->getModel()->getTable().'.company_id', (int) $companyId)
-            : $query;
+        $table = $query->getModel()->getTable();
+        $query->withoutGlobalScope('tenant')->where(function (Builder $visible) use ($table, $companyId): void {
+            $visible->where($table.'.company_id', (int) $companyId);
+
+            // Global administrators may still resolve legacy conversations whose
+            // tenant was not recoverable during the ownership backfill. New
+            // records are always assigned by BelongsToTenant.
+            if (auth()->user()?->is_admin) {
+                $visible->orWhereNull($table.'.company_id');
+            }
+        });
+
+        return $query;
     }
 
     public function resolveRouteBindingQuery($query, $value, $field = null)
