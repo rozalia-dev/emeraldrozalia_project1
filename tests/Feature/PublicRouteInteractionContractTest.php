@@ -19,6 +19,8 @@ class PublicRouteInteractionContractTest extends TestCase
             '/corporate-orders',
             '/bulk-orders',
             '/franchise',
+            '/be-a-store-owner',
+            '/quality',
             '/careers',
             '/global-network',
             '/contact',
