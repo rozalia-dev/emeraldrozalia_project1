@@ -239,7 +239,11 @@ class ProjectScopeTest extends TestCase {
         $admin=User::factory()->create(['is_admin'=>true]);
         $conversation=Conversation::create(['channel'=>'web','contact'=>'customer@example.com','subject'=>'Retail enquiry','status'=>'new','priority'=>'normal','metadata'=>['name'=>'Customer']]);
         $conversation->messages()->create(['direction'=>'inbound','body'=>'Please send more information.','delivery_status'=>'stored','sent_at'=>now()]);
-        $this->actingAs($admin)->patch(route('admin.communication.update',$conversation),['status'=>'pending','priority'=>'high','assigned_to'=>$admin->id,'follow_up_at'=>'2026-09-09 10:00'])->assertRedirect();
+        $this->actingAs($admin);
+        $direct=Conversation::withoutGlobalScopes()->whereKey($conversation->getKey())->first();
+        $visible=Conversation::query()->forCurrentCompany()->whereKey($conversation->getKey())->first();
+        fwrite(STDOUT,"\\nPROJECT_SCOPE_DIAGNOSTIC session_company=".var_export(session('company_id'),true)." conversation_company=".var_export($conversation->company_id,true)." direct=".($direct?'yes':'no')." visible=".($visible?'yes':'no')." admin=".var_export((bool)auth()->user()?->is_admin,true)."\\n");
+        $this->patch(route('admin.communication.update',$conversation),['status'=>'pending','priority'=>'high','assigned_to'=>$admin->id,'follow_up_at'=>'2026-09-09 10:00'])->assertRedirect();
         $this->assertSame('pending',$conversation->fresh()->status);
         $this->assertSame('high',$conversation->fresh()->priority);
         $this->assertSame($admin->id,$conversation->fresh()->assigned_to);
