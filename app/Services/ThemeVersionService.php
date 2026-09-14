@@ -2,12 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Company;
-use App\Models\ThemeVersion;
+use App\Models\{Company, MediaAsset, ThemeVersion};
+use App\Services\PublicMediaResolver;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class ThemeVersionService
@@ -65,16 +66,21 @@ final class ThemeVersionService
         ],
     ];
 
+    /**
+     * The repository logos are registered as global MediaAsset records by the
+     * public-media migration. These keys are lookup-only; public snapshots
+     * expose only the approved UUID delivery descriptor.
+     */
     public const DEFAULT_ASSET_REFERENCES = [
         'header_logo' => [
-            'path' => '/assets/logo/logo_one_line.png',
+            'asset_key' => 'legacy:assets/logo/logo_one_line.png',
             'role' => 'approved_header_logo',
-            'status' => 'approved',
+            'alt' => 'Emerald Rozalia Limited',
         ],
         'footer_logo' => [
-            'path' => '/assets/logo/logo_two_line.png',
+            'asset_key' => 'legacy:assets/logo/logo_two_line.png',
             'role' => 'approved_footer_logo',
-            'status' => 'approved',
+            'alt' => 'Emerald Rozalia Limited',
         ],
     ];
 
@@ -106,7 +112,7 @@ final class ThemeVersionService
 
     public function defaultAssetReferences(): array
     {
-        return self::DEFAULT_ASSET_REFERENCES;
+        return $this->approvedAssetReferences(self::DEFAULT_ASSET_REFERENCES);
     }
 
     /** @return Builder<ThemeVersion> */
@@ -170,7 +176,7 @@ final class ThemeVersionService
                     'locale' => $locale,
                 ],
                 'tokens' => self::DEFAULT_TOKENS,
-                'assets' => self::DEFAULT_ASSET_REFERENCES,
+                'assets' => $this->defaultAssetReferences(),
             ];
         }
 
@@ -214,7 +220,7 @@ final class ThemeVersionService
                 'version' => $version,
                 'status' => ThemeVersion::STATUS_DRAFT,
                 'token_payload' => $tokens,
-                'asset_references' => self::DEFAULT_ASSET_REFERENCES,
+                'asset_references' => $this->defaultAssetReferences(),
                 'created_by' => $userId,
                 'notes' => $attributes['notes'] ?? null,
             ]);
@@ -443,9 +449,45 @@ final class ThemeVersionService
 
     private function approvedAssetReferences(?array $assets): array
     {
-        // Batch 19 will add the UUID-backed media picker. Until then, the only
-        // publishable references are these approved repository assets.
-        return self::DEFAULT_ASSET_REFERENCES;
+        $source = is_array($assets) ? $assets : [];
+        $references = [];
+
+        foreach (self::DEFAULT_ASSET_REFERENCES as $role => $default) {
+            $candidate = is_array($source[$role] ?? null) ? $source[$role] : [];
+            $asset = null;
+            $uuid = $candidate['uuid'] ?? null;
+
+            if (is_string($uuid) && Str::isUuid($uuid)) {
+                $asset = MediaAsset::query()
+                    ->approvedPublic()
+                    ->where('uuid', $uuid)
+                    ->where('asset_key', $default['asset_key'])
+                    ->first();
+            }
+
+            $asset ??= MediaAsset::query()
+                ->approvedPublic()
+                ->where('asset_key', $default['asset_key'])
+                ->first();
+
+            if (! $asset) {
+                continue;
+            }
+
+            $descriptor = app(PublicMediaResolver::class)->describe($asset, $default['alt']);
+            $references[$role] = [
+                'uuid' => $descriptor['uuid'],
+                'url' => $descriptor['url'],
+                'srcset' => $descriptor['srcset'],
+                'sizes' => $descriptor['sizes'],
+                'alt' => $descriptor['alt'],
+                'original_name' => $descriptor['original_name'],
+                'role' => $default['role'],
+                'status' => 'approved',
+            ];
+        }
+
+        return $references;
     }
 
     private function validatedTokens(array $tokens): array
