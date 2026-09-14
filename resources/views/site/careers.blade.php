@@ -7,7 +7,7 @@
 @endpush
 @php($careersLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
-<div class="careers-reference" data-page="careers-live" data-approved-media-source="/assets/logo/logo_two_line.png">
+<div class="careers-reference" data-page="careers-live" data-public-media-register="careers">
     <section class="career-hero" aria-labelledby="career-title">
         <div class="career-hero-visual" aria-label="Emerald Rozalia careers in Limerick">
             <div class="career-visual-glow"></div>
