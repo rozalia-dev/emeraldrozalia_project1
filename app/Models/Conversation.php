@@ -101,15 +101,31 @@ class Conversation extends Model
     public function resolveRouteBinding($value, $field = null)
     {
         $field ??= $this->getRouteKeyName();
+        $table = $this->getTable();
 
         // Implicit binding can run before the appended web middleware has
-        // established the selected company. Start without the tenant scope,
-        // then apply the same explicit visibility rule used by admin actions.
-        $query = static::query()
-            ->withoutGlobalScope('tenant')
-            ->where($field, $value);
+        // established the selected company. Build from the model query (no
+        // global scopes), then apply the visibility rule explicitly.
+        $query = $this->newModelQuery()
+            ->whereNull($this->getQualifiedDeletedAtColumn())
+            ->where($table.'.'.$field, $value);
 
-        return $this->scopeForCurrentCompany($query)->first();
+        $companyId = session('company_id');
+        if ($companyId) {
+            $query->where(function (Builder $visible) use ($table, $companyId): void {
+                $visible->where($table.'.company_id', (int) $companyId);
+                if (auth()->user()?->is_admin) {
+                    $visible->orWhereNull($table.'.company_id');
+                }
+            });
+        }
+
+        return $query->first();
+    }
+
+    public function resolveSoftDeletableRouteBinding($value, $field = null)
+    {
+        return $this->resolveRouteBinding($value, $field);
     }
 
     public function resolveRouteBindingQuery($query, $value, $field = null)

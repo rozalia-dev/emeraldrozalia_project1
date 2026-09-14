@@ -31,8 +31,7 @@ class CommunicationCenter
         $message = null;
 
         DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
-            $lockedConversation = Conversation::query()
-                ->forCurrentCompany()
+            $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -102,8 +101,7 @@ class CommunicationCenter
         $message = null;
 
         DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
-            $lockedConversation = Conversation::query()
-                ->forCurrentCompany()
+            $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -170,8 +168,7 @@ class CommunicationCenter
         $updated = null;
 
         DB::transaction(function () use (&$updated, $conversation, $data): void {
-            $lockedConversation = Conversation::query()
-                ->forCurrentCompany()
+            $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
 
@@ -261,6 +258,25 @@ class CommunicationCenter
             'follow_up_at' => optional($conversation->follow_up_at)->toISOString(),
             'correlation_id' => $conversation->correlation_id,
         ];
+    }
+
+    private function visibleConversationQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $table = (new Conversation())->getTable();
+        $query = Conversation::withoutGlobalScopes()
+            ->whereNull($table.'.deleted_at');
+        $companyId = session('company_id');
+
+        if (! $companyId) {
+            return $query;
+        }
+
+        return $query->where(function (\Illuminate\Database\Eloquent\Builder $visible) use ($table, $companyId): void {
+            $visible->where($table.'.company_id', (int) $companyId);
+            if (auth()->user()?->is_admin) {
+                $visible->orWhereNull($table.'.company_id');
+            }
+        });
     }
 
     private function correlationId(): string
