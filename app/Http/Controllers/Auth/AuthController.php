@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\{ForgotPasswordRequest, LoginRequest, RegisterRequest, ResetPasswordRequest};
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -24,12 +25,9 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+        $credentials = $request->validated();
 
         $candidate = User::where('email', $credentials['email'])->first();
         if ($candidate && (($candidate->status ?? 'active') !== 'active' || $candidate->locked_at)) {
@@ -54,14 +52,9 @@ class AuthController extends Controller
             ->onlyInput('email');
     }
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:40'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        $data = $request->validated();
 
         $user = User::create($data + ['status'=>'active']);
         event(new Registered($user));
@@ -79,10 +72,9 @@ class AuthController extends Controller
         return view('auth.forgot');
     }
 
-    public function forgot(Request $request)
+    public function forgot(ForgotPasswordRequest $request)
     {
-        $request->validate(['email' => ['required', 'email']]);
-        Password::sendResetLink($request->only('email'));
+        Password::sendResetLink($request->validated());
 
         return back()->with(
             'success',
@@ -98,16 +90,12 @@ class AuthController extends Controller
         ]);
     }
 
-    public function reset(Request $request)
+    public function reset(ResetPasswordRequest $request)
     {
-        $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        $data = $request->validated();
 
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            $data,
             function (User $user, string $password): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
