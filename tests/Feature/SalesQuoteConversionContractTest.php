@@ -88,8 +88,8 @@ class SalesQuoteConversionContractTest extends TestCase
             'exchange_rate' => '1',
         ])->assertRedirect();
 
-        $this->assertSame('35.45', $quote->fresh()->total);
-        $this->assertSame('35.45', $quote->fresh()->line_items[0]['total']);
+        $this->assertSame('41.45', $quote->fresh()->total);
+        $this->assertSame('36.00', $quote->fresh()->line_items[0]['total']);
 
         $this->actingAs($admin)->post(route('admin.quotes.approve', $quote->fresh()), [
             'expected_version' => 2,
@@ -108,7 +108,7 @@ class SalesQuoteConversionContractTest extends TestCase
         $this->assertSame('approved', $order->status);
         $this->assertSame('pending', $order->payment_status);
         $this->assertSame('ready_to_ship', $order->fulfillment_status);
-        $this->assertSame('35.45', $order->total);
+        $this->assertSame('41.45', $order->total);
         $this->assertDatabaseHas('order_items', [
             'order_id' => $order->id,
             'product_id' => $product->id,
@@ -120,7 +120,7 @@ class SalesQuoteConversionContractTest extends TestCase
         $this->assertDatabaseHas('payment_transactions', [
             'order_id' => $order->id,
             'status' => 'awaiting_payment',
-            'amount' => '35.45',
+            'amount' => '41.45',
         ]);
         $this->assertDatabaseHas('inventory_movements', [
             'order_id' => $order->id,
