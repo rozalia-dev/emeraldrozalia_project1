@@ -203,7 +203,12 @@
                                                         <form method="post" action="{{ route('admin.banners.action', [$row['id'], 'publish']) }}">@csrf<button type="submit"><x-icon name="check" size="12" /> Publish</button></form>
                                                     @endif
                                                     <form method="post" action="{{ route('admin.banners.action', [$row['id'], 'archive']) }}">@csrf<button type="submit"><x-icon name="folder" size="12" /> Archive</button></form>
-                                                    <form method="post" action="{{ route('admin.banners.action', [$row['id'], 'trash']) }}">@csrf<button type="submit" data-confirm="Move this banner to trash?"><x-icon name="trash" size="12" /> Move to trash</button></form>
+                                                    @if($row['status_key'] !== 'trashed')
+                                                        <form method="post" action="{{ route('admin.banners.action', [$row['id'], 'trash']) }}">@csrf<button type="submit" data-confirm="Delete this banner? It will be moved to Trash and can be restored."><x-icon name="trash" size="12" /> Delete</button></form>
+                                                    @endif
+                                                    @if($row['status_key'] === 'trashed')
+                                                        <form method="post" action="{{ route('admin.banners.action', [$row['id'], 'delete']) }}">@csrf<button type="submit" data-confirm="Permanently delete this banner? This cannot be undone."><x-icon name="trash" size="12" /> Delete permanently</button></form>
+                                                    @endif
                                                 </div>
                                             </details>
                                         </div>

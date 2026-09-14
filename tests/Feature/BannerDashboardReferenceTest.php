@@ -98,6 +98,14 @@ class BannerDashboardReferenceTest extends TestCase
         $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'publish']))->assertRedirect();
         $this->assertSame('published', $copy->fresh()->status);
 
+        $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'trash']))->assertRedirect();
+        $this->assertSoftDeleted('banners', ['id' => $copy->id]);
+        $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'restore']))->assertRedirect();
+        $this->assertNotSoftDeleted('banners', ['id' => $copy->id]);
+        $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'trash']))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.banners.action', [$copy->id, 'delete']))->assertRedirect();
+        $this->assertDatabaseMissing('banners', ['id' => $copy->id]);
+
         $revision = $banner->revisions()->oldest('version')->firstOrFail();
         $this->actingAs($admin)->post(route('admin.banners.restore-revision', [$banner->id, $revision->id]))->assertRedirect();
         $this->assertSame('CI Banner Updated', $banner->fresh()->title);

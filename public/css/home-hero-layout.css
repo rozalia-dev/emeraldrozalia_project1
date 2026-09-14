@@ -16,21 +16,10 @@
     position: absolute;
     z-index: -2;
     inset: 0;
-    background-image:
-        linear-gradient(90deg, rgba(2, 10, 7, .94) 0%, rgba(2, 10, 7, .68) 42%, rgba(2, 10, 7, .62) 100%),
-        var(--home-hero-background-image, none);
+    background-image: var(--home-hero-background-image, none);
     background-position: center;
     background-size: cover;
     content: '';
-}
-
-.home-page .home-hero--has-background::after {
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(2, 10, 7, .1), rgba(2, 10, 7, .38));
-    content: '';
-    pointer-events: none;
 }
 
 .home-page .home-hero-structured-grid {
@@ -125,6 +114,10 @@
     pointer-events: none;
 }
 
+.home-page .home-hero--has-background .home-hero-structured-product::after {
+    display: none;
+}
+
 .home-page .home-hero-structured-product img,
 .home-page .home-hero-structured-product video {
     position: relative;
@@ -200,18 +193,12 @@
     letter-spacing: .02em;
 }
 
-.home-page .home-hero-tryon-form select,
 .home-page .home-hero-tryon-upload {
     width: 100%;
     border: 1px solid rgba(128, 158, 91, .48);
     border-radius: 6px;
     background: #07160f;
     color: #eef2ec;
-}
-
-.home-page .home-hero-tryon-form select {
-    min-height: 44px;
-    padding: 0 12px;
 }
 
 .home-page .home-hero-tryon-upload {

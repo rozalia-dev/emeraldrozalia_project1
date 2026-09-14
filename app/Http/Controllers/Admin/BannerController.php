@@ -120,7 +120,7 @@ class BannerController extends Controller
 
     public function action(string $banner, string $action): RedirectResponse
     {
-        abort_unless(in_array($action, ['publish', 'unpublish', 'schedule', 'archive', 'trash', 'restore'], true), 404);
+        abort_unless(in_array($action, ['publish', 'unpublish', 'schedule', 'archive', 'trash', 'restore', 'delete'], true), 404);
 
         $banner = Banner::withTrashed()->where(function (Builder $query) use ($banner): void {
             if (ctype_digit($banner)) {
@@ -132,7 +132,10 @@ class BannerController extends Controller
         $before = $this->snapshot($banner);
 
         DB::transaction(function () use ($banner, $action, $before): void {
-            if ($action === 'restore') {
+            if ($action === 'delete') {
+                abort_unless($banner->trashed(), 409, 'Only banners already in trash can be permanently deleted.');
+                $banner->forceDelete();
+            } elseif ($action === 'restore') {
                 $banner->restore();
             } elseif ($action === 'trash') {
                 $banner->delete();
@@ -149,15 +152,17 @@ class BannerController extends Controller
                 $banner->update($attributes + ['updated_by' => auth()->id()]);
             }
 
-            $banner->refresh();
-            if ($action !== 'trash') {
+            if ($action !== 'delete') {
+                $banner->refresh();
+            }
+            if (! in_array($action, ['trash', 'delete'], true)) {
                 $this->revision($banner, Str::headline($action));
             }
             AuditTrail::record(
                 'banners.'.Str::replace('-', '_', $action),
                 $banner,
                 $before,
-                $action === 'trash' ? null : $this->snapshot($banner),
+                in_array($action, ['trash', 'delete'], true) ? null : $this->snapshot($banner),
             );
         });
 
