@@ -3,9 +3,11 @@
     if (!page) return;
 
     // Shop has dense page-specific styling, so enforce the keyboard focus ring
-    // at the element level. Inline !important declarations outrank any later
-    // stylesheet reset while the :focus-visible check keeps mouse focus clean.
+    // at the element level. Inline !important declarations outrank stylesheet
+    // resets, and keyboard navigation disables transition timing before the
+    // browser moves focus so the ring is visible immediately.
     const focusableSelector = 'a[href],button,input,select,textarea,summary,[role="button"],[tabindex]:not([tabindex="-1"])';
+    const focusables = () => [...page.querySelectorAll(focusableSelector)];
     const focusProxy = (element) => {
         if (!(element instanceof HTMLInputElement) || !['checkbox', 'radio'].includes(element.type)) return null;
         const proxy = element.nextElementSibling;
@@ -18,6 +20,24 @@
         const proxy = focusProxy(element);
         if (proxy) proxy.style.removeProperty('box-shadow');
     };
+    const disableKeyboardTransitions = () => {
+        focusables().forEach((element) => {
+            element.style.setProperty('transition-duration', '0s', 'important');
+            element.style.setProperty('transition-delay', '0s', 'important');
+        });
+    };
+    const restorePointerTransitions = () => {
+        focusables().forEach((element) => {
+            element.style.removeProperty('transition-duration');
+            element.style.removeProperty('transition-delay');
+        });
+    };
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Tab') disableKeyboardTransitions();
+    }, true);
+    document.addEventListener('pointerdown', restorePointerTransitions, true);
+
     page.addEventListener('focusin', (event) => {
         const element = event.target;
         if (!(element instanceof HTMLElement) || !element.matches(focusableSelector)) return;
