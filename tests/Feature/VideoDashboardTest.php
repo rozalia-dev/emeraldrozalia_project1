@@ -198,7 +198,7 @@ class VideoDashboardTest extends TestCase
         // Pin both ends of the wall-clock interval. PostgreSQL stores timestamps at
         // second precision in this schema, so a real-time sleep can cross a second
         // boundary and make an intended ten-second interval appear as eleven.
-        $base = now()->utc()->startOfSecond();
+        $base = VideoPlay::firstOrFail()->created_at->utc()->addSecond()->startOfSecond();
         VideoPlay::query()->update(['updated_at'=>$base]);
         $this->travelTo($base->copy()->addSeconds(10));
         $this->withHeaders($clientHeaders)->postJson($url,['seconds'=>15])->assertNoContent();
