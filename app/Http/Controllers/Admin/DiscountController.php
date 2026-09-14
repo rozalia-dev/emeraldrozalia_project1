@@ -204,9 +204,9 @@ class DiscountController extends Controller
     private function validated(Request $request, ?Discount $discount = null): array
     {
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:60', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('discounts', 'code')->ignore($discount?->id)],
+            'code' => ['required', 'string', 'max:60', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('discounts', 'code')->ignore($discount?->id)->where(fn ($query) => $query->whereNull('deleted_at'))],
             'type' => ['required', Rule::in(array_keys(self::TYPES))],
-            'value' => ['required', 'numeric', 'min:0'],
+            'value' => ['required_unless:type,buy_x_get_y', 'nullable', 'numeric', 'min:0'],
             'minimum_order' => ['nullable', 'numeric', 'min:0'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
@@ -217,15 +217,15 @@ class DiscountController extends Controller
             'currency' => ['nullable', 'string', 'size:3'],
             'order_categories' => ['nullable', 'array'],
             'order_categories.*' => [Rule::in(array_keys(self::ORDER_CATEGORIES))],
+            'buy_quantity' => ['required_if:type,buy_x_get_y', 'nullable', 'integer', 'min:1', 'max:1000'],
+            'get_quantity' => ['required_if:type,buy_x_get_y', 'nullable', 'integer', 'min:1', 'max:1000'],
+            'product_skus' => ['nullable', 'string', 'max:4000'],
+            'category_slugs' => ['nullable', 'string', 'max:2000'],
         ]);
 
         if ($data['type'] === 'percent' && (float) $data['value'] > 100) {
             throw ValidationException::withMessages(['value' => 'Percentage discounts cannot exceed 100%.']);
         }
-        if ($data['type'] === 'buy_x_get_y') {
-            throw ValidationException::withMessages(['type' => 'Buy X Get Y requires a product-rule configuration and is not enabled by the current checkout engine.']);
-        }
-
         return $data;
     }
 
@@ -244,11 +244,33 @@ class DiscountController extends Controller
         if (array_key_exists('order_categories', $data)) {
             $metadata['order_categories'] = array_values(array_filter($data['order_categories'] ?: [], fn (mixed $key): bool => array_key_exists((string) $key, self::ORDER_CATEGORIES)));
         }
+        foreach (['buy_quantity', 'get_quantity'] as $key) {
+            if (($data['type'] ?? null) === 'buy_x_get_y' && array_key_exists($key, $data)) {
+                $metadata[$key] = max(1, (int) $data[$key]);
+            } else {
+                unset($metadata[$key]);
+            }
+        }
+        foreach ([
+            'product_skus' => 'product_skus',
+            'category_slugs' => 'category_slugs',
+        ] as $input => $metadataKey) {
+            if (($data['type'] ?? null) === 'buy_x_get_y' && array_key_exists($input, $data)) {
+                $metadata[$metadataKey] = collect(preg_split('/[\s,]+/', (string) ($data[$input] ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+                    ->map(fn (string $value): string => $metadataKey === 'product_skus' ? strtoupper(trim($value)) : strtolower(trim($value)))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+            } else {
+                unset($metadata[$metadataKey]);
+            }
+        }
 
         return [
             'code' => strtoupper(trim($data['code'])),
             'type' => $data['type'],
-            'value' => (float) $data['value'],
+            'value' => (float) ($data['value'] ?? 0),
             'minimum_order' => (float) ($data['minimum_order'] ?? 0),
             'starts_at' => $data['starts_at'] ?? null,
             'ends_at' => $data['ends_at'] ?? null,

@@ -62,13 +62,12 @@
         </aside>
     </section>
 
-    <section class="fr-advantage">
+    <section class="fr-advantage" data-public-data-state="{{ collect($franchiseMetrics)->contains(fn ($metric) => $metric['state'] === 'live') ? 'live' : 'awaiting-approved-records' }}">
         <h2>THE EMERALD ROZALIA ADVANTAGE</h2>
         <div class="fr-metrics">
-            <article><x-icon name="home" size="34" /><strong>35+</strong><span>Retail Partners<br>Worldwide</span></article>
-            <article><x-icon name="globe" size="34" /><strong>12</strong><span>Countries<br>Represented</span></article>
-            <article><x-icon name="tag" size="34" /><strong>100+</strong><span>Premium Styles<br>and Counting</span></article>
-            <article><x-icon name="calendar" size="34" /><strong>10+</strong><span>Years of Heritage<br>&amp; Experience</span></article>
+            @foreach($franchiseMetrics as $metric)
+                <article data-metric-state="{{ $metric['state'] }}"><x-icon name="{{ $metric['icon'] }}" size="34" /><strong>{{ $metric['value'] }}</strong><span>{!! $metric['label'] !!}</span></article>
+            @endforeach
         </div>
     </section>
 

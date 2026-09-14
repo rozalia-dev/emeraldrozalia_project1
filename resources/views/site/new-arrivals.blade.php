@@ -15,6 +15,7 @@
     ];
     $materialOptions = ['Tweed','Wool','Cotton','Linen','Leather','Felt'];
     $referenceClasses = [1,2,3,4,5,6];
+    $priceCeiling = max(1, (int) ($priceCeiling ?? 1));
     $productImage = static function ($product): ?array {
         $media = $product->media?->firstWhere('type', 'image');
 
@@ -87,8 +88,9 @@
 
                 <div class="arrival-filter-group">
                     <strong>PRICE</strong>
-                    <div class="arrival-price-head"><span>€0</span><span id="arrival-price-value">€{{ (int) request('max_price',129) }}</span></div>
-                    <input type="range" name="max_price" min="0" max="129" step="1" value="{{ (int) request('max_price',129) }}" oninput="document.getElementById('arrival-price-value').textContent='€'+this.value">
+                    @php($selectedMaxPrice = min($priceCeiling, max(0, (int) request('max_price', $priceCeiling))))
+                    <div class="arrival-price-head"><span>€0</span><span id="arrival-price-value">€{{ $selectedMaxPrice }}</span></div>
+                    <input type="range" name="max_price" min="0" max="{{ $priceCeiling }}" step="1" value="{{ $selectedMaxPrice }}" oninput="document.getElementById('arrival-price-value').textContent='€'+this.value">
                 </div>
 
                 <button class="arrival-apply" type="submit">APPLY FILTERS</button>
@@ -112,12 +114,13 @@
                 @forelse($products as $index => $product)
                     @php($rating = max(0,min(5,(int) round((float) ($product->reviews_avg_rating ?? 0)))))
                     @php($colours = collect($product->colours ?? [])->filter()->take(3))
+                    @php($hasPublicSpin = $product->latestPublicSpin() !== null)
                     <article class="arrival-product-card">
                         <a class="arrival-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
                             <div class="arrival-product-media arrival-product-media--{{ $referenceClasses[$index % 6] }}">
                                 @if($image = $productImage($product))<img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}">@endif
                                 <span class="arrival-new-badge">NEW</span>
-                                <span class="arrival-spin-badge">360°</span>
+                                @if($hasPublicSpin)<span class="arrival-spin-badge">360°</span>@endif
                             </div>
                             <div class="arrival-product-info">
                                 <h3>{{ $product->name }}</h3>
@@ -126,7 +129,7 @@
                                 <div class="arrival-card-bottom">
                                     <div class="arrival-swatches" aria-label="Available colours">
                                         @forelse($colours as $colour)<span class="arrival-swatch" title="{{ $colour }}" style="background:{{ $swatchColour($colour) }}"></span>@empty
-                                            <span class="arrival-swatch" style="background:#6b695c"></span><span class="arrival-swatch" style="background:#2f352f"></span><span class="arrival-swatch" style="background:#87714e"></span>
+                                            <span class="arrival-no-swatches">Colour data not configured</span>
                                         @endforelse
                                     </div>
                                 </div>

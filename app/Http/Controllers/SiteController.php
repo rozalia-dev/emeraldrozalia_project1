@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,Inquiry,Product,ProductCollection};
+use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -95,7 +95,14 @@ class SiteController extends Controller
 
     public function newArrivals(Request $r)
     {
-        $q = Product::with(['category', 'media'])->withCount('reviews')->withAvg('reviews', 'rating')->where('is_active', true)->where('is_new', true);
+        $q = Product::with([
+            'category',
+            'media',
+            'spins' => fn ($spinQuery) => $spinQuery
+                ->where('status', 'published')
+                ->where('visibility', 'public')
+                ->latest('updated_at'),
+        ])->withCount('reviews')->withAvg('reviews', 'rating')->where('is_active', true)->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
         $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
         if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
@@ -110,9 +117,15 @@ class SiteController extends Controller
             'name' => $q->orderBy('name'),
             default => $q->latest(),
         };
+        $priceCeiling = (int) ceil((float) Product::query()
+            ->where('is_active', true)
+            ->where('is_new', true)
+            ->max('price'));
+
         return view('site.new-arrivals', [
             'products' => $q->paginate(12)->withQueryString(),
             'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+            'priceCeiling' => max(1, $priceCeiling),
         ]);
     }
 
@@ -169,7 +182,47 @@ class SiteController extends Controller
     public function factory() { return view('site.factory'); }
     public function corporateOrders() { return view('site.corporate-order'); }
     public function bulkOrders() { return view('site.bulk-order'); }
-    public function franchise() { return view('site.franchise'); }
+    public function franchise()
+    {
+        $stores = FranchiseStore::query()
+            ->whereIn('status', ['active', 'open'])
+            ->get(['territory', 'address']);
+        $activeProducts = Product::query()->where('is_active', true)->count();
+        $countries = $stores
+            ->map(fn (FranchiseStore $store): ?string => strtoupper(trim((string) data_get($store->address, 'country'))))
+            ->filter()
+            ->unique()
+            ->count();
+
+        return view('site.franchise', [
+            'franchiseMetrics' => [
+                [
+                    'icon' => 'home',
+                    'value' => $stores->count() ?: '—',
+                    'label' => "Active retail partner".($stores->count() === 1 ? '' : 's').'<br>recorded',
+                    'state' => $stores->isNotEmpty() ? 'live' : 'not-configured',
+                ],
+                [
+                    'icon' => 'globe',
+                    'value' => $countries ?: '—',
+                    'label' => ($countries === 1 ? 'Country' : 'Countries').'<br>recorded',
+                    'state' => $countries ? 'live' : 'not-configured',
+                ],
+                [
+                    'icon' => 'tag',
+                    'value' => $activeProducts ?: '—',
+                    'label' => 'Active product'.($activeProducts === 1 ? '' : 's').'<br>in catalog',
+                    'state' => $activeProducts ? 'live' : 'not-configured',
+                ],
+                [
+                    'icon' => 'calendar',
+                    'value' => '—',
+                    'label' => 'Heritage year<br>not configured',
+                    'state' => 'not-configured',
+                ],
+            ],
+        ]);
+    }
     public function careers() { return view('site.careers'); }
     public function globalNetwork() { return view('site.global-network'); }
     public function contact() { return view('site.contact'); }

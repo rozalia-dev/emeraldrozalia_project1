@@ -7,7 +7,7 @@
 @endpush
 @php($corporateLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
-<div class="corporate-shell" data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE" data-reference-image="/assets/brand/corporate-order-reference.png?v=20260908">
+<div class="corporate-shell" data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE">
     <section class="corporate-hero" aria-labelledby="corporate-order-title">
         <div class="corporate-hero-copy">
             <h1 id="corporate-order-title">CORPORATE<br><em>ORDERS</em></h1>
@@ -119,7 +119,7 @@
     <section class="corporate-panel corporate-trusted">
         <h2>TRUSTED BY ORGANISATIONS WORLDWIDE</h2>
         <div class="corporate-reference corporate-reference--trust" role="img" aria-label="Corporate client logos from the approved reference"></div>
-        <p>Join hundreds of businesses that trust us to represent their brand with quality.</p>
+        <p data-public-data-state="awaiting-approved-client-records">Approved client records will appear here when they are published.</p>
     </section>
 
     <footer class="corporate-footer">

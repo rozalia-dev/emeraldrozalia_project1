@@ -15,6 +15,7 @@ use App\Models\{
     ShippingMethod
 };
 use App\Services\CartService;
+use App\Services\DiscountCalculator;
 use App\Services\AuditTrail;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
@@ -122,6 +123,7 @@ class CheckoutController extends Controller
             $discountCode
         ): Order {
             $discount = 0.0;
+            $orderShipping = $shipping;
             $coupon = null;
 
             if ($discountCode) {
@@ -131,31 +133,39 @@ class CheckoutController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (
-                    !$coupon
-                    || ($coupon->starts_at && $coupon->starts_at->isFuture())
-                    || ($coupon->ends_at && $coupon->ends_at->isPast())
-                    || $subtotal < (float) $coupon->minimum_order
-                    || ($coupon->usage_limit !== null && $coupon->used >= $coupon->usage_limit)
-                ) {
+                if (! $coupon) {
                     throw ValidationException::withMessages([
                         'discount_code' => 'That discount code is unavailable for this order.',
                     ]);
                 }
 
-                $discount = $coupon->type === 'percent'
-                    ? Money::round($subtotal * min(100, (float) $coupon->value) / 100)
-                    : Money::round(min($subtotal, (float) $coupon->value));
+                $calculation = app(DiscountCalculator::class)->calculate(
+                    $coupon,
+                    $cart->items(),
+                    $subtotal,
+                    $shipping,
+                    auth()->user(),
+                    'online',
+                    'EUR',
+                );
+                if (! $calculation['valid']) {
+                    throw ValidationException::withMessages([
+                        'discount_code' => $calculation['error'] ?: 'That discount code is unavailable for this order.',
+                    ]);
+                }
+
+                $discount = $calculation['discount'];
+                $orderShipping = $calculation['shipping'];
             }
 
-            $total = Money::round(max(0, $subtotal + $shipping - $discount));
+            $total = Money::round(max(0, $subtotal + $orderShipping - $discount));
             $order = Order::create([
                 'user_id' => auth()->id(),
                 'number' => 'ER-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
                 'status' => 'processing',
                 'payment_status' => $data['payment_method'] === 'cod' ? 'pay_on_delivery' : 'pending',
                 'subtotal' => $subtotal,
-                'shipping' => $shipping,
+                'shipping' => $orderShipping,
                 'discount' => $discount,
                 'total' => $total,
                 'currency' => 'EUR',
