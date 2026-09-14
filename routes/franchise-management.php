@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 $sectionPattern = implode('|', FranchiseManagementController::SECTIONS);
 
-Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($sectionPattern): void {
+Route::prefix('admin')->middleware(['web', 'auth', 'franchise.permission'])->group(function () use ($sectionPattern): void {
     Route::get('/resource/franchise-territories', [FranchiseTerritoryController::class, 'index'])
         ->name('admin.franchise.territories');
 
@@ -25,6 +25,10 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($s
     });
 
     Route::prefix('franchise-management')->name('admin.franchise.')->group(function (): void {
+        Route::post('/stores/{store:uuid}/action/{action}', [FranchiseManagementController::class, 'storeAction'])
+            ->where('action', 'activate|suspend|resume|terminate')
+            ->name('store.action');
+
         Route::post('/applications/{application:uuid}/action/{action}', [FranchiseManagementController::class, 'applicationAction'])
             ->where('action', 'start-review|approve|reject|start-onboarding|convert')
             ->name('application.action');

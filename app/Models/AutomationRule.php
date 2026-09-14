@@ -23,6 +23,7 @@ class AutomationRule extends Model
         'communication.message.failed',
         'approval.changed',
         'franchise.application.created',
+        'franchise.store.status.changed',
     ];
 
     protected $guarded = [];

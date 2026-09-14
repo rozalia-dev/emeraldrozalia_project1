@@ -6,6 +6,7 @@ use App\Http\Middleware\ApplySeoRedirects;
 use App\Http\Middleware\AttachRequestCorrelation;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsureFranchisePermission;
 use App\Http\Middleware\ResolveTenantContext;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureAdmin::class,
             'permission' => EnsurePermission::class,
+            'franchise.permission' => EnsureFranchisePermission::class,
         ]);
         $middleware->appendToGroup('web', ApplySeoRedirects::class);
     })

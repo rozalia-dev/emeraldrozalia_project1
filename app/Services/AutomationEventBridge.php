@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Events\{ApprovalRequestChanged, CommunicationConversationChanged, CommunicationTemplateChanged, SalesQuoteConverted};
+use App\Events\{ApprovalRequestChanged, CommunicationConversationChanged, CommunicationTemplateChanged, FranchiseStoreLifecycleChanged, SalesQuoteConverted};
 
 final class AutomationEventBridge
 {
@@ -43,6 +43,24 @@ final class AutomationEventBridge
             'source' => 'Approval Center',
             'action' => $event->action,
         ], 'approval:'.$event->approval->uuid.':'.$event->action, $companyId ? (int) $companyId : null);
+    }
+
+    public function franchiseStoreChanged(FranchiseStoreLifecycleChanged $event): void
+    {
+        $store = $event->store;
+        $action = $event->action;
+        $companyId = $store->company_id;
+
+        app(AutomationRuleService::class)->queue('franchise.store.status.changed', [
+            'company_id' => $companyId,
+            'franchise_store_uuid' => $store->uuid,
+            'entity_uuid' => $store->uuid,
+            'title' => 'Franchise store '.$action->to_status,
+            'source' => 'Franchise Store Lifecycle',
+            'action' => $action->action,
+            'from_status' => $action->from_status,
+            'to_status' => $action->to_status,
+        ], 'franchise-store:'.$store->uuid.':'.$action->uuid, $companyId ? (int) $companyId : null);
     }
 
     public function templateChanged(CommunicationTemplateChanged $event): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FranchiseApplicationActionRequest;
+use App\Http\Requests\FranchiseStoreActionRequest;
 use App\Models\AdminRecord;
 use App\Models\Conversation;
 use App\Models\FranchiseApplication;
@@ -12,6 +13,7 @@ use App\Models\FranchiseStore;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\AuditTrail;
+use App\Services\FranchiseStoreLifecycleService;
 use App\Services\SalesQuoteService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -546,6 +548,24 @@ class FranchiseManagementController extends Controller
         });
     }
 
+    public function storeAction(FranchiseStoreActionRequest $request, FranchiseStore $store, string $action)
+    {
+        $this->authorize('transition', $store);
+
+        $changes = $request->validated();
+        $changes['action'] = $action;
+        $updated = app(FranchiseStoreLifecycleService::class)->act($store, $changes);
+
+        $label = match ($updated->status) {
+            'active', 'open' => 'activated',
+            'suspended' => 'suspended',
+            'terminated' => 'terminated',
+            default => 'updated',
+        };
+
+        return back()->with('success', 'Franchise store '.$label.'.');
+    }
+
     public function store(Request $request, string $section)
     {
         $config=$this->blueprint($section); abort_unless($config,404);
@@ -619,10 +639,52 @@ class FranchiseManagementController extends Controller
             $edit=['applicant_name'=>$record->applicant_name,'email'=>$record->email,'phone'=>$record->phone,'territory'=>$record->territory,'preferred_location'=>$record->preferred_location,'investment_range'=>$record->investment_range,'status'=>$status,'assigned_to'=>$record->assigned_to,'source'=>data_get($record->data,'source','Website')];
             return ['id'=>$record->id,'uuid'=>$record->uuid,'reference'=>'LEAD-'.str_pad((string)$record->id,8,'0',STR_PAD_LEFT),'primary'=>$record->applicant_name,'secondary'=>$record->email,'territory'=>$record->territory,'record_type'=>$record->investment_range?:'Franchise Lead','status'=>$status,'status_label'=>$config['statuses'][$status],'source'=>data_get($record->data,'source','Website'),'date'=>optional($record->created_at)->format('d M Y h:i A')?:'—','end_date'=>'—','assigned'=>$record->assigned_to?(User::query()->find($record->assigned_to)?->name?:'Unassigned'):'Unassigned','value'=>$record->investment_range?:'—','amount'=>'—','growth'=>'—','notes'=>$record->preferred_location?:'','edit'=>$edit,'actions'=>$this->applicationActions($status)];
         }
-        if($config['source']==='store'){
-            $meta=$record->address??[]; $status=match((string)$record->status){'open'=>'active','onboarding'=>'pending','suspended'=>'inactive',default=>(string)$record->status}; if(!isset($config['statuses'][$status]))$status='pending'; $sales=data_get($meta,'monthly_sales');
-            $edit=['code'=>$record->code,'name'=>$record->name,'franchisee_name'=>data_get($meta,'franchisee_name'),'territory'=>$record->territory,'status'=>$status,'manager_name'=>data_get($meta,'manager_name'),'manager_email'=>data_get($meta,'manager_email'),'opened_at'=>optional($record->opened_at)->format('Y-m-d'),'monthly_sales'=>$sales];
-            return ['id'=>$record->id,'reference'=>$record->code,'primary'=>$record->name,'secondary'=>data_get($meta,'franchisee_name','—')?:'—','territory'=>$record->territory,'record_type'=>'Retail Store','status'=>$status,'status_label'=>$config['statuses'][$status],'source'=>'Franchise Network','date'=>optional($record->opened_at)->format('d M Y')?:'—','end_date'=>'—','assigned'=>data_get($meta,'manager_name','Unassigned')?:'Unassigned','value'=>is_numeric($sales)?'€'.number_format((float)$sales,2):'€0.00','amount'=>is_numeric($sales)?'€'.number_format((float)$sales,2):'€0.00','growth'=>'—','notes'=>data_get($meta,'manager_email',''),'edit'=>$edit];
+        if ($config['source'] === 'store') {
+            $meta = is_array($record->address) ? $record->address : [];
+            $status = match ((string) $record->status) {
+                'open' => 'active',
+                'onboarding' => 'pending',
+                'suspended' => 'inactive',
+                default => (string) $record->status,
+            };
+            if (! isset($config['statuses'][$status])) {
+                $status = 'pending';
+            }
+
+            $sales = data_get($meta, 'monthly_sales');
+
+            return [
+                'id' => $record->id,
+                'uuid' => (string) $record->uuid,
+                'reference' => $record->code,
+                'primary' => $record->name,
+                'secondary' => data_get($meta, 'franchisee_name', '—') ?: '—',
+                'territory' => $record->territory,
+                'record_type' => 'Retail Store',
+                'status' => $status,
+                'status_label' => $config['statuses'][$status],
+                'source' => 'Franchise Network',
+                'date' => optional($record->opened_at)->format('d M Y') ?: '—',
+                'end_date' => '—',
+                'assigned' => data_get($meta, 'manager_name', 'Unassigned') ?: 'Unassigned',
+                'value' => is_numeric($sales) ? '€'.number_format((float) $sales, 2) : '€0.00',
+                'amount' => is_numeric($sales) ? '€'.number_format((float) $sales, 2) : '€0.00',
+                'growth' => '—',
+                'notes' => data_get($meta, 'manager_email', ''),
+                'version' => (int) ($record->version ?: 1),
+                'lifecycle_actions' => $this->storeLifecycleActions((string) $record->status),
+                'edit' => [
+                    'code' => $record->code,
+                    'name' => $record->name,
+                    'franchisee_name' => data_get($meta, 'franchisee_name'),
+                    'territory' => $record->territory,
+                    'status' => $status,
+                    'manager_name' => data_get($meta, 'manager_name'),
+                    'manager_email' => data_get($meta, 'manager_email'),
+                    'opened_at' => optional($record->opened_at)->format('Y-m-d'),
+                    'monthly_sales' => $sales,
+                ],
+            ];
         }
         if($config['source']==='milestone'){
             $row=$this->storeSetupRow($record);
@@ -660,6 +722,25 @@ class FranchiseManagementController extends Controller
             'under-review' => ['approve' => 'Approve', 'reject' => 'Reject'],
             'approved' => ['start-onboarding' => 'Start onboarding'],
             'onboarding' => ['convert' => 'Mark active'],
+            default => [],
+        };
+    }
+
+    private function storeLifecycleActions(string $status): array
+    {
+        return match (strtolower($status)) {
+            'active', 'open' => [
+                'suspend' => 'Suspend store',
+                'terminate' => 'Terminate store',
+            ],
+            'suspended' => [
+                'resume' => 'Resume store',
+                'terminate' => 'Terminate store',
+            ],
+            'pending', 'onboarding', 'inactive' => [
+                'activate' => 'Activate store',
+                'terminate' => 'Terminate store',
+            ],
             default => [],
         };
     }

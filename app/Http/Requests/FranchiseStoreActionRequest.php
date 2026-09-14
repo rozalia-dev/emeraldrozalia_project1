@@ -2,16 +2,19 @@
 
 namespace App\Http\Requests;
 
+use App\Services\FranchiseStoreLifecycleService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class FranchiseApplicationActionRequest extends FormRequest
+class FranchiseStoreActionRequest extends FormRequest
 {
     public function authorize(): bool
     {
         $user = $this->user();
+
         return (bool) ($user && ($user->is_admin || $user->hasAnyPermission([
-            'applications.leads.edit',
-            'applications.leads.update',
+            'franchise.retail.stores.edit',
+            'franchise.retail.stores.update',
             'franchise.update',
             'franchise.management.edit',
         ])));
@@ -23,18 +26,18 @@ class FranchiseApplicationActionRequest extends FormRequest
         $inputKey = trim((string) $this->input('idempotency_key', ''));
 
         $this->merge([
+            'action' => (string) $this->route('action'),
             'idempotency_key' => $headerKey !== '' ? $headerKey : ($inputKey !== '' ? $inputKey : null),
         ]);
     }
 
     public function rules(): array
     {
-        $isConversion = (string) $this->route('action') === 'convert';
-
         return [
-            'idempotency_key' => $isConversion
-                ? ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/']
-                : ['sometimes', 'nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/'],
+            'action' => ['required', 'string', Rule::in(FranchiseStoreLifecycleService::ACTIONS)],
+            'idempotency_key' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/'],
+            'expected_version' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'reason' => ['required_if:action,suspend,terminate', 'nullable', 'string', 'max:1000'],
         ];
     }
 }

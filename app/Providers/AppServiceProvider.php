@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider {
         Event::listen(\App\Events\CommunicationConversationChanged::class, [\App\Services\AutomationEventBridge::class, 'conversationChanged']);
         Event::listen(\App\Events\ApprovalRequestChanged::class, [\App\Services\AutomationEventBridge::class, 'approvalChanged']);
         Event::listen(\App\Events\CommunicationTemplateChanged::class, [\App\Services\AutomationEventBridge::class, 'templateChanged']);
+        Event::listen(\App\Events\FranchiseStoreLifecycleChanged::class, [\App\Services\AutomationEventBridge::class, 'franchiseStoreChanged']);
 
         View::composer('layouts.site', function ($view): void {
             $siteSettings = app(PublishedSiteSettings::class)->forCompany();
