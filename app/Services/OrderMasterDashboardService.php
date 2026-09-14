@@ -19,10 +19,6 @@ use InvalidArgumentException;
  */
 class OrderMasterDashboardService
 {
-    private const ORDER_STATUSES = ['pending', 'approved', 'processing', 'shipped', 'completed', 'cancelled', 'refunded'];
-    private const PAYMENT_STATUSES = ['unpaid', 'pending', 'paid', 'failed', 'refunded', 'pay_on_delivery'];
-    private const FULFILLMENT_STATUSES = ['pending', 'on_hold', 'picking', 'packed', 'ready_to_ship', 'shipped', 'delivered', 'closed'];
-
     private const META = [
         'online' => ['label' => 'Online Orders', 'singular' => 'Online Order', 'tone' => 'blue', 'icon' => 'globe', 'subtitle' => 'Manage orders placed through your website and online store.', 'entity_header' => 'CUSTOMER', 'selector_label' => 'All Sites / Channels', 'selector_key' => 'channel', 'entity_mode' => 'channel', 'entity_title' => 'Channel Performance', 'performance_title' => 'Fulfillment Performance', 'pending_label' => 'Pending Approval'],
         'corporate' => ['label' => 'Corporate Orders', 'singular' => 'Corporate Order', 'tone' => 'purple', 'icon' => 'briefcase', 'subtitle' => 'Manage orders placed by corporate accounts and business customers.', 'entity_header' => 'COMPANY', 'selector_label' => 'All Companies', 'selector_key' => 'company', 'entity_mode' => 'buyer', 'entity_title' => 'Top Corporate Accounts', 'performance_title' => 'Fulfillment Performance', 'pending_label' => 'Pending Approval'],
@@ -74,9 +70,9 @@ class OrderMasterDashboardService
             'performanceRows' => $this->performanceRows($allOrders),
             'selectorOptions' => $this->selectorOptions($allOrders, $meta),
             'paymentMethods' => $this->paymentMethods($allOrders),
-            'orderStatuses' => self::ORDER_STATUSES,
-            'paymentStatuses' => self::PAYMENT_STATUSES,
-            'fulfillmentStatuses' => self::FULFILLMENT_STATUSES,
+            'orderStatuses' => OrderLifecycle::ORDER_STATUSES,
+            'paymentStatuses' => OrderLifecycle::PAYMENT_STATUSES,
+            'fulfillmentStatuses' => OrderLifecycle::FULFILLMENT_STATUSES,
             'dateRange' => $this->dateRange($request),
             'tabs' => $this->tabs($meta),
             'activeTab' => (string) $request->query('tab', 'all'),

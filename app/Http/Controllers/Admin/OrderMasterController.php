@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Order, PaymentTransaction};
-use App\Services\AuditTrail;
+use App\Http\Requests\OrderTransitionRequest;
+use App\Models\Order;
+use App\Services\OrderLifecycle;
+use Illuminate\Support\Facades\Gate;
 use App\Services\OrderMasterDashboardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,24 +28,30 @@ class OrderMasterController extends Controller
     public function index(Request $request, string $type): View
     {
         $this->ensureType($type);
+        Gate::authorize('viewAny', Order::class);
         return view('admin.orders.index', app(OrderMasterDashboardService::class)->build($request, $type));
     }
 
     public function show(string $type, Order $order): View
     {
         $this->ensureOrder($type, $order);
+        Gate::authorize('view', $order);
         $order->load(['user', 'items.product', 'items.variant', 'payments', 'returns']);
 
         return view('admin.orders.show', [
             'order' => $order,
             'type' => $type,
             'label' => self::LABELS[$type],
+            'orderStatuses' => OrderLifecycle::ORDER_STATUSES,
+            'paymentStatuses' => OrderLifecycle::PAYMENT_STATUSES,
+            'fulfillmentStatuses' => OrderLifecycle::FULFILLMENT_STATUSES,
         ]);
     }
 
     public function invoice(string $type, Order $order): View
     {
         $this->ensureOrder($type, $order);
+        Gate::authorize('invoice', $order);
         $order->load(['user', 'items', 'payments']);
 
         return view('account.invoice', [
@@ -52,29 +60,11 @@ class OrderMasterController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $type, Order $order): RedirectResponse
+    public function update(OrderTransitionRequest $request, string $type, Order $order, OrderLifecycle $lifecycle): RedirectResponse
     {
         $this->ensureOrder($type, $order);
-
-        $data = $request->validate([
-            'status' => ['required', 'in:pending,approved,processing,shipped,completed,cancelled,refunded'],
-            'payment_status' => ['required', 'in:unpaid,pending,pay_on_delivery,paid,failed,refunded'],
-        ]);
-        $before = $order->toArray();
-        $order->update($data);
-
-        if ($before['payment_status'] !== $order->payment_status) {
-            PaymentTransaction::create([
-                'order_id' => $order->id,
-                'provider' => $order->payment_method ?: 'manual',
-                'amount' => $order->total,
-                'currency' => $order->currency ?: 'EUR',
-                'status' => $order->payment_status,
-                'payload' => ['source' => 'admin_order_lifecycle', 'order_type' => $type],
-            ]);
-        }
-
-        AuditTrail::record('admin.order_updated', $order, $before, $order->fresh()->toArray());
+        Gate::authorize('update', $order);
+        $lifecycle->transition($order, $request->validated());
 
         return back()->with('success', 'Order status updated and recorded.');
     }

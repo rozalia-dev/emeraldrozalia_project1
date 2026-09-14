@@ -18,6 +18,7 @@ class Order extends Model
         'discount' => 'decimal:2',
         'total' => 'decimal:2',
         'exchange_rate' => 'decimal:8',
+        'version' => 'integer',
     ];
 
     public function items()

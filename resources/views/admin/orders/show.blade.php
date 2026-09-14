@@ -43,8 +43,11 @@
                 <h2>Lifecycle update</h2>
                 <form class="order-update-form" method="post" action="{{ route('admin.order-master.update', [$type, $order]) }}">
                     @csrf @method('PATCH')
-                    <label>Order status<select name="status">@foreach(['pending','approved','processing','shipped','completed','cancelled','refunded'] as $status)<option value="{{ $status }}" @selected($order->status === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
-                    <label>Payment status<select name="payment_status">@foreach(['unpaid','pending','pay_on_delivery','paid','failed','refunded'] as $status)<option value="{{ $status }}" @selected($order->payment_status === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
+                    <input type="hidden" name="expected_version" value="{{ $order->version ?: 1 }}">
+                    <label>Order status<select name="status">@foreach($orderStatuses as $status)<option value="{{ $status }}" @selected($order->status === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
+                    <label>Payment status<select name="payment_status">@foreach($paymentStatuses as $status)<option value="{{ $status }}" @selected($order->payment_status === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
+                    <label>Fulfillment status<select name="fulfillment_status">@foreach($fulfillmentStatuses as $status)<option value="{{ $status }}" @selected(($order->fulfillment_status ?: 'pending') === $status)>{{ str($status)->replace('_', ' ')->headline() }}</option>@endforeach</select></label>
+                    <label>Transition note<textarea name="transition_note" rows="3" maxlength="2000" placeholder="Optional reason for this lifecycle change"></textarea></label>
                     <button class="btn" type="submit">SAVE LIFECYCLE STATE</button>
                 </form>
                 <a class="admin-document-link" href="{{ route('admin.order-master.invoice', [$type, $order]) }}">PRINT ADMIN INVOICE <x-icon name="arrow-right" /></a>
