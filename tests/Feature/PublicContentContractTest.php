@@ -10,7 +10,7 @@ class PublicContentContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_shell_keeps_the_locked_header_and_footer_contact_rule(): void
+    public function test_public_shell_exposes_contact_in_header_and_keeps_contact_values_in_footer(): void
     {
         $html = $this->get(route('home'))->assertOk()->getContent();
         $this->assertStringContainsString('data-public-shell="shared"', $html);
@@ -22,7 +22,7 @@ class PublicContentContractTest extends TestCase
         $this->assertNotFalse($navStart);
         $this->assertNotFalse($navEnd);
         $nav = substr($html, $navStart, $navEnd - $navStart);
-        $labels = ['HOME', 'SHOP', 'COLLECTIONS', 'NEW ARRIVALS', 'CORPORATE ORDER', 'BULK ORDER', 'FRANCHISE APPLY', 'HIRING APPLY'];
+        $labels = ['HOME', 'SHOP', 'COLLECTIONS', 'NEW ARRIVALS', 'CORPORATE ORDER', 'BULK ORDER', 'FRANCHISE APPLY', 'HIRING APPLY', 'CONTACT US'];
         $offset = -1;
 
         foreach ($labels as $label) {
@@ -32,7 +32,7 @@ class PublicContentContractTest extends TestCase
             $offset = $position;
         }
 
-        $this->assertStringNotContainsString('CONTACT US', $nav);
+        $this->assertStringContainsString('href="/contact"', $nav);
         $this->assertStringContainsString('href="/contact">Contact Us', $html);
         $this->assertStringContainsString('aria-label="Language"', $html);
         $this->assertStringContainsString('aria-label="Currency"', $html);
