@@ -1,0 +1,36 @@
+.quality-page{background:#020b08;color:#f1f4ee}
+.quality-page main{background:#020b08}
+.quality-page-frame{width:min(1440px,100%);margin:0 auto;padding:0 22px 24px}
+.quality-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,.9fr);min-height:450px;border-bottom:1px solid #304827}
+.quality-hero-copy{display:flex;flex-direction:column;justify-content:center;padding:70px 8vw 70px 6vw;background:radial-gradient(circle at 12% 22%,rgba(133,187,57,.2),transparent 34%),linear-gradient(145deg,#092116,#03100b 72%)}
+.quality-eyebrow{margin:0 0 12px;color:#a7cd39;font-size:11px;font-weight:700;letter-spacing:.2em}
+.quality-hero h1{margin:0;font:400 clamp(48px,6vw,88px)/.9 Georgia,'Times New Roman',serif;letter-spacing:-.04em}
+.quality-hero h1 em{font-style:normal;color:#d69a21}
+.quality-hero-copy>p:not(.quality-eyebrow){max-width:540px;margin:24px 0 0;color:#d2ddd4;font-size:14px;line-height:1.7}
+.quality-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.quality-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:0 19px;border:1px solid #86ad35;border-radius:4px;background:linear-gradient(90deg,#4e7d25,#7fa839);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;text-decoration:none}
+.quality-button--ghost{background:transparent;border-color:#566b3d;color:#d7e2d9}
+.quality-button:hover{filter:brightness(1.08)}
+.quality-media-state{position:relative;display:grid;place-items:center;min-height:450px;padding:32px;background:radial-gradient(circle at 54% 32%,rgba(171,117,24,.18),transparent 28%),repeating-linear-gradient(135deg,rgba(155,190,63,.08) 0 1px,transparent 1px 24px),#07170f;color:#b9c9b8;text-align:center}
+.quality-media-state:before{content:'';position:absolute;inset:14%;border:1px solid rgba(167,205,59,.2);border-radius:50% 14% 50% 18%;transform:rotate(-8deg)}
+.quality-media-state span{position:relative;max-width:240px;font-size:11px;line-height:1.6;letter-spacing:.08em;text-transform:uppercase}
+.quality-principles{padding:62px 5vw 70px}
+.quality-section-heading{max-width:660px}
+.quality-section-heading h2,.quality-checklist h2,.quality-cta h2{margin:0;font:400 clamp(30px,4vw,52px)/1 Georgia,'Times New Roman',serif;color:#f1f3ed}
+.quality-section-heading>p:last-child{margin:16px 0 0;color:#c3d0c6;font-size:13px;line-height:1.7}
+.quality-principle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:36px}
+.quality-principle-grid article{min-height:190px;padding:22px;border:1px solid #3b522c;border-radius:5px;background:linear-gradient(145deg,#071b11,#03100b)}
+.quality-index{color:#d49a22;font:30px Georgia,serif}
+.quality-principle-grid h3{margin:20px 0 9px;font-size:13px;color:#eef2ec}
+.quality-principle-grid p{margin:0;color:#b9c8bd;font-size:11px;line-height:1.6}
+.quality-checklist{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.2fr);gap:36px;padding:38px 5vw;border:1px solid #40572f;background:#07170f}
+.quality-checklist ol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0;padding:0;list-style:none}
+.quality-checklist li{padding:17px;border:1px solid #3b522c;background:#03100b}
+.quality-checklist li span{color:#d49a22;font-size:10px;font-weight:700;letter-spacing:.16em}
+.quality-checklist li p{margin:9px 0 0;color:#c3d0c6;font-size:11px;line-height:1.55}
+.quality-cta{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:38px 5vw;margin-top:18px;border:1px solid #40572f;background:linear-gradient(100deg,#0b2818,#07180f)}
+.quality-cta h2{font-size:clamp(28px,3.4vw,46px)}
+.quality-cta>div>p:last-child{margin:13px 0 0;color:#c3d0c6;font-size:13px;line-height:1.6}
+.quality-cta .quality-button{flex:none}
+@media(max-width:900px){.quality-page-frame{padding:0 14px 18px}.quality-hero{grid-template-columns:1fr}.quality-hero-copy{min-height:380px;padding:54px 8vw}.quality-media-state{min-height:280px}.quality-principles{padding:50px 4vw 58px}.quality-principle-grid{grid-template-columns:1fr}.quality-checklist{grid-template-columns:1fr;padding:32px 4vw}.quality-cta{align-items:flex-start;flex-direction:column;padding:32px 4vw}}
+@media(max-width:560px){.quality-page-frame{padding:0 8px 14px}.quality-hero-copy{min-height:340px;padding:44px 22px}.quality-hero h1{font-size:54px}.quality-actions{display:grid}.quality-button{width:100%}.quality-principles{padding:44px 16px 50px}.quality-checklist{padding:28px 16px}.quality-checklist ol{grid-template-columns:1fr}.quality-cta{padding:28px 16px}}
