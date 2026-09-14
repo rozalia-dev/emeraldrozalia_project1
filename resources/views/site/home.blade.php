@@ -3,7 +3,7 @@
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
     <link rel="stylesheet" href="/css/home-collections.css?v=20260913-managed-home">
-    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20260913-full-width-background">
+    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20260914-clear-background">
 @endpush
 @section('content')
     @php
@@ -18,9 +18,8 @@
             $value = trim((string) $value);
             return $value !== '' && str_starts_with($value, '/') && ! str_starts_with($value, '//') ? $value : $fallback;
         };
-        $tryOnSource = $homeLatestProducts ?? $homeProducts ?? collect();
-        $tryOnProducts = $tryOnSource instanceof \Illuminate\Support\Collection ? $tryOnSource->take(8) : collect();
-        $fallbackProduct = $tryOnProducts->first();
+        $fallbackProductSource = $homeLatestProducts ?? $homeProducts ?? collect();
+        $fallbackProduct = $fallbackProductSource instanceof \Illuminate\Support\Collection ? $fallbackProductSource->first() : null;
         $fallbackProductMedia = $fallbackProduct?->media?->firstWhere('type', 'image');
         $fallbackProductDescriptor = $fallbackProductMedia
             ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($fallbackProductMedia, $fallbackProduct->name)
@@ -88,15 +87,6 @@
                             <p>Upload your photo and see how our hats look on you.</p>
                         </div>
                         <form action="{{ route('virtual-tryon') }}" method="get" class="home-hero-tryon-form" data-home-tryon-form>
-                            <label>
-                                <span>Choose a hat</span>
-                                <select name="product_id">
-                                    <option value="">Select a product</option>
-                                    @foreach($tryOnProducts as $product)
-                                        <option value="{{ $product->id }}">{{ $product->name }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
                             <label class="home-hero-tryon-upload">
                                 <span><x-icon name="upload" size="22" /> UPLOAD YOUR PHOTO</span>
                                 <input type="file" accept="image/jpeg,image/png,image/webp" data-home-tryon-upload>

@@ -34,11 +34,12 @@ class HomeCollectionsReferenceTest extends TestCase
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260913-managed-home',
-                '/css/home-hero-layout.css?v=20260913-full-width-background',
+                '/css/home-hero-layout.css?v=20260914-clear-background',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
             ], false);
+        $this->get('/')->assertDontSee('<select name="product_id"', false)->assertDontSeeText('Select a product');
         $this->get('/')->assertDontSee('home-collections-reference', false)->assertDontSee('home-page-reference', false);
     }
 
