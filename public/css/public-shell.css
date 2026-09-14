@@ -23,20 +23,27 @@
     outline-offset: 3px !important;
 }
 
+/* Respect the user's reduced-motion preference even when a page-specific
+   stylesheet is loaded after this shared shell. The important durations keep
+   keyboard/hover transitions and decorative keyframes from reintroducing motion. */
+@media (prefers-reduced-motion: reduce) {
+    .site-body *,
+    .site-body *::before,
+    .site-body *::after {
+        animation-name: none !important;
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Shop colour and size inputs are intentionally visually hidden; mirror their
    keyboard focus onto the visible swatch/size proxy instead. */
 .shop-reference-page .shop-colour-choice input:focus-visible + span,
 .shop-reference-page .shop-size-grid input:focus-visible + span {
     box-shadow: 0 0 0 3px #8cc63e !important;
-}
-
-/* Shop category cards used a transition shorthand, which also animated the
-   outline from 0px when keyboard focus arrived. Limit the transition to hover
-   styling so the accessibility focus ring is visible on the first frame. */
-.site-body.shop-reference-page .shop-category-strip a {
-    transition-property: border-color, color, background-color !important;
-    transition-duration: 150ms !important;
-    transition-timing-function: ease !important;
 }
 
 .site-body .site-header[data-public-shell-region="header"] {
