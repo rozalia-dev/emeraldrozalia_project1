@@ -132,13 +132,13 @@ final class DiscountCalculator
                 || ($categorySlugs->isNotEmpty() && $categorySlugs->contains(strtolower((string) $product?->category?->slug)));
 
             if (! $eligible) {
-                return [];
+                return collect();
             }
 
             $quantity = max(0, (int) ($item['quantity'] ?? 0));
             $price = max(0, (float) ($item['price'] ?? 0));
             if ($quantity < 1) {
-                return [];
+                return collect();
             }
 
             return collect(range(1, $quantity))->map(fn (): float => $price);

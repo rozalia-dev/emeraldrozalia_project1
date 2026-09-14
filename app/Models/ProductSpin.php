@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class ProductSpin extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded = [];
     protected $casts = ['frames'=>'array','settings'=>'array','seo'=>'array','hotspots'=>'array'];
     public const STATUSES = ['published'=>'Published','in_progress'=>'In Progress','draft'=>'Drafts','needs_attention'=>'Needs Attention','archived'=>'Archived'];
@@ -15,7 +18,6 @@ class ProductSpin extends Model
 
     protected static function booted(): void
     {
-        static::addGlobalScope('product_tenant',fn ($q) => $q->whereHas('product',fn($p)=>$p->when(session('company_id'),fn($p,$id)=>$p->where('products.company_id',(int)$id))));
         static::creating(fn ($spin) => $spin->uuid ??= (string) Str::uuid());
     }
     public function product() { return $this->belongsTo(Product::class); }

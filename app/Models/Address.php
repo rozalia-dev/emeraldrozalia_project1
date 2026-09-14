@@ -1,1 +1,20 @@
-<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Address extends Model {protected $guarded=[]; protected $casts=['is_default'=>'boolean'];}
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Model;
+
+class Address extends Model
+{
+    use BelongsToTenant;
+
+    protected $guarded = [];
+
+    protected $casts = ['is_default' => 'boolean'];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}

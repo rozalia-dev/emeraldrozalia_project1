@@ -1,10 +1,13 @@
 <?php
 namespace App\Models;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 class VariantMedia extends Model
 {
+    use BelongsToTenant;
+
     protected $guarded=[];
     protected function casts():array{return ['metadata'=>'array','active'=>'boolean','approved_at'=>'datetime','focal_point'=>'array','crop'=>'array','responsive_variants'=>'array'];}
     protected static function booted():void{static::creating(function(VariantMedia $media):void{$media->uuid??=(string)Str::uuid();});}

@@ -2,8 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Discount, Product, ProductVariant, ShippingMethod, User};
-use App\Services\CartService;
+use App\Models\{Discount, Product, ShippingMethod, User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -26,7 +26,7 @@ class SpinViewerController extends Controller
         $data=$request->validate(['engaged'=>'required|boolean','load_ms'=>'required|integer|between:0,60000']);
         if($request->user()?->is_admin)return response()->noContent();
         $hash=hash_hmac('sha256',$request->session()->getId(),config('app.key'));
-        $key=['product_spin_id'=>$spin->id,'visitor_hash'=>$hash,'day'=>now()->toDateString()];
+        $key=['product_spin_id'=>$spin->id,'visitor_hash'=>$hash,'day'=>now()->toDateString(),'company_id'=>$spin->company_id];
         SpinVisit::insertOrIgnore($key+['engaged'=>$data['engaged'],'load_ms'=>$data['load_ms']]);
         if($data['engaged'])SpinVisit::where($key)->update(['engaged'=>true]);
         return response()->noContent();

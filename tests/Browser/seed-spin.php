@@ -60,8 +60,8 @@ $spin=ProductSpin::create([
 ]);
 
 SpinVisit::insert([
-    ['product_spin_id'=>$spin->id,'visitor_hash'=>hash('sha256','browser-a'),'day'=>now()->toDateString(),'engaged'=>true,'load_ms'=>190],
-    ['product_spin_id'=>$spin->id,'visitor_hash'=>hash('sha256','browser-b'),'day'=>now()->toDateString(),'engaged'=>false,'load_ms'=>230],
+    ['product_spin_id'=>$spin->id,'company_id'=>$companyId,'visitor_hash'=>hash('sha256','browser-a'),'day'=>now()->toDateString(),'engaged'=>true,'load_ms'=>190],
+    ['product_spin_id'=>$spin->id,'company_id'=>$companyId,'visitor_hash'=>hash('sha256','browser-b'),'day'=>now()->toDateString(),'engaged'=>false,'load_ms'=>230],
 ]);
 
 echo $spin->uuid."\n";
