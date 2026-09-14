@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\PublicInquiryRequest;
+use App\Http\Requests\{CatalogFilterRequest, PublicInquiryRequest};
 use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AuditTrail;
 use App\Services\PublicMediaResolver;
+use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 
 class SiteController extends Controller
@@ -93,7 +94,7 @@ class SiteController extends Controller
         ]);
     }
 
-    public function newArrivals(Request $r)
+    public function newArrivals(CatalogFilterRequest $r)
     {
         $q = Product::with([
             'category',
@@ -110,17 +111,18 @@ class SiteController extends Controller
         if ($materials) $q->where(function ($materialQuery) use ($materials) { foreach ($materials as $material) $materialQuery->orWhereRaw('LOWER(material) LIKE ?', ['%'.strtolower($material).'%']); });
         $colours = array_values(array_filter((array) $r->input('colour', []), fn ($value) => is_string($value) && $value !== ''));
         if ($colours) $q->where(function ($colourQuery) use ($colours) { foreach ($colours as $colour) $colourQuery->orWhereRaw('LOWER(CAST(colours AS TEXT)) LIKE ?', ['%"'.strtolower($colour).'"%']); });
-        if ($r->filled('max_price') && is_numeric($r->input('max_price'))) $q->where('price', '<=', max(0, (float) $r->input('max_price')));
+        if ($r->filled('max_price')) $q->where('price', '<=', Money::round($r->input('max_price')));
         match ($r->input('sort')) {
             'price_low' => $q->orderBy('price'),
             'price_high' => $q->orderByDesc('price'),
             'name' => $q->orderBy('name'),
             default => $q->latest(),
         };
-        $priceCeiling = (int) ceil((float) Product::query()
+        $newArrivalsMax = Money::round((string) (Product::query()
             ->where('is_active', true)
             ->where('is_new', true)
-            ->max('price'));
+            ->max('price') ?? '0'));
+        $priceCeiling = (int) ceil(max(1, Money::toMinor($newArrivalsMax)) / 100);
 
         return view('site.new-arrivals', [
             'products' => $q->paginate(12)->withQueryString(),
@@ -155,17 +157,17 @@ class SiteController extends Controller
         return view('site.virtual-tryon', compact('products', 'selected', 'assetMap', 'assetMetaMap'));
     }
 
-    public function irishTraditional(Request $request)
+    public function irishTraditional(CatalogFilterRequest $request)
     {
         return $this->categoryLanding($request, 'irish-traditional-flat-caps', 'IRISH TRADITIONAL', 'FLAT CAPS', 'Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');
     }
 
-    public function irishHeritage(Request $request)
+    public function irishHeritage(CatalogFilterRequest $request)
     {
         return $this->categoryLanding($request, 'irish-heritage-hats', 'IRISH HERITAGE', 'HATS', 'Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');
     }
 
-    private function categoryLanding(Request $request, string $slug, string $eyebrow, string $title, string $intro)
+    private function categoryLanding(CatalogFilterRequest $request, string $slug, string $eyebrow, string $title, string $intro)
     {
         $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
         $query = $category->exists ? $category->products()->with(['category', 'media'])->where('is_active', true) : Product::whereRaw('1 = 0');
@@ -227,17 +229,17 @@ class SiteController extends Controller
     public function globalNetwork() { return view('site.global-network'); }
     public function contact() { return view('site.contact'); }
 
-    public function shop(Request $request)
+    public function shop(CatalogFilterRequest $request)
     {
         return $this->shopCatalog($request);
     }
 
-    public function category(Request $request, Category $category)
+    public function category(CatalogFilterRequest $request, Category $category)
     {
         return $this->shopCatalog($request, $category);
     }
 
-    private function shopCatalog(Request $request, ?Category $activeCategory = null)
+    private function shopCatalog(CatalogFilterRequest $request, ?Category $activeCategory = null)
     {
         $query = Product::query()
             ->with([
@@ -295,8 +297,8 @@ class SiteController extends Controller
             });
         }
 
-        $minPrice = $request->filled('min_price') && is_numeric($request->input('min_price')) ? max(0, (float) $request->input('min_price')) : null;
-        $maxPrice = $request->filled('max_price') && is_numeric($request->input('max_price')) ? max(0, (float) $request->input('max_price')) : null;
+        $minPrice = $request->filled('min_price') ? Money::round($request->input('min_price')) : null;
+        $maxPrice = $request->filled('max_price') ? Money::round($request->input('max_price')) : null;
         if ($minPrice !== null) $query->where('price', '>=', $minPrice);
         if ($maxPrice !== null) $query->where('price', '<=', $maxPrice);
 
@@ -337,8 +339,8 @@ class SiteController extends Controller
             ->orderBy('name')
             ->get();
 
-        $catalogMax = (float) (Product::where('is_active', true)->max('price') ?? 0);
-        $priceCeiling = max(50, (int) (ceil(max(1, $catalogMax) / 10) * 10));
+        $catalogMax = Money::round((string) (Product::where('is_active', true)->max('price') ?? '0'));
+        $priceCeiling = max(50, (int) (ceil(max(1, Money::toMinor($catalogMax)) / 1000) * 10));
 
         return view('site.shop', [
             'products' => $products,
