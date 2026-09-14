@@ -11,5 +11,9 @@ class ShippingMethod extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = [
+        'price' => 'decimal:2',
+        'free_over' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
 }

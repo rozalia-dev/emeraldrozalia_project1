@@ -105,10 +105,10 @@ class CheckoutController extends Controller
 
         $subtotal = Money::round($cart->subtotal());
         $shipping = $shippingMethod
-            ? (($shippingMethod->free_over !== null && $subtotal >= (float) $shippingMethod->free_over)
-                ? 0.0
+            ? (($shippingMethod->free_over !== null && Money::compare($subtotal, $shippingMethod->free_over) >= 0)
+                ? '0.00'
                 : Money::round($shippingMethod->price))
-            : 0.0;
+            : '0.00';
         $discountCode = filled($data['discount_code'] ?? null)
             ? strtoupper(trim($data['discount_code']))
             : null;
@@ -122,7 +122,7 @@ class CheckoutController extends Controller
             $shipping,
             $discountCode
         ): Order {
-            $discount = 0.0;
+            $discount = '0.00';
             $orderShipping = $shipping;
             $coupon = null;
 
@@ -158,7 +158,10 @@ class CheckoutController extends Controller
                 $orderShipping = $calculation['shipping'];
             }
 
-            $total = Money::round(max(0, $subtotal + $orderShipping - $discount));
+            $total = Money::subtract(Money::add($subtotal, $orderShipping), $discount);
+            if (Money::compare($total, '0.00') < 0) {
+                $total = '0.00';
+            }
             $order = Order::create([
                 'user_id' => auth()->id(),
                 'number' => 'ER-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
@@ -231,7 +234,7 @@ class CheckoutController extends Controller
 
             RewardTransaction::create([
                 'user_id' => auth()->id(),
-                'points' => (int) floor($order->total),
+                'points' => intdiv(max(0, Money::toMinor($order->total)), 100),
                 'type' => 'earn',
                 'reference' => $order->number,
                 'description' => 'Points earned from order',

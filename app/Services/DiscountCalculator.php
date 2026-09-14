@@ -14,21 +14,23 @@ final class DiscountCalculator
      * unsupported rule or turn a non-eligible coupon into a free order.
      *
      * @param  array<int, array<string, mixed>>  $items
-     * @return array{valid: bool, discount: float, shipping: float, error: string|null}
+     * @return array{valid: bool, discount: string, shipping: string, error: string|null}
      */
     public function calculate(
         Discount $coupon,
         array $items,
-        float $subtotal,
-        float $shipping,
+        int|float|string $subtotal,
+        int|float|string $shipping,
         ?User $user = null,
         string $orderCategory = 'online',
         string $currency = 'EUR',
     ): array {
+        $subtotal = Money::round($subtotal);
+        $shipping = Money::round($shipping);
         $metadata = is_array($coupon->metadata) ? $coupon->metadata : [];
         $invalid = fn (string $message): array => [
             'valid' => false,
-            'discount' => 0.0,
+            'discount' => '0.00',
             'shipping' => $shipping,
             'error' => $message,
         ];
@@ -39,7 +41,7 @@ final class DiscountCalculator
         if ($coupon->starts_at?->isFuture() || $coupon->ends_at?->isPast()) {
             return $invalid('That discount code is unavailable for this order.');
         }
-        if ($subtotal < (float) $coupon->minimum_order) {
+        if (Money::compare($subtotal, $coupon->minimum_order ?? 0) < 0) {
             return $invalid('That discount code is unavailable for this order.');
         }
         if ($coupon->usage_limit !== null && (int) $coupon->used >= (int) $coupon->usage_limit) {
@@ -64,11 +66,17 @@ final class DiscountCalculator
         }
 
         $calculated = match ($coupon->type) {
-            'percent' => Money::round($subtotal * min(100, max(0, (float) $coupon->value)) / 100),
-            'fixed' => Money::round(min($subtotal, max(0, (float) $coupon->value))),
+            'percent' => Money::percentage(
+                $subtotal,
+                Money::fromMinor(max(0, min(Money::toMinor(100), Money::toMinor($coupon->value ?? 0)))),
+            ),
+            'fixed' => Money::fromMinor(min(
+                Money::toMinor($subtotal),
+                max(0, Money::toMinor($coupon->value ?? 0)),
+            )),
             // Shipping is represented by the returned shipping amount so the
             // order total cannot subtract the same benefit twice.
-            'free_shipping' => 0.0,
+            'free_shipping' => '0.00',
             'buy_x_get_y' => $this->buyXGetY($items, $metadata),
             default => null,
         };
@@ -80,12 +88,15 @@ final class DiscountCalculator
             return $invalid('That discount code does not apply to the items in this cart.');
         }
 
-        $discount = Money::round(min($subtotal + $shipping, max(0, (float) $calculated)));
+        $discount = Money::fromMinor(min(
+            Money::toMinor(Money::add($subtotal, $shipping)),
+            max(0, Money::toMinor($calculated)),
+        ));
 
         return [
             'valid' => true,
             'discount' => $discount,
-            'shipping' => $coupon->type === 'free_shipping' ? 0.0 : $shipping,
+            'shipping' => $coupon->type === 'free_shipping' ? '0.00' : $shipping,
             'error' => null,
         ];
     }
@@ -93,9 +104,9 @@ final class DiscountCalculator
     /**
      * @param  array<int, array<string, mixed>>  $items
      * @param  array<string, mixed>  $metadata
-     * @return float|false
+     * @return string|false
      */
-    private function buyXGetY(array $items, array $metadata): float|false
+    private function buyXGetY(array $items, array $metadata): string|false
     {
         $buy = max(1, (int) data_get($metadata, 'buy_quantity', 0));
         $get = max(1, (int) data_get($metadata, 'get_quantity', 0));
@@ -136,12 +147,12 @@ final class DiscountCalculator
             }
 
             $quantity = max(0, (int) ($item['quantity'] ?? 0));
-            $price = max(0, (float) ($item['price'] ?? 0));
+            $price = max(0, Money::toMinor($item['price'] ?? 0));
             if ($quantity < 1) {
                 return collect();
             }
 
-            return collect(range(1, $quantity))->map(fn (): float => $price);
+            return collect(range(1, $quantity))->map(fn (): int => $price);
         })->sort()->values();
 
         $freeUnits = intdiv($units->count(), $buy + $get) * $get;
@@ -149,7 +160,7 @@ final class DiscountCalculator
             return false;
         }
 
-        return Money::round($units->take($freeUnits)->sum());
+        return Money::fromMinor((int) $units->take($freeUnits)->sum());
     }
 
     /** @param array<string, mixed> $metadata */

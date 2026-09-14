@@ -11,7 +11,11 @@ class OrderItem extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['options' => 'array'];
+    protected $casts = [
+        'options' => 'array',
+        'unit_price' => 'decimal:2',
+        'total' => 'decimal:2',
+    ];
 
     public function order()
     {

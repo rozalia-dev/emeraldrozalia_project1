@@ -17,6 +17,8 @@ class Discount extends Model
         'ends_at' => 'datetime',
         'is_active' => 'boolean',
         'metadata' => 'array',
+        'value' => 'decimal:2',
+        'minimum_order' => 'decimal:2',
         'deleted_at' => 'datetime',
     ];
 }
