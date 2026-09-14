@@ -12,7 +12,7 @@ trait BelongsToTenant
         static::addGlobalScope('tenant', function (Builder $builder): void {
             $companyId = app()->bound('session') ? session('company_id') : null;
             if ($companyId) {
-                $builder->where($builder->getModel()->getTable().'.company_id', (int) $companyId);
+                static::applyTenantScope($builder, (int) $companyId);
             }
         });
 
@@ -45,6 +45,11 @@ trait BelongsToTenant
     public function scopeForCompany(Builder $query, int $companyId): Builder
     {
         return $query->where($query->getModel()->getTable().'.company_id', $companyId);
+    }
+
+    protected static function applyTenantScope(Builder $builder, int $companyId): void
+    {
+        $builder->where($builder->getModel()->getTable().'.company_id', $companyId);
     }
 
     private static function resolveParentCompanyId(Model $model): ?int

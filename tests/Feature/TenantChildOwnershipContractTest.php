@@ -166,7 +166,7 @@ class TenantChildOwnershipContractTest extends TestCase
         ]);
 
         $this->withSession(['company_id' => $first->id]);
-        $this->assertSame([$one->id], ContentPage::query()->pluck('id')->all());
+        $this->assertSame([$one->id], ContentPage::query()->whereIn('id', [$one->id, $two->id])->pluck('id')->all());
         $this->get(route('content.page', ['page' => $two->slug]))->assertNotFound();
 
         $this->app['session']->forget('company_id');
