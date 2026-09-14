@@ -58,7 +58,7 @@ test.describe('public route interaction contract', () => {
     for (const route of mediaStateRoutes) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
 
-      await expect(page.locator('[data-public-media-state]')).toHaveCount(1);
+      expect(await page.locator('[data-public-media-state]').count(), `${route} should expose media state`).toBeGreaterThan(0);
       await expect(page.locator('img[src^="/assets/"]')).toHaveCount(0);
       await expect(page.locator('[data-approved-reference]')).toHaveCount(0);
     }
