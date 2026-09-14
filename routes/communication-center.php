@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 $communicationSectionPattern = implode('|', CommunicationCenterController::SECTIONS);
 
-Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($communicationSectionPattern): void {
+Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])->group(function () use ($communicationSectionPattern): void {
     // Franchise management owns the wildcard /resource/{section} route. Use
     // literal communication-center paths here so the two route families do
     // not replace one another in Laravel's route collection.
