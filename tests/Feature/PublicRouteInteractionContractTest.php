@@ -9,6 +9,17 @@ class PublicRouteInteractionContractTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_header_exposes_contact_page(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSeeInOrder([
+                '<nav data-nav',
+                'href="/contact"',
+                '</nav>',
+            ], false);
+    }
+
     public function test_public_route_matrix_has_shared_or_structured_shell_without_placeholder_media_links(): void
     {
         $sharedRoutes = [
