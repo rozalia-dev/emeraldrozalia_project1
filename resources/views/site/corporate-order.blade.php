@@ -124,7 +124,7 @@
 
     <footer class="corporate-footer">
         <div class="corporate-footer-brand">
-            @if($corporateLogo)<img src="{{ $corporateLogo['url'] }}" alt="{{ $corporateLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif
+            @if($corporateLogo)<img src="{{ $corporateLogo['url'] }}" @if($corporateLogo['srcset']) srcset="{{ $corporateLogo['srcset'] }}" sizes="{{ $corporateLogo['sizes'] }}" @endif width="{{ $corporateLogo['width'] ?: '' }}" height="{{ $corporateLogo['height'] ?: '' }}" alt="{{ $corporateLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif
             <p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p>
             <div class="corporate-socials"><x-icon name="instagram" size="17" /><x-icon name="facebook" size="17" /><x-icon name="linkedin" size="17" /><x-icon name="youtube" size="17" /></div>
         </div>
