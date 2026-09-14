@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{ContentPage, MediaAsset, MediaAssetVersion, Product, ProductCollection, ProductMedia, User};
+use App\Models\{ContentPage, MediaAsset, MediaAssetVersion, Product, ProductCollection, ProductMedia, ProductSpin, ProductVideo, TryOnAsset, User};
 use App\Services\PublicMediaResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -369,4 +369,77 @@ class PublicMediaContractTest extends TestCase
             ->assertDontSee('legacy-frame.jpg', false)
             ->assertDontSee('legacy-overlay.png', false);
     }
+    public function test_draft_products_are_hidden_from_catalogue_and_all_public_asset_routes(): void
+    {
+        $product = Product::create([
+            'name' => 'Draft Boundary Cap',
+            'slug' => 'draft-boundary-cap',
+            'sku' => 'MEDIA-DRAFT-001',
+            'price' => 35,
+            'stock' => 2,
+            'status' => 'draft',
+            'is_active' => true,
+        ]);
+        $media = ProductMedia::create([
+            'product_id' => $product->id,
+            'type' => 'image',
+            'disk' => 'public',
+            'path' => 'product-media/draft-boundary.webp',
+            'mime_type' => 'image/webp',
+            'approval_status' => 'approved',
+            'active' => true,
+        ]);
+        $spin = ProductSpin::create([
+            'product_id' => $product->id,
+            'title' => 'Draft boundary spin',
+            'category' => 'product',
+            'status' => 'published',
+            'visibility' => 'public',
+            'frames' => [
+                'spins/draft-boundary/000.jpg',
+                'spins/draft-boundary/001.jpg',
+            ],
+            'settings' => ProductSpin::DEFAULTS,
+            'seo' => [],
+            'hotspots' => [],
+        ]);
+        $tryon = TryOnAsset::create([
+            'product_id' => $product->id,
+            'title' => 'Draft boundary try-on',
+            'type' => 'ar_ai',
+            'status' => 'published',
+            'visibility' => 'public',
+            'files' => ['preview' => 'tryons/draft-boundary/preview/overlay.png'],
+            'settings' => TryOnAsset::DEFAULTS,
+            'seo' => [],
+        ]);
+        $video = ProductVideo::create([
+            'product_id' => $product->id,
+            'disk' => 'local',
+            'path' => 'videos/draft-boundary.mp4',
+            'active' => true,
+            'metadata' => [
+                'title' => 'Draft boundary video',
+                'platform' => 'Website',
+                'visibility' => 'public',
+            ],
+        ]);
+
+        $this->assertFalse($product->isPubliclyPublished());
+        $this->assertNull(app(PublicMediaResolver::class)->forProductMedia($media));
+        $this->assertFalse($spin->isPublic());
+        $this->assertFalse($tryon->isPublic());
+        $this->assertFalse($video->isPubliclyPlayable());
+
+        $this->get('/shop')->assertOk()->assertDontSee('Draft Boundary Cap', false);
+        $this->getJson('/api/v1/products')->assertOk()->assertJsonMissing([
+            'public_uuid' => $product->public_uuid,
+        ]);
+        $this->get(route('product', $product))->assertNotFound();
+        $this->get(route('media.public', $media->uuid))->assertNotFound();
+        $this->get(route('spins.show', $spin->uuid))->assertNotFound();
+        $this->get(route('tryons.asset', [$tryon->uuid, 'preview']))->assertNotFound();
+        $this->get(route('videos.watch', $video->uuid))->assertNotFound();
+    }
+
 }

@@ -22,7 +22,7 @@ class PublicMediaResolver
             ->where('uuid', $uuid)
             ->where('active', true)
             ->where('approval_status', 'approved')
-            ->whereHas('product', fn ($query) => $query->where('is_active', true))
+            ->whereHas('product', fn ($query) => $query->published())
             ->first();
 
         if ($record) {
@@ -33,7 +33,7 @@ class PublicMediaResolver
             ->where('uuid', $uuid)
             ->where('active', true)
             ->where('approval_status', 'approved')
-            ->whereHas('variant', fn ($query) => $query->where('is_active', true)->whereHas('product', fn ($productQuery) => $productQuery->where('is_active', true)))
+            ->whereHas('variant', fn ($query) => $query->where('is_active', true)->whereHas('product', fn ($productQuery) => $productQuery->published()))
             ->first();
 
         return $record ? $this->describe($record, $fallbackAlt) : null;
@@ -71,14 +71,14 @@ class PublicMediaResolver
             ->whereIn('uuid', $values)
             ->where('active', true)
             ->where('approval_status', 'approved')
-            ->whereHas('product', fn ($query) => $query->where('is_active', true))
+            ->whereHas('product', fn ($query) => $query->published())
             ->get();
 
         $variantMedia = VariantMedia::query()
             ->whereIn('uuid', $values)
             ->where('active', true)
             ->where('approval_status', 'approved')
-            ->whereHas('variant', fn ($query) => $query->where('is_active', true)->whereHas('product', fn ($productQuery) => $productQuery->where('is_active', true)))
+            ->whereHas('variant', fn ($query) => $query->where('is_active', true)->whereHas('product', fn ($productQuery) => $productQuery->published()))
             ->get();
 
         return $assets->concat($productMedia)->concat($variantMedia)->mapWithKeys(function ($record): array {
@@ -88,7 +88,7 @@ class PublicMediaResolver
 
     public function forProduct(Product $product, string $type = 'image'): ?array
     {
-        if (! $product->is_active) {
+        if (! $product->isPubliclyPublished()) {
             return null;
         }
 
@@ -103,7 +103,7 @@ class PublicMediaResolver
 
     public function forProductMedia(ProductMedia $media, ?string $fallbackAlt = null): ?array
     {
-        if ($media->approval_status !== 'approved' || ! $media->active || ! $media->product?->is_active) {
+        if ($media->approval_status !== 'approved' || ! $media->active || ! $media->product?->isPubliclyPublished()) {
             return null;
         }
 

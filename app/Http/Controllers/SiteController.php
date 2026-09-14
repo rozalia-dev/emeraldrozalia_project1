@@ -37,13 +37,13 @@ class SiteController extends Controller
             ->first();
 
         $homeProducts = Product::with('media')
-            ->where('is_active', true)
+            ->published()
             ->where('is_new', true)
             ->latest()
             ->limit(8)
             ->get();
         $homeLatestProducts = Product::with('media')
-            ->where('is_active', true)
+            ->published()
             ->latest()
             ->limit(8)
             ->get();
@@ -88,7 +88,7 @@ class SiteController extends Controller
     public function collections()
     {
         return view('site.collections', [
-            'categories' => Category::withCount(['products' => fn ($q) => $q->where('is_active', true)])->where('is_active', true)->orderBy('sort_order')->get(),
+            'categories' => Category::withCount(['products' => fn ($q) => $q->published()])->where('is_active', true)->orderBy('sort_order')->get(),
             'bestsellers' => Product::with('media')->where('is_active', true)->latest()->limit(6)->get(),
             'collections' => ProductCollection::with('media')->where('status', 'active')->where('visibility', 'visible')->orderBy('sort_order')->get(),
         ]);
@@ -103,7 +103,7 @@ class SiteController extends Controller
                 ->where('status', 'published')
                 ->where('visibility', 'public')
                 ->latest('updated_at'),
-        ])->withCount('reviews')->withAvg('reviews', 'rating')->where('is_active', true)->where('is_new', true);
+        ])->withCount('reviews')->withAvg('reviews', 'rating')->published()->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
         $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
         if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
@@ -119,7 +119,7 @@ class SiteController extends Controller
             default => $q->latest(),
         };
         $newArrivalsMax = Money::round((string) (Product::query()
-            ->where('is_active', true)
+            ->published()
             ->where('is_new', true)
             ->max('price') ?? '0'));
         $priceCeiling = (int) ceil(max(1, Money::toMinor($newArrivalsMax)) / 100);
@@ -133,7 +133,7 @@ class SiteController extends Controller
 
     public function virtualTryOn(Request $request)
     {
-        $products = Product::where('is_active', true)
+        $products = Product::published()
             ->with(['media', 'tryOnAssets' => fn ($query) => $query->where('status', 'published')->where('visibility', 'public')->latest('updated_at')])
             ->orderBy('name')->get();
         $selected = $products->firstWhere('id', (int) $request->input('product_id')) ?: $products->first();
@@ -170,7 +170,7 @@ class SiteController extends Controller
     private function categoryLanding(CatalogFilterRequest $request, string $slug, string $eyebrow, string $title, string $intro)
     {
         $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
-        $query = $category->exists ? $category->products()->with(['category', 'media'])->where('is_active', true) : Product::whereRaw('1 = 0');
+        $query = $category->exists ? $category->products()->with(['category', 'media'])->published() : Product::whereRaw('1 = 0');
         if ($request->filled('q')) $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('sku', 'like', '%'.$request->q.'%'));
         match ($request->input('sort')) {
             'price_low' => $query->orderBy('price'),
@@ -189,7 +189,7 @@ class SiteController extends Controller
         $stores = FranchiseStore::query()
             ->whereIn('status', ['active', 'open'])
             ->get(['territory', 'address']);
-        $activeProducts = Product::query()->where('is_active', true)->count();
+        $activeProducts = Product::published()->count();
         $countries = $stores
             ->map(fn (FranchiseStore $store): ?string => strtoupper(trim((string) data_get($store->address, 'country'))))
             ->filter()
@@ -334,12 +334,12 @@ class SiteController extends Controller
 
         $categories = Category::query()
             ->websiteVisible()
-            ->withCount(['products' => fn ($productQuery) => $productQuery->where('is_active', true)])
+            ->withCount(['products' => fn ($productQuery) => $productQuery->published()])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $catalogMax = Money::round((string) (Product::where('is_active', true)->max('price') ?? '0'));
+        $catalogMax = Money::round((string) (Product::published()->max('price') ?? '0'));
         $priceCeiling = max(50, (int) (ceil(max(1, Money::toMinor($catalogMax)) / 1000) * 10));
 
         return view('site.shop', [
@@ -354,7 +354,7 @@ class SiteController extends Controller
             'sort' => $sort,
             'perPage' => $perPage,
             'priceCeiling' => $priceCeiling,
-            'totalCatalog' => Product::where('is_active', true)->count(),
+            'totalCatalog' => Product::published()->count(),
             'materialOptions' => ['Tweed', 'Wool', 'Cotton', 'Linen', 'Leather', 'Felt'],
             'sizeOptions' => ['XS', 'S', 'M', 'L', 'XL', 'One Size'],
             'colourOptions' => [
@@ -372,7 +372,7 @@ class SiteController extends Controller
 
     public function product(Product $product)
     {
-        abort_unless($product->is_active, 404);
+        abort_unless($product->isPubliclyPublished(), 404);
         $product->load([
             'variants',
             'reviews.user',
@@ -397,7 +397,7 @@ class SiteController extends Controller
                 }));
         }
         $spinFrames = $spinFrames->filter()->unique()->values()->all();
-        $related = Product::where('is_active', true)
+        $related = Product::published()
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
             ->with('media')

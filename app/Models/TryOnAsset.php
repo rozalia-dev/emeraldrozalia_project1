@@ -68,7 +68,7 @@ class TryOnAsset extends Model
         return $this->status === 'published'
             && $this->visibility === 'public'
             && $this->previewPath() !== null
-            && (bool) $this->product?->is_active;
+            && (bool) $this->product?->isPubliclyPublished();
     }
 
     public function previewUrl(): ?string

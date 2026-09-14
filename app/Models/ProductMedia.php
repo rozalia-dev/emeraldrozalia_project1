@@ -34,13 +34,13 @@ class ProductMedia extends Model
         return $query
             ->where('approval_status', 'approved')
             ->where('active', true)
-            ->whereHas('product', fn (Builder $productQuery) => $productQuery->where('is_active', true));
+            ->whereHas('product', fn (Builder $productQuery) => $productQuery->published());
     }
 
     public function isApprovedPublic(): bool
     {
         return $this->approval_status === 'approved'
             && (bool) $this->active
-            && (bool) $this->product?->is_active;
+            && (bool) $this->product?->isPubliclyPublished();
     }
 }

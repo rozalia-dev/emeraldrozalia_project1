@@ -17,8 +17,7 @@ class CatalogController extends Controller
     {
         $query = Product::query()
             ->with(['category', 'media'])
-            ->where('is_active', true)
-            ->whereIn('status', ['active', 'published']);
+            ->published();
 
         $search = trim((string) $request->input('q', ''));
         if ($search !== '') {
@@ -48,7 +47,7 @@ class CatalogController extends Controller
 
     public function product(Product $product): ProductResource
     {
-        abort_unless($product->is_active && in_array($product->status, ['active', 'published'], true), 404);
+        abort_unless($product->isPubliclyPublished(), 404);
 
         $product->load([
             'category',

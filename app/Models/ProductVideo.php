@@ -70,7 +70,7 @@ class ProductVideo extends ProductMedia
     {
         return $this->video_status === 'published'
             && data_get($this->metadata, 'visibility', $this->disk === 'public' ? 'public' : 'private') === 'public'
-            && (bool) $this->product?->is_active;
+            && (bool) $this->product?->isPubliclyPublished();
     }
 
     public function details(): array

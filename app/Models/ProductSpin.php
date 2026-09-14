@@ -24,7 +24,7 @@ class ProductSpin extends Model
     public function visits() { return $this->hasMany(SpinVisit::class); }
     public function isPublic(): bool
     {
-        return $this->status === 'published' && $this->visibility === 'public' && count($this->frames ?? []) >= 2 && (bool) $this->product?->is_active;
+        return $this->status === 'published' && $this->visibility === 'public' && count($this->frames ?? []) >= 2 && (bool) $this->product?->isPubliclyPublished();
     }
     public function viewerData(): array
     {
