@@ -141,7 +141,7 @@
     </section>
 
     <footer class="bulk-footer">
-        <div class="bulk-footer-brand">@if($bulkLogo)<img src="{{ $bulkLogo['url'] }}" alt="{{ $bulkLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p></div>
+        <div class="bulk-footer-brand">@if($bulkLogo)<img src="{{ $bulkLogo['url'] }}" @if($bulkLogo['srcset']) srcset="{{ $bulkLogo['srcset'] }}" sizes="{{ $bulkLogo['sizes'] }}" @endif width="{{ $bulkLogo['width'] ?: '' }}" height="{{ $bulkLogo['height'] ?: '' }}" alt="{{ $bulkLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<p><strong>Irish Made.</strong> Limerick Born.<br><em>Worn Everywhere.</em></p></div>
         <div><h3>SHOP</h3><a href="/shop">All Hats &amp; Caps</a><a href="/category/baseball-caps">Baseball Caps</a><a href="/irish-traditional">Flat Caps</a><a href="/category/bucket-hats">Bucket Hats</a><a href="/collections">Beanies &amp; More</a></div>
         <div><h3>HELP</h3><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/factory">Size Guide</a><a href="/account">Track Your Order</a></div>
         <div><h3>COMPANY</h3><a href="/factory">About Us</a><a href="/factory">Our Factory</a><a href="/global-network">Sustainability</a><a href="/careers">Careers</a></div>
