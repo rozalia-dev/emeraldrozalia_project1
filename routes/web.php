@@ -21,6 +21,8 @@ Route::get('/virtual-tryon',[SiteController::class,'virtualTryOn'])->name('virtu
 Route::get('/irish-traditional',[SiteController::class,'irishTraditional'])->name('irish.traditional');
 Route::get('/irish-heritage',[SiteController::class,'irishHeritage'])->name('irish.heritage');
 Route::get('/factory',[SiteController::class,'factory'])->name('factory');
+Route::get('/quality',[SiteController::class,'quality'])->name('quality');
+Route::get('/be-a-store-owner',[SiteController::class,'franchise'])->name('store.owner');
 Route::get('/corporate-orders',[SiteController::class,'corporateOrders'])->name('corporate.orders');
 Route::get('/bulk-orders',[SiteController::class,'bulkOrders'])->name('bulk.orders');
 Route::get('/franchise',[SiteController::class,'franchise'])->name('franchise');
