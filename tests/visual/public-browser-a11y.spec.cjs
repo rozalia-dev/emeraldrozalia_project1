@@ -79,11 +79,6 @@ async function inspectPublicPage(page) {
     const unnamedLinks = visibleLinks
       .filter((element) => !accessibleName(element))
       .map((element) => element.outerHTML.slice(0, 260));
-    const hiddenFocusable = [...document.querySelectorAll(selector)]
-      .filter((element) => !isVisible(element))
-      .filter((element) => !element.disabled)
-      .filter((element) => !(element.tagName === 'INPUT' && element.type === 'hidden'))
-      .length;
     const scrollWidth = Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0);
     const clientWidth = document.documentElement.clientWidth;
 
@@ -105,7 +100,6 @@ async function inspectPublicPage(page) {
         .map((link) => link.outerHTML.slice(0, 260)),
       directAssetImages: document.querySelectorAll('img[src^="/assets/"]').length,
       referenceRuntime: document.querySelectorAll('[data-approved-reference]').length,
-      hiddenFocusable,
       overflow: scrollWidth > clientWidth + 1,
       hasContactHeaderLink: Boolean(document.querySelector('[data-public-shell-region="header"] a[href$="/contact"]')),
       bodyError: /\b(server error|exception|syntax error|undefined variable)\b/i.test(document.body.innerText),
@@ -122,15 +116,31 @@ async function inspectFocusedElement(page) {
 
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
+    const labelledBy = (element.getAttribute('aria-labelledby') || '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.innerText || '')
+      .join(' ');
+    const labelled = element.labels?.length
+      ? [...element.labels].map((label) => label.innerText).join(' ')
+      : '';
+    const imageAlt = [...element.querySelectorAll?.('img[alt]') || []]
+      .map((image) => image.alt)
+      .join(' ');
     const accessibleName = element.getAttribute('aria-label')
+      || labelledBy
+      || labelled
       || element.getAttribute('alt')
+      || imageAlt
       || element.innerText
       || element.textContent
       || element.value
       || '';
+    const focusableElements = [...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')];
 
     return {
       valid: true,
+      domIndex: focusableElements.indexOf(element),
       visible: rect.width > 0 && rect.height > 0
         && style.display !== 'none'
         && style.visibility !== 'hidden',
@@ -185,6 +195,8 @@ test.describe('public browser and accessibility contract', () => {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
 
       const focusableCount = await page.locator(focusableSelector).count();
+      const visited = new Set();
+
       for (let index = 0; index < focusableCount + 2; index += 1) {
         await page.keyboard.press('Tab');
         const focused = await inspectFocusedElement(page);
@@ -195,7 +207,12 @@ test.describe('public browser and accessibility contract', () => {
         expect(focused.focusVisible, route + ' should expose :focus-visible').toBe(true);
         expect(focused.indicator, route + ' should expose a visible focus indicator').toBe(true);
         expect(focused.ariaHidden, route + ' should not focus aria-hidden content').toBe(false);
+
+        if (visited.has(focused.domIndex)) break;
+        visited.add(focused.domIndex);
       }
+
+      expect(visited.size, route + ' should expose at least one keyboard focus stop').toBeGreaterThan(0);
     }
   });
 
