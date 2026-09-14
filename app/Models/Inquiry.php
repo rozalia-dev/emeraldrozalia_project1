@@ -40,4 +40,9 @@ class Inquiry extends Model
     {
         return $this->hasOne(FranchiseApplication::class);
     }
+
+    public function salesQuote(): HasOne
+    {
+        return $this->hasOne(SalesQuote::class);
+    }
 }

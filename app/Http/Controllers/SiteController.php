@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AuditTrail;
 use App\Services\PublicMediaResolver;
+use App\Services\SalesQuoteService;
 use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 
@@ -537,6 +538,10 @@ class SiteController extends Controller
                     'consent_captured' => (bool) $consentCapturedAt,
                     'message_uuid' => (string) $message->uuid,
                 ]);
+                $quoteService = app(SalesQuoteService::class);
+                if ($quoteService->orderTypeForInquiryType((string) $d['type']) !== null) {
+                    $quoteService->createFromInquiry($inquiry, $conversation, $application);
+                }
             });
         } catch (QueryException $exception) {
             if ($idempotencyKey === '') {

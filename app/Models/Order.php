@@ -41,4 +41,14 @@ class Order extends Model
     {
         return $this->hasMany(ReturnRequest::class);
     }
+
+    public function quote()
+    {
+        return $this->belongsTo(SalesQuote::class, 'quote_id');
+    }
+
+    public function inquiry()
+    {
+        return $this->belongsTo(Inquiry::class, 'inquiry_id');
+    }
 }

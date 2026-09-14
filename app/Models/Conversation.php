@@ -71,6 +71,11 @@ class Conversation extends Model
         return $this->belongsTo(FranchiseApplication::class);
     }
 
+    public function salesQuote()
+    {
+        return $this->hasOne(SalesQuote::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'uuid';
