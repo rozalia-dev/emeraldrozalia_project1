@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\{Order, PaymentTransaction};
+use App\Models\{InventoryMovement, Order, OrderItem, PaymentTransaction, Product, ProductVariant};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -155,6 +155,10 @@ final class OrderLifecycle
                 );
             }
 
+            if ($this->shouldReleaseInventory($currentStatus, $nextStatus)) {
+                $this->releaseInventory($locked, $nextStatus === 'refunded' ? 'refund' : 'cancellation');
+            }
+
             $after = $locked->fresh()->toArray();
             $after['_transition'] = [
                 'from_status' => $currentStatus,
@@ -219,6 +223,58 @@ final class OrderLifecycle
                 'order_type' => $order->order_type,
                 'previous_order_payment_status' => $previousStatus,
             ],
+        ]);
+    }
+
+    private function shouldReleaseInventory(string $currentStatus, string $nextStatus): bool
+    {
+        return in_array($nextStatus, ['cancelled', 'refunded'], true)
+            && ! in_array($currentStatus, ['cancelled', 'refunded'], true);
+    }
+
+    private function releaseInventory(Order $order, string $reason): void
+    {
+        if ($order->inventory_released_at !== null) {
+            return;
+        }
+
+        $items = OrderItem::query()
+            ->where('order_id', $order->id)
+            ->orderByRaw('COALESCE(product_variant_id, product_id), id')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($items as $item) {
+            $stockable = $item->product_variant_id
+                ? ProductVariant::query()->whereKey($item->product_variant_id)->lockForUpdate()->first()
+                : Product::query()->whereKey($item->product_id)->lockForUpdate()->first();
+
+            if (! $stockable) {
+                throw ValidationException::withMessages([
+                    'inventory' => 'Inventory could not be released because an ordered stock item is missing.',
+                ]);
+            }
+
+            $quantity = (int) $item->quantity;
+            if ($quantity < 1) {
+                continue;
+            }
+
+            $stockable->increment('stock', $quantity);
+            InventoryMovement::create([
+                'company_id' => $order->company_id,
+                'product_id' => $item->product_id,
+                'product_variant_id' => $item->product_variant_id,
+                'quantity' => $quantity,
+                'type' => 'restock',
+                'reference' => $order->number,
+                'note' => ucfirst($reason).' inventory release',
+            ]);
+        }
+
+        $order->update([
+            'inventory_released_at' => now(),
+            'inventory_release_reason' => $reason,
         ]);
     }
 

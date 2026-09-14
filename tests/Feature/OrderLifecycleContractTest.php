@@ -146,4 +146,63 @@ class OrderLifecycleContractTest extends TestCase
         $this->assertSame('ready_to_ship', $order->fresh()->fulfillment_status);
         $this->assertSame(1, $order->fresh()->version);
     }
+
+    public function test_cancellation_releases_checkout_stock_once_and_records_a_restock_movement(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $product = \App\Models\Product::create([
+            'name' => 'Release Cap',
+            'slug' => 'release-cap',
+            'sku' => 'RELEASE-001',
+            'price' => 30,
+            'stock' => 3,
+            'is_active' => true,
+        ]);
+        $product->decrement('stock', 2);
+        $order = Order::create([
+            'number' => 'ER-LIFECYCLE-RELEASE-001',
+            'order_type' => 'online',
+            'status' => 'processing',
+            'payment_status' => 'pending',
+            'fulfillment_status' => 'picking',
+            'subtotal' => 60,
+            'shipping' => 0,
+            'discount' => 0,
+            'total' => 60,
+            'currency' => 'EUR',
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'quantity' => 2,
+            'unit_price' => 30,
+            'total' => 60,
+        ]);
+        InventoryMovement::create([
+            'product_id' => $product->id,
+            'quantity' => -2,
+            'type' => 'sale',
+            'reference' => $order->number,
+        ]);
+
+        $this->actingAs($admin)->patch(route('admin.order-master.update', ['online', $order]), [
+            'status' => 'cancelled',
+            'payment_status' => 'pending',
+            'expected_version' => 1,
+        ])->assertRedirect();
+
+        $this->assertSame(3, (int) $product->fresh()->stock);
+        $this->assertSame(1, InventoryMovement::query()->where('order_id', $order->id)->where('type', 'restock')->count());
+        $this->assertNotNull($order->fresh()->inventory_released_at);
+
+        $this->actingAs($admin)->patch(route('admin.order-master.update', ['online', $order]), [
+            'status' => 'cancelled',
+            'payment_status' => 'pending',
+            'expected_version' => 2,
+        ])->assertRedirect();
+
+        $this->assertSame(3, (int) $product->fresh()->stock);
+        $this->assertSame(1, InventoryMovement::query()->where('order_id', $order->id)->where('type', 'restock')->count());
+    }
 }

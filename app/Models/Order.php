@@ -19,6 +19,7 @@ class Order extends Model
         'total' => 'decimal:2',
         'exchange_rate' => 'decimal:8',
         'version' => 'integer',
+        'inventory_released_at' => 'datetime',
     ];
 
     public function items()
