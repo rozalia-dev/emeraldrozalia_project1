@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\CommunicationProvider;
+use App\Services\Communication\LaravelMailCommunicationProvider;
 use RuntimeException;
 
 class CommunicationProviderRegistry
@@ -13,11 +14,13 @@ class CommunicationProviderRegistry
 
         $class = config('communication.channels.'.$channel);
         if (! is_string($class) || trim($class) === '') {
-            if (! filled(config('communication.endpoints.'.$channel))) {
+            if (filled(config('communication.endpoints.'.$channel))) {
+                $class = config('communication.default_providers.'.$channel);
+            } elseif ($channel === 'email' && $this->laravelMailIsUsable()) {
+                $class = LaravelMailCommunicationProvider::class;
+            } else {
                 return null;
             }
-
-            $class = config('communication.default_providers.'.$channel);
         }
 
         if (! is_string($class) || trim($class) === '') {
@@ -29,5 +32,12 @@ class CommunicationProviderRegistry
         }
 
         return app($class);
+    }
+
+    private function laravelMailIsUsable(): bool
+    {
+        $mailer = trim((string) config('mail.default'));
+
+        return $mailer !== '' && ! in_array($mailer, ['log'], true);
     }
 }
