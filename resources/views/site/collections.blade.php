@@ -2,20 +2,10 @@
 @section('body-class','collections-reference-page')
 @section('title','Collections — Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/collections.css?v=20260908-approved">
+<link rel="stylesheet" href="/css/collections.css?v=20260915-live-collections">
 @endpush
 @section('content')
-@php
-    $collectionCards = [
-        ['slug'=>'baseball-caps','title'=>'BASEBALL CAPS','copy'=>'Classic. Everyday. Made to perform.','href'=>'/shop?category=baseball-caps'],
-        ['slug'=>'bucket-hats','title'=>'BUCKET HATS','copy'=>'Comfortable. Versatile. Timeless.','href'=>'/shop?category=bucket-hats'],
-        ['slug'=>'snapbacks','title'=>'SNAPBACKS','copy'=>'Modern fit. Stand out.','href'=>'/shop?category=snapbacks'],
-        ['slug'=>'irish-traditional-flat-caps','title'=>'IRISH TRADITIONAL FLAT CAPS','copy'=>'Authentic style. Irish tradition.','href'=>'/irish-traditional','new'=>true],
-        ['slug'=>'irish-heritage-hats','title'=>'IRISH HERITAGE HATS','copy'=>'Heritage designs. Timeless elegance.','href'=>'/irish-heritage'],
-        ['slug'=>'beanies-more','title'=>'BEANIES & MORE','copy'=>'Warm. Stylish. Essential.','href'=>'/shop?category=beanies-more'],
-    ];
-    $publicMedia = app(\App\Services\PublicMediaResolver::class);
-@endphp
+@php($publicMedia = app(\App\Services\PublicMediaResolver::class))
 
 <div class="collections-reference-shell" data-public-media-register="collections">
     <span class="sr-only">OUR COLLECTIONS</span>
@@ -29,21 +19,32 @@
 
     <section class="home-section home-collections collections-reference-grid-section">
         <div class="home-section-heading collections-heading"><span></span><h1>SHOP BY COLLECTIONS</h1><span></span></div>
-        <div class="home-collection-grid collections-reference-grid">
-            @foreach($collectionCards as $item)
-                @php($category = $categories->firstWhere('slug',$item['slug']))
-                @php($href = $category ? route('category',['category'=>$category->slug]) : $item['href'])
-                @php($managedCollection = collect($collections ?? [])->firstWhere('slug', $item['slug']))
-                @php($collectionMedia = $managedCollection?->media && $managedCollection->media->isApprovedPublic() ? $publicMedia->describe($managedCollection->media, $item['title']) : null)
-                <a class="home-collection-card collections-reference-card" href="{{ $href }}">
-                    <div class="collections-reference-photo" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
-                        @if($collectionMedia)<img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif width="{{ $collectionMedia['width'] ?: '' }}" height="{{ $collectionMedia['height'] ?: '' }}" alt="{{ $collectionMedia['alt'] }}" loading="lazy">@else<span class="collections-media-empty">Approved collection media is not configured.</span>@endif
-                        @if(!empty($item['new']))<b class="collections-new-badge">NEW</b>@endif
-                    </div>
-                    <div><h2>{{ $item['title'] }}</h2><p>{{ $item['copy'] }}</p><span>SHOP NOW <b aria-hidden="true"><x-icon name="arrow-right" /></b></span></div>
-                </a>
-            @endforeach
-        </div>
+        @if($collections->isNotEmpty())
+            <div class="home-collection-grid collections-reference-grid">
+                @foreach($collections as $collection)
+                    @php($collectionMedia = $collection->media && $collection->media->isApprovedPublic() ? $publicMedia->describe($collection->media, $collection->name) : null)
+                    <a class="home-collection-card collections-reference-card" href="{{ route('collection.show', ['collection' => $collection->slug]) }}">
+                        <div class="collections-reference-photo" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($collection->name.' collection image') }}">
+                            @if($collectionMedia)
+                                <img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif width="{{ $collectionMedia['width'] ?: '' }}" height="{{ $collectionMedia['height'] ?: '' }}" alt="{{ $collectionMedia['alt'] }}" loading="lazy">
+                            @else
+                                <span class="collections-media-empty">Approved collection media is not configured.</span>
+                            @endif
+                            @if($collection->is_featured)<b class="collections-new-badge">FEATURED</b>@endif
+                        </div>
+                        <div>
+                            <h2>{{ strtoupper($collection->name) }}</h2>
+                            <p>{{ $collection->description ?: 'Curated from the current Emerald Rozalia product catalogue.' }}</p>
+                            <span>SHOP COLLECTION <b aria-hidden="true"><x-icon name="arrow-right" /></b></span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        @else
+            <div class="home-managed-empty">
+                No published collections are configured yet. Create and publish collections in cPanel → Website &amp; Products → Collections.
+            </div>
+        @endif
     </section>
 
     <section class="home-heritage collections-heritage">
@@ -71,16 +72,20 @@
         </div>
         <div class="home-product-grid collections-product-grid">
             @if($bestsellers->isNotEmpty())
-                @foreach($bestsellers as $index => $product)
+                @foreach($bestsellers as $product)
                     <article class="home-product-card collections-product-card">
                         <a class="collections-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
                             @php($imageMedia = $product->media->firstWhere('type','image'))
                             @php($image = $imageMedia ? $publicMedia->forProductMedia($imageMedia, $product->name) : null)
                             <div class="home-product-media collections-product-media" data-public-media-state="{{ $image ? 'approved' : 'awaiting-approved-media' }}">
-                                @if($image)<img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">@endif
+                                @if($image)
+                                    <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
+                                @else
+                                    <span class="collections-media-empty">Approved product media is not configured.</span>
+                                @endif
                             </div>
                             <span>{{ $product->name }}</span>
-                            <strong>€{{ number_format($product->price,2) }}</strong>
+                            <strong>€{{ number_format((float) $product->price,2) }}</strong>
                         </a>
                         <form method="post" action="{{ route('cart.add',$product) }}" class="collections-cart-form">
                             @csrf
@@ -90,7 +95,7 @@
                     </article>
                 @endforeach
             @else
-                <p class="home-managed-empty">No published products are available for this collection.</p>
+                <p class="home-managed-empty">No published products are currently available.</p>
             @endif
         </div>
     </section>
