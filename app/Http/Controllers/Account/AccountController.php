@@ -7,18 +7,12 @@ use App\Http\Requests\{AddressRequest, ProfileUpdateRequest, ReturnRequestReques
 use App\Models\{Address, Order, PaymentTransaction, ReturnRequest};
 use App\Services\{AuditTrail, ReturnRequestService};
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
-class AccountController extends Controller implements HasMiddleware
+class AccountController extends Controller
 {
-    public static function middleware(): array
-    {
-        return ['verified'];
-    }
-
     public function dashboard(): View
     {
         $user = auth()->user();
