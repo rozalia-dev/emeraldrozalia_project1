@@ -18,7 +18,7 @@ class CommunicationInboxDateFilterTest extends TestCase
         $this->assertIsString($script);
         $this->assertStringContainsString("createField('date_from', 'From')", $script);
         $this->assertStringContainsString("createField('date_to', 'To')", $script);
-        $this->assertStringContainsString('data-cc-date-range-filter', $script);
+        $this->assertStringContainsString('ccDateRangeFilter', $script);
         $this->assertStringContainsString("url.searchParams.set('date_from'", $script);
         $this->assertStringContainsString("url.searchParams.set('date_to'", $script);
     }
