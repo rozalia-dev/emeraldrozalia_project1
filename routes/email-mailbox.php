@@ -9,7 +9,7 @@ Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])-
     Route::get('/resource/email', [EmailMailboxController::class, 'index'])->name('index');
     Route::post('/communication-center/email/compose', [EmailMailboxController::class, 'compose'])->name('compose');
     Route::patch('/communication-center/email/drafts/{conversation:uuid}', [EmailMailboxController::class, 'updateDraft'])->name('draft.update');
-    Route::patch('/communication-center/email/drafts/{conversation:uuid}/send', [EmailMailboxController::class, 'sendDraft'])->name('draft.send');
+    Route::post('/communication-center/email/drafts/{conversation:uuid}/send', [EmailMailboxController::class, 'sendDraft'])->name('draft.send');
     Route::post('/communication-center/email/{conversation:uuid}/reply-mailbox', [EmailMailboxController::class, 'reply'])->name('reply');
     Route::post('/communication-center/email/{conversation:uuid}/trash', [EmailMailboxController::class, 'trash'])->name('trash');
     Route::post('/communication-center/email/trash/{uuid}/restore', [EmailMailboxController::class, 'restore'])->whereUuid('uuid')->name('restore');
