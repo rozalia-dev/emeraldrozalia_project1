@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class CommunicationInboxDateFilterTest extends TestCase
@@ -35,10 +36,10 @@ class CommunicationInboxDateFilterTest extends TestCase
             'status' => 'open',
             'metadata' => ['name' => 'Outside Range'],
         ]);
-        $outside->forceFill([
+        DB::table('conversations')->where('id', $outside->id)->update([
             'created_at' => now()->subDays(20),
             'updated_at' => now()->subDays(20),
-        ])->saveQuietly();
+        ]);
 
         $inside = Conversation::create([
             'channel' => 'email',
@@ -48,10 +49,10 @@ class CommunicationInboxDateFilterTest extends TestCase
             'status' => 'open',
             'metadata' => ['name' => 'Inside Range'],
         ]);
-        $inside->forceFill([
+        DB::table('conversations')->where('id', $inside->id)->update([
             'created_at' => now()->subDays(2),
             'updated_at' => now()->subDays(2),
-        ])->saveQuietly();
+        ]);
 
         $from = now()->subDays(5)->toDateString();
         $to = now()->toDateString();
