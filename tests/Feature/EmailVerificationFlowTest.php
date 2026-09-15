@@ -38,7 +38,7 @@ class EmailVerificationFlowTest extends TestCase
             ->assertSee(['Verify your email address', 'RESEND EMAIL'], false);
     }
 
-    public function test_signed_verification_link_marks_the_customer_email_as_verified(): void
+    public function test_signed_verification_link_verifies_and_logs_in_a_guest_customer(): void
     {
         $user = User::factory()->create([
             'is_admin' => false,
@@ -51,15 +51,35 @@ class EmailVerificationFlowTest extends TestCase
             ['id' => $user->id, 'hash' => sha1($user->getEmailForVerification())]
         );
 
-        $this->actingAs($user)
-            ->get($verificationUrl)
-            ->assertRedirect('/account');
+        $this->assertGuest();
 
+        $this->get($verificationUrl)
+            ->assertRedirect(route('account.dashboard'))
+            ->assertSessionHas('success', 'Email verified successfully.');
+
+        $this->assertAuthenticatedAs($user);
         $this->assertTrue($user->fresh()->hasVerifiedEmail());
-        $this->actingAs($user->fresh())
-            ->get(route('account.dashboard'))
+        $this->get(route('account.dashboard'))
             ->assertOk()
             ->assertDontSee('Verify your email address', false);
+    }
+
+    public function test_signed_verification_link_rejects_a_mismatched_email_hash(): void
+    {
+        $user = User::factory()->create([
+            'is_admin' => false,
+            'email_verified_at' => null,
+        ]);
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1('different@example.test')]
+        );
+
+        $this->get($verificationUrl)->assertForbidden();
+        $this->assertGuest();
+        $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
 
     public function test_resend_endpoint_sends_another_verification_link(): void
