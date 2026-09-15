@@ -41,7 +41,7 @@
                 @endforeach
             </div>
         @else
-            <div class="home-managed-empty">
+            <div class="home-managed-empty" data-public-media-state="awaiting-approved-media">
                 No published collections are configured yet. Create and publish collections in cPanel → Website &amp; Products → Collections.
             </div>
         @endif
