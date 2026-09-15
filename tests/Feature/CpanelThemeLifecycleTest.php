@@ -28,7 +28,8 @@ class CpanelThemeLifecycleTest extends TestCase
             ->assertOk()
             ->assertSee('id="cpanel-theme-runtime"', false)
             ->assertSee('data-cpanel-theme-source="default-cpanel-theme-fallback"', false)
-            ->assertSee('--cpanel-topbar:#063020;', false);
+            ->assertDontSee('--cpanel-topbar:', false)
+            ->assertDontSee('--cpanel-sidebar-width:', false);
     }
 
     public function test_draft_does_not_change_live_cpanel_but_activation_does(): void
@@ -58,8 +59,9 @@ class CpanelThemeLifecycleTest extends TestCase
 
         $this->withTenant($admin, $company)->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('--cpanel-topbar:#063020;', false)
-            ->assertDontSee('--cpanel-topbar:#123456;', false);
+            ->assertSee('data-cpanel-theme-source="default-cpanel-theme-fallback"', false)
+            ->assertDontSee('--cpanel-topbar:#123456;', false)
+            ->assertDontSee('--cpanel-sidebar-width:268px;', false);
 
         foreach (['validate', 'submit', 'approve', 'activate'] as $action) {
             $this->withTenant($admin, $company)
