@@ -14,8 +14,8 @@ class CorporateOrderPageTest extends TestCase
 
     public function test_corporate_order_page_renders_live_contract_without_unmanaged_reference_fixture(): void
     {
-        $baseline = MediaAsset::query()
-            ->where('asset_key', 'legacy:assets/products/irish-heritage-bucket-hat/front.jpg')
+        $generatedHero = MediaAsset::query()
+            ->where('asset_key', 'legacy:assets/corporate/corporate-orders-hero.webp')
             ->firstOrFail();
 
         $response = $this->get('/corporate-orders');
@@ -34,11 +34,12 @@ class CorporateOrderPageTest extends TestCase
                 "LET'S WORK TOGETHER",
                 '/css/corporate-order.css?v=20260908-approved',
                 '/css/order-fullwidth.css?v=20260910-fullwidth',
-                '/css/corporate-order-functional.css?v=20260915-functional',
+                '/css/corporate-order-functional.css?v=20260915-generated-hero',
                 'data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE"',
                 'data-public-data-state="awaiting-approved-client-records"',
                 'name="idempotency_key"',
-                route('media.public', ['uuid' => $baseline->uuid]),
+                route('media.public', ['uuid' => $generatedHero->uuid]),
+                'Emerald Rozalia premium corporate headwear and branded merchandise',
                 'data-public-media-state="approved"',
             ], false)
             ->assertDontSee('Approved corporate media is not configured.')
@@ -46,6 +47,24 @@ class CorporateOrderPageTest extends TestCase
 
         $this->assertMatchesRegularExpression('/name="idempotency_key" value="[0-9a-f-]{36}"/i', $response->getContent());
         $this->assertStringNotContainsString('corporate-order-reference.png', $response->getContent());
+    }
+
+    public function test_generated_corporate_hero_is_approved_managed_media_and_publicly_served(): void
+    {
+        $generatedHero = MediaAsset::query()
+            ->where('asset_key', 'legacy:assets/corporate/corporate-orders-hero.webp')
+            ->firstOrFail();
+
+        $this->assertSame('approved', $generatedHero->approval_status);
+        $this->assertTrue((bool) $generatedHero->active);
+        $this->assertSame('generated-corporate-orders-hero', data_get($generatedHero->metadata, 'source'));
+        $this->assertSame('corporate-orders-hero', data_get($generatedHero->metadata, 'purpose'));
+        $this->assertTrue(Storage::disk('public')->exists($generatedHero->path));
+
+        $this->get(route('media.public', ['uuid' => $generatedHero->uuid]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/webp')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public function test_repository_baseline_media_is_public_and_managed(): void
@@ -65,7 +84,7 @@ class CorporateOrderPageTest extends TestCase
             ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
-    public function test_published_page_manager_media_is_rendered_through_the_approved_public_media_route(): void
+    public function test_published_page_manager_media_overrides_generated_default_through_the_approved_public_media_route(): void
     {
         Storage::fake('local');
         Storage::disk('local')->put('site-media/corporate-hero.webp', 'corporate hero');
@@ -103,9 +122,14 @@ class CorporateOrderPageTest extends TestCase
             'visible' => true,
         ]);
 
+        $generatedHero = MediaAsset::query()
+            ->where('asset_key', 'legacy:assets/corporate/corporate-orders-hero.webp')
+            ->firstOrFail();
+
         $this->get('/corporate-orders')
             ->assertOk()
             ->assertSee(route('media.public', ['uuid' => $asset->uuid]), false)
+            ->assertDontSee(route('media.public', ['uuid' => $generatedHero->uuid]), false)
             ->assertSee('Emerald Rozalia corporate headwear', false)
             ->assertSee('data-page-runtime-source="managed-page"', false)
             ->assertSee('data-public-media-state="approved"', false)
