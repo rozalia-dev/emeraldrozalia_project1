@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, SoftDeletes;
 
     public const PUBLIC_STATUSES = ['active', 'published'];
 
@@ -24,6 +25,7 @@ class Product extends Model
         'is_active' => 'boolean',
         'price' => 'decimal:2',
         'compare_price' => 'decimal:2',
+        'deleted_at' => 'datetime',
     ];
 
     public function scopePublished(Builder $query): Builder
@@ -37,7 +39,8 @@ class Product extends Model
 
     public function isPubliclyPublished(): bool
     {
-        return (bool) $this->is_active
+        return ! $this->trashed()
+            && (bool) $this->is_active
             && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
     }
 
