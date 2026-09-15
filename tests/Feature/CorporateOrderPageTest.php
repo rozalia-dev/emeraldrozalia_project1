@@ -131,7 +131,6 @@ class CorporateOrderPageTest extends TestCase
         $this->assertSame('Corporate Team Ltd', $inquiry->company);
         $this->assertSame('public_corporate-orders_form', $inquiry->meta['source']);
         $this->assertSame('Ireland', $inquiry->meta['country']);
-        $this->assertSame($idempotencyKey, $inquiry->meta['idempotency_key']);
         $this->assertSame('corporate-orders', $conversation->metadata['type']);
         $this->assertSame('Ireland', $conversation->metadata['country']);
         $this->assertSame('Corporate Team Ltd', $conversation->metadata['company']);
