@@ -1,7 +1,7 @@
 <?php
 namespace App\Providers;
 use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
-use App\Services\{PublishedSiteSettings, SiteLayoutVersionService};
+use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Event;
@@ -55,6 +55,15 @@ class AppServiceProvider extends ServiceProvider {
                 ->values();
 
             $view->with(['footerPages' => $footerPages, 'siteSettings' => $siteSettings, 'siteLayout' => $siteLayout]);
+        });
+
+        View::composer('layouts.admin', function (): void {
+            $cpanelThemeSnapshot = app(CpanelThemeVersionService::class)->activeSnapshot();
+
+            View::startPush('styles', view('admin.partials.cpanel-theme-runtime', [
+                'cpanelThemeSnapshot' => $cpanelThemeSnapshot,
+            ])->render());
+            View::startPush('scripts', view('admin.partials.cpanel-theme-nav')->render());
         });
     }
 }
