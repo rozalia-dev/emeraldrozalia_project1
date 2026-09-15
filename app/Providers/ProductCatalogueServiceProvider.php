@@ -17,6 +17,7 @@ class ProductCatalogueServiceProvider extends ServiceProvider
 
         Route::middleware('web')->group(function (): void {
             Route::get('/product-catalogue', [ProductCatalogueController::class, 'show'])->name('catalogue.show');
+            Route::get('/product-catalogue/print', [ProductCatalogueController::class, 'printable'])->name('catalogue.print');
             Route::get('/product-catalogue/download', [ProductCatalogueController::class, 'download'])->name('catalogue.download');
             Route::get('/product-catalogue/cover', [ProductCatalogueController::class, 'cover'])->name('catalogue.cover');
         });
