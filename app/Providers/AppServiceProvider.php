@@ -1,6 +1,6 @@
 <?php
 namespace App\Providers;
-use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductCatalogue,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
+use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
 use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
@@ -43,6 +43,7 @@ class AppServiceProvider extends ServiceProvider {
             $siteLayout = is_array($previewLayout)
                 ? $previewLayout
                 : app(SiteLayoutVersionService::class)->publicSnapshot();
+            $siteLayout = $this->withCatalogueMenu($siteLayout);
             $footerPages = ContentPage::query()
                 ->where('locale', app()->getLocale())
                 ->where('status', 'published')
@@ -53,17 +54,8 @@ class AppServiceProvider extends ServiceProvider {
                     && (! $page->requiresLogin() || auth()->check()))
                 ->take(8)
                 ->values();
-            $productCatalogue = ProductCatalogue::publishedForCurrentCompany();
 
-            $view->with([
-                'footerPages' => $footerPages,
-                'siteSettings' => $siteSettings,
-                'siteLayout' => $siteLayout,
-                'productCatalogue' => $productCatalogue,
-            ]);
-            View::startPush('scripts', view('site.partials.product-catalogue-cta', [
-                'productCatalogue' => $productCatalogue,
-            ])->render());
+            $view->with(['footerPages' => $footerPages, 'siteSettings' => $siteSettings, 'siteLayout' => $siteLayout]);
         });
 
         View::composer('layouts.admin', function (): void {
@@ -73,7 +65,45 @@ class AppServiceProvider extends ServiceProvider {
                 'cpanelThemeSnapshot' => $cpanelThemeSnapshot,
             ])->render());
             View::startPush('scripts', view('admin.partials.cpanel-theme-nav')->render());
-            View::startPush('scripts', view('admin.partials.product-catalogue-nav')->render());
         });
+    }
+
+    private function withCatalogueMenu(array $siteLayout): array
+    {
+        $menu = array_values((array) data_get($siteLayout, 'regions.header.primary_menu', []));
+        $hasCatalogue = collect($menu)->contains(function ($item): bool {
+            $label = strtoupper(trim((string) data_get($item, 'label', '')));
+            $href = data_get($item, 'href');
+            $path = is_string($href) ? (parse_url($href, PHP_URL_PATH) ?: $href) : '';
+
+            return $label === 'CATALOGUE' || $path === '/product-catalogue';
+        });
+
+        if ($hasCatalogue) {
+            return $siteLayout;
+        }
+
+        $catalogueItem = ['label' => 'CATALOGUE', 'href' => '/product-catalogue'];
+        $insertAt = null;
+
+        foreach ($menu as $index => $item) {
+            $label = strtoupper(trim((string) data_get($item, 'label', '')));
+            $href = data_get($item, 'href');
+            $path = is_string($href) ? (parse_url($href, PHP_URL_PATH) ?: $href) : '';
+            if ($label === 'COLLECTIONS' || $path === '/collections') {
+                $insertAt = $index + 1;
+                break;
+            }
+        }
+
+        if ($insertAt === null) {
+            $menu[] = $catalogueItem;
+        } else {
+            array_splice($menu, $insertAt, 0, [$catalogueItem]);
+        }
+
+        data_set($siteLayout, 'regions.header.primary_menu', $menu);
+
+        return $siteLayout;
     }
 }

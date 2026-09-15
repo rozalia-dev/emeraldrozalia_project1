@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\ProductCatalogue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,8 +20,18 @@ class ProductCatalogueController extends Controller
             ['company_id' => $companyId],
             ['title' => 'Emerald Rozalia Product Catalogue', 'is_published' => false, 'download_count' => 0]
         );
+        $productQuery = Product::withoutGlobalScopes()->where('company_id', $companyId)->published();
+        $publishedProductCount = (clone $productQuery)->count();
+        $publishedCategoryCount = (clone $productQuery)
+            ->whereNotNull('category_id')
+            ->distinct()
+            ->count('category_id');
 
-        return view('admin.product-catalogue.index', compact('catalogue'));
+        return view('admin.product-catalogue.index', compact(
+            'catalogue',
+            'publishedProductCount',
+            'publishedCategoryCount'
+        ));
     }
 
     public function update(Request $request)
@@ -63,7 +74,7 @@ class ProductCatalogueController extends Controller
 
             $publish = $request->boolean('is_published');
             if ($publish && ! $catalogue->pdf_path) {
-                throw ValidationException::withMessages(['catalogue_pdf' => 'Upload a PDF before publishing the catalogue.']);
+                throw ValidationException::withMessages(['catalogue_pdf' => 'Upload a PDF before publishing the optional designed catalogue PDF.']);
             }
 
             $catalogue->title = $validated['title'];
