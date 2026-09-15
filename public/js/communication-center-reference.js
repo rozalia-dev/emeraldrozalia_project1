@@ -2,6 +2,94 @@
     const root = document.querySelector('[data-cc-root]');
     if (!root) return;
 
+    const installInboxDateRangeFilter = () => {
+        const filterbar = root.querySelector('.cc-filterbar');
+        if (!filterbar || !filterbar.querySelector('select[name="channel"]') || filterbar.querySelector('[data-cc-date-range-filter]')) return;
+
+        const form = filterbar.closest('form');
+        if (!form) return;
+
+        const resetLink = [...filterbar.querySelectorAll('a')]
+            .find((link) => link.textContent.trim().toLowerCase() === 'reset');
+        const exportLinks = [...filterbar.querySelectorAll('a')]
+            .filter((link) => link.classList.contains('cc-export') || /^export\b/i.test(link.textContent.trim()));
+        const params = new URLSearchParams(window.location.search);
+
+        if (!document.querySelector('[data-cc-date-range-style]')) {
+            const style = document.createElement('style');
+            style.dataset.ccDateRangeStyle = 'true';
+            style.textContent = `
+                .cc-date-range-filter{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+                .cc-date-range-filter label{display:inline-flex;align-items:center;gap:4px;font-size:7.5px;font-weight:700;color:#3e4943}
+                .cc-date-range-filter input[type="date"]{width:120px;min-width:120px;padding:0 6px}
+                @media(max-width:1180px){.cc-date-range-filter{flex:1 1 278px}}
+                @media(max-width:800px){.cc-date-range-filter{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr}.cc-date-range-filter label{display:grid;grid-template-columns:auto minmax(0,1fr)}.cc-date-range-filter input[type="date"]{width:100%;min-width:0}}
+                @media(max-width:520px){.cc-date-range-filter{grid-template-columns:1fr}.cc-date-range-filter label{grid-template-columns:34px minmax(0,1fr)}}
+            `;
+            document.head.append(style);
+        }
+
+        const group = document.createElement('span');
+        group.className = 'cc-date-range-filter';
+        group.dataset.ccDateRangeFilter = 'true';
+        group.setAttribute('role', 'group');
+        group.setAttribute('aria-label', 'Conversation date range');
+
+        const createField = (name, labelText) => {
+            const label = document.createElement('label');
+            const text = document.createElement('span');
+            const input = document.createElement('input');
+
+            text.textContent = labelText;
+            input.type = 'date';
+            input.name = name;
+            input.value = params.get(name) || '';
+            input.setAttribute('aria-label', `${labelText} date`);
+            input.autocomplete = 'off';
+
+            label.append(text, input);
+            group.append(label);
+            return input;
+        };
+
+        const fromInput = createField('date_from', 'From');
+        const toInput = createField('date_to', 'To');
+
+        const insertBefore = exportLinks[0] || null;
+        if (insertBefore) {
+            filterbar.insertBefore(group, insertBefore);
+        } else if (resetLink) {
+            resetLink.after(group);
+        } else {
+            filterbar.append(group);
+        }
+
+        const syncExportDates = () => {
+            exportLinks.forEach((link) => {
+                const url = new URL(link.href, window.location.href);
+                if (fromInput.value) url.searchParams.set('date_from', fromInput.value);
+                else url.searchParams.delete('date_from');
+                if (toInput.value) url.searchParams.set('date_to', toInput.value);
+                else url.searchParams.delete('date_to');
+                link.href = url.toString();
+            });
+        };
+
+        const validateRange = () => {
+            fromInput.max = toInput.value || '';
+            toInput.min = fromInput.value || '';
+            const invalid = Boolean(fromInput.value && toInput.value && fromInput.value > toInput.value);
+            toInput.setCustomValidity(invalid ? 'To date must be on or after From date.' : '');
+            syncExportDates();
+        };
+
+        fromInput.addEventListener('change', validateRange);
+        toInput.addEventListener('change', validateRange);
+        validateRange();
+    };
+
+    installInboxDateRangeFilter();
+
     const decode = (value) => {
         try {
             const bytes = Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
