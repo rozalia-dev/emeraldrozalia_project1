@@ -21,8 +21,8 @@ class ThemeVersionLifecycleTest extends TestCase
 
         $this->withTenant($admin, $company)->get(route('admin.settings.theme.index'))
             ->assertOk()
-            ->assertSeeText('No theme versions yet.')
-            ->assertSeeText('Create a theme draft');
+            ->assertSeeText('No custom versions yet.')
+            ->assertSeeText('Apply theme globally');
 
         $theme = $this->createDraft($admin, $company, 'Emerald Premium');
         $this->assertSame(ThemeVersion::STATUS_DRAFT, $theme->status);

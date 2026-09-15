@@ -6,9 +6,11 @@
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
     <link rel="stylesheet" href="/css/admin-actions.css?v=20260913-batch14">
+    <link rel="stylesheet" href="/css/admin-guide-header.css?v=20260915-v1">
     @stack('styles')
 </head>
-<body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit') || request()->routeIs('admin.pages.layouts*'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.quotes.*'))admin-quotes-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
+@php($cpanelTheme = app(\App\Services\AdminAppearanceService::class)->current())
+<body data-cpanel-theme="{{ $cpanelTheme }}" class="admin-body cpanel-theme-{{ $cpanelTheme }} @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit') || request()->routeIs('admin.pages.layouts*'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.quotes.*'))admin-quotes-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
 @php
     $orderItems=[
         ['order'=>'online','label'=>'Online Orders','icon'=>'shopping-bag','active'=>'admin/orders/online*','marker'=>'blue'],
@@ -18,7 +20,6 @@
         ['order'=>'franchise_retail','label'=>'Franchise Retail Orders','icon'=>'shopping-bag','active'=>'admin/orders/franchise_retail*','marker'=>'teal'],
         ['order'=>'buyer','label'=>'Buyer Orders','icon'=>'user','active'=>'admin/orders/buyer*','marker'=>'yellow'],
     ];
-    $orderCategoryCount=count($orderItems);
     $sidebarCounts=[
         'applications'=>\App\Models\FranchiseApplication::whereIn('status',['new','pending'])->count(),
         'communications'=>\App\Models\Conversation::whereIn('status',['new','open','pending'])->count(),
@@ -31,10 +32,7 @@
             'label'=>'WEBSITE & PRODUCTS',
             'items'=>[
                 [
-                    'slug'=>'products',
-                    'label'=>'Products',
-                    'icon'=>'package',
-                    'active'=>'admin/resource/products*',
+                    'slug'=>'products','label'=>'Products','icon'=>'package','active'=>'admin/resource/products*',
                     'children'=>[
                         ['slug'=>'product-manager','label'=>'Product Manager','icon'=>'settings','active'=>'admin/resource/product-manager*'],
                         ['route'=>'admin.add-product','label'=>'Add Product','icon'=>'plus','active'=>'admin/resource/add-product*'],
@@ -117,29 +115,28 @@
     $href=function(array $item){return isset($item['order'])?route('admin.order-master',$item['order']):(isset($item['route'])?route($item['route']):route('admin.resource',$item['slug']));};
 @endphp
 <aside id="admin-sidebar" class="admin-sidebar">
-    <a href="{{route('admin.dashboard')}}" class="admin-logo"><img class="admin-logo-image" src="{{asset('assets/logo/logo_two_line.png')}}" alt="Emerald Rozalia Limited"></a>
-    <a class="admin-nav-home {{request()->routeIs('admin.dashboard')?'active':''}}" href="{{route('admin.dashboard')}}"><x-icon name="home" /> Dashboard</a>
+    <a href="{{ route('admin.dashboard') }}" class="admin-logo"><img class="admin-logo-image" src="{{ asset('assets/logo/logo_two_line.png') }}" alt="Emerald Rozalia Limited"></a>
+    <a class="admin-nav-home {{ request()->routeIs('admin.dashboard')?'active':'' }}" href="{{ route('admin.dashboard') }}"><x-icon name="home" /> Dashboard</a>
     @foreach($groups as $group)
-        <details class="admin-nav-group" data-admin-nav-group="{{\Illuminate\Support\Str::slug($group['label'])}}" open>
-            <summary><span>{{$group['label']}}</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
+        <details class="admin-nav-group" data-admin-nav-group="{{ \Illuminate\Support\Str::slug($group['label']) }}" open>
+            <summary><span>{{ $group['label'] }}</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
                 @foreach($group['items'] as $item)
                     @if(isset($item['children']))
-                        @php $subgroupOpen=request()->is($item['active']) || collect($item['children'])->contains(fn($child)=>isset($child['active']) && request()->is($child['active'])); @endphp
+                        @php($subgroupOpen=request()->is($item['active']) || collect($item['children'])->contains(fn($child)=>isset($child['active']) && request()->is($child['active'])))
                         <details class="admin-nav-subgroup" @if($subgroupOpen) open @endif>
-                            <summary class="{{request()->is($item['active'])?'active':''}}"><span class="admin-nav-parent-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
+                            <summary class="{{ request()->is($item['active'])?'active':'' }}"><span class="admin-nav-parent-label"><x-icon name="{{ $item['icon'] }}" size="14" /><span>{{ $item['label'] }}</span></span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
                             <div class="admin-nav-subitems">
                                 @foreach($item['children'] as $child)
-                                    <a class="{{request()->is($child['active'])?'active':''}}" href="{{$href($child)}}"><span>{{$child['label']}}</span>@if(isset($child['badge']))<span class="admin-nav-badge admin-nav-badge--{{$child['badge']['tone']}}">{{number_format($child['badge']['value'])}}</span>@endif</a>
+                                    <a class="{{ request()->is($child['active'])?'active':'' }}" href="{{ $href($child) }}"><span>{{ $child['label'] }}</span>@if(isset($child['badge']))<span class="admin-nav-badge admin-nav-badge--{{ $child['badge']['tone'] }}">{{ number_format($child['badge']['value']) }}</span>@endif</a>
                                 @endforeach
                             </div>
                         </details>
                     @else
-                        <a class="{{request()->is($item['active'])?'active':''}}" href="{{$href($item)}}">
-                            <span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span>
-                            @if(isset($item['marker']))<i class="admin-nav-order-dot admin-nav-order-dot--{{$item['marker']}}"></i>@endif
-                            @if(isset($item['badge']))<span class="admin-nav-badge admin-nav-badge--{{$item['badge']['tone']}}">{{number_format($item['badge']['value'])}}</span>@endif
-                            @if(isset($item['chevron']))<x-icon name="chevron-right" size="10" class="admin-group-chevron" />@endif
+                        <a class="{{ request()->is($item['active'])?'active':'' }}" href="{{ $href($item) }}">
+                            <span class="admin-nav-item-label"><x-icon name="{{ $item['icon'] }}" size="14" /><span>{{ $item['label'] }}</span></span>
+                            @if(isset($item['marker']))<i class="admin-nav-order-dot admin-nav-order-dot--{{ $item['marker'] }}"></i>@endif
+                            @if(isset($item['badge']))<span class="admin-nav-badge admin-nav-badge--{{ $item['badge']['tone'] }}">{{ number_format($item['badge']['value']) }}</span>@endif
                         </a>
                     @endif
                 @endforeach
@@ -150,25 +147,25 @@
         <details class="admin-nav-group" data-admin-nav-group="reports" open>
             <summary><span>REPORTS</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
-                <a class="{{request()->is('admin/resource/franchise-management*')?'active':''}}" href="{{route('admin.resource','franchise-management')}}"><span class="admin-nav-item-label"><x-icon name="briefcase" size="14" /><span>Franchise Reports</span></span></a>
-                <a class="{{request()->is('admin/resource/franchise-retail-stores*')?'active':''}}" href="{{route('admin.resource','franchise-retail-stores')}}"><span class="admin-nav-item-label"><x-icon name="shopping-bag" size="14" /><span>Franchise Retail Store Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.order')?'active':''}}" href="{{route('admin.reports.order')}}"><span class="admin-nav-item-label"><x-icon name="shopping-bag" size="14" /><span>Order Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.sales-reports.*')?'active':''}}" href="{{route('admin.sales-reports.dashboard')}}"><span class="admin-nav-item-label"><x-icon name="chart" size="14" /><span>Product &amp; Sales Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.customer')?'active':''}}" href="{{route('admin.reports.customer')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Customer Reports</span></span></a>
-                <a class="{{request()->routeIs('admin.reports.communication')?'active':''}}" href="{{route('admin.reports.communication')}}"><span class="admin-nav-item-label"><x-icon name="message" size="14" /><span>Communication Reports</span></span></a>
-                <a class="{{request()->is('admin/resource/website-products*')?'active':''}}" href="{{route('admin.resource','website-products')}}"><span class="admin-nav-item-label"><x-icon name="globe" size="14" /><span>Website Analytics</span></span></a>
+                <a class="{{ request()->is('admin/resource/franchise-management*')?'active':'' }}" href="{{ route('admin.resource','franchise-management') }}"><span class="admin-nav-item-label"><x-icon name="briefcase" size="14" /><span>Franchise Reports</span></span></a>
+                <a class="{{ request()->is('admin/resource/franchise-retail-stores*')?'active':'' }}" href="{{ route('admin.resource','franchise-retail-stores') }}"><span class="admin-nav-item-label"><x-icon name="shopping-bag" size="14" /><span>Franchise Retail Store Reports</span></span></a>
+                <a class="{{ request()->routeIs('admin.reports.order')?'active':'' }}" href="{{ route('admin.reports.order') }}"><span class="admin-nav-item-label"><x-icon name="shopping-bag" size="14" /><span>Order Reports</span></span></a>
+                <a class="{{ request()->routeIs('admin.sales-reports.*')?'active':'' }}" href="{{ route('admin.sales-reports.dashboard') }}"><span class="admin-nav-item-label"><x-icon name="chart" size="14" /><span>Product &amp; Sales Reports</span></span></a>
+                <a class="{{ request()->routeIs('admin.reports.customer')?'active':'' }}" href="{{ route('admin.reports.customer') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Customer Reports</span></span></a>
+                <a class="{{ request()->routeIs('admin.reports.communication')?'active':'' }}" href="{{ route('admin.reports.communication') }}"><span class="admin-nav-item-label"><x-icon name="message" size="14" /><span>Communication Reports</span></span></a>
+                <a class="{{ request()->is('admin/resource/website-products*')?'active':'' }}" href="{{ route('admin.resource','website-products') }}"><span class="admin-nav-item-label"><x-icon name="globe" size="14" /><span>Website Analytics</span></span></a>
             </div>
         </details>
         <details class="admin-nav-group" data-admin-nav-group="users-roles" open>
             <summary><span>USERS &amp; ROLES</span><x-icon name="chevron-right" size="12" class="admin-group-chevron" /></summary>
             <div class="admin-nav-items">
-                <a class="{{request()->routeIs('admin.user-system.users')?'active':''}}" href="{{route('admin.user-system.users')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Users Management</span></span></a>
-                <a class="{{request()->routeIs('admin.user-system.roles')?'active':''}}" href="{{route('admin.user-system.roles')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Roles Management</span></span></a>
-                <a class="{{request()->routeIs('admin.user-system.roles-permissions')?'active':''}}" href="{{route('admin.user-system.roles-permissions')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>User Roles &amp; Permissions</span></span></a>
-                <a class="{{request()->routeIs('admin.user-system.assignments')?'active':''}}" href="{{route('admin.user-system.assignments')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Role Assignments</span></span></a>
-                <a class="{{request()->routeIs('admin.user-system.permission-groups')?'active':''}}" href="{{route('admin.user-system.permission-groups')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permission Groups</span></span></a>
-                <a class="{{request()->routeIs('admin.user-system.matrix')?'active':''}}" href="{{route('admin.user-system.matrix')}}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permission Matrix</span></span></a>
-                <a class="{{request()->routeIs('admin.user-system.activity')?'active':''}}" href="{{route('admin.user-system.activity')}}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Activity &amp; Security Log</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.users')?'active':'' }}" href="{{ route('admin.user-system.users') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Users Management</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.roles')?'active':'' }}" href="{{ route('admin.user-system.roles') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Roles Management</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.roles-permissions')?'active':'' }}" href="{{ route('admin.user-system.roles-permissions') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>User Roles &amp; Permissions</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.assignments')?'active':'' }}" href="{{ route('admin.user-system.assignments') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Role Assignments</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.permission-groups')?'active':'' }}" href="{{ route('admin.user-system.permission-groups') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permission Groups</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.matrix')?'active':'' }}" href="{{ route('admin.user-system.matrix') }}"><span class="admin-nav-item-label"><x-icon name="users" size="14" /><span>Permission Matrix</span></span></a>
+                <a class="{{ request()->routeIs('admin.user-system.activity')?'active':'' }}" href="{{ route('admin.user-system.activity') }}"><span class="admin-nav-item-label"><x-icon name="file-text" size="14" /><span>Activity &amp; Security Log</span></span></a>
             </div>
         </details>
         <details class="admin-nav-group" data-admin-nav-group="settings" open>
@@ -176,62 +173,40 @@
             <div class="admin-nav-items admin-settings-nav-items">
                 @php
                     $settingsNav = [
-                        ['slug' => null, 'label' => 'Settings', 'icon' => 'settings', 'active' => request()->routeIs('admin.settings.overview')],
-                        ['slug' => 'general-configuration', 'label' => 'General Configuration', 'icon' => 'settings'],
-                        ['slug' => 'company-branding', 'label' => 'Company & Branding', 'icon' => 'briefcase'],
-                        ['theme' => true, 'label' => 'Theme Manager', 'icon' => 'palette'],
-                        ['slug' => 'email-notifications', 'label' => 'Email & Notifications', 'icon' => 'mail'],
-                        ['slug' => 'whatsapp-messaging', 'label' => 'WhatsApp & Messaging', 'icon' => 'message'],
-                        ['slug' => 'payment-gateways', 'label' => 'Payment Gateways', 'icon' => 'credit-card'],
-                        ['slug' => 'localization', 'label' => 'Localization', 'icon' => 'globe'],
-                        ['slug' => 'security-access', 'label' => 'Security & Access', 'icon' => 'check'],
-                        ['slug' => 'api-roles', 'label' => 'Users & Roles / API Roles', 'icon' => 'users'],
-                        ['slug' => 'application-settings', 'label' => 'Application Settings', 'icon' => 'settings'],
-                        ['slug' => 'document-storage', 'label' => 'Document & Storage', 'icon' => 'file-text'],
-                        ['slug' => 'integrations', 'label' => 'Integrations', 'icon' => 'refresh'],
-                        ['slug' => 'automations', 'label' => 'Automations', 'icon' => 'refresh'],
-                        ['slug' => 'backup-recovery', 'label' => 'Backup & Recovery', 'icon' => 'download'],
-                        ['slug' => 'audit-logs', 'label' => 'Audit & Logs', 'icon' => 'file-text'],
-                        ['slug' => 'system-maintenance', 'label' => 'System Maintenance', 'icon' => 'refresh'],
-                        ['slug' => 'other-settings', 'label' => 'Other Settings', 'icon' => 'dots'],
+                        ['slug'=>null,'label'=>'Settings','icon'=>'settings','active'=>request()->routeIs('admin.settings.overview')],
+                        ['slug'=>'general-configuration','label'=>'General Configuration','icon'=>'settings'],
+                        ['slug'=>'company-branding','label'=>'Company & Branding','icon'=>'briefcase'],
+                        ['theme'=>true,'label'=>'Theme & Appearance','icon'=>'palette'],
+                        ['slug'=>'email-notifications','label'=>'Email & Notifications','icon'=>'mail'],
+                        ['slug'=>'whatsapp-messaging','label'=>'WhatsApp & Messaging','icon'=>'message'],
+                        ['slug'=>'payment-gateways','label'=>'Payment Gateways','icon'=>'credit-card'],
+                        ['slug'=>'localization','label'=>'Localization','icon'=>'globe'],
+                        ['slug'=>'security-access','label'=>'Security & Access','icon'=>'check'],
+                        ['slug'=>'api-roles','label'=>'Users & Roles / API Roles','icon'=>'users'],
+                        ['slug'=>'application-settings','label'=>'Application Settings','icon'=>'settings'],
+                        ['slug'=>'document-storage','label'=>'Document & Storage','icon'=>'file-text'],
+                        ['slug'=>'integrations','label'=>'Integrations','icon'=>'refresh'],
+                        ['slug'=>'automations','label'=>'Automations','icon'=>'refresh'],
+                        ['slug'=>'backup-recovery','label'=>'Backup & Recovery','icon'=>'download'],
+                        ['slug'=>'audit-logs','label'=>'Audit & Logs','icon'=>'file-text'],
+                        ['slug'=>'system-maintenance','label'=>'System Maintenance','icon'=>'refresh'],
+                        ['slug'=>'other-settings','label'=>'Other Settings','icon'=>'dots'],
                     ];
                 @endphp
                 @foreach($settingsNav as $item)
-                    @php $active = !empty($item['theme']) ? request()->routeIs('admin.settings.theme.index') : ($item['slug'] === null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section') === $item['slug']); @endphp
-                    <a class="{{$active?'active':''}}" href="{{!empty($item['theme']) ? route('admin.settings.theme.index') : ($item['slug'] === null ? route('admin.settings.overview') : route('admin.settings.page', $item['slug']))}}"><span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span></a>
+                    @php($activeItem = !empty($item['theme']) ? request()->routeIs('admin.settings.theme.*') : ($item['slug']===null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section')===$item['slug']))
+                    <a class="{{ $activeItem?'active':'' }}" href="{{ !empty($item['theme']) ? route('admin.settings.theme.index') : ($item['slug']===null ? route('admin.settings.overview') : route('admin.settings.page',$item['slug'])) }}"><span class="admin-nav-item-label"><x-icon name="{{ $item['icon'] }}" size="14" /><span>{{ $item['label'] }}</span></span></a>
                 @endforeach
             </div>
         </details>
     </nav>
-    <footer class="admin-sidebar-footer"><span>&copy; {{now()->year}} Emerald Rozalia Ltd.</span><span>All rights reserved.</span></footer>
+    <footer class="admin-sidebar-footer"><span>&copy; {{ now()->year }} Emerald Rozalia Ltd.</span><span>All rights reserved.</span></footer>
 </aside>
 <div class="admin-shell">
-    @if(false && request()->routeIs('admin.pages'))
-        <header class="admin-top pages-admin-top">
-            <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="18" /></button>
-            <div class="pages-top-breadcrumb"><strong>Project 1 Control Panel</strong><span>•</span><span>Website &amp; Products</span><span>•</span><b>Pages</b></div>
-            <label class="pages-top-search"><span class="sr-only">Search pages</span><input type="search" placeholder="Search pages..." aria-label="Search pages"><x-icon name="search" size="15" /></label>
-            <div class="pages-top-actions"><span class="pages-top-icon pages-notification"><x-icon name="bell" size="17" /><i>2</i></span><span class="pages-top-icon pages-notification"><x-icon name="message" size="17" /><i>5</i></span><span class="pages-top-icon pages-notification"><x-icon name="mail" size="17" /><i>3</i></span><span class="pages-top-icon"><x-icon name="help" size="17" /></span><span class="pages-top-user"><span class="pages-user-avatar"><x-icon name="user" size="17" /></span><span><strong>{{ auth()->user()->name ?? 'Admin User' }}</strong><small>Super Admin</small></span><x-icon name="chevron-right" size="14" /></span></div>
-        </header>
-    @else
-        <header class="admin-top">
-            <button class="admin-menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="admin-sidebar" aria-expanded="false" data-admin-nav-toggle><x-icon name="menu" size="22" /></button>
-            <div class="admin-heading"><strong>Project 1 Control Panel</strong><span>Franchise Focused System</span></div>
-            @if(request()->routeIs('admin.seo.*'))
-            <form class="admin-search" method="get" action="{{route('admin.seo.dashboard')}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search SEO, pages, meta, keywords..." aria-label="Search SEO, pages, meta, keywords"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
-        @elseif(request()->routeIs('admin.banners.*'))
-            <form class="admin-search" method="get" action="{{route('admin.banners.index')}}"><input type="hidden" name="tab" value="{{request('tab','all')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search banners, sliders..." aria-label="Search banners, sliders"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
-        @elseif(request()->routeIs('admin.reports.order') || request()->routeIs('admin.reports.communication') || request()->routeIs('admin.reports.customer'))
-            <form class="admin-search" method="get" action="{{url()->current()}}"><input type="hidden" name="tab" value="{{request('tab','overview')}}"><input type="hidden" name="from" value="{{request('from','2025-04-01')}}"><input type="hidden" name="to" value="{{request('to','2025-05-01')}}"><x-icon name="search" /><input type="search" name="q" value="{{request('q')}}" placeholder="Search report data..." aria-label="Search report data"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
-        @else
-            <form class="admin-search" method="get" action="{{ route('admin.search') }}"><x-icon name="search" /><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Search anything..." aria-label="Search anything"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
-        @endif
-            <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
-        </header>
-    @endif
+    @include('admin.partials.guide-header')
     <main class="admin-main">
-        @if(session('success'))<div class="flash success">{{session('success')}}</div>@endif
-        @if($errors->any())<div class="flash error">{{implode(' ',$errors->all())}}</div>@endif
+        @if(session('success'))<div class="flash success">{{ session('success') }}</div>@endif
+        @if($errors->any())<div class="flash error">{{ implode(' ',$errors->all()) }}</div>@endif
         @yield('content')
     </main>
     <footer class="admin-footer">
