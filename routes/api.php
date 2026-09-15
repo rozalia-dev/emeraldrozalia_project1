@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CommunicationWebhookController;
+use App\Http\Controllers\EmailInboundWebhookController;
 use App\Http\Controllers\Admin\CommunicationEmailController;
 use App\Http\Controllers\Admin\CommunicationApprovalController;
 use App\Http\Controllers\Admin\CommunicationTemplateController;
@@ -11,6 +12,10 @@ Route::post('api/v1/communication/webhooks/{provider}', CommunicationWebhookCont
     ->where('provider', '[A-Za-z0-9._-]+')
     ->middleware('throttle:60,1')
     ->name('api.v1.communication.webhooks');
+
+Route::post('api/v1/communication/email/inbound', EmailInboundWebhookController::class)
+    ->middleware('throttle:60,1')
+    ->name('api.v1.communication.email.inbound');
 
 Route::prefix('api/v1')->middleware(['web', 'throttle:60,1'])->name('api.v1.')->group(function (): void {
     Route::get('/products', [CatalogController::class, 'products'])->name('products.index');
