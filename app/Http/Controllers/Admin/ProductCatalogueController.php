@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductCatalogueController extends Controller
 {
@@ -96,7 +96,7 @@ class ProductCatalogueController extends Controller
         return redirect()->route('admin.product-catalogue.index')->with('success', 'Product catalogue settings saved.');
     }
 
-    public function download(): BinaryFileResponse
+    public function download(): StreamedResponse
     {
         $catalogue = ProductCatalogue::withoutGlobalScopes()->where('company_id', $this->companyId())->firstOrFail();
         abort_unless($catalogue->pdf_path && Storage::disk('local')->exists($catalogue->pdf_path), 404);

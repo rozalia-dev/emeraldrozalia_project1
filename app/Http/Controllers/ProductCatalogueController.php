@@ -6,6 +6,7 @@ use App\Models\ProductCatalogue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductCatalogueController extends Controller
 {
@@ -16,7 +17,7 @@ class ProductCatalogueController extends Controller
         return view('site.product-catalogue', compact('catalogue'));
     }
 
-    public function download(): BinaryFileResponse
+    public function download(): StreamedResponse
     {
         $catalogue = $this->publishedCatalogue();
         abort_unless($catalogue->pdf_path && Storage::disk('local')->exists($catalogue->pdf_path), 404);
