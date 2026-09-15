@@ -14,6 +14,10 @@ class CorporateOrderPageTest extends TestCase
 
     public function test_corporate_order_page_renders_live_contract_without_unmanaged_reference_fixture(): void
     {
+        $baseline = MediaAsset::query()
+            ->where('asset_key', 'legacy:assets/products/irish-heritage-bucket-hat/front.jpg')
+            ->firstOrFail();
+
         $response = $this->get('/corporate-orders');
 
         $response
@@ -34,10 +38,31 @@ class CorporateOrderPageTest extends TestCase
                 'data-reference-contract="CORPORATE ORDERS | HOW IT WORKS | WHAT WE OFFER | REQUEST A QUOTE | WHY CHOOSE EMERALD ROZALIA | TRUSTED BY ORGANISATIONS WORLDWIDE"',
                 'data-public-data-state="awaiting-approved-client-records"',
                 'name="idempotency_key"',
-            ], false);
+                route('media.public', ['uuid' => $baseline->uuid]),
+                'data-public-media-state="approved"',
+            ], false)
+            ->assertDontSee('Approved corporate media is not configured.')
+            ->assertDontSee('Approved media is not configured.');
 
         $this->assertMatchesRegularExpression('/name="idempotency_key" value="[0-9a-f-]{36}"/i', $response->getContent());
         $this->assertStringNotContainsString('corporate-order-reference.png', $response->getContent());
+    }
+
+    public function test_repository_baseline_media_is_public_and_managed(): void
+    {
+        $baseline = MediaAsset::query()
+            ->where('asset_key', 'legacy:assets/products/irish-heritage-bucket-hat/front.jpg')
+            ->firstOrFail();
+
+        $this->assertSame('approved', $baseline->approval_status);
+        $this->assertTrue((bool) $baseline->active);
+        $this->assertSame('repository-corporate-order-baseline', data_get($baseline->metadata, 'source'));
+        $this->assertTrue(Storage::disk('public')->exists($baseline->path));
+
+        $this->get(route('media.public', ['uuid' => $baseline->uuid]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public function test_published_page_manager_media_is_rendered_through_the_approved_public_media_route(): void
