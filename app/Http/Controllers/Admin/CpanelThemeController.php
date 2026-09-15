@@ -45,7 +45,7 @@ final class CpanelThemeController extends Controller
             'environment' => ['required', Rule::in(CpanelThemeVersionService::ENVIRONMENTS)],
             'locale' => ['required', 'string', 'max:12'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'tokens' => ['required', 'array'],
+            'tokens' => ['sometimes', 'array'],
         ]);
 
         $theme = $themes->createDraft($data, $request->user());
@@ -90,7 +90,7 @@ final class CpanelThemeController extends Controller
             'submit' => 'cPanel theme submitted for approval.',
             'approve' => 'cPanel theme approved.',
             'activate' => 'cPanel theme activated.',
-            'disable' => 'cPanel theme disabled. The approved default cPanel theme is now active.',
+            'disable' => 'cPanel theme disabled.',
             'rollback' => 'cPanel theme rolled back to the selected approved snapshot.',
         ];
 
