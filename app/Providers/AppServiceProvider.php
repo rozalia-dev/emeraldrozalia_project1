@@ -56,5 +56,16 @@ class AppServiceProvider extends ServiceProvider {
 
             $view->with(['footerPages' => $footerPages, 'siteSettings' => $siteSettings, 'siteLayout' => $siteLayout]);
         });
+
+        View::composer('layouts.admin', function (): void {
+            $siteSettings = app(PublishedSiteSettings::class)->forCompany();
+            $cpanelTheme = (array) data_get($siteSettings, 'theme', []);
+            $cpanelThemeMeta = (array) data_get($siteSettings, 'theme_meta', []);
+
+            View::startPush('styles', view('admin.partials.cpanel-theme-runtime', [
+                'cpanelTheme' => $cpanelTheme,
+                'cpanelThemeMeta' => $cpanelThemeMeta,
+            ])->render());
+        });
     }
 }
