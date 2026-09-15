@@ -46,12 +46,20 @@ class CorporateOrderPageServiceProvider extends ServiceProvider
                 ->filter()
                 ->values();
 
+            $generatedHeroMedia = $media->forLegacyPath(
+                'assets/corporate/corporate-orders-hero.webp',
+                'Emerald Rozalia premium corporate headwear and branded merchandise'
+            );
+
             $baselineMedia = $media->forLegacyPath(
                 'assets/products/irish-heritage-bucket-hat/front.jpg',
                 'Emerald Rozalia Irish heritage bucket hat'
             );
 
+            // Page Manager media always wins. The generated Corporate Orders artwork is
+            // the managed default so production never falls back to an unrelated product.
             $heroMedia = $media->forUuid($heroSection?->media_uuid, 'Emerald Rozalia corporate headwear')
+                ?? $generatedHeroMedia
                 ?? $productMedia->first()
                 ?? $baselineMedia;
 
