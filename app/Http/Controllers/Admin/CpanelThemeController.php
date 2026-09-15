@@ -22,11 +22,9 @@ final class CpanelThemeController extends Controller
         if ($request->filled('version')) {
             $selected = $versions->firstWhere('uuid', (string) $request->query('version'));
             abort_unless($selected, 404);
+        } else {
+            $selected = $versions->firstWhere('status', ThemeVersion::STATUS_DRAFT);
         }
-
-        $selected ??= $versions->firstWhere('status', ThemeVersion::STATUS_DRAFT)
-            ?? $versions->firstWhere('status', ThemeVersion::STATUS_ACTIVE)
-            ?? $versions->first();
 
         return view('admin.settings.cpanel-theme', [
             'environment' => $environment,
