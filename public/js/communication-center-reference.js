@@ -13,8 +13,10 @@
 
         const resetLink = [...filterbar.querySelectorAll('a')]
             .find((link) => link.textContent.trim().toLowerCase() === 'reset');
-        const exportLinks = [...filterbar.querySelectorAll('a')]
-            .filter((link) => link.classList.contains('cc-export') || /^export\b/i.test(link.textContent.trim()));
+        const currentExportLinks = () => [...filterbar.querySelectorAll('a[href]')]
+            .filter((link) => link.classList.contains('cc-export')
+                || link.dataset.adminExportFormat
+                || /^export\b/i.test(link.textContent.trim()));
         const params = new URLSearchParams(window.location.search);
 
         if (!document.querySelector('[data-cc-date-range-style]')) {
@@ -57,8 +59,11 @@
         const fromInput = createField('date_from', 'From');
         const toInput = createField('date_to', 'To');
 
-        const insertBefore = exportLinks[0] || null;
-        if (insertBefore) {
+        const exportPair = filterbar.querySelector('[data-admin-export-format-pair]');
+        const firstExport = currentExportLinks()[0] || null;
+        const insertBefore = exportPair
+            || (firstExport?.parentElement === filterbar ? firstExport : firstExport?.closest('[data-admin-export-format-pair]'));
+        if (insertBefore?.parentElement === filterbar) {
             filterbar.insertBefore(group, insertBefore);
         } else if (resetLink) {
             resetLink.after(group);
@@ -67,7 +72,7 @@
         }
 
         const syncExportDates = () => {
-            exportLinks.forEach((link) => {
+            currentExportLinks().forEach((link) => {
                 const url = new URL(link.href, window.location.href);
                 if (fromInput.value) url.searchParams.set('date_from', fromInput.value);
                 else url.searchParams.delete('date_from');
