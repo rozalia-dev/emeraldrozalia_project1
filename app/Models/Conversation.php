@@ -83,12 +83,25 @@ class Conversation extends Model
 
     public function scopeForCurrentCompany(Builder $query): Builder
     {
+        $table = $query->getModel()->getTable();
+
+        // The Inbox owns its From / To controls. Apply the selected range at
+        // the query scope used by both the Inbox list and its export endpoint,
+        // including installations that do not have a selected company session.
+        if (request()->is('admin/resource/inbox') || request()->is('admin/communication-center/inbox/export')) {
+            if ($from = $this->validInboxDate(request()->query('date_from'))) {
+                $query->where($table.'.created_at', '>=', $from.' 00:00:00');
+            }
+            if ($to = $this->validInboxDate(request()->query('date_to'))) {
+                $query->where($table.'.created_at', '<=', $to.' 23:59:59.999999');
+            }
+        }
+
         $companyId = session('company_id');
         if (! $companyId) {
             return $query;
         }
 
-        $table = $query->getModel()->getTable();
         $query->withoutGlobalScope('tenant')->where(function (Builder $visible) use ($table, $companyId): void {
             $visible->where($table.'.company_id', (int) $companyId);
 
@@ -101,6 +114,17 @@ class Conversation extends Model
         });
 
         return $query;
+    }
+
+    private function validInboxDate(mixed $value): ?string
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+        return $date && $date->format('Y-m-d') === $value ? $value : null;
     }
 
     public function resolveRouteBinding($value, $field = null)
