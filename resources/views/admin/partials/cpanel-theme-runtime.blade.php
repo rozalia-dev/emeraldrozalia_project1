@@ -1,9 +1,12 @@
 @php
     $tokens = (array) data_get($cpanelThemeSnapshot ?? [], 'tokens', []);
     $meta = (array) data_get($cpanelThemeSnapshot ?? [], 'meta', []);
+    $source = (string) data_get($meta, 'source', 'default-cpanel-theme-fallback');
+    $isActiveTheme = $source === 'active-cpanel-theme-version';
     $token = fn (string $path, mixed $fallback) => data_get($tokens, $path, $fallback);
 @endphp
-<style id="cpanel-theme-runtime" data-cpanel-theme-source="{{data_get($meta, 'source', 'default-cpanel-theme-fallback')}}" data-cpanel-theme-version="{{data_get($meta, 'version', 0)}}">
+<style id="cpanel-theme-runtime" data-cpanel-theme-source="{{$source}}" data-cpanel-theme-version="{{data_get($meta, 'version', 0)}}">
+@if($isActiveTheme)
 :root{
     --cpanel-sidebar-start:{{$token('colors.sidebar_start', '#052617')}};
     --cpanel-sidebar-end:{{$token('colors.sidebar_end', '#02170e')}};
@@ -30,8 +33,8 @@
     --cpanel-input-radius:{{$token('controls.input_radius', '6px')}};
 }
 .admin-body{background:var(--cpanel-background);color:var(--cpanel-text);font-family:var(--cpanel-font);font-size:var(--cpanel-base-size)}
-.admin-shell{grid-template-columns:var(--cpanel-sidebar-width) minmax(0,1fr)}
-.admin-sidebar{background:linear-gradient(180deg,var(--cpanel-sidebar-start),var(--cpanel-sidebar-end));color:var(--cpanel-sidebar-text)}
+.admin-sidebar{width:var(--cpanel-sidebar-width);background:linear-gradient(180deg,var(--cpanel-sidebar-start),var(--cpanel-sidebar-end));color:var(--cpanel-sidebar-text)}
+.admin-shell{margin-left:var(--cpanel-sidebar-width)}
 .admin-sidebar a,.admin-sidebar summary{color:var(--cpanel-sidebar-text);border-radius:var(--cpanel-input-radius)}
 .admin-sidebar a:hover,.admin-sidebar summary:hover{background:color-mix(in srgb,var(--cpanel-accent) 20%,transparent);color:var(--cpanel-sidebar-text)}
 .admin-sidebar a.active,.admin-sidebar details a.active{background:var(--cpanel-accent);color:var(--cpanel-sidebar-end)}
@@ -48,5 +51,7 @@
 .admin-body .btn,.admin-body button{border-radius:var(--cpanel-button-radius)}
 .admin-body .flash.success{background:var(--cpanel-success);color:#fff}
 .admin-body .flash.error{background:var(--cpanel-danger);color:#fff}
-@media(max-width:900px){.admin-shell{grid-template-columns:1fr}}
+@media(max-width:980px){.admin-shell{margin-left:0}}
+@media(max-width:700px){.admin-sidebar{width:100%}}
+@endif
 </style>
