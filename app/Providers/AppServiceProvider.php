@@ -1,12 +1,10 @@
 <?php
 namespace App\Providers;
-use App\Http\Controllers\Admin\CpanelThemeController;
 use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
 use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 class AppServiceProvider extends ServiceProvider {
@@ -38,19 +36,6 @@ class AppServiceProvider extends ServiceProvider {
         Event::listen(\App\Events\ApprovalRequestChanged::class, [\App\Services\AutomationEventBridge::class, 'approvalChanged']);
         Event::listen(\App\Events\CommunicationTemplateChanged::class, [\App\Services\AutomationEventBridge::class, 'templateChanged']);
         Event::listen(\App\Events\FranchiseStoreLifecycleChanged::class, [\App\Services\AutomationEventBridge::class, 'franchiseStoreChanged']);
-
-        Route::middleware(['web', 'auth', 'admin'])
-            ->prefix('admin/settings/cpanel-theme')
-            ->name('admin.settings.cpanel-theme.')
-            ->group(function (): void {
-                Route::get('/', [CpanelThemeController::class, 'index'])->name('index');
-                Route::post('/', [CpanelThemeController::class, 'store'])->name('store');
-                Route::patch('/{theme}', [CpanelThemeController::class, 'update'])->whereUuid('theme')->name('update');
-                Route::post('/{theme}/{action}', [CpanelThemeController::class, 'action'])
-                    ->whereUuid('theme')
-                    ->where('action', 'validate|submit|approve|activate|disable|rollback')
-                    ->name('action');
-            });
 
         View::composer('layouts.site', function ($view): void {
             $siteSettings = app(PublishedSiteSettings::class)->forCompany();
