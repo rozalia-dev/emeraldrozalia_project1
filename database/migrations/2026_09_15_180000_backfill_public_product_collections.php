@@ -9,13 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasTable('product_collections') || ! Schema::hasTable('collection_product')) {
+        if (! Schema::hasTable('companies')
+            || ! Schema::hasTable('product_collections')
+            || ! Schema::hasTable('collection_product')) {
             return;
         }
 
-        $companyId = Schema::hasTable('companies')
-            ? DB::table('companies')->where('code', 'ERL')->value('id')
-            : null;
+        // This is a production-data repair for already-initialized Emerald Rozalia
+        // installations. A pristine migrate:fresh must remain data-free until the
+        // normal seeder runs, so do not synthesize collections without the ERL tenant.
+        $companyId = DB::table('companies')->where('code', 'ERL')->value('id');
+        if ($companyId === null) {
+            return;
+        }
 
         $collectionSeeds = [
             ['Spring Summer 2025', 'spring-summer-2025', 'seasonal', 'Spring / Summer 2025', true, 'visible'],
@@ -40,7 +46,7 @@ return new class extends Migration
             if (Schema::hasColumn('products', 'deleted_at')) {
                 $products->whereNull('deleted_at');
             }
-            if ($companyId !== null && Schema::hasColumn('products', 'company_id')) {
+            if (Schema::hasColumn('products', 'company_id')) {
                 $products->where('company_id', $companyId);
             }
 
