@@ -303,7 +303,7 @@ class EmailMailboxController extends Controller
             'from_name' => (string) ($from['name'] ?? 'Emerald Rozalia'),
             'queue' => (string) config('queue.default', 'sync'),
             'incoming_configured' => trim($webhookSecret) !== '',
-            'incoming_webhook' => url('/api/v1/communication/webhooks/email'),
+            'incoming_webhook' => url('/api/v1/communication/email/inbound'),
             'delivery_webhook' => url('/api/v1/communication/webhooks/email'),
         ];
     }
