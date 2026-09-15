@@ -41,10 +41,14 @@ final class PageSectionBlueprints
                 $this->cta('Arrange a conversation', 'Choose a convenient time to speak with our team.', '/contact#contact-schedule'),
             ],
             'corporate-orders' => [
-                $this->hero('Corporate Orders', 'Headwear for your organisation.', 'Create a considered corporate order with Emerald Rozalia, made in Limerick and supported by our team.'),
-                $this->content('Corporate order options', 'Use the enquiry form to share your organisation, quantity and preferred delivery details.'),
+                $this->hero('Corporate hero', 'Corporate Orders', 'Premium headwear for teams, events, promotions and corporate gifting, made in Limerick.'),
+                $this->content('Embroidered Caps', 'Premium embroidery for a lasting impression.'),
+                $this->content('Printed Caps', 'High quality print for bold branding.'),
+                $this->content('Custom Designs', 'Bespoke styles to match your brand identity.'),
+                $this->content('Premium Quality', 'Durable materials and exceptional comfort.'),
+                $this->gallery('Trusted Organisations'),
                 $this->form('Request a corporate quote', 'corporate-orders'),
-                $this->cta('Talk to our team', 'We will route your request through the Communication Centre.', '/corporate-orders'),
+                $this->cta('Talk to our team', 'We will route your request through the Communication Centre.', '/corporate-orders#corporate-quote'),
             ],
             'bulk-orders' => [
                 $this->hero('Bulk Orders', 'Made for your next order.', 'Reliable Irish-made hats and caps for clubs, teams, businesses and events.'),
