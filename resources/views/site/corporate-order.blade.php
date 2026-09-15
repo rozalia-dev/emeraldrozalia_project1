@@ -4,7 +4,7 @@
 @push('styles')
 <link rel="stylesheet" href="/css/corporate-order.css?v=20260908-approved">
 <link rel="stylesheet" href="/css/order-fullwidth.css?v=20260910-fullwidth">
-<link rel="stylesheet" href="/css/corporate-order-functional.css?v=20260915-functional">
+<link rel="stylesheet" href="/css/corporate-order-functional.css?v=20260915-generated-hero">
 @endpush
 @php($corporateLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
