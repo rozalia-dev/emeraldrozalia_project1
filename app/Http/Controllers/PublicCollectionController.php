@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\CatalogFilterRequest;
+use App\Http\Requests\CollectionFilterRequest;
 use App\Models\Category;
 use App\Models\ProductCollection;
 use App\Services\PublicMediaResolver;
@@ -10,7 +10,7 @@ use Illuminate\View\View;
 
 final class PublicCollectionController extends Controller
 {
-    public function show(CatalogFilterRequest $request, ProductCollection $collection): View
+    public function show(CollectionFilterRequest $request, ProductCollection $collection): View
     {
         abort_unless($collection->status === 'active' && $collection->visibility === 'visible', 404);
 
