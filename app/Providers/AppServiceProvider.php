@@ -1,6 +1,6 @@
 <?php
 namespace App\Providers;
-use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
+use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductCatalogue,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
 use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
@@ -53,8 +53,17 @@ class AppServiceProvider extends ServiceProvider {
                     && (! $page->requiresLogin() || auth()->check()))
                 ->take(8)
                 ->values();
+            $productCatalogue = ProductCatalogue::publishedForCurrentCompany();
 
-            $view->with(['footerPages' => $footerPages, 'siteSettings' => $siteSettings, 'siteLayout' => $siteLayout]);
+            $view->with([
+                'footerPages' => $footerPages,
+                'siteSettings' => $siteSettings,
+                'siteLayout' => $siteLayout,
+                'productCatalogue' => $productCatalogue,
+            ]);
+            View::startPush('scripts', view('site.partials.product-catalogue-cta', [
+                'productCatalogue' => $productCatalogue,
+            ])->render());
         });
 
         View::composer('layouts.admin', function (): void {
@@ -64,6 +73,7 @@ class AppServiceProvider extends ServiceProvider {
                 'cpanelThemeSnapshot' => $cpanelThemeSnapshot,
             ])->render());
             View::startPush('scripts', view('admin.partials.cpanel-theme-nav')->render());
+            View::startPush('scripts', view('admin.partials.product-catalogue-nav')->render());
         });
     }
 }
