@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Models\{ContentPage, Product};
 use App\Services\PublicMediaResolver;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -47,8 +46,14 @@ class CorporateOrderPageServiceProvider extends ServiceProvider
                 ->filter()
                 ->values();
 
+            $baselineMedia = $media->forLegacyPath(
+                'assets/products/irish-heritage-bucket-hat/front.jpg',
+                'Emerald Rozalia Irish heritage bucket hat'
+            );
+
             $heroMedia = $media->forUuid($heroSection?->media_uuid, 'Emerald Rozalia corporate headwear')
-                ?? $productMedia->first();
+                ?? $productMedia->first()
+                ?? $baselineMedia;
 
             $offerDefinitions = collect([
                 'embroidered' => ['embroidered', 'embroidery'],
@@ -57,7 +62,7 @@ class CorporateOrderPageServiceProvider extends ServiceProvider
                 'quality' => ['premium quality', 'quality'],
             ]);
 
-            $offerMedia = $offerDefinitions->mapWithKeys(function (array $needles, string $key) use ($sections, $media, $productMedia): array {
+            $offerMedia = $offerDefinitions->mapWithKeys(function (array $needles, string $key) use ($sections, $media, $productMedia, $baselineMedia): array {
                 $section = $sections->first(fn ($section): bool => $this->labelContains($section->label, $needles));
                 $resolved = $media->forUuid($section?->media_uuid, 'Emerald Rozalia '.$key.' corporate headwear');
                 $fallbackIndex = match ($key) {
@@ -67,7 +72,7 @@ class CorporateOrderPageServiceProvider extends ServiceProvider
                     default => 3,
                 };
 
-                return [$key => $resolved ?? $productMedia->get($fallbackIndex)];
+                return [$key => $resolved ?? $productMedia->get($fallbackIndex) ?? $baselineMedia];
             })->all();
 
             $trustedMedia = collect();
