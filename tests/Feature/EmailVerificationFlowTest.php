@@ -14,7 +14,7 @@ class EmailVerificationFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_sends_verification_link_and_redirects_to_verification_notice(): void
+    public function test_registration_sends_verification_link_and_keeps_verification_reminder_in_account(): void
     {
         Notification::fake();
 
@@ -28,22 +28,22 @@ class EmailVerificationFlowTest extends TestCase
 
         $user = User::query()->where('email', 'verify@example.test')->firstOrFail();
 
-        $response->assertRedirect(route('verification.notice'));
+        $response->assertRedirect(route('account.dashboard'));
         $this->assertAuthenticatedAs($user);
         $this->assertFalse($user->hasVerifiedEmail());
         Notification::assertSentTo($user, VerifyEmail::class);
+
+        $this->get(route('account.dashboard'))
+            ->assertOk()
+            ->assertSee(['Verify your email address', 'RESEND EMAIL'], false);
     }
 
-    public function test_unverified_customer_is_kept_out_of_account_until_link_is_used(): void
+    public function test_signed_verification_link_marks_the_customer_email_as_verified(): void
     {
         $user = User::factory()->create([
             'is_admin' => false,
             'email_verified_at' => null,
         ]);
-
-        $this->actingAs($user)
-            ->get(route('account.dashboard'))
-            ->assertRedirect(route('verification.notice'));
 
         $verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
@@ -58,7 +58,8 @@ class EmailVerificationFlowTest extends TestCase
         $this->assertTrue($user->fresh()->hasVerifiedEmail());
         $this->actingAs($user->fresh())
             ->get(route('account.dashboard'))
-            ->assertOk();
+            ->assertOk()
+            ->assertDontSee('Verify your email address', false);
     }
 
     public function test_resend_endpoint_sends_another_verification_link(): void
