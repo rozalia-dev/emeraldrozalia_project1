@@ -8,6 +8,8 @@
 
         const form = filterbar.closest('form');
         if (!form) return;
+        const filterPath = new URL(form.action, window.location.href).pathname.replace(/\/$/, '');
+        if (filterPath !== '/admin/resource/inbox') return;
 
         const resetLink = [...filterbar.querySelectorAll('a')]
             .find((link) => link.textContent.trim().toLowerCase() === 'reset');
