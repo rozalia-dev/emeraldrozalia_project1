@@ -33,6 +33,9 @@
     <link rel="stylesheet" href="/css/theme-runtime.css?v=20260913-batch17-typography">
     <link rel="stylesheet" href="/css/public-shell.css?v=20260913-shared-shell">
     <style id="public-media-contract">:root{--public-asset-home-reference:none;--public-asset-home-hero:none;--public-asset-home-collections:none;--public-asset-bulk-order:none;--public-asset-corporate-order:none;--public-asset-logo-two-line:none}</style>
+    <style id="public-catalog-navigation">
+        .site-nav-dropdown{position:relative;display:inline-flex;height:100%;align-items:center;color:#f4f4ef}.site-nav-dropdown summary{display:inline-flex;align-items:center;gap:5px;padding:3px 0 4px;list-style:none;cursor:pointer;color:#f4f4ef;border-bottom:2px solid transparent}.site-nav-dropdown summary::-webkit-details-marker{display:none}.site-nav-dropdown summary.is-active{color:#8cc63e;border-bottom-color:#8cc63e}.site-nav-dropdown summary span{font-size:10px;transition:transform 160ms ease}.site-nav-dropdown[open] summary span{transform:rotate(180deg)}.site-nav-dropdown-menu{position:absolute;top:calc(100% - 14px);left:50%;z-index:90;display:grid;min-width:250px;max-width:330px;max-height:70vh;overflow:auto;padding:8px;transform:translateX(-50%);background:#06140d;border:1px solid #294731;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.35)}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{display:flex;min-height:38px;align-items:center;justify-content:space-between;gap:16px;padding:9px 11px;border:0;border-radius:7px;color:#f4f4ef;text-decoration:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:hover,.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:focus-visible{background:#0e2a1b;color:#9bd451}.site-nav-dropdown-menu a:first-child{font-weight:700;border-bottom:1px solid #294731!important;border-radius:7px 7px 0 0!important}.site-nav-dropdown-menu small{color:#9fb0a5;font-size:11px}@media(hover:hover) and (min-width:1101px){.site-nav-dropdown:not([open]):hover .site-nav-dropdown-menu{display:grid}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}}@media(max-width:1100px){.site-body .site-header[data-public-shell-region="header"] nav.open{max-height:calc(100vh - 72px);overflow-y:auto}.site-nav-dropdown{display:block;width:100%;height:auto}.site-nav-dropdown summary{width:100%;min-height:44px;justify-content:space-between;padding:11px 0}.site-nav-dropdown-menu{position:static;display:grid;width:100%;max-width:none;max-height:none;padding:4px 0 8px;transform:none;background:transparent;border:0;border-radius:0;box-shadow:none}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{min-height:40px;padding:9px 14px;color:#d9e6dc;background:#081a11}.site-nav-dropdown-menu a:first-child{border-bottom:0!important}}
+    </style>
     @stack('styles')
 </head>
 <body class="site-body @yield('body-class')" style="--site-brand-primary: {{ data_get($siteTheme, 'colors.primary', data_get($siteBranding, 'brand_primary', '#075b2f')) }}; --site-brand-secondary: {{ data_get($siteTheme, 'colors.secondary', data_get($siteBranding, 'brand_secondary', '#0b1711')) }}; --site-brand-accent: {{ data_get($siteTheme, 'colors.accent', data_get($siteBranding, 'brand_accent', '#7fbd42')) }}; --site-surface: {{ data_get($siteTheme, 'colors.surface', '#ffffff') }}; --site-surface-muted: {{ data_get($siteTheme, 'colors.surface_muted', '#f3f6f2') }}; --site-text: {{ data_get($siteTheme, 'colors.text', '#0b1711') }}; --site-text-muted: {{ data_get($siteTheme, 'colors.text_muted', '#5c6c62') }}; --site-border: {{ data_get($siteTheme, 'colors.border', '#d9e3db') }}; --site-focus: {{ data_get($siteTheme, 'colors.focus', '#7fbd42') }}; --site-success: {{ data_get($siteTheme, 'colors.success', '#16784a') }}; --site-warning: {{ data_get($siteTheme, 'colors.warning', '#b7791f') }}; --site-danger: {{ data_get($siteTheme, 'colors.danger', '#b42318') }}; --site-info: {{ data_get($siteTheme, 'colors.info', '#2676cc') }}; --site-font-family: {{ data_get($siteTheme, 'typography.font_family', 'Inter, Arial, sans-serif') }}; --site-heading-family: {{ data_get($siteTheme, 'typography.heading_family', 'Georgia, serif') }}; --site-heading-weight: {{ data_get($siteTheme, 'typography.heading_weight', 700) }}; --site-base-size: {{ data_get($siteTheme, 'typography.base_size', '16px') }}; --site-section-y: {{ data_get($siteTheme, 'spacing.section_y', '64px') }}; --site-container-max: {{ data_get($siteTheme, 'spacing.container_max', '1280px') }}; --site-radius: {{ data_get($siteTheme, 'spacing.radius', '12px') }}; --site-button-radius: {{ data_get($siteTheme, 'controls.button_radius', '10px') }}; --site-input-radius: {{ data_get($siteTheme, 'controls.input_radius', '8px') }}; --site-button-height: {{ data_get($siteTheme, 'controls.button_height', '44px') }}; --site-motion-duration: {{ data_get($siteTheme, 'motion.duration_ms', 180) }}ms; --site-motion-easing: {{ data_get($siteTheme, 'motion.easing', 'ease-out') }};">
@@ -90,7 +93,28 @@
             @php($navHref = $layoutUrl($navItem))
             @if($navHref)
                 @php($navPath = $layoutPath($navHref))
-                <a class="{{ request()->getPathInfo() === $navPath ? 'is-active' : '' }}" href="{{ $navHref }}" {{ request()->getPathInfo() === $navPath ? 'aria-current="page"' : '' }}>{{ data_get($navItem, 'label') }}</a>
+                @php($isShopMenu = $navPath === '/shop')
+                @php($isCollectionsMenu = $navPath === '/collections')
+                @php($isNavActive = request()->getPathInfo() === $navPath || ($isShopMenu && request()->routeIs('category')) || ($isCollectionsMenu && request()->routeIs('collection.show')))
+                @if($isShopMenu || $isCollectionsMenu)
+                    <details class="site-nav-dropdown" data-catalog-nav="{{ $isShopMenu ? 'categories' : 'collections' }}">
+                        <summary class="{{ $isNavActive ? 'is-active' : '' }}">{{ data_get($navItem, 'label') }} <span aria-hidden="true">▼</span></summary>
+                        <div class="site-nav-dropdown-menu">
+                            <a href="{{ $navHref }}">{{ $isShopMenu ? 'SHOP ALL' : 'VIEW ALL COLLECTIONS' }}</a>
+                            @if($isShopMenu)
+                                @foreach($catalogNavCategories ?? [] as $catalogCategory)
+                                    <a href="{{ route('category', ['category' => $catalogCategory->slug]) }}"><span>{{ $catalogCategory->name }}</span><small>{{ $catalogCategory->products_count }}</small></a>
+                                @endforeach
+                            @else
+                                @foreach($catalogNavCollections ?? [] as $catalogCollection)
+                                    <a href="{{ route('collection.show', ['collection' => $catalogCollection->slug]) }}"><span>{{ $catalogCollection->name }}</span><small>{{ $catalogCollection->products_count }}</small></a>
+                                @endforeach
+                            @endif
+                        </div>
+                    </details>
+                @else
+                    <a class="{{ $isNavActive ? 'is-active' : '' }}" href="{{ $navHref }}" {{ $isNavActive ? 'aria-current="page"' : '' }}>{{ data_get($navItem, 'label') }}</a>
+                @endif
             @endif
         @endforeach
     </nav>
