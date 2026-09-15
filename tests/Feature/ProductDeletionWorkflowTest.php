@@ -30,7 +30,10 @@ class ProductDeletionWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('Trash')
             ->assertSee('data-product-delete-actions', false)
-            ->assertSee('Delete Workflow Cap');
+            ->assertSee('pm-action-menu-portal', false)
+            ->assertSee('Delete product')
+            ->assertSee('Delete Workflow Cap')
+            ->assertDontSee('pm-delete-product', false);
 
         $this->actingAs($admin)
             ->delete(route('admin.product-manager.destroy', ['product' => $product->id]))
@@ -47,6 +50,8 @@ class ProductDeletionWorkflowTest extends TestCase
             ->get(route('admin.resource', ['module' => 'product-manager', 'tab' => 'trash']))
             ->assertOk()
             ->assertSee('Trash (1)')
+            ->assertSee('Restore product')
+            ->assertSee('Permanently delete')
             ->assertSee('Delete Workflow Cap');
 
         $this->actingAs($admin)
