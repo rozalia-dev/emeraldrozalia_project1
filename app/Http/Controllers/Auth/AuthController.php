@@ -42,12 +42,6 @@ class AuthController extends Controller
             $user->forceFill(['last_login_at'=>now()])->save();
             $this->authAudit('authentication.login', $user, $request, ['status'=>'success']);
 
-            if (! $user->is_admin && ! $user->hasVerifiedEmail()) {
-                return redirect()
-                    ->route('verification.notice')
-                    ->with('success', 'Please verify your email address before using your customer account.');
-            }
-
             return redirect()->intended(
                 $user->is_admin ? route('admin.dashboard') : route('account.dashboard')
             );
@@ -83,11 +77,11 @@ class AuthController extends Controller
 
         $externalMailDisabled = in_array((string) config('mail.default'), ['log', 'array'], true);
         $message = $mailDeliveryFailed || $externalMailDisabled
-            ? 'Account created. Email verification is pending. Use Resend Verification Email after SMTP delivery is enabled.'
+            ? 'Account created. Email verification is pending. Use Resend Email from your account after SMTP delivery is enabled.'
             : 'Account created. We sent a verification link to your email address.';
 
         return redirect()
-            ->route('verification.notice')
+            ->route('account.dashboard')
             ->with($mailDeliveryFailed || $externalMailDisabled ? 'warning' : 'success', $message);
     }
 
