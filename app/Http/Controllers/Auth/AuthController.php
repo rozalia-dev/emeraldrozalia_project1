@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AuthController extends Controller
 {
@@ -41,6 +42,12 @@ class AuthController extends Controller
             $user->forceFill(['last_login_at'=>now()])->save();
             $this->authAudit('authentication.login', $user, $request, ['status'=>'success']);
 
+            if (! $user->is_admin && ! $user->hasVerifiedEmail()) {
+                return redirect()
+                    ->route('verification.notice')
+                    ->with('success', 'Please verify your email address before using your customer account.');
+            }
+
             return redirect()->intended(
                 $user->is_admin ? route('admin.dashboard') : route('account.dashboard')
             );
@@ -57,14 +64,31 @@ class AuthController extends Controller
         $data = $request->validated();
 
         $user = User::create($data + ['status'=>'active']);
-        event(new Registered($user));
+        $mailDeliveryFailed = false;
+
+        try {
+            event(new Registered($user));
+        } catch (TransportExceptionInterface $exception) {
+            report($exception);
+            $mailDeliveryFailed = true;
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
-        $this->authAudit('users.registered', $user, $request, ['status'=>'active']);
+        $this->authAudit('users.registered', $user, $request, [
+            'status'=>'active',
+            'email_verification'=>'pending',
+            'verification_delivery_failed'=>$mailDeliveryFailed,
+        ]);
+
+        $externalMailDisabled = in_array((string) config('mail.default'), ['log', 'array'], true);
+        $message = $mailDeliveryFailed || $externalMailDisabled
+            ? 'Account created. Email verification is pending. Use Resend Verification Email after SMTP delivery is enabled.'
+            : 'Account created. We sent a verification link to your email address.';
 
         return redirect()
-            ->route('account.dashboard')
-            ->with('success', 'Account created. Please verify your email to unlock every account feature.');
+            ->route('verification.notice')
+            ->with($mailDeliveryFailed || $externalMailDisabled ? 'warning' : 'success', $message);
     }
 
     public function forgotForm()

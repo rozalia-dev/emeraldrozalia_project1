@@ -2,6 +2,8 @@
 namespace App\Providers;
 use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
 use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Event;
@@ -15,6 +17,18 @@ class AppServiceProvider extends ServiceProvider {
         if (config('app.force_https')) {
             URL::forceScheme('https');
         }
+
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url): MailMessage {
+            $minutes = (int) config('auth.verification.expire', 60);
+
+            return (new MailMessage)
+                ->subject('Verify your Emerald Rozalia email address')
+                ->greeting('Welcome to Emerald Rozalia')
+                ->line('Please verify your email address to activate your customer account.')
+                ->action('VERIFY EMAIL ADDRESS', $url)
+                ->line("This secure verification link expires in {$minutes} minutes.")
+                ->line('If you did not create this account, no action is required.');
+        });
 
         ProductMedia::creating(function (ProductMedia $record): void {
             $record->uuid ??= (string) Str::uuid();
