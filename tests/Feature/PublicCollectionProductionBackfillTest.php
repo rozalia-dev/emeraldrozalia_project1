@@ -27,6 +27,9 @@ class PublicCollectionProductionBackfillTest extends TestCase
             ]
         );
 
+        DB::table('collection_product')->delete();
+        DB::table('product_collections')->delete();
+
         $custom = ProductCollection::create([
             'company_id' => $company->id,
             'name' => 'Premium Collection — Admin Edited',
@@ -52,8 +55,6 @@ class PublicCollectionProductionBackfillTest extends TestCase
             'status' => 'active',
             'is_active' => true,
         ]);
-
-        DB::table('product_collections')->where('slug', '<>', 'premium-collection')->delete();
 
         $migration = require database_path('migrations/2026_09_15_180000_backfill_public_product_collections.php');
         $migration->up();
