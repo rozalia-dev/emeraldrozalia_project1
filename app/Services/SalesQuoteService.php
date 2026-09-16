@@ -16,10 +16,10 @@ final class SalesQuoteService
 
     public function orderTypeForInquiryType(string $inquiryType): ?string
     {
-        // Public franchise applications are a Franchise Management aggregate,
-        // not sales quotes. Franchise supply/product orders can still exist as a
-        // distinct order type for approved partners, but must be created through
-        // the franchise/order workflow rather than Franchise Apply.
+        // Public Franchise Apply belongs to Franchise Management and must never
+        // silently become a sales quote/order. Franchise supply orders remain a
+        // valid separate order type for approved partners and can be created by
+        // their explicit order workflow.
         return match ($inquiryType) {
             'corporate-orders' => 'corporate',
             'bulk-orders' => 'bulk',
@@ -121,33 +121,91 @@ final class SalesQuoteService
 
             foreach ($rawItems as $item) {
                 if (! is_array($item)) {
-                    continue;
+                    throw ValidationException::withMessages([
+                        'line_items' => 'Each quote line must be an object.',
+                    ]);
                 }
 
-                $quantity = max(1, (int) ($item['quantity'] ?? 1));
-                $unitPrice = Money::decimal($item['unit_price'] ?? '0');
+                $productId = (int) ($item['product_id'] ?? 0);
+                $variantId = (int) ($item['variant_id'] ?? $item['product_variant_id'] ?? 0);
+                $quantity = (int) ($item['quantity'] ?? 0);
+                if ($productId < 1 || $quantity < 1) {
+                    throw ValidationException::withMessages([
+                        'line_items' => 'Each quote line needs a product and a positive quantity.',
+                    ]);
+                }
+
+                $product = $this->productForQuote($locked, $productId);
+                if (! $product) {
+                    throw ValidationException::withMessages([
+                        'line_items' => 'A quote line references a product outside the selected company or an unpublished product.',
+                    ]);
+                }
+
+                $variant = null;
+                if ($variantId > 0) {
+                    $variant = $this->variantForQuote($locked, $product, $variantId);
+                    if (! $variant) {
+                        throw ValidationException::withMessages([
+                            'line_items' => 'A quote line references an invalid product variant.',
+                        ]);
+                    }
+                }
+
+                $unitPrice = array_key_exists('unit_price', $item) && $item['unit_price'] !== null && $item['unit_price'] !== ''
+                    ? $item['unit_price']
+                    : ($variant?->price ?? $product->price);
+                $unitPrice = Money::round($unitPrice);
+                if (Money::compare($unitPrice, '0.00') < 0) {
+                    throw ValidationException::withMessages([
+                        'line_items' => 'A negotiated unit price cannot be negative.',
+                    ]);
+                }
+
                 $lineTotal = Money::multiply($unitPrice, $quantity);
                 $subtotal = Money::add($subtotal, $lineTotal);
                 $lineItems[] = [
-                    'product_id' => ! empty($item['product_id']) ? (int) $item['product_id'] : null,
-                    'variant_id' => ! empty($item['variant_id']) ? (int) $item['variant_id'] : null,
-                    'name' => trim((string) ($item['name'] ?? 'Custom item')) ?: 'Custom item',
-                    'sku' => trim((string) ($item['sku'] ?? '')) ?: null,
+                    'product_id' => $product->getKey(),
+                    'variant_id' => $variant?->getKey(),
+                    'name' => (string) $product->name,
+                    'sku' => (string) ($variant?->sku ?: $product->sku),
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
-                    'line_total' => $lineTotal,
+                    'total' => $lineTotal,
+                    'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
                 ];
             }
 
-            $shipping = Money::decimal($changes['shipping'] ?? $locked->shipping);
-            $discount = Money::decimal($changes['discount'] ?? $locked->discount);
-            $total = Money::subtract(Money::add($subtotal, $shipping), $discount);
-            if (Money::compare($total, '0.00') < 0) {
+            $shipping = Money::round($changes['shipping'] ?? $locked->shipping ?? '0.00');
+            $discount = Money::round($changes['discount'] ?? $locked->discount ?? '0.00');
+            if (Money::compare($shipping, '0.00') < 0 || Money::compare($discount, '0.00') < 0) {
                 throw ValidationException::withMessages([
-                    'discount' => 'Discount cannot make the quote total negative.',
+                    'pricing' => 'Shipping and discount values cannot be negative.',
                 ]);
             }
 
+            $gross = Money::add($subtotal, $shipping);
+            if (Money::compare($discount, $gross) > 0) {
+                throw ValidationException::withMessages([
+                    'discount' => 'The discount cannot exceed the quote value.',
+                ]);
+            }
+
+            $currency = strtoupper(trim((string) ($changes['currency_code'] ?? $locked->currency_code ?? 'EUR')));
+            if (! preg_match('/^[A-Z]{3}$/', $currency)) {
+                throw ValidationException::withMessages([
+                    'currency_code' => 'Currency must be a three-letter ISO code.',
+                ]);
+            }
+
+            $exchangeRate = (string) ($changes['exchange_rate'] ?? $locked->exchange_rate ?? '1');
+            if (! is_numeric($exchangeRate) || (float) $exchangeRate <= 0) {
+                throw ValidationException::withMessages([
+                    'exchange_rate' => 'Exchange rate must be greater than zero.',
+                ]);
+            }
+
+            $total = Money::subtract($gross, $discount);
             $before = $locked->toArray();
             $locked->update([
                 'line_items' => $lineItems,
@@ -155,212 +213,322 @@ final class SalesQuoteService
                 'shipping' => $shipping,
                 'discount' => $discount,
                 'total' => $total,
+                'currency_code' => $currency,
+                'exchange_rate' => number_format((float) $exchangeRate, 8, '.', ''),
+                'customer_id' => array_key_exists('customer_id', $changes) ? $changes['customer_id'] : $locked->customer_id,
                 'notes' => array_key_exists('notes', $changes) ? $changes['notes'] : $locked->notes,
-                'expires_at' => array_key_exists('expires_at', $changes) ? $changes['expires_at'] : $locked->expires_at,
-                'version' => $locked->version + 1,
+                'version' => (int) $locked->version + 1,
             ]);
-
-            AuditTrail::record('sales_quote.pricing_updated', $locked, $before, $locked->fresh()->toArray());
+            $after = $locked->fresh()->toArray();
+            AuditTrail::record('sales_quote.priced', $locked, $before, $after);
 
             return $locked->fresh();
         });
     }
 
-    public function approve(SalesQuote $quote): SalesQuote
+    public function transition(SalesQuote $quote, string $nextStatus, array $changes = []): SalesQuote
     {
-        return DB::transaction(function () use ($quote): SalesQuote {
+        return DB::transaction(function () use ($quote, $nextStatus, $changes): SalesQuote {
             $locked = $this->lockVisible($quote);
-            abort_unless($locked->status === 'submitted', 422, 'Only submitted quotes can be approved.');
-            abort_if(empty($locked->line_items), 422, 'Add at least one quoted item before approval.');
-            abort_if(Money::compare($locked->total, '0.00') <= 0, 422, 'Quote total must be greater than zero.');
+            $this->assertVersion($locked, $changes['expected_version'] ?? null);
+            $current = (string) $locked->status;
 
-            $before = $locked->toArray();
-            $locked->update([
-                'status' => 'approved',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-                'rejected_by' => null,
-                'rejected_at' => null,
-                'version' => $locked->version + 1,
-            ]);
+            $allowed = match ($nextStatus) {
+                'approved' => ['submitted'],
+                'rejected' => ['submitted'],
+                'cancelled' => ['submitted', 'approved'],
+                default => [],
+            };
 
-            AuditTrail::record('sales_quote.approved', $locked, $before, $locked->fresh()->toArray());
-
-            return $locked->fresh();
-        });
-    }
-
-    public function reject(SalesQuote $quote, ?string $reason = null): SalesQuote
-    {
-        return DB::transaction(function () use ($quote, $reason): SalesQuote {
-            $locked = $this->lockVisible($quote);
-            abort_unless(in_array($locked->status, ['submitted', 'approved'], true), 422, 'This quote cannot be rejected.');
-
-            $before = $locked->toArray();
-            $locked->update([
-                'status' => 'rejected',
-                'rejected_by' => auth()->id(),
-                'rejected_at' => now(),
-                'notes' => $reason ? trim(($locked->notes ? $locked->notes."\n\n" : '').'Rejection: '.$reason) : $locked->notes,
-                'version' => $locked->version + 1,
-            ]);
-
-            AuditTrail::record('sales_quote.rejected', $locked, $before, $locked->fresh()->toArray());
-
-            return $locked->fresh();
-        });
-    }
-
-    public function cancel(SalesQuote $quote, ?string $reason = null): SalesQuote
-    {
-        return DB::transaction(function () use ($quote, $reason): SalesQuote {
-            $locked = $this->lockVisible($quote);
-            abort_unless(in_array($locked->status, ['submitted', 'approved'], true), 422, 'This quote cannot be cancelled.');
-
-            $before = $locked->toArray();
-            $locked->update([
-                'status' => 'cancelled',
-                'cancelled_by' => auth()->id(),
-                'cancelled_at' => now(),
-                'notes' => $reason ? trim(($locked->notes ? $locked->notes."\n\n" : '').'Cancellation: '.$reason) : $locked->notes,
-                'version' => $locked->version + 1,
-            ]);
-
-            AuditTrail::record('sales_quote.cancelled', $locked, $before, $locked->fresh()->toArray());
-
-            return $locked->fresh();
-        });
-    }
-
-    public function convert(SalesQuote $quote): Order
-    {
-        return DB::transaction(function () use ($quote): Order {
-            $locked = $this->lockVisible($quote);
-            $locked->loadMissing(['inquiry', 'conversation', 'franchiseApplication', 'order']);
-
-            if ($locked->order) {
-                return $locked->order;
+            if (! in_array($current, $allowed, true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'That quote status transition is not allowed.',
+                ]);
             }
 
-            abort_unless($locked->status === 'approved', 422, 'Only approved quotes can be converted.');
-            abort_if($locked->expires_at && $locked->expires_at->isPast(), 422, 'This quote has expired.');
-            abort_unless(in_array($locked->order_type, self::ORDER_TYPES, true), 422, 'Unsupported order type.');
-            abort_if(empty($locked->line_items), 422, 'A quote needs line items before conversion.');
+            if ($nextStatus === 'approved' && count((array) $locked->line_items) < 1) {
+                throw ValidationException::withMessages([
+                    'line_items' => 'A quote needs at least one priced line before approval.',
+                ]);
+            }
 
-            $inquiry = $locked->inquiry;
-            abort_unless($inquiry, 422, 'The quote is missing its source enquiry.');
+            $before = $locked->toArray();
+            $note = trim((string) ($changes['note'] ?? ''));
+            $updates = [
+                'status' => $nextStatus,
+                'version' => (int) $locked->version + 1,
+            ];
+            if ($nextStatus === 'approved') {
+                $updates['approved_by'] = auth()->id();
+                $updates['approved_at'] = now();
+            } elseif ($nextStatus === 'rejected') {
+                $updates['rejected_at'] = now();
+            } elseif ($nextStatus === 'cancelled') {
+                $updates['cancelled_at'] = now();
+            }
+            if ($note !== '') {
+                $updates['notes'] = trim((string) $locked->notes)."\n\nDecision note: ".$note;
+            }
 
-            $email = strtolower(trim((string) $inquiry->email));
-            abort_if($email === '', 422, 'The source enquiry requires an email address.');
+            $locked->update($updates);
+            AuditTrail::record('sales_quote.'.$nextStatus, $locked, $before, $locked->fresh()->toArray());
 
-            $number = $this->nextOrderNumber();
-            $order = Order::create([
-                'user_id' => $locked->customer_id,
-                'order_type' => $locked->order_type,
-                'number' => $number,
-                'status' => 'pending',
-                'payment_status' => 'unpaid',
-                'fulfillment_status' => 'unfulfilled',
-                'subtotal' => $locked->subtotal,
-                'shipping' => $locked->shipping,
-                'discount' => $locked->discount,
-                'total' => $locked->total,
-                'currency_code' => $locked->currency_code,
-                'exchange_rate' => $locked->exchange_rate,
-                'email' => $email,
-                'company_id' => $locked->company_id,
-                'source' => 'sales_quote',
-                'source_reference' => (string) $locked->uuid,
-                'correlation_id' => $locked->correlation_id,
-            ]);
+            return $locked->fresh();
+        });
+    }
 
-            foreach ((array) $locked->line_items as $item) {
-                $product = ! empty($item['product_id']) ? Product::find($item['product_id']) : null;
-                $variant = ! empty($item['variant_id']) ? ProductVariant::find($item['variant_id']) : null;
-                $quantity = max(1, (int) ($item['quantity'] ?? 1));
-                $unitPrice = Money::decimal($item['unit_price'] ?? '0');
+    public function convert(SalesQuote $quote, string $conversionKey, ?int $expectedVersion = null): Order
+    {
+        return DB::transaction(function () use ($quote, $conversionKey, $expectedVersion): Order {
+            $locked = $this->lockVisible($quote);
 
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product?->id,
-                    'product_variant_id' => $variant?->id,
-                    'name' => trim((string) ($item['name'] ?? $product?->name ?? 'Custom item')) ?: 'Custom item',
-                    'sku' => trim((string) ($item['sku'] ?? $variant?->sku ?? $product?->sku ?? '')) ?: null,
+            if ((string) $locked->status === 'converted') {
+                if ((string) $locked->conversion_key !== $conversionKey) {
+                    abort(409, 'This quote has already been converted with another idempotency key.');
+                }
+
+                return Order::withoutGlobalScopes()->whereKey($locked->order_id)->firstOrFail();
+            }
+
+            $this->assertVersion($locked, $expectedVersion);
+            if ((string) $locked->status !== 'approved') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only an approved quote can become an order.',
+                ]);
+            }
+
+            $lineItems = is_array($locked->line_items) ? $locked->line_items : [];
+            if ($lineItems === []) {
+                throw ValidationException::withMessages([
+                    'line_items' => 'A quote needs at least one priced line before conversion.',
+                ]);
+            }
+
+            $orderIdempotencyKey = 'quote-conversion-'.hash('sha256', $locked->uuid.'|'.$conversionKey);
+            $existingOrder = Order::withoutGlobalScopes()
+                ->where('idempotency_key', $orderIdempotencyKey)
+                ->lockForUpdate()
+                ->first();
+            if ($existingOrder) {
+                if ((int) $existingOrder->quote_id !== (int) $locked->getKey()) {
+                    abort(409, 'The conversion idempotency key belongs to another order.');
+                }
+
+                return $existingOrder;
+            }
+
+            $preparedItems = [];
+            $subtotal = '0.00';
+            foreach ($lineItems as $line) {
+                $productId = (int) ($line['product_id'] ?? 0);
+                $variantId = (int) ($line['variant_id'] ?? 0);
+                $quantity = (int) ($line['quantity'] ?? 0);
+                if ($productId < 1 || $quantity < 1) {
+                    throw ValidationException::withMessages([
+                        'line_items' => 'A stored quote line is invalid and cannot be converted.',
+                    ]);
+                }
+
+                $product = $this->productForQuote($locked, $productId, true);
+                if (! $product) {
+                    throw ValidationException::withMessages([
+                        'line_items' => 'A stored quote product is no longer available in this company.',
+                    ]);
+                }
+
+                $variant = $variantId > 0 ? $this->variantForQuote($locked, $product, $variantId, true) : null;
+                if ($variantId > 0 && ! $variant) {
+                    throw ValidationException::withMessages([
+                        'line_items' => 'A stored quote variant is no longer available.',
+                    ]);
+                }
+
+                $stockable = $variant ?: $product;
+                $tracksInventory = ! array_key_exists('track_inventory', $stockable->getAttributes())
+                    || (bool) $stockable->getAttribute('track_inventory');
+                $backorder = (bool) ($stockable->getAttribute('backorder') ?? false);
+                if ($tracksInventory && (int) $stockable->stock < $quantity && ! $backorder) {
+                    throw ValidationException::withMessages([
+                        'inventory' => 'There is not enough inventory to convert this quote.',
+                    ]);
+                }
+
+                $unitPrice = Money::round($line['unit_price'] ?? ($variant?->price ?? $product->price));
+                $lineTotal = Money::multiply($unitPrice, $quantity);
+                $subtotal = Money::add($subtotal, $lineTotal);
+                if ($tracksInventory) {
+                    $stockable->decrement('stock', $quantity);
+                }
+
+                $preparedItems[] = [
+                    'product' => $product,
+                    'variant' => $variant,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
-                    'line_total' => Money::multiply($unitPrice, $quantity),
+                    'total' => $lineTotal,
+                    'options' => is_array($line['options'] ?? null) ? $line['options'] : [],
+                ];
+            }
+
+            $shipping = Money::round($locked->shipping ?? '0.00');
+            $discount = Money::round($locked->discount ?? '0.00');
+            $gross = Money::add($subtotal, $shipping);
+            if (Money::compare($discount, $gross) > 0) {
+                throw ValidationException::withMessages([
+                    'discount' => 'The stored quote discount exceeds the converted value.',
+                ]);
+            }
+            $total = Money::subtract($gross, $discount);
+            if (Money::compare($total, $locked->total ?? '0.00') !== 0) {
+                throw ValidationException::withMessages([
+                    'pricing' => 'The stored quote total is inconsistent and must be repriced before conversion.',
+                ]);
+            }
+
+            $inquiry = $locked->inquiry_id
+                ? Inquiry::withoutGlobalScopes()->whereKey($locked->inquiry_id)->lockForUpdate()->first()
+                : null;
+            $inquiryMeta = is_array($inquiry?->meta) ? $inquiry->meta : [];
+            $shippingAddress = data_get($inquiryMeta, 'shipping_address');
+            if (! is_array($shippingAddress)) {
+                $shippingAddress = array_filter([
+                    'name' => $inquiry?->name,
+                    'company' => $inquiry?->company,
+                    'email' => $inquiry?->email,
+                    'phone' => $inquiry?->phone,
+                    'country' => data_get($inquiryMeta, 'country'),
+                ], static fn ($value): bool => filled($value));
+            }
+
+            $correlationId = (string) ($locked->correlation_id ?: $inquiry?->correlation_id ?: Str::uuid());
+            $order = Order::create([
+                'company_id' => $locked->company_id,
+                'user_id' => $locked->customer_id,
+                'quote_id' => $locked->getKey(),
+                'inquiry_id' => $locked->inquiry_id,
+                'number' => $this->newOrderNumber(),
+                'order_type' => $locked->order_type,
+                'status' => 'approved',
+                'payment_status' => 'pending',
+                'fulfillment_status' => 'ready_to_ship',
+                'subtotal' => $subtotal,
+                'shipping' => $shipping,
+                'discount' => $discount,
+                'total' => $total,
+                'currency' => $locked->currency_code,
+                'currency_code' => $locked->currency_code,
+                'exchange_rate' => $locked->exchange_rate,
+                'shipping_method' => 'quote',
+                'shipping_method_code' => 'quote',
+                'payment_method' => 'manual',
+                'email' => $inquiry?->email,
+                'phone' => $inquiry?->phone,
+                'shipping_address' => $shippingAddress,
+                'notes' => $locked->notes,
+                'idempotency_key' => $orderIdempotencyKey,
+                'request_hash' => hash('sha256', json_encode([
+                    'quote_uuid' => $locked->uuid,
+                    'conversion_key' => $conversionKey,
+                    'line_items' => $lineItems,
+                    'total' => $total,
+                ], JSON_UNESCAPED_SLASHES)),
+                'correlation_id' => $correlationId,
+                'version' => 1,
+            ]);
+
+            foreach ($preparedItems as $prepared) {
+                /** @var Product $product */
+                $product = $prepared['product'];
+                /** @var ProductVariant|null $variant */
+                $variant = $prepared['variant'];
+                $orderItem = OrderItem::create([
+                    'company_id' => $order->company_id,
+                    'order_id' => $order->getKey(),
+                    'product_id' => $product->getKey(),
+                    'product_variant_id' => $variant?->getKey(),
+                    'name' => $product->name,
+                    'sku' => $variant?->sku ?: $product->sku,
+                    'quantity' => $prepared['quantity'],
+                    'unit_price' => $prepared['unit_price'],
+                    'total' => $prepared['total'],
+                    'options' => $prepared['options'],
                 ]);
 
-                if ($product && $product->track_inventory) {
-                    $available = (int) ($variant?->stock ?? $product->stock);
-                    abort_if($available < $quantity, 422, 'Insufficient stock for '.$product->name.'.');
-
-                    $movement = InventoryMovement::create([
-                        'product_id' => $product->id,
-                        'product_variant_id' => $variant?->id,
-                        'type' => 'out',
-                        'quantity' => $quantity,
-                        'reference_type' => Order::class,
-                        'reference_id' => $order->id,
-                        'notes' => 'Sales quote conversion '.$locked->uuid,
+                $stockable = $variant ?: $product;
+                $tracksInventory = ! array_key_exists('track_inventory', $stockable->getAttributes())
+                    || (bool) $stockable->getAttribute('track_inventory');
+                if ($tracksInventory) {
+                    InventoryMovement::create([
+                        'company_id' => $order->company_id,
+                        'order_id' => $order->getKey(),
+                        'product_id' => $product->getKey(),
+                        'product_variant_id' => $variant?->getKey(),
+                        'quantity' => -((int) $prepared['quantity']),
+                        'type' => 'sale',
+                        'reference' => $order->number,
+                        'note' => 'Sales quote conversion',
                     ]);
-
-                    $variant
-                        ? $variant->decrement('stock', $quantity)
-                        : $product->decrement('stock', $quantity);
-
-                    AuditTrail::record('inventory.quote_conversion_out', $movement, null, $movement->toArray());
                 }
             }
 
-            $locked->paymentTransactions()
-                ->whereNull('order_id')
-                ->lockForUpdate()
-                ->get()
-                ->each(function (PaymentTransaction $payment) use ($order): void {
-                    $payment->update(['order_id' => $order->id]);
-                });
+            PaymentTransaction::create([
+                'company_id' => $order->company_id,
+                'order_id' => $order->getKey(),
+                'provider' => 'manual',
+                'amount' => $total,
+                'currency' => $locked->currency_code,
+                'status' => 'awaiting_payment',
+                'payload' => [
+                    'source' => 'sales_quote_conversion',
+                    'quote_uuid' => $locked->uuid,
+                    'order_type' => $locked->order_type,
+                    'correlation_id' => $correlationId,
+                ],
+            ]);
 
             $before = $locked->toArray();
             $locked->update([
                 'status' => 'converted',
-                'converted_by' => auth()->id(),
+                'order_id' => $order->getKey(),
+                'conversion_key' => $conversionKey,
                 'converted_at' => now(),
-                'order_id' => $order->id,
-                'version' => $locked->version + 1,
+                'version' => (int) $locked->version + 1,
             ]);
 
-            if ($locked->conversation) {
-                $metadata = is_array($locked->conversation->metadata) ? $locked->conversation->metadata : [];
+            if ($inquiry) {
+                $inquiryMeta['converted_quote_uuid'] = (string) $locked->uuid;
+                $inquiryMeta['converted_order_number'] = (string) $order->number;
+                $inquiry->update([
+                    'status' => 'converted',
+                    'meta' => $inquiryMeta,
+                ]);
+            }
+
+            $conversation = $locked->conversation_id
+                ? Conversation::withoutGlobalScopes()->whereKey($locked->conversation_id)->lockForUpdate()->first()
+                : null;
+            if ($conversation) {
+                $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
                 $metadata['quote_uuid'] = (string) $locked->uuid;
-                $metadata['quote_status'] = 'converted';
-                $metadata['order_uuid'] = (string) $order->uuid;
-                $metadata['order_number'] = $order->number;
-                $locked->conversation->update([
-                    'order_id' => $order->id,
+                $metadata['order_number'] = (string) $order->number;
+                $conversation->update([
+                    'order_id' => $order->getKey(),
+                    'status' => 'open',
                     'metadata' => $metadata,
                 ]);
             }
 
-            if ($locked->franchiseApplication) {
-                $application = $locked->franchiseApplication;
-                $applicationData = is_array($application->data) ? $application->data : [];
-                $applicationData['order_uuid'] = (string) $order->uuid;
-                $applicationData['order_number'] = $order->number;
-                $application->update(['data' => $applicationData]);
-            }
-
-            AuditTrail::record('sales_quote.converted', $locked, $before, [
-                'quote_uuid' => (string) $locked->uuid,
-                'order_uuid' => (string) $order->uuid,
+            AuditTrail::record('sales_quote.converted', $locked, $before, $locked->fresh()->toArray());
+            AuditTrail::record('sales_order.created_from_quote', $order, null, [
                 'order_number' => $order->number,
                 'order_type' => $order->order_type,
-                'correlation_id' => $locked->correlation_id,
+                'quote_uuid' => $locked->uuid,
+                'correlation_id' => $correlationId,
             ]);
 
-            event(new SalesQuoteConverted($locked->fresh(), $order));
+            SalesQuoteConverted::dispatch($locked->fresh(), $order->fresh(['items', 'payments']), $correlationId);
 
-            return $order;
+            return $order->fresh(['items', 'payments']);
         });
     }
 
@@ -374,27 +542,61 @@ final class SalesQuoteService
 
     private function assertVersion(SalesQuote $quote, mixed $expectedVersion): void
     {
-        if ($expectedVersion === null || $expectedVersion === '') {
-            return;
-        }
-
-        if ((int) $expectedVersion !== (int) $quote->version) {
-            throw ValidationException::withMessages([
-                'expected_version' => 'This quote was updated by another user. Refresh and try again.',
-            ]);
+        if ($expectedVersion !== null && (int) $quote->version !== (int) $expectedVersion) {
+            abort(409, 'This quote changed while you were editing it. Refresh and try again.');
         }
     }
 
-    private function nextOrderNumber(): string
+    private function productForQuote(SalesQuote $quote, int $productId, bool $lock = false): ?Product
     {
-        $prefix = now()->format('Ymd');
-        $last = Order::query()
-            ->where('number', 'like', 'ER-'.$prefix.'-%')
-            ->orderByDesc('number')
-            ->lockForUpdate()
-            ->value('number');
-        $sequence = $last ? ((int) str($last)->afterLast('-')->toString()) + 1 : 1;
+        $query = Product::withoutGlobalScopes()
+            ->whereKey($productId)
+            ->where('is_active', true)
+            ->whereIn('status', Product::PUBLIC_STATUSES);
+        $this->applyCompanyFilter($query, $quote->company_id);
+        if ($lock) {
+            $query->lockForUpdate();
+        }
 
-        return 'ER-'.$prefix.'-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+        return $query->first();
+    }
+
+    private function variantForQuote(
+        SalesQuote $quote,
+        Product $product,
+        int $variantId,
+        bool $lock = false,
+    ): ?ProductVariant {
+        $query = ProductVariant::withoutGlobalScopes()
+            ->whereKey($variantId)
+            ->where('product_id', $product->getKey())
+            ->where('is_active', true)
+            ->whereIn('status', ['active', 'published']);
+        $this->applyCompanyFilter($query, $quote->company_id);
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->first();
+    }
+
+    private function applyCompanyFilter(Builder $query, ?int $companyId): void
+    {
+        $companyId = $companyId ?: session('company_id');
+        $table = $query->getModel()->getTable();
+        if ($companyId) {
+            $query->where($table.'.company_id', (int) $companyId);
+        } else {
+            $query->whereNull($table.'.company_id');
+        }
+    }
+
+    private function newOrderNumber(): string
+    {
+        do {
+            $number = 'ER-Q-'.strtoupper(Str::random(14));
+        } while (Order::withoutGlobalScopes()->where('number', $number)->exists());
+
+        return $number;
     }
 }
