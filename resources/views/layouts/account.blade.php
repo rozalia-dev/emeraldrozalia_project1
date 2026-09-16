@@ -4,6 +4,9 @@
     $accountSection = trim($__env->yieldContent('account-active')) ?: 'dashboard';
     $accountNavigation = [
         'orders' => ['label' => 'My Orders', 'icon' => 'package'],
+        'corporate-orders' => ['label' => 'Corporate Orders', 'icon' => 'briefcase'],
+        'bulk-orders' => ['label' => 'Bulk Orders', 'icon' => 'package'],
+        'franchise' => ['label' => 'Franchise', 'icon' => 'home'],
         'returns' => ['label' => 'Returns & Exchanges', 'icon' => 'refresh', 'count' => $returnsCount ?? 0],
         'addresses' => ['label' => 'Address Book', 'icon' => 'home'],
         'payments' => ['label' => 'Payment Methods', 'icon' => 'credit-card'],
@@ -11,7 +14,6 @@
         'wishlist' => ['label' => 'Wishlist', 'icon' => 'heart', 'count' => $wishlistCount ?? 0],
         'rewards' => ['label' => 'Rewards & Points', 'icon' => 'star'],
         'designs' => ['label' => 'Custom Designs', 'icon' => 'pencil'],
-        'bulk-orders' => ['label' => 'Bulk Orders', 'icon' => 'briefcase'],
     ];
 @endphp
 
