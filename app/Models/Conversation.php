@@ -28,7 +28,27 @@ class Conversation extends Model
 
     protected static function booted(): void
     {
-        static::creating(fn (self $row): string => $row->uuid ??= Str::uuid()->toString());
+        static::creating(function (self $row): void {
+            $row->uuid ??= Str::uuid()->toString();
+
+            if (! $row->customer_id || ! $row->inquiry_id) {
+                return;
+            }
+
+            $customer = User::query()->find($row->customer_id);
+            $inquiry = Inquiry::withoutGlobalScopes()->find($row->inquiry_id);
+            $customerEmail = mb_strtolower(trim((string) $customer?->email));
+            $inquiryEmail = mb_strtolower(trim((string) $inquiry?->email));
+            $contactEmail = mb_strtolower(trim((string) $row->contact));
+
+            if (! $customer
+                || ! $customer->hasVerifiedEmail()
+                || $customerEmail === ''
+                || $customerEmail !== $inquiryEmail
+                || $customerEmail !== $contactEmail) {
+                $row->customer_id = null;
+            }
+        });
     }
 
     public function messages(): HasMany
