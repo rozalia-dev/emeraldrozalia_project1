@@ -22,10 +22,15 @@ final class PublicChatController extends Controller
             'context_product_slug' => ['nullable', 'string', 'max:180'],
         ]);
 
-        $companyId = (int) Company::query()->where('active', true)->orderBy('id')->value('id');
+        $companyId = (int) $request->session()->get('company_id', 0);
+        if ($companyId <= 0 || ! Company::query()->whereKey($companyId)->where('active', true)->exists()) {
+            $companyId = (int) Company::query()->where('active', true)->orderBy('id')->value('id');
+        }
+        abort_unless($companyId > 0, 503, 'Chat is temporarily unavailable because no active company context is configured.');
+
         $visitorId = (string) Str::uuid();
         $conversation = Conversation::withoutGlobalScopes()->create([
-            'company_id' => $companyId > 0 ? $companyId : null,
+            'company_id' => $companyId,
             'channel' => 'chat',
             'contact' => filled($data['email'] ?? null) ? Str::lower($data['email']) : 'Website visitor '.$visitorId,
             'subject' => 'Website Chat 24/7',
@@ -98,7 +103,11 @@ final class PublicChatController extends Controller
             || $chat->assigned_to !== null;
 
         if (! $aiPaused) {
-            $reply = $assistant->answer($data['message'], $metadata['context_product_slug'] ?? null);
+            $reply = $assistant->answer(
+                $data['message'],
+                $metadata['context_product_slug'] ?? null,
+                (int) $chat->company_id,
+            );
             $assistantMessage = $this->storeAssistantMessage($chat, $reply);
             $messages[] = $this->messagePayload($assistantMessage);
 
