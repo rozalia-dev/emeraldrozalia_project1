@@ -1,6 +1,80 @@
 (() => {
     const root = document.querySelector('[data-franchise-page]');
     if (!root) return;
+
+    const section = location.pathname.match(/^\/admin\/resource\/([^/?#]+)/)?.[1] || '';
+    const tableWrap = root.querySelector('.fm-table-wrap');
+    const rows = [...root.querySelectorAll('.fm-table tbody tr')];
+    const token = root.querySelector('input[name="_token"]')?.value || '';
+    const checks = [];
+
+    rows.forEach(row => {
+        const edit = row.querySelector('[data-fm-edit][data-id]');
+        const firstCell = row.querySelector('td');
+        if (!edit || !firstCell) return;
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.name = 'ids[]';
+        check.value = edit.dataset.id;
+        check.setAttribute('form', 'franchise-bulk-form');
+        check.setAttribute('aria-label', 'Select franchise record');
+        check.className = 'fm-bulk-check';
+        firstCell.prepend(check);
+        checks.push(check);
+    });
+
+    const actionConfig = section === 'franchise-applications'
+        ? { value: 'close', label: 'Close selected applications', confirm: 'Close the selected franchise applications? They will be retained in history.' }
+        : section === 'franchise-retail-stores'
+            ? { value: 'terminate', label: 'Terminate selected stores', confirm: 'Terminate the selected franchise stores? They will be retained in history.' }
+            : { value: 'trash', label: 'Move selected records to trash', confirm: 'Move the selected records to recoverable trash?' };
+
+    if (tableWrap && token && checks.length && !['franchise-territories', 'store-setup', 'franchise-dashboard'].includes(section)) {
+        const form = document.createElement('form');
+        form.id = 'franchise-bulk-form';
+        form.method = 'post';
+        form.action = `/admin/franchise-management/${section}/bulk`;
+        form.className = 'fm-search-form fm-bulk-form';
+        form.innerHTML = '<input type="hidden" name="_token" value="'+token+'"><input type="hidden" name="action" value="'+actionConfig.value+'"><label class="fm-bulk-select"><input type="checkbox" data-fm-select-all> Select all visible</label><button type="submit" class="fm-filter">'+actionConfig.label+'</button><span data-fm-bulk-count>0 selected</span>';
+        tableWrap.before(form);
+        const selectAll = form.querySelector('[data-fm-select-all]');
+        const count = form.querySelector('[data-fm-bulk-count]');
+        const update = () => {
+            const selected = checks.filter(check => check.checked).length;
+            count.textContent = `${selected} selected`;
+            selectAll.checked = selected > 0 && selected === checks.length;
+            selectAll.indeterminate = selected > 0 && selected < checks.length;
+        };
+        selectAll.addEventListener('change', () => { checks.forEach(check => check.checked = selectAll.checked); update(); });
+        checks.forEach(check => check.addEventListener('change', update));
+        form.addEventListener('submit', event => {
+            const selected = checks.filter(check => check.checked).length;
+            if (!selected) {
+                event.preventDefault();
+                alert('Select at least one record first.');
+                return;
+            }
+            if (!confirm(actionConfig.confirm)) event.preventDefault();
+        });
+        update();
+    }
+
+    root.querySelectorAll('form').forEach(form => {
+        const method = form.querySelector('input[name="_method"][value="DELETE"]');
+        if (!method || !form.action.includes('/franchise-management/')) return;
+        const button = form.querySelector('button[type="submit"]');
+        if (section === 'franchise-applications') {
+            form.onsubmit = () => confirm('Close this application and retain it in franchise history?');
+            if (button) button.title = 'Close application';
+        } else if (section === 'franchise-retail-stores') {
+            form.onsubmit = () => confirm('Terminate this store and retain it in franchise history?');
+            if (button) button.title = 'Terminate store';
+        } else if (section && section !== 'store-setup') {
+            form.onsubmit = () => confirm('Move this record to recoverable trash?');
+            if (button) button.title = 'Move to trash';
+        }
+    });
+
     const dialog = root.querySelector('[data-fm-dialog]');
     if (!dialog) return;
     const form = dialog.querySelector('[data-fm-form]');
