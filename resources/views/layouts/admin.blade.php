@@ -271,6 +271,7 @@
     </footer>
 </div>
 <script src="/js/app.js"></script>
+<script src="/js/admin-table-actions.js?v=20260916-media-bulk-v1"></script>
 @stack('scripts')
 </body>
 </html>

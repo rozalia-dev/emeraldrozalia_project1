@@ -60,16 +60,22 @@ return new class extends Migration
         $this->backfillMissingUuids($table, $column);
         $this->repairDuplicateUuids($table, $column);
 
+        // SQLite rebuilds the table for some column changes. Apply NOT NULL
+        // before creating the unique index so that rebuild cannot discard the
+        // index we just created. Avoid changing an already-required column on
+        // subsequent runs, which keeps the migration genuinely idempotent.
+        if ($this->isNullable($table, $column)) {
+            Schema::table($table, static function (Blueprint $blueprint) use ($column): void {
+                $blueprint->uuid($column)->nullable(false)->change();
+            });
+        }
+
         if (! $this->hasUniqueIndex($table, $column)) {
             $indexName = $this->uniqueIndexName($table, $column);
             Schema::table($table, static function (Blueprint $blueprint) use ($column, $indexName): void {
                 $blueprint->unique($column, $indexName);
             });
         }
-
-        Schema::table($table, static function (Blueprint $blueprint) use ($column): void {
-            $blueprint->uuid($column)->nullable(false)->change();
-        });
     }
 
     private function backfillMissingUuids(string $table, string $column): void
@@ -109,6 +115,13 @@ return new class extends Migration
                     ->update([$column => (string) Str::uuid()]);
             }
         }
+    }
+
+    private function isNullable(string $table, string $column): bool
+    {
+        $definition = collect(Schema::getColumns($table))->firstWhere('name', $column);
+
+        return (bool) ($definition['nullable'] ?? true);
     }
 
     private function hasUniqueIndex(string $table, string $column): bool

@@ -40,7 +40,7 @@
     <label><span class="sd-sr">Device</span><select name="device"><option value="">All Devices</option><option value="mobile" @selected(request('device')==='mobile')>Mobile enabled</option><option value="desktop" @selected(request('device')==='desktop')>Desktop only</option></select></label>
     <a class="sd-reset" href="{{ route('admin.spins.index') }}">↻ Reset</a>
 </form>
-<form method="post" action="{{ route('admin.spins.bulk') }}" data-bulk>@csrf
+<form method="post" action="{{ route('admin.spins.bulk') }}" data-bulk onsubmit="return this.querySelector('[name=action]').value !== 'delete' || confirm('Delete the selected 360° views permanently? Their stored frame files will also be removed. This cannot be undone.')">@csrf
 <div class="sd-table"><table><thead><tr><th><input type="checkbox" data-select-all aria-label="Select all visible views"></th><th>Preview</th><th>Product / SKU</th><th>Type</th><th>Frames</th><th>Resolution</th><th>Status</th><th>Platform</th><th>Views (30D)</th><th>Last Updated</th><th>Actions</th></tr></thead><tbody>
 @forelse($spins as $spin)
 <tr @class(['sd-selected'=>$selected?->id===$spin->id])>
@@ -52,7 +52,7 @@
 <td><span class="sd-tag {{ $spin->status }}">{{ $statuses[$spin->status] }}</span></td>
 <td>◎ Web</td><td>{{ number_format($spin->visits_count) }}</td>
 <td>{{ $spin->updated_at->format('d M Y') }}<small>by {{ $spin->updated_by }}</small></td>
-<td><div class="sd-actions"><a href="{{ route('spins.show',$spin->uuid) }}" target="_blank" rel="noopener" aria-label="Preview {{ $spin->title }}"><x-icon name="eye" size="16" /></a><a href="{{ route('admin.spins.index',array_merge(request()->query(),['edit'=>$spin->id])) }}#editor" aria-label="Edit {{ $spin->title }}"><x-icon name="edit" size="16" /></a><button type="button" data-audit="{{ route('admin.spins.audit',$spin->id) }}" aria-label="Audit history for {{ $spin->title }}">⋮</button></div></td>
+<td><div class="sd-actions"><a href="{{ route('spins.show',$spin->uuid) }}" target="_blank" rel="noopener" aria-label="Preview {{ $spin->title }}"><x-icon name="eye" size="16" /></a><a href="{{ route('admin.spins.index',array_merge(request()->query(),['edit'=>$spin->id])) }}#editor" aria-label="Edit {{ $spin->title }}"><x-icon name="edit" size="16" /></a><button type="submit" form="spin-delete-{{ $spin->id }}" aria-label="Delete {{ $spin->title }}" title="Delete permanently"><x-icon name="trash" size="16" /></button><button type="button" data-audit="{{ route('admin.spins.audit',$spin->id) }}" aria-label="Audit history for {{ $spin->title }}">⋮</button></div></td>
 </tr>
 @empty
 <tr><td colspan="11"><div class="sd-empty"><x-icon name="refresh" size="36" /><h2>{{ request()->hasAny(['q','status','category','product_id'])?'No matching views':'Your 360° library starts here' }}</h2><p>Upload a frame ZIP and link it to a product to create your first interactive view.</p><button class="sd-button" type="button" data-create>Create 360° View</button></div></td></tr>
@@ -71,6 +71,9 @@
 </div>
 <div class="sd-bulk"><label>Selected views<select name="action"><option value="draft">Move to Draft</option><option value="published">Publish</option><option value="archived">Archive</option><option value="delete">Delete permanently</option></select></label><button class="sd-button sd-outline" type="submit">Apply</button><a href="{{ route('admin.spins.export',request()->except(['page','edit'])) }}">Export CSV</a><small data-selection>0 selected</small></div>
 </form>
+@foreach($spins as $spin)
+<form id="spin-delete-{{ $spin->id }}" method="post" action="{{ route('admin.spins.destroy',$spin) }}" hidden onsubmit="return confirm('Delete this 360° view permanently? Its stored frame files will also be removed. This cannot be undone.')">@csrf @method('DELETE')</form>
+@endforeach
 </section>
 
 <section id="editor" class="sd-workbench" aria-label="360° workbench">

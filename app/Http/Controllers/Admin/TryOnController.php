@@ -24,8 +24,9 @@ class TryOnController extends Controller
         ]);
         $query = TryOnAsset::with('product');
         if ($term = trim((string) $request->input('q'))) {
-            $query->where(fn ($query) => $query->where('title','ilike','%'.$term.'%')
-                ->orWhereHas('product', fn ($product) => $product->where('name','ilike','%'.$term.'%')->orWhere('sku','ilike','%'.$term.'%')));
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(fn ($query) => $query->where('title',$like,'%'.$term.'%')
+                ->orWhereHas('product', fn ($product) => $product->where('name',$like,'%'.$term.'%')->orWhere('sku',$like,'%'.$term.'%')));
         }
         foreach (['product_id','status','type'] as $field) {
             if ($request->filled($field)) $query->where($field, $request->input($field));
@@ -155,6 +156,22 @@ class TryOnController extends Controller
     public function store(Request $request) { return $this->save($request); }
     public function update(Request $request, TryOnAsset $tryon) { return $this->save($request, $tryon); }
 
+    private function deleteAsset(TryOnAsset $asset): void
+    {
+        $before = $asset->toArray();
+        $uuid = $asset->uuid;
+        AuditTrail::record('tryon.deleted', $asset, $before, null);
+        $asset->delete();
+        DB::afterCommit(fn () => Storage::disk('local')->deleteDirectory('tryons/'.$uuid));
+    }
+
+    public function destroy(TryOnAsset $tryon)
+    {
+        DB::transaction(fn () => $this->deleteAsset($tryon));
+
+        return redirect()->route('admin.tryons.index')->with('success','Virtual try-on asset deleted.');
+    }
+
     public function bulk(Request $request)
     {
         $data = $request->validate([
@@ -166,14 +183,11 @@ class TryOnController extends Controller
             $assets = TryOnAsset::whereIn('id',$data['ids'])->lockForUpdate()->get();
             abort_unless($assets->count() === count($data['ids']), 422, 'Select try-on assets in the current company.');
             foreach ($assets as $asset) {
-                $before = $asset->toArray();
                 if ($data['action'] === 'delete') {
-                    AuditTrail::record('tryon.deleted',$asset,$before,null);
-                    $uuid = $asset->uuid;
-                    $asset->delete();
-                    DB::afterCommit(fn () => Storage::disk('local')->deleteDirectory('tryons/'.$uuid));
+                    $this->deleteAsset($asset);
                     continue;
                 }
+                $before = $asset->toArray();
                 if ($data['action'] === 'published' && !$asset->previewPath()) {
                     throw ValidationException::withMessages(['ids'=>'A selected asset has no browser preview overlay and cannot be published.']);
                 }

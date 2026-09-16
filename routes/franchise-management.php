@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\FranchiseApplicationActionController;
+use App\Http\Controllers\Admin\FranchiseBulkActionController;
 use App\Http\Controllers\Admin\FranchiseManagementController;
+use App\Http\Controllers\Admin\FranchiseSafeDestroyController;
 use App\Http\Controllers\Admin\FranchiseTerritoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +56,9 @@ Route::prefix('admin')->middleware(['web', 'auth', 'franchise.permission'])->gro
         Route::get('/{section}/export', [FranchiseManagementController::class, 'export'])
             ->where('section', $sectionPattern)
             ->name('export');
+        Route::post('/{section}/bulk', FranchiseBulkActionController::class)
+            ->where('section', $sectionPattern)
+            ->name('bulk');
         Route::post('/{section}', [FranchiseManagementController::class, 'store'])
             ->where('section', $sectionPattern)
             ->name('store');
@@ -61,7 +66,7 @@ Route::prefix('admin')->middleware(['web', 'auth', 'franchise.permission'])->gro
             ->where('section', $sectionPattern)
             ->whereNumber('id')
             ->name('update');
-        Route::delete('/{section}/{id}', [FranchiseManagementController::class, 'destroy'])
+        Route::delete('/{section}/{id}', FranchiseSafeDestroyController::class)
             ->where('section', $sectionPattern)
             ->whereNumber('id')
             ->name('destroy');

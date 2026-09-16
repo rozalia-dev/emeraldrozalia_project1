@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\UserBulkActionController;
 use App\Http\Controllers\Admin\UserSystemController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin/users-system')->middleware(['web','auth'])->name('admin.user-system.')->group(function () {
     Route::get('/users', [UserSystemController::class,'users'])->middleware('permission:users.roles.view')->name('users');
     Route::post('/users', [UserSystemController::class,'storeUser'])->middleware('permission:users.roles.create')->name('users.store');
+    Route::post('/users/bulk', UserBulkActionController::class)->middleware('permission:users.roles.edit')->name('users.bulk');
     Route::patch('/users/{user}', [UserSystemController::class,'updateUser'])->middleware('permission:users.roles.edit')->name('users.update');
     Route::post('/users/{user}/action', [UserSystemController::class,'userAction'])->middleware('permission:users.roles.edit')->name('users.action');
     Route::post('/users/import', [UserSystemController::class,'importUsers'])->middleware('permission:users.roles.create')->name('users.import');
