@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommunicationTemplate;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\EmailLog;
 use App\Services\CommunicationCenter;
+use App\Services\CommunicationTemplateAttachmentService;
+use App\Services\CommunicationTemplateCatalogService;
+use App\Services\CommunicationTemplateRoleService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,12 +23,18 @@ class EmailMailboxController extends Controller
 {
     private const FOLDERS = ['inbox', 'sent', 'drafts', 'trash', 'logs', 'setup'];
 
-    public function __construct(private readonly CommunicationCenter $communication)
-    {
+    public function __construct(
+        private readonly CommunicationCenter $communication,
+        private readonly CommunicationTemplateCatalogService $catalog,
+        private readonly CommunicationTemplateRoleService $templateRoles,
+        private readonly CommunicationTemplateAttachmentService $templateAttachments,
+    ) {
     }
 
     public function index(Request $request): View
     {
+        $this->catalog->ensureForCurrentCompany();
+
         $folder = strtolower((string) $request->query('folder', 'inbox'));
         if (! in_array($folder, self::FOLDERS, true)) {
             $folder = 'inbox';
@@ -65,6 +75,15 @@ class EmailMailboxController extends Controller
             ->limit(25)
             ->get();
 
+        $emailTemplates = CommunicationTemplate::query()
+            ->where('channel', 'email')
+            ->where('status', 'active')
+            ->whereIn('id', $this->templateRoles->visibleTemplateIds($request->user()))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (CommunicationTemplate $template): array => $this->templateRoles->safeBrowserData($template))
+            ->values();
+
         return view('admin.communication-center.email-mailbox', [
             'folder' => $folder,
             'folders' => self::FOLDERS,
@@ -75,6 +94,7 @@ class EmailMailboxController extends Controller
             'deliveryLog' => $deliveryLog,
             'mailStatus' => $this->mailStatus(),
             'search' => trim((string) $request->query('q', '')),
+            'emailTemplates' => $emailTemplates,
         ]);
     }
 
@@ -85,8 +105,10 @@ class EmailMailboxController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:100000'],
             'action' => ['nullable', 'in:send,draft'],
+            'template_uuid' => ['nullable', 'uuid'],
         ]);
 
+        $template = $this->resolveTemplate($request, $data['template_uuid'] ?? null);
         $draft = ($data['action'] ?? 'send') === 'draft';
         $conversation = Conversation::query()->create([
             'channel' => 'email',
@@ -99,6 +121,7 @@ class EmailMailboxController extends Controller
                 'source' => 'mailbox_compose',
                 'mailbox_folder' => $draft ? 'drafts' : 'sent',
                 'draft_body' => $draft ? $data['body'] : null,
+                'draft_template_uuid' => $draft ? $template?->uuid : null,
             ],
         ]);
 
@@ -107,7 +130,12 @@ class EmailMailboxController extends Controller
                 ->with('success', 'Draft saved.');
         }
 
-        $this->communication->sendReply($conversation, $data['body'], 'mailbox-compose-'.$conversation->uuid);
+        $this->communication->sendReply(
+            $conversation,
+            $data['body'],
+            'mailbox-compose-'.$conversation->uuid,
+            $this->deliveryContext($template),
+        );
 
         return redirect()->to('/admin/resource/email?folder=sent&conversation='.$conversation->uuid)
             ->with('success', 'Email queued for delivery.');
@@ -121,11 +149,14 @@ class EmailMailboxController extends Controller
             'to' => ['required', 'email:rfc', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:100000'],
+            'template_uuid' => ['nullable', 'uuid'],
         ]);
+        $template = $this->resolveTemplate($request, $data['template_uuid'] ?? null);
 
         $metadata = (array) $conversation->metadata;
         $metadata['draft_body'] = $data['body'];
         $metadata['mailbox_folder'] = 'drafts';
+        $metadata['draft_template_uuid'] = $template?->uuid;
         $conversation->update([
             'contact' => strtolower($data['to']),
             'subject' => $data['subject'],
@@ -143,10 +174,13 @@ class EmailMailboxController extends Controller
             'to' => ['required', 'email:rfc', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:100000'],
+            'template_uuid' => ['nullable', 'uuid'],
         ]);
+        $templateUuid = $data['template_uuid'] ?? data_get($conversation->metadata, 'draft_template_uuid');
+        $template = $this->resolveTemplate($request, is_string($templateUuid) ? $templateUuid : null);
 
         $metadata = (array) $conversation->metadata;
-        unset($metadata['draft_body']);
+        unset($metadata['draft_body'], $metadata['draft_template_uuid']);
         $metadata['mailbox_folder'] = 'sent';
         $conversation->update([
             'contact' => strtolower($data['to']),
@@ -154,7 +188,12 @@ class EmailMailboxController extends Controller
             'status' => 'open',
             'metadata' => $metadata,
         ]);
-        $this->communication->sendReply($conversation, $data['body'], 'mailbox-draft-'.$conversation->uuid);
+        $this->communication->sendReply(
+            $conversation,
+            $data['body'],
+            'mailbox-draft-'.$conversation->uuid,
+            $this->deliveryContext($template),
+        );
 
         return redirect()->to('/admin/resource/email?folder=sent&conversation='.$conversation->uuid)
             ->with('success', 'Draft queued for delivery.');
@@ -163,8 +202,17 @@ class EmailMailboxController extends Controller
     public function reply(Request $request, Conversation $conversation): RedirectResponse
     {
         $this->assertEmail($conversation);
-        $data = $request->validate(['body' => ['required', 'string', 'max:100000']]);
-        $this->communication->sendReply($conversation, $data['body'], 'mailbox-reply-'.Str::uuid());
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:100000'],
+            'template_uuid' => ['nullable', 'uuid'],
+        ]);
+        $template = $this->resolveTemplate($request, $data['template_uuid'] ?? null);
+        $this->communication->sendReply(
+            $conversation,
+            $data['body'],
+            'mailbox-reply-'.Str::uuid(),
+            $this->deliveryContext($template),
+        );
 
         return back()->with('success', 'Reply queued for delivery.');
     }
@@ -231,6 +279,42 @@ class EmailMailboxController extends Controller
         }
 
         return back()->with('success', 'Test email sent successfully.');
+    }
+
+    private function resolveTemplate(Request $request, ?string $uuid): ?CommunicationTemplate
+    {
+        $uuid = trim((string) $uuid);
+        if ($uuid === '') {
+            return null;
+        }
+
+        $template = CommunicationTemplate::query()
+            ->where('channel', 'email')
+            ->where('status', 'active')
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        $this->templateRoles->authorizeUse($request->user(), $template);
+
+        return $template;
+    }
+
+    private function deliveryContext(?CommunicationTemplate $template): array
+    {
+        if (! $template) {
+            return [];
+        }
+
+        $context = [
+            'template_uuid' => $template->uuid,
+            'template_name' => $template->name,
+        ];
+        $attachment = $this->templateAttachments->forTemplate($template);
+        if ($attachment) {
+            $context['email_attachment'] = $attachment;
+        }
+
+        return $context;
     }
 
     private function folderQuery(string $folder): Builder
