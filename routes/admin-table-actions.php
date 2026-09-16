@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\GenericResourceBulkController;
 use App\Http\Controllers\Admin\MediaBulkActionController;
+use App\Http\Controllers\Admin\PageBulkActionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'admin'])->group(function (): void {
@@ -11,6 +12,9 @@ Route::middleware(['auth', 'admin'])->group(function (): void {
             Route::post('/{module}/bulk-actions', GenericResourceBulkController::class)
                 ->name('bulk-actions');
         });
+
+    Route::post('/admin/pages/bulk-actions', PageBulkActionController::class)
+        ->name('admin.pages.bulk-actions');
 
     Route::prefix('admin/table-actions')
         ->name('admin.table-actions.')
