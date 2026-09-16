@@ -6,6 +6,7 @@
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
     <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
     <link rel="stylesheet" href="/css/admin-actions.css?v=20260913-batch14">
+    <link rel="stylesheet" href="/css/admin-topbar.css?v=20260916-profile-dropdown-v1">
     @stack('styles')
 </head>
 <body class="admin-body @if(request()->routeIs('admin.videos.*'))admin-videos-body @endif @if(request()->routeIs('admin.dashboard'))admin-dashboard-body @endif @if(request()->routeIs('admin.pages') || request()->routeIs('admin.pages.create') || request()->routeIs('admin.pages.edit') || request()->routeIs('admin.pages.layouts*'))admin-pages-body @endif @if(request()->routeIs('admin.seo.*'))seo-admin-body @endif @if(request()->routeIs('admin.collections.*'))admin-collections-body @endif @if(request()->routeIs('admin.settings.*'))admin-settings-body @endif @if(request()->routeIs('admin.reports.*'))admin-reports-body @endif @if(request()->routeIs('admin.sales-reports.*'))admin-sales-reports-body @endif @if(request()->routeIs('admin.order-master') || request()->routeIs('admin.order-master.*'))admin-orders-body @endif @if(request()->routeIs('admin.quotes.*'))admin-quotes-body @endif @if(request()->routeIs('admin.banners.*'))admin-banners-body @endif">
@@ -226,7 +227,32 @@
         @else
             <form class="admin-search" method="get" action="{{ route('admin.search') }}"><x-icon name="search" /><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Search anything..." aria-label="Search anything"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></form>
         @endif
-            <div class="admin-actions"><span aria-label="Notifications"><x-icon name="bell" /></span><span aria-label="Messages"><x-icon name="message" /></span><span aria-label="Help"><x-icon name="help" /></span><span class="admin-user"><x-icon name="user" /><span class="admin-user-name">{{auth()->user()->name ?? 'Admin User'}}</span></span></div>
+            <div class="admin-actions">
+                <span aria-label="Notifications"><x-icon name="bell" /></span>
+                <span aria-label="Messages"><x-icon name="message" /></span>
+                <span aria-label="Help"><x-icon name="help" /></span>
+                <details class="admin-profile-menu">
+                    <summary aria-label="Open profile menu">
+                        <span class="admin-profile-avatar"><x-icon name="user" size="16" /></span>
+                        <span class="admin-profile-copy">
+                            <strong>{{auth()->user()->name ?? 'Admin User'}}</strong>
+                            <small>Super Admin</small>
+                        </span>
+                        <x-icon name="chevron-right" size="12" class="admin-profile-chevron" />
+                    </summary>
+                    <div class="admin-profile-dropdown">
+                        <div class="admin-profile-dropdown-head">
+                            <strong>{{auth()->user()->name ?? 'Admin User'}}</strong>
+                            <small>{{auth()->user()->email ?? 'Administrator'}}</small>
+                        </div>
+                        <a href="{{route('account.dashboard')}}"><x-icon name="user" size="15" /><span>My Profile</span></a>
+                        <form method="post" action="{{route('logout')}}">
+                            @csrf
+                            <button type="submit"><x-icon name="logout" size="15" /><span>Logout</span></button>
+                        </form>
+                    </div>
+                </details>
+            </div>
         </header>
     @endif
     <main class="admin-main">
