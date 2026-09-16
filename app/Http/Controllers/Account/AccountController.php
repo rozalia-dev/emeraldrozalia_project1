@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Account;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\{AddressRequest, ProfileUpdateRequest, ReturnRequestRequest};
 use App\Models\{Address, FranchiseApplication, Order, PaymentTransaction, ReturnRequest, SalesQuote};
-use App\Services\{AuditTrail, ReturnRequestService};
+use App\Services\{AuditTrail, CustomerBusinessRecordLinker, ReturnRequestService};
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -13,13 +13,15 @@ use Illuminate\View\View;
 
 class AccountController extends Controller
 {
-    public function dashboard(): View|RedirectResponse
+    public function dashboard(CustomerBusinessRecordLinker $linker): View|RedirectResponse
     {
         $user = auth()->user();
 
         if ($user->is_admin) {
             return redirect()->route('admin.profile.show');
         }
+
+        $linker->claimFor($user);
 
         return view('site.account', [
             'orders' => $user->orders()->with('items')->latest()->limit(8)->get(),
@@ -33,7 +35,7 @@ class AccountController extends Controller
         ]);
     }
 
-    public function section(string $section): View|RedirectResponse
+    public function section(string $section, CustomerBusinessRecordLinker $linker): View|RedirectResponse
     {
         $allowed = ['orders', 'wishlist', 'rewards', 'addresses', 'profile', 'payments', 'designs', 'corporate-orders', 'bulk-orders', 'franchise', 'returns'];
         abort_unless(in_array($section, $allowed, true), 404);
@@ -43,6 +45,8 @@ class AccountController extends Controller
         if ($user->is_admin) {
             return redirect()->route('admin.profile.show');
         }
+
+        $linker->claimFor($user);
 
         $corporateQuotes = $this->quotesFor($user->id, 'corporate')->with(['order', 'conversation'])->latest()->get();
         $bulkQuotes = $this->quotesFor($user->id, 'bulk')->with(['order', 'conversation'])->latest()->get();
