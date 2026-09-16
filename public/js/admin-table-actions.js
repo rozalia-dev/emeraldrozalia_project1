@@ -10,6 +10,7 @@
         .admin-card-select{position:absolute;z-index:8;top:10px;left:10px;display:grid;place-items:center;width:30px;height:30px;margin:0;border:1px solid rgba(255,255,255,.82);border-radius:8px;background:rgba(5,32,18,.82);box-shadow:0 3px 12px rgba(0,0,0,.16)}
         .admin-card-select input{width:16px;height:16px;margin:0;accent-color:#7fbd42;cursor:pointer}
         .mm-card-preview,.media-asset-preview{position:relative}
+        .dc-bulk-check,.fm-bulk-check,.us-bulk-check{width:15px;height:15px;margin:0 7px 0 0;accent-color:#08753b;vertical-align:middle}
         @media(max-width:720px){.admin-bulk-toolbar{align-items:stretch}.admin-bulk-toolbar label{width:100%}.admin-bulk-toolbar select{flex:1}.admin-bulk-toolbar [data-admin-bulk-count]{width:100%;margin-left:0}}
     `;
     document.head.appendChild(style);
@@ -96,10 +97,11 @@
             }
             const selectedAction = actionSelect.value;
             if (destructive.includes(selectedAction)) {
-                const permanent = selectedAction === 'delete' || selectedAction === 'permanent_delete';
-                const wording = permanent
-                    ? `Permanently delete ${selected} selected record${selected === 1 ? '' : 's'}? This cannot be undone.`
-                    : `Move ${selected} selected record${selected === 1 ? '' : 's'} to trash?`;
+                const wording = selectedAction === 'archive'
+                    ? `Archive ${selected} selected record${selected === 1 ? '' : 's'}?`
+                    : (selectedAction === 'delete' || selectedAction === 'permanent_delete')
+                        ? `Permanently delete ${selected} selected record${selected === 1 ? '' : 's'}? This cannot be undone.`
+                        : `Move ${selected} selected record${selected === 1 ? '' : 's'} to trash?`;
                 if (!window.confirm(wording)) event.preventDefault();
             }
         });
@@ -235,7 +237,40 @@
         }));
     };
 
+    const wireDiscounts = () => {
+        const root = document.querySelector('.dc-page');
+        if (!root) return;
+        const tableWrap = root.querySelector('.dc-table-wrap');
+        if (!tableWrap) return;
+        const checkboxes = [];
+        root.querySelectorAll('.dc-table tbody tr').forEach((row) => {
+            const edit = [...row.querySelectorAll('a[href]')].find((link) => /\/admin\/resource\/discounts-coupons\/\d+\/edit(?:$|[?#])/.test(link.href));
+            const id = edit?.href.match(/\/discounts-coupons\/(\d+)\/edit/)?.[1];
+            const firstCell = row.querySelector('td');
+            if (!id || !firstCell) return;
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'ids[]';
+            checkbox.value = id;
+            checkbox.className = 'dc-bulk-check';
+            checkbox.setAttribute('form', 'discounts-bulk-form');
+            checkbox.setAttribute('aria-label', 'Select discount or coupon');
+            firstCell.prepend(checkbox);
+            checkboxes.push(checkbox);
+        });
+        makeToolbar({
+            root,
+            insertBefore: tableWrap,
+            formId: 'discounts-bulk-form',
+            action: '/admin/table-actions/discounts',
+            options: [['activate', 'Activate selected'], ['pause', 'Pause selected'], ['expire', 'Expire selected'], ['archive', 'Archive selected']],
+            checkboxes,
+            destructive: ['archive'],
+        });
+    };
+
     wireProductMedia();
     wireSiteMedia();
     wirePages();
+    wireDiscounts();
 })();
