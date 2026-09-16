@@ -308,7 +308,7 @@ final class Chat24SevenAssistant
 
     private function productQuery(?int $companyId): Builder
     {
-        $query = Product::withoutGlobalScopes();
+        $query = Product::withoutGlobalScope('tenant');
         if ($companyId && $companyId > 0) {
             $query->where('company_id', $companyId);
         } else {
