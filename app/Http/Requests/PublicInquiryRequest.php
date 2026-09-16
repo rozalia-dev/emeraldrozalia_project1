@@ -41,31 +41,29 @@ class PublicInquiryRequest extends FormRequest
         $type = (string) $this->input('type', '');
         $requiresMessage = in_array($type, ['contact', 'franchise', 'corporate-orders', 'bulk-orders'], true);
         $requiresConsent = in_array($type, ['contact', 'franchise'], true);
-        $isQuoteRequest = in_array($type, ['corporate-orders', 'bulk-orders'], true);
-        $isFranchiseApplication = $type === 'franchise';
 
         return [
             'type' => ['required', 'string', Rule::in(self::TYPES)],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'company' => [Rule::requiredIf($isQuoteRequest), 'nullable', 'string', 'max:120'],
-            'country' => [Rule::requiredIf($isFranchiseApplication), 'nullable', 'string', 'max:120'],
+            'company' => ['nullable', 'string', 'max:120'],
+            'country' => ['nullable', 'string', 'max:120'],
             'subject' => ['required_if:type,contact', 'nullable', 'string', 'max:150'],
             'message' => [Rule::requiredIf($requiresMessage), 'nullable', 'string', 'max:5000'],
             'consent' => $requiresConsent ? ['required', 'accepted'] : ['nullable'],
 
-            // Corporate and bulk quote intake. These values stay linked to the
-            // enquiry/quote and are not treated as a confirmed sales order until
-            // an administrator prices, approves and converts the quote.
-            'product_interest' => [Rule::requiredIf($isQuoteRequest), 'nullable', 'string', 'max:180'],
-            'estimated_quantity' => [Rule::requiredIf($isQuoteRequest), 'nullable', 'integer', 'min:1', 'max:1000000'],
+            // Structured Corporate/Bulk intake. These are optional so the approved
+            // public reference forms remain backwards compatible; when supplied
+            // they become authoritative quote metadata rather than free-text only.
+            'product_interest' => ['nullable', 'string', 'max:180'],
+            'estimated_quantity' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'branding_requirement' => ['nullable', 'string', 'max:180'],
             'required_by' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
 
-            // Franchise applications are their own Franchise Management aggregate.
-            // They must never be created as a franchise sales order implicitly.
-            'preferred_location' => [Rule::requiredIf($isFranchiseApplication), 'nullable', 'string', 'max:180'],
+            // Structured Franchise application data. Existing forms that use the
+            // Company/Location and Message fields are still mapped server-side.
+            'preferred_location' => ['nullable', 'string', 'max:180'],
             'investment_range' => ['nullable', 'string', 'max:180'],
             'business_experience' => ['nullable', 'string', 'max:3000'],
             'opening_timeline' => ['nullable', 'string', 'max:180'],
