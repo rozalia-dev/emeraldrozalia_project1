@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             require base_path('routes/order-master.php');
             require base_path('routes/customers.php');
             require base_path('routes/user-system.php');
+            require base_path('routes/chat-24-7.php');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
