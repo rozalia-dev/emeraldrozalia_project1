@@ -9,6 +9,14 @@ class CommunicationTemplateResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $variables = is_array($this->variables) ? $this->variables : [];
+        if (is_array($variables['_attachment'] ?? null)) {
+            $attachment = $variables['_attachment'];
+            $attachment['has_file'] = filled($attachment['file_path'] ?? null);
+            unset($attachment['file_path']);
+            $variables['_attachment'] = $attachment;
+        }
+
         return [
             'uuid' => $this->uuid,
             'channel' => $this->channel,
@@ -16,7 +24,7 @@ class CommunicationTemplateResource extends JsonResource
             'subject' => $this->subject,
             'body' => $this->body,
             'status' => $this->status,
-            'variables' => $this->variables ?: [],
+            'variables' => $variables,
             'version' => (int) $this->version,
             'created_by_uuid' => $this->creator?->public_uuid,
             'updated_by_uuid' => $this->updater?->public_uuid,
