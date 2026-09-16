@@ -13,6 +13,14 @@ Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])-
     // literal communication-center paths here so the two route families do
     // not replace one another in Laravel's route collection.
     foreach (CommunicationCenterController::SECTIONS as $section) {
+        // The dedicated mailbox route owns /admin/resource/email. Keeping it
+        // out of this loop prevents Laravel's route cache/name lookup from
+        // dropping admin.communication-center.page.email when duplicate GET
+        // routes are compiled.
+        if ($section === 'email') {
+            continue;
+        }
+
         Route::get('/resource/'.$section, [CommunicationCenterController::class, 'show'])
             ->defaults('section', $section)
             ->name('admin.communication-center.page.'.$section);
