@@ -15,6 +15,8 @@ use Illuminate\View\View;
 
 final class SalesQuoteController extends Controller
 {
+    private const PUBLIC_QUOTE_ORDER_TYPES = ['corporate', 'bulk'];
+
     public function __construct(private readonly SalesQuoteService $quotes)
     {
     }
@@ -23,7 +25,9 @@ final class SalesQuoteController extends Controller
     {
         Gate::authorize('viewAny', SalesQuote::class);
 
-        $query = $this->quotes->visibleQuery()->with(['inquiry', 'order']);
+        $query = $this->quotes->visibleQuery()
+            ->whereIn('order_type', self::PUBLIC_QUOTE_ORDER_TYPES)
+            ->with(['inquiry', 'order']);
         $status = (string) $request->query('status', '');
         $orderType = (string) $request->query('order_type', '');
         $search = trim((string) $request->query('q', ''));
@@ -31,7 +35,7 @@ final class SalesQuoteController extends Controller
         if (in_array($status, ['submitted', 'approved', 'rejected', 'cancelled', 'converted'], true)) {
             $query->where('status', $status);
         }
-        if (in_array($orderType, ['corporate', 'bulk', 'franchise'], true)) {
+        if (in_array($orderType, self::PUBLIC_QUOTE_ORDER_TYPES, true)) {
             $query->where('order_type', $orderType);
         }
         if ($search !== '') {
@@ -53,6 +57,7 @@ final class SalesQuoteController extends Controller
             : 25;
         $quotes = $query->latest('id')->paginate($perPage)->withQueryString();
         $statusCounts = $this->quotes->visibleQuery()
+            ->whereIn('order_type', self::PUBLIC_QUOTE_ORDER_TYPES)
             ->get(['status'])
             ->groupBy('status')
             ->map->count();
@@ -64,7 +69,7 @@ final class SalesQuoteController extends Controller
             'search' => $search,
             'statusCounts' => $statusCounts,
             'statuses' => ['submitted', 'approved', 'rejected', 'cancelled', 'converted'],
-            'orderTypes' => ['corporate', 'bulk', 'franchise'],
+            'orderTypes' => self::PUBLIC_QUOTE_ORDER_TYPES,
         ]);
     }
 
