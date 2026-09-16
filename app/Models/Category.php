@@ -26,6 +26,10 @@ class Category extends Model
         'meta_title',
         'meta_description',
         'seo',
+        'taxonomy_type',
+        'catalog_country_id',
+        'catalog_club_id',
+        'product_type',
         'created_by',
         'updated_by',
     ];
@@ -86,6 +90,16 @@ class Category extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function catalogCountry(): BelongsTo
+    {
+        return $this->belongsTo(CatalogCountry::class, 'catalog_country_id');
+    }
+
+    public function catalogClub(): BelongsTo
+    {
+        return $this->belongsTo(CatalogClub::class, 'catalog_club_id');
     }
 
     public function creator(): BelongsTo
