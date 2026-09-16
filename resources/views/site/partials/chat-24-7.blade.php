@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/css/chat-24-7.css?v=20260916-business-actions-1">
+<link rel="stylesheet" href="/css/chat-24-7.css?v=20260916-visible-service-actions-1">
 <div
     class="chat24"
     data-chat-24-7-widget
@@ -24,16 +24,26 @@
         <div class="chat24-messages" data-chat24-messages aria-live="polite"></div>
         <div class="chat24-products" data-chat24-products hidden></div>
         <div class="chat24-quick" data-chat24-quick aria-label="Quick chat options"></div>
+
+        <div class="chat24-service-actions" aria-label="Customer service actions">
+            <a class="chat24-service-action chat24-book" href="{{ route('contact') }}#contact-schedule">
+                Book Appointment
+            </a>
+            <button type="button" class="chat24-service-action chat24-connect" data-chat24-human>
+                Connect to a Person
+            </button>
+        </div>
+
         <div class="chat24-status" data-chat24-status></div>
 
         <form class="chat24-form" data-chat24-form>
             <label class="sr-only" for="chat24-message">Message</label>
             <textarea id="chat24-message" data-chat24-input rows="2" maxlength="2500" placeholder="Ask about products, bulk/corporate orders, franchise, requirements or book an appointment..."></textarea>
             <div class="chat24-form-actions">
-                <button type="button" class="chat24-human" data-chat24-human>Talk to a person</button>
+                <span class="chat24-form-hint">Replies from a person appear in this same chat.</span>
                 <button type="submit" class="chat24-send">Send</button>
             </div>
         </form>
     </section>
 </div>
-<script src="/js/chat-24-7.js?v=20260916-business-actions-1" defer></script>
+<script src="/js/chat-24-7.js?v=20260916-visible-service-actions-1" defer></script>
