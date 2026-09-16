@@ -56,7 +56,7 @@
     const countrySelect = document.createElement('select');
     countrySelect.name = 'country';
     countrySelect.className = 'shop-filter-select';
-    countrySelect.dataset.shopCountryFilter = '';
+    countrySelect.setAttribute('data-shop-country-filter', '');
     countrySelect.setAttribute('aria-label', 'Select country');
     countrySelect.add(new Option('All Countries', ''));
     countries.forEach((country) => countrySelect.add(new Option(country.name, country.code, false, country.code === selectedCountry)));
@@ -73,7 +73,7 @@
         clubSelect = document.createElement('select');
         clubSelect.name = 'club';
         clubSelect.className = 'shop-filter-select';
-        clubSelect.dataset.shopClubFilter = '';
+        clubSelect.setAttribute('data-shop-club-filter', '');
         clubSelect.setAttribute('aria-label', 'Select club');
         clubLabel.append(clubSelect);
         clubGroup.body.append(clubLabel);
