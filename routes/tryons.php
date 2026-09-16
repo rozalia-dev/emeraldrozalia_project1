@@ -15,5 +15,6 @@ Route::prefix('admin/resource/virtual-try-on')->middleware(['auth','admin'])->na
     Route::get('/export', [TryOnController::class,'export'])->name('export');
     Route::post('/bulk', [TryOnController::class,'bulk'])->name('bulk');
     Route::patch('/{tryon}', [TryOnController::class,'update'])->name('update');
+    Route::delete('/{tryon}', [TryOnController::class,'destroy'])->name('destroy');
     Route::get('/{tryon}/audit', [TryOnController::class,'audit'])->name('audit');
 });
