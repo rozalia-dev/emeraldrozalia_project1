@@ -68,7 +68,7 @@ class AppServiceProvider extends ServiceProvider {
                     && (! $page->requiresLogin() || auth()->check()))
                 ->take(8)
                 ->values();
-            $catalogNavCategories = Category::query()
+            $catalogTree = Category::query()
                 ->websiteVisible()
                 ->whereNull('parent_id')
                 ->with('childrenRecursive')
@@ -76,6 +76,21 @@ class AppServiceProvider extends ServiceProvider {
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get();
+            $catalogNavCategories = collect();
+            $flattenCatalog = function ($nodes, int $depth = 0) use (&$flattenCatalog, $catalogNavCategories): void {
+                foreach ($nodes as $node) {
+                    $displayNode = clone $node;
+                    if ($depth > 0) {
+                        $displayNode->setAttribute('name', str_repeat('↳ ', $depth).$node->name);
+                    }
+                    $catalogNavCategories->push($displayNode);
+                    $children = $node->childrenRecursive ?? collect();
+                    if ($children->isNotEmpty()) {
+                        $flattenCatalog($children, $depth + 1);
+                    }
+                }
+            };
+            $flattenCatalog($catalogTree);
 
             $view->with([
                 'footerPages' => $footerPages,
