@@ -3,7 +3,7 @@
 @section('title', 'Quote '.$quote->uuid)
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/admin-quotes.css?v=20260916-2') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-quotes.css?v=20260916-3') }}">
 @endpush
 
 @section('content')
@@ -11,6 +11,10 @@
     $money = static fn ($value): string => '€'.number_format((float) $value, 2);
     $inquiry = $quote->inquiry;
     $lineItems = is_array($quote->line_items) ? $quote->line_items : [];
+    $editorLines = old('line_items', $lineItems);
+    if (!is_array($editorLines) || count($editorLines) === 0) {
+        $editorLines = [['product_id' => '', 'variant_id' => '', 'quantity' => 1, 'unit_price' => '']];
+    }
     $isSubmitted = $quote->status === 'submitted';
     $isApproved = $quote->status === 'approved';
     $isConverted = $quote->status === 'converted' || (bool) $quote->order;
@@ -65,22 +69,37 @@
             </section>
 
             <section class="quotes-card">
-                <header class="quotes-card-head"><div><h2>Pricing &amp; line items</h2><p>Save at least one valid product line before approval. Negotiated unit prices are persisted in the quote snapshot.</p></div><span class="quotes-version">Version {{ $quote->version }}</span></header>
-                <form class="quotes-pricing-form" method="post" action="{{ route('admin.quotes.update', $quote) }}">
+                <header class="quotes-card-head"><div><h2>Pricing &amp; line items</h2><p>Select products from the live catalogue, set quantity and negotiated unit price, then save before approval.</p></div><span class="quotes-version">Version {{ $quote->version }}</span></header>
+                <form class="quotes-pricing-form" method="post" action="{{ route('admin.quotes.update', $quote) }}" data-quote-pricing-form>
                     @csrf
                     @method('PATCH')
                     <input type="hidden" name="expected_version" value="{{ $quote->version }}">
 
-                    <label class="quotes-json-field"><span>Line items JSON <small>product_id, optional variant_id, quantity, unit_price</small></span><textarea name="line_items" rows="11" required spellcheck="false">{{ json_encode($lineItems, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                    <div class="quotes-line-editor">
+                        <div class="quotes-line-toolbar"><div><strong>Quote products</strong><span>Use the current product catalogue; variants are optional.</span></div><button class="quotes-btn quotes-btn--soft quotes-btn--sm" type="button" data-add-quote-line><x-icon name="plus" size="12" /> Add product</button></div>
+                        <div class="quotes-line-head" aria-hidden="true"><span>Product</span><span>Variant</span><span>Qty</span><span>Unit price</span><span></span></div>
+                        <div data-quote-lines>
+                            @foreach($editorLines as $index => $line)
+                                <div class="quotes-line-row" data-quote-line>
+                                    <label><span>Product</span><select name="line_items[{{ $index }}][product_id]" data-product-select required><option value="">Select product…</option>@foreach($products as $product)<option value="{{ $product->id }}" data-price="{{ $product->price }}" @selected((int) data_get($line, 'product_id') === (int) $product->id)>{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }} · €{{ number_format((float)$product->price, 2) }}</option>@endforeach</select></label>
+                                    <label><span>Variant</span><select name="line_items[{{ $index }}][variant_id]" data-variant-select><option value="">Base product</option>@foreach($products as $product)@foreach($product->variants as $variant)<option value="{{ $variant->id }}" data-product="{{ $product->id }}" data-price="{{ $variant->price ?? $product->price }}" @selected((int) data_get($line, 'variant_id') === (int) $variant->id)>{{ $product->name }} · {{ $variant->sku ?: 'Variant '.$variant->id }}</option>@endforeach @endforeach</select></label>
+                                    <label><span>Qty</span><input type="number" name="line_items[{{ $index }}][quantity]" min="1" max="100000" value="{{ data_get($line, 'quantity', 1) }}" required></label>
+                                    <label><span>Unit price (€)</span><input type="number" name="line_items[{{ $index }}][unit_price]" min="0" max="999999999.99" step="0.01" value="{{ data_get($line, 'unit_price') }}" data-unit-price></label>
+                                    <button class="quotes-line-remove" type="button" data-remove-quote-line title="Remove product" aria-label="Remove product"><x-icon name="trash" size="14" /></button>
+                                </div>
+                            @endforeach
+                        </div>
+                        @if($products->isEmpty())<div class="quotes-catalog-warning"><x-icon name="alert" size="14" /><span>No published products are available for this company. Publish a product before pricing this quote.</span></div>@endif
+                    </div>
 
                     <div class="quotes-form-grid">
-                        <label><span>Shipping (€)</span><input type="number" name="shipping" min="0" step="0.01" value="{{ $quote->shipping }}"></label>
-                        <label><span>Discount (€)</span><input type="number" name="discount" min="0" step="0.01" value="{{ $quote->discount }}"></label>
-                        <label><span>Currency</span><input name="currency_code" maxlength="3" value="{{ $quote->currency_code }}"></label>
-                        <label><span>Exchange rate</span><input type="number" name="exchange_rate" min="0.00000001" step="0.00000001" value="{{ $quote->exchange_rate }}"></label>
+                        <label><span>Shipping (€)</span><input type="number" name="shipping" min="0" step="0.01" value="{{ old('shipping', $quote->shipping) }}"></label>
+                        <label><span>Discount (€)</span><input type="number" name="discount" min="0" step="0.01" value="{{ old('discount', $quote->discount) }}"></label>
+                        <label><span>Currency</span><input name="currency_code" maxlength="3" value="{{ old('currency_code', $quote->currency_code) }}"></label>
+                        <label><span>Exchange rate</span><input type="number" name="exchange_rate" min="0.00000001" step="0.00000001" value="{{ old('exchange_rate', $quote->exchange_rate) }}"></label>
                     </div>
-                    <label><span>Internal notes</span><textarea name="notes" rows="4">{{ $quote->notes }}</textarea></label>
-                    <div class="quotes-form-actions"><button class="quotes-btn quotes-btn--primary" type="submit"><x-icon name="check" size="13" /> Save pricing &amp; terms</button><span>Saving pricing increments the quote version for audit safety.</span></div>
+                    <label><span>Internal notes</span><textarea name="notes" rows="4">{{ old('notes', $quote->notes) }}</textarea></label>
+                    <div class="quotes-form-actions"><button class="quotes-btn quotes-btn--primary" type="submit"><x-icon name="check" size="13" /> Save pricing &amp; terms</button><span>Saving pricing recalculates the quote total and increments its audit version.</span></div>
                 </form>
             </section>
         </main>
@@ -132,4 +151,85 @@
         </aside>
     </div>
 </div>
+
+<template id="quote-line-template">
+    <div class="quotes-line-row" data-quote-line>
+        <label><span>Product</span><select name="line_items[__INDEX__][product_id]" data-product-select required><option value="">Select product…</option>@foreach($products as $product)<option value="{{ $product->id }}" data-price="{{ $product->price }}">{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }} · €{{ number_format((float)$product->price, 2) }}</option>@endforeach</select></label>
+        <label><span>Variant</span><select name="line_items[__INDEX__][variant_id]" data-variant-select><option value="">Base product</option>@foreach($products as $product)@foreach($product->variants as $variant)<option value="{{ $variant->id }}" data-product="{{ $product->id }}" data-price="{{ $variant->price ?? $product->price }}">{{ $product->name }} · {{ $variant->sku ?: 'Variant '.$variant->id }}</option>@endforeach @endforeach</select></label>
+        <label><span>Qty</span><input type="number" name="line_items[__INDEX__][quantity]" min="1" max="100000" value="1" required></label>
+        <label><span>Unit price (€)</span><input type="number" name="line_items[__INDEX__][unit_price]" min="0" max="999999999.99" step="0.01" data-unit-price></label>
+        <button class="quotes-line-remove" type="button" data-remove-quote-line title="Remove product" aria-label="Remove product"><x-icon name="trash" size="14" /></button>
+    </div>
+</template>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    const root = document.querySelector('[data-sales-quote-show]');
+    if (!root) return;
+    const list = root.querySelector('[data-quote-lines]');
+    const add = root.querySelector('[data-add-quote-line]');
+    const template = document.getElementById('quote-line-template');
+    if (!list || !add || !template) return;
+
+    const syncVariants = (row, resetSelection = false) => {
+        const product = row.querySelector('[data-product-select]');
+        const variant = row.querySelector('[data-variant-select]');
+        const price = row.querySelector('[data-unit-price]');
+        if (!product || !variant || !price) return;
+        const productId = product.value;
+
+        [...variant.options].forEach((option, index) => {
+            if (index === 0) return;
+            const compatible = option.dataset.product === productId;
+            option.hidden = !compatible;
+            option.disabled = !compatible;
+            if (!compatible && option.selected) option.selected = false;
+        });
+        if (resetSelection) variant.value = '';
+        if (productId && (resetSelection || price.value === '')) {
+            price.value = product.selectedOptions[0]?.dataset.price || '';
+        }
+    };
+
+    const wireRow = (row) => {
+        const product = row.querySelector('[data-product-select]');
+        const variant = row.querySelector('[data-variant-select]');
+        const price = row.querySelector('[data-unit-price]');
+        const remove = row.querySelector('[data-remove-quote-line]');
+        syncVariants(row, false);
+        product?.addEventListener('change', () => syncVariants(row, true));
+        variant?.addEventListener('change', () => {
+            const selected = variant.selectedOptions[0];
+            if (selected?.value && selected.dataset.price) price.value = selected.dataset.price;
+        });
+        remove?.addEventListener('click', () => {
+            const rows = list.querySelectorAll('[data-quote-line]');
+            if (rows.length > 1) {
+                row.remove();
+            } else {
+                row.querySelectorAll('select').forEach((field) => field.selectedIndex = 0);
+                row.querySelectorAll('input').forEach((field) => field.value = field.type === 'number' && field.name.includes('[quantity]') ? '1' : '');
+                syncVariants(row, true);
+            }
+        });
+    };
+
+    list.querySelectorAll('[data-quote-line]').forEach(wireRow);
+    add.addEventListener('click', () => {
+        const nextIndex = [...list.querySelectorAll('[data-quote-line]')].reduce((max, row) => {
+            const field = row.querySelector('[name^="line_items["]');
+            const match = field?.name.match(/line_items\[(\d+)\]/);
+            return Math.max(max, match ? Number(match[1]) : -1);
+        }, -1) + 1;
+        const holder = document.createElement('div');
+        holder.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextIndex)).trim();
+        const row = holder.firstElementChild;
+        list.appendChild(row);
+        wireRow(row);
+        row.querySelector('[data-product-select]')?.focus();
+    });
+})();
+</script>
+@endpush
