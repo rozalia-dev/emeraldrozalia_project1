@@ -8,6 +8,7 @@ use App\Http\Requests\CommunicationTemplateRequest;
 use App\Http\Resources\CommunicationTemplateResource;
 use App\Models\CommunicationTemplate;
 use App\Services\CommunicationTemplateAttachmentService;
+use App\Services\CommunicationTemplateCatalogService;
 use App\Services\CommunicationTemplateRoleService;
 use App\Services\CommunicationTemplateService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,7 @@ class CommunicationTemplateController extends Controller
         private readonly CommunicationTemplateService $service,
         private readonly CommunicationTemplateAttachmentService $attachments,
         private readonly CommunicationTemplateRoleService $roles,
+        private readonly CommunicationTemplateCatalogService $catalog,
     ) {
     }
 
@@ -63,6 +65,19 @@ class CommunicationTemplateController extends Controller
         }
 
         return back()->with('success', 'Template action completed.');
+    }
+
+    public function editorOptions(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', CommunicationTemplate::class);
+        $before = CommunicationTemplate::query()->where('channel', 'email')->count();
+        $this->catalog->ensureForCurrentCompany();
+        $after = CommunicationTemplate::query()->where('channel', 'email')->count();
+
+        return response()->json([
+            'role_options' => $this->roles->roleOptions(),
+            'catalog_created' => max(0, $after - $before),
+        ]);
     }
 
     public function apiIndex(CommunicationTemplateIndexRequest $request): AnonymousResourceCollection
@@ -145,7 +160,7 @@ class CommunicationTemplateController extends Controller
 
         $payload = $this->attachments->apply($request, $payload, $existing);
 
-        if ($request->has('allowed_roles')) {
+        if ($request->has('allowed_roles') || $request->boolean('allowed_roles_present')) {
             $payload = $this->roles->applySelection($payload, (array) $request->input('allowed_roles', []));
         }
 
