@@ -2,14 +2,16 @@
 
 namespace App\Http\Requests;
 
-use App\Services\CommunicationTemplateService;
 use App\Http\Requests\Concerns\AuthorizesCommunication;
+use App\Services\CommunicationTemplateAttachmentService;
+use App\Services\CommunicationTemplateService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class CommunicationTemplateRequest extends FormRequest
 {
     use AuthorizesCommunication;
+
     public function authorize(): bool
     {
         return $this->communicationAuthorized($this->isMethod('POST') ? 'create' : 'edit');
@@ -33,6 +35,10 @@ class CommunicationTemplateRequest extends FormRequest
             $values['status'] = 'draft';
         }
 
+        if ($this->has('attachment_mode')) {
+            $values['attachment_mode'] = strtolower(trim((string) $this->input('attachment_mode')));
+        }
+
         if ($values !== []) {
             $this->merge($values);
         }
@@ -53,6 +59,19 @@ class CommunicationTemplateRequest extends FormRequest
             'language' => ['sometimes', 'nullable', 'string', 'max:80'],
             'variables' => ['sometimes', 'nullable', 'array', 'max:30'],
             'expected_version' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'allowed_roles' => ['sometimes', 'nullable', 'array', 'max:30'],
+            'allowed_roles.*' => ['string', 'max:120'],
+            'attachment_mode' => ['sometimes', 'nullable', 'string', Rule::in(CommunicationTemplateAttachmentService::MODES)],
+            'attachment_label' => ['sometimes', 'nullable', 'string', 'max:180'],
+            'attachment_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'attachment_file' => [
+                'sometimes',
+                'nullable',
+                'file',
+                'max:15360',
+                'mimes:pdf,doc,docx,xls,xlsx,csv,txt,jpg,jpeg,png,webp,zip',
+            ],
+            'remove_attachment_file' => ['sometimes', 'nullable', 'boolean'],
         ];
     }
 
