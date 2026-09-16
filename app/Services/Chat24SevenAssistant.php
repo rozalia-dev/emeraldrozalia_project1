@@ -18,6 +18,10 @@ final class Chat24SevenAssistant
         'Price',
         'Bulk Order',
         'Corporate Order',
+        'Franchise Application',
+        'Franchise Retail Store',
+        'Franchise Requirements',
+        'Book Appointment',
         'Talk to a Person',
     ];
 
@@ -38,6 +42,89 @@ final class Chat24SevenAssistant
         $product = $contextProductSlug ? $this->productBySlug($contextProductSlug, $companyId) : null;
         if (! $product) {
             $product = $this->bestProductMatch($message, $companyId);
+        }
+
+        if ($intent === 'bulk') {
+            $products = [];
+            $body = 'For bulk orders, please use our Bulk Order form so the team receives your product/style, quantity, branding and required date in the correct workflow.';
+            if ($product) {
+                $facts = $this->productFacts($product);
+                $products[] = $facts;
+                $body .= "\n\nI found {$facts['name']} in the current catalogue.";
+                if ($facts['moq'] !== null) {
+                    $body .= ' Its configured MOQ is '.$facts['moq'].' piece(s).';
+                } else {
+                    $body .= ' No product-specific MOQ is currently recorded, so I will not invent one.';
+                }
+            } else {
+                $body .= '\n\nI could not confirm an exact currently published product match from your message. You can still submit the quantity and requested style as a custom/bulk enquiry.';
+            }
+
+            return $this->response(
+                $body,
+                'bulk',
+                false,
+                $products,
+                $this->actionsFor('bulk'),
+            );
+        }
+
+        if ($intent === 'corporate') {
+            $products = [];
+            $body = 'For corporate orders, use our Corporate Order form to send the product/style, quantity, logo/branding method and required delivery date. The request goes into the Communication Center for quotation follow-up.';
+            if ($product) {
+                $facts = $this->productFacts($product);
+                $products[] = $facts;
+                $body .= "\n\nI found {$facts['name']} in the current catalogue and included it below for reference.";
+            }
+
+            return $this->response(
+                $body,
+                'corporate',
+                false,
+                $products,
+                $this->actionsFor('corporate'),
+            );
+        }
+
+        if ($intent === 'franchise_application') {
+            return $this->response(
+                'You can submit an Emerald Rozalia franchise application online. The form collects your contact details, preferred city/region and business background so the franchise team can review it and follow up with you.',
+                'franchise_application',
+                false,
+                [],
+                $this->actionsFor('franchise_application'),
+            );
+        }
+
+        if ($intent === 'franchise_retail') {
+            return $this->response(
+                'If you want to own and operate an Emerald Rozalia franchise retail store, use the retail-store application link below. It opens the store-owner/franchise application workflow for the franchise team.',
+                'franchise_retail',
+                false,
+                [],
+                $this->actionsFor('franchise_retail'),
+            );
+        }
+
+        if ($intent === 'franchise_requirements') {
+            return $this->response(
+                'I can show you the Franchise Requirements & Document Checklist. It explains the initial applicant information and the supporting documents that may be requested during verification. Exact document requirements can vary, so the franchise team confirms them before sensitive documents are requested.',
+                'franchise_requirements',
+                false,
+                [],
+                $this->actionsFor('franchise_requirements'),
+            );
+        }
+
+        if ($intent === 'appointment') {
+            return $this->response(
+                'You can book a conversation with the Emerald Rozalia team using the calendar. Choose an available weekday date and Irish-time slot, add your contact details and submit the meeting request.',
+                'appointment',
+                false,
+                [],
+                $this->actionsFor('appointment'),
+            );
         }
 
         $factIntents = ['fabric', 'size', 'fabric_size', 'price', 'stock', 'moq'];
@@ -84,36 +171,12 @@ final class Chat24SevenAssistant
             );
         }
 
-        if ($intent === 'bulk') {
-            return $this->response(
-                'For bulk orders I can help with product choice, quantity, branding method and required date. MOQ is product-specific, so I will only quote a minimum quantity when it is configured for that product. Tell me the product or style and your required quantity.',
-                'bulk',
-                false,
-            );
-        }
-
-        if ($intent === 'corporate') {
-            return $this->response(
-                'For corporate orders I can help with hats/caps, quantity, embroidery or print requirements, delivery date and quotation preparation. Tell me the product/style and approximate quantity you need.',
-                'corporate',
-                false,
-            );
-        }
-
-        if ($intent === 'franchise') {
-            return $this->response(
-                'I can help with Emerald Rozalia franchise information and can pass your enquiry to the franchise team. Tell me your preferred location and whether you are enquiring about a franchise or franchise retail store.',
-                'franchise',
-                false,
-            );
-        }
-
         if ($product) {
             return $this->answerForProduct($product, 'product');
         }
 
         return $this->response(
-            'I can help 24/7 with Emerald Rozalia products, fabrics, sizes, current prices, stock, MOQ, New Arrivals, Irish Heritage, Irish Traditional, GAA-related products, bulk orders, corporate orders and franchise enquiries. Tell me what you would like to know, or choose one of the quick options below.',
+            'I can help 24/7 with Emerald Rozalia products, fabrics, sizes, current prices, stock, MOQ, New Arrivals, Irish Heritage, Irish Traditional, GAA-related products, bulk and corporate order forms, franchise applications, franchise retail stores, franchise requirements and appointment booking. Choose an option below or tell me what you need.',
             'general',
             false,
         );
@@ -122,7 +185,7 @@ final class Chat24SevenAssistant
     public function greeting(): array
     {
         return $this->response(
-            'Hi 👋 Welcome to Emerald Rozalia Limited. I’m the 24/7 product assistant. Ask me about products, fabrics, sizes, prices, stock, MOQ, New Arrivals, Irish Heritage, Irish Traditional, GAA-related products, bulk orders, corporate orders or franchise information.',
+            'Hi 👋 Welcome to Emerald Rozalia Limited. I’m the 24/7 product assistant. Ask about products, fabrics, sizes, prices, stock, MOQ, New Arrivals, Irish Heritage, Irish Traditional, GAA-related products, bulk/corporate orders, franchise applications, franchise retail stores, requirements or booking an appointment.',
             'greeting',
             false,
         );
@@ -131,6 +194,13 @@ final class Chat24SevenAssistant
     private function intent(string $message): string
     {
         if ($this->containsAny($message, ['human', 'person', 'agent', 'staff', 'talk to someone', 'speak to someone'])) return 'human';
+        if ($this->containsAny($message, ['book appointment', 'appointment', 'schedule meeting', 'book meeting', 'calendar', 'choose date', 'choose time'])) return 'appointment';
+        if ($this->containsAny($message, ['franchise requirement', 'franchise requirements', 'requirement document', 'requirements document', 'document checklist', 'documents required'])) return 'franchise_requirements';
+        if ($this->containsAny($message, ['franchise retail', 'retail store', 'store owner', 'own a store', 'be a store owner'])) return 'franchise_retail';
+        if ($this->containsAny($message, ['franchise application', 'apply franchise', 'apply for franchise', 'franchise apply'])) return 'franchise_application';
+        if ($this->containsAny($message, ['bulk', 'wholesale']) || $this->hasBulkQuantity($message)) return 'bulk';
+        if ($this->containsAny($message, ['corporate', 'company order', 'company logo', 'staff uniform'])) return 'corporate';
+        if ($this->containsAny($message, ['franchise'])) return 'franchise_application';
         if ($this->containsAny($message, ['new arrival', 'new arrivals', 'latest', 'new products'])) return 'new_arrivals';
         if ($this->containsAny($message, ['irish heritage', 'heritage'])) return 'irish_heritage';
         if ($this->containsAny($message, ['irish traditional', 'traditional irish', 'flat hat'])) return 'irish_traditional';
@@ -147,11 +217,62 @@ final class Chat24SevenAssistant
         if ($this->containsAny($message, ['price', 'cost', 'how much', '€', 'eur'])) return 'price';
         if ($this->containsAny($message, ['stock', 'available', 'availability', 'in stock'])) return 'stock';
         if ($this->containsAny($message, ['moq', 'minimum order', 'minimum quantity', 'minimum order quantity'])) return 'moq';
-        if ($this->containsAny($message, ['bulk', 'wholesale', '100 pcs', '100 pieces', '200 pcs', '200 pieces'])) return 'bulk';
-        if ($this->containsAny($message, ['corporate', 'company order', 'company logo'])) return 'corporate';
-        if ($this->containsAny($message, ['franchise', 'store owner'])) return 'franchise';
 
         return 'product';
+    }
+
+    private function hasBulkQuantity(string $message): bool
+    {
+        if (! preg_match_all('/\b([0-9][0-9,]*)\s*(?:pcs?|pieces?|units?)\b/i', $message, $matches)) {
+            return false;
+        }
+
+        foreach ($matches[1] as $raw) {
+            $quantity = (int) str_replace(',', '', (string) $raw);
+            if ($quantity >= 50) return true;
+        }
+
+        return false;
+    }
+
+    private function actionsFor(string $intent): array
+    {
+        return match ($intent) {
+            'bulk' => [[
+                'label' => 'Fill Bulk Order Form',
+                'url' => route('bulk.orders').'#bulk-quote',
+            ]],
+            'corporate' => [[
+                'label' => 'Fill Corporate Order Form',
+                'url' => route('corporate.orders').'#corporate-quote',
+            ]],
+            'franchise_application' => [[
+                'label' => 'Apply for Franchise',
+                'url' => route('franchise').'#franchise-enquiry',
+            ], [
+                'label' => 'View Requirements',
+                'url' => route('franchise.requirements'),
+            ]],
+            'franchise_retail' => [[
+                'label' => 'Apply for Franchise Retail Store',
+                'url' => route('store.owner').'#franchise-enquiry',
+            ], [
+                'label' => 'View Requirements',
+                'url' => route('franchise.requirements'),
+            ]],
+            'franchise_requirements' => [[
+                'label' => 'Open Requirements & Document Checklist',
+                'url' => route('franchise.requirements'),
+            ], [
+                'label' => 'Apply for Franchise',
+                'url' => route('franchise').'#franchise-enquiry',
+            ]],
+            'appointment' => [[
+                'label' => 'Choose Date & Time',
+                'url' => route('contact').'#contact-schedule',
+            ]],
+            default => [],
+        };
     }
 
     private function answerForProduct(Product $product, string $intent): array
@@ -276,6 +397,7 @@ final class Chat24SevenAssistant
             ->reject(fn (string $token) => in_array($token, [
                 'what', 'kind', 'price', 'size', 'sizes', 'fabric', 'material', 'stock', 'available',
                 'minimum', 'order', 'quantity', 'this', 'that', 'product', 'please', 'cost', 'much',
+                'bulk', 'wholesale', 'pieces', 'piece', 'units', 'unit', 'corporate', 'franchise',
             ], true))
             ->unique()
             ->take(6)
@@ -370,13 +492,14 @@ final class Chat24SevenAssistant
         return implode("\n", $parts);
     }
 
-    private function response(string $body, string $intent, bool $requiresHuman, array $products = []): array
+    private function response(string $body, string $intent, bool $requiresHuman, array $products = [], array $actions = []): array
     {
         return [
             'body' => $body,
             'intent' => $intent,
             'requires_human' => $requiresHuman,
             'products' => $products,
+            'actions' => $actions,
             'quick_actions' => self::QUICK_ACTIONS,
         ];
     }
