@@ -4,6 +4,7 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/admin-quotes.css?v=20260916-3') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-quotes-editor.css?v=20260916-1') }}">
 @endpush
 
 @section('content')
