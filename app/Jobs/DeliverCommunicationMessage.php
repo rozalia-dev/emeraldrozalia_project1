@@ -44,7 +44,8 @@ class DeliverCommunicationMessage implements ShouldQueue
         $message->refresh();
 
         $channel = (string) $message->conversation->channel;
-        if (! in_array($channel, ['email', 'whatsapp', 'chat'], true)) {
+        $deliveryChannel = $this->deliveryChannel($message);
+        if (! in_array($deliveryChannel, ['email', 'whatsapp', 'chat'], true)) {
             $message->update([
                 'delivery_status' => 'awaiting_provider',
                 'failure_code' => 'channel_not_supported',
@@ -55,7 +56,7 @@ class DeliverCommunicationMessage implements ShouldQueue
             return;
         }
 
-        $provider = $providers->for($channel);
+        $provider = $providers->for($deliveryChannel);
         if (! $provider) {
             $message->update([
                 'delivery_status' => 'awaiting_provider',
@@ -67,11 +68,14 @@ class DeliverCommunicationMessage implements ShouldQueue
             return;
         }
 
+        $payload = (array) $message->payload;
+        $payload['delivery_channel'] = $deliveryChannel;
         $message->update([
             'delivery_status' => 'sending',
             'failure_code' => null,
             'failure_message' => null,
             'failed_at' => null,
+            'payload' => $payload,
         ]);
 
         try {
@@ -125,5 +129,17 @@ class DeliverCommunicationMessage implements ShouldQueue
             null,
             app(CommunicationCenter::class)->messageState($message->fresh()),
         );
+    }
+
+    private function deliveryChannel(ConversationMessage $message): string
+    {
+        $channel = (string) $message->conversation?->channel;
+        $contact = trim((string) $message->conversation?->contact);
+
+        if ($channel === 'web' && filter_var($contact, FILTER_VALIDATE_EMAIL)) {
+            return 'email';
+        }
+
+        return $channel;
     }
 }
