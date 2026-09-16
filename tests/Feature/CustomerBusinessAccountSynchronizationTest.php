@@ -64,7 +64,7 @@ class CustomerBusinessAccountSynchronizationTest extends TestCase
             ->get('/account/corporate-orders')
             ->assertOk()
             ->assertSee('Corporate Quotes &amp; Orders', false)
-            ->assertSee('Verified Corporate Ltd');
+            ->assertSee(substr((string) $corporateQuote->uuid, 0, 10));
 
         $this->actingAs($user)
             ->get('/account/franchise')
@@ -103,7 +103,7 @@ class CustomerBusinessAccountSynchronizationTest extends TestCase
         $this->actingAs($user)
             ->get('/account/corporate-orders')
             ->assertOk()
-            ->assertDontSee('Independent Business Lead');
+            ->assertSee('No corporate quote requests are linked to this account yet.');
     }
 
     public function test_guest_can_submit_bulk_request_without_creating_an_account(): void
