@@ -1,0 +1,13 @@
+/* Quote product-line editor */
+.quotes-line-editor{overflow:hidden;border:1px solid #dce6df;border-radius:8px;background:#fbfcfb}
+.quotes-line-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border-bottom:1px solid #e4ebe6;background:#f5f8f6}
+.quotes-line-toolbar>div{display:grid;gap:2px}.quotes-line-toolbar strong{font-size:10px;color:#263b2f}.quotes-line-toolbar span{font-size:8.5px;color:#7a887f}
+.quotes-line-head,.quotes-line-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(180px,1.4fr) 78px 120px 32px;gap:8px;align-items:end}
+.quotes-line-head{padding:7px 9px;background:#f9fbfa;border-bottom:1px solid #e9eeeb;color:#78877e;font-size:8px;font-weight:800;letter-spacing:.045em;text-transform:uppercase}
+.quotes-line-row{padding:9px;border-bottom:1px solid #edf1ee;background:#fff}.quotes-line-row:last-child{border-bottom:0}.quotes-line-row:hover{background:#fcfdfc}
+.quotes-line-row label{display:grid;gap:4px;margin:0}.quotes-line-row label>span{display:none}.quotes-line-row select,.quotes-line-row input{width:100%;height:34px;padding:0 9px;border:1px solid #cfdad3;border-radius:6px;background:#fff;color:#21352a;font:inherit;font-size:10px;outline:none}.quotes-line-row select:focus,.quotes-line-row input:focus{border-color:#70a984;box-shadow:0 0 0 3px rgba(63,139,89,.1)}
+.quotes-line-remove{display:grid;place-items:center;width:32px;height:34px;padding:0;border:1px solid #e2cdcd;border-radius:6px;background:#fff;color:#a84b4b;cursor:pointer}.quotes-line-remove:hover{background:#fff3f3;border-color:#d8aaaa}
+.quotes-catalog-warning{display:flex;align-items:center;gap:7px;margin:9px;padding:9px 10px;border:1px solid #edd4a7;border-radius:6px;background:#fff8e9;color:#835e1d;font-size:9px}
+@media(max-width:1050px){.quotes-line-head{display:none}.quotes-line-row{grid-template-columns:1fr 1fr 90px 120px 32px}.quotes-line-row label>span{display:block;color:#718077;font-size:8px;font-weight:700}}
+@media(max-width:760px){.quotes-line-row{grid-template-columns:1fr 1fr}.quotes-line-row label:nth-child(3),.quotes-line-row label:nth-child(4){grid-column:auto}.quotes-line-remove{align-self:end}.quotes-line-toolbar{align-items:flex-start;flex-direction:column}}
+@media(max-width:520px){.quotes-line-row{grid-template-columns:1fr}.quotes-line-remove{width:100%}}
