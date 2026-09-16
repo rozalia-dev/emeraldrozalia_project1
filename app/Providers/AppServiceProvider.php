@@ -1,6 +1,6 @@
 <?php
 namespace App\Providers;
-use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
+use App\Models\{Address,AdminRecord,CatalogClub,CatalogCountry,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
 use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -44,6 +44,47 @@ class AppServiceProvider extends ServiceProvider {
                 $record->public_uuid ??= (string) Str::uuid();
             });
         }
+
+        Product::addGlobalScope('publicCatalogCountryClub', function (\Illuminate\Database\Eloquent\Builder $builder): void {
+            if (app()->runningInConsole() || request()->is('admin/*') || ! request()->is('shop', 'category/*')) {
+                return;
+            }
+
+            $countryCode = strtoupper(trim((string) request()->query('country', '')));
+            $clubSlug = Str::slug((string) request()->query('club', ''));
+            if ($countryCode === '' && $clubSlug === '') {
+                return;
+            }
+
+            $routeCategory = request()->route('category');
+            $taxonomy = $this->publicCatalogTaxonomyContext($routeCategory instanceof Category ? $routeCategory : null);
+            $country = $countryCode !== ''
+                ? CatalogCountry::query()->active()->where('code', $countryCode)->first()
+                : null;
+
+            if (! $country || ($taxonomy === 'uefa' && ! $country->is_uefa) || (in_array($taxonomy, ['traditional', 'heritage'], true) && ! $country->is_eu)) {
+                $builder->whereRaw('1 = 0');
+                return;
+            }
+
+            $builder->whereHas('category', function ($categoryQuery) use ($country, $clubSlug, $taxonomy): void {
+                $categoryQuery->where('catalog_country_id', $country->id);
+
+                if ($clubSlug !== '') {
+                    if (in_array($taxonomy, ['traditional', 'heritage'], true)) {
+                        $categoryQuery->whereRaw('1 = 0');
+                        return;
+                    }
+
+                    $categoryQuery->whereHas('catalogClub', function ($clubQuery) use ($clubSlug, $country, $taxonomy): void {
+                        $clubQuery->where('slug', $clubSlug)
+                            ->where('catalog_country_id', $country->id)
+                            ->where('is_active', true)
+                            ->when(in_array($taxonomy, ['uefa', 'fifa', 'gaa'], true), fn ($query) => $query->where('governing_body', $taxonomy));
+                    });
+                }
+            });
+        });
 
         Event::listen(\App\Events\SalesQuoteConverted::class, [\App\Services\AutomationEventBridge::class, 'salesQuoteConverted']);
         Event::listen(\App\Events\CommunicationConversationChanged::class, [\App\Services\AutomationEventBridge::class, 'conversationChanged']);
@@ -92,6 +133,38 @@ class AppServiceProvider extends ServiceProvider {
             };
             $flattenCatalog($catalogTree);
 
+            if (request()->routeIs('shop', 'category')) {
+                $routeCategory = request()->route('category');
+                $activeCategory = $view->getData()['activeCategory'] ?? ($routeCategory instanceof Category ? $routeCategory : null);
+                $taxonomy = $this->publicCatalogTaxonomyContext($activeCategory);
+                $countryOptions = CatalogCountry::query()
+                    ->active()
+                    ->forTaxonomy($taxonomy)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name']);
+                $showClubFilter = in_array($taxonomy, ['uefa', 'fifa', 'gaa'], true);
+                $clubOptions = $showClubFilter
+                    ? CatalogClub::query()
+                        ->active()
+                        ->with('country:id,code,name')
+                        ->where('governing_body', $taxonomy)
+                        ->orderBy('catalog_country_id')
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->get(['id', 'catalog_country_id', 'name', 'slug'])
+                    : collect();
+
+                View::startPush('scripts', view('site.partials.catalog-country-filter-script', [
+                    'countryOptions' => $countryOptions,
+                    'clubOptions' => $clubOptions,
+                    'selectedCountryCode' => strtoupper(trim((string) request()->query('country', ''))),
+                    'selectedClubSlug' => Str::slug((string) request()->query('club', '')),
+                    'showClubFilter' => $showClubFilter,
+                    'taxonomy' => $taxonomy,
+                ])->render());
+            }
+
             $view->with([
                 'footerPages' => $footerPages,
                 'siteSettings' => $siteSettings,
@@ -108,6 +181,28 @@ class AppServiceProvider extends ServiceProvider {
             ])->render());
             View::startPush('scripts', view('admin.partials.cpanel-theme-nav')->render());
         });
+    }
+
+    private function publicCatalogTaxonomyContext(?Category $category): ?string
+    {
+        $known = ['uefa', 'fifa', 'gaa', 'traditional', 'heritage'];
+        $taxonomy = strtolower(trim((string) $category?->taxonomy_type));
+        if (in_array($taxonomy, $known, true)) {
+            return $taxonomy;
+        }
+
+        if (! $category) {
+            return null;
+        }
+
+        $haystack = strtolower(trim($category->slug.' '.$category->name));
+        foreach ($known as $candidate) {
+            if (str_contains($haystack, $candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function withCatalogueMenu(array $siteLayout): array
