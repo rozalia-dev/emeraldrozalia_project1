@@ -84,6 +84,25 @@ class SpinController extends Controller
     }
     public function store(Request $request) { return $this->save($request); }
     public function update(Request $request, ProductSpin $spin) { return $this->save($request,$spin); }
+
+    private function deleteSpin(ProductSpin $spin): void
+    {
+        $before = $spin->toArray();
+        $files = array_values(array_filter($spin->frames ?? []));
+        AuditTrail::record('spin.deleted', $spin, $before, null);
+        $spin->delete();
+        if ($files !== []) {
+            DB::afterCommit(fn () => Storage::disk('local')->delete($files));
+        }
+    }
+
+    public function destroy(ProductSpin $spin)
+    {
+        DB::transaction(fn () => $this->deleteSpin($spin));
+
+        return redirect()->route('admin.spins.index')->with('success','360° view deleted.');
+    }
+
     public function bulk(Request $request)
     {
         $data=$request->validate(['ids'=>'required|array|min:1|max:100','ids.*'=>'integer|distinct','action'=>['required',Rule::in(['published','draft','archived','delete'])]]);
@@ -91,14 +110,13 @@ class SpinController extends Controller
             $spins=ProductSpin::whereIn('id',$data['ids'])->lockForUpdate()->get();
             abort_unless($spins->count()===count($data['ids']),422,'Select views in the current company.');
             foreach($spins as $spin){
-                $before=$spin->toArray();
                 if($data['action']==='delete'){
-                    AuditTrail::record('spin.deleted',$spin,$before,null); $files=$spin->frames; $spin->delete();
-                    DB::afterCommit(fn()=>Storage::disk('local')->delete($files));
-                }else{
-                    $spin->update(['status'=>$data['action'],'updated_by'=>auth()->user()->name]);
-                    AuditTrail::record('spin.'.$data['action'],$spin,$before,$spin->toArray());
+                    $this->deleteSpin($spin);
+                    continue;
                 }
+                $before=$spin->toArray();
+                $spin->update(['status'=>$data['action'],'updated_by'=>auth()->user()->name]);
+                AuditTrail::record('spin.'.$data['action'],$spin,$before,$spin->toArray());
             }
         });
         return back()->with('success','Selected 360° views updated.');
