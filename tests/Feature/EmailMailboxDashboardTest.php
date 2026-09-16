@@ -2,17 +2,31 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Admin\EmailMailboxController;
 use App\Jobs\DeliverCommunicationMessage;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class EmailMailboxDashboardTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_email_mailbox_keeps_communication_center_route_name_after_name_lookup_refresh(): void
+    {
+        app('router')->getRoutes()->refreshNameLookups();
+
+        $this->assertTrue(Route::has('admin.communication-center.page.email'));
+
+        $route = app('router')->getRoutes()->getByName('admin.communication-center.page.email');
+        $this->assertNotNull($route);
+        $this->assertSame('admin/resource/email', $route->uri());
+        $this->assertSame(EmailMailboxController::class.'@index', $route->getActionName());
+    }
 
     public function test_admin_email_dashboard_exposes_mailbox_folders_and_mail_setup(): void
     {
