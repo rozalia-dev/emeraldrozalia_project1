@@ -129,4 +129,40 @@ class CustomerBusinessAccountSynchronizationTest extends TestCase
         $this->assertSame('bulk', $quote->order_type);
         $this->assertSame('submitted', $quote->status);
     }
+
+    public function test_verified_account_claims_earlier_guest_records_with_same_email(): void
+    {
+        $this->from('/bulk-orders')
+            ->post('/enquiry', [
+                'type' => 'bulk-orders',
+                'name' => 'Future Account Holder',
+                'email' => 'future.customer@example.com',
+                'company' => 'Future Customer Ltd',
+                'message' => 'Guest request before creating an account.',
+            ])
+            ->assertRedirect('/bulk-orders');
+
+        $inquiry = Inquiry::query()->where('email', 'future.customer@example.com')->firstOrFail();
+        $quote = SalesQuote::query()->where('inquiry_id', $inquiry->id)->firstOrFail();
+        $this->assertNull($inquiry->customer_id);
+        $this->assertNull($quote->customer_id);
+
+        $user = User::factory()->create([
+            'email' => 'future.customer@example.com',
+            'email_verified_at' => now(),
+            'is_admin' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/account/bulk-orders')
+            ->assertOk()
+            ->assertSee(substr((string) $quote->uuid, 0, 10));
+
+        $this->assertSame($user->id, $inquiry->fresh()->customer_id);
+        $this->assertSame($user->id, $quote->fresh()->customer_id);
+        $this->assertSame(
+            $user->id,
+            Conversation::query()->where('inquiry_id', $inquiry->id)->value('customer_id')
+        );
+    }
 }
