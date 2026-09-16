@@ -35,6 +35,9 @@ Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])-
     Route::get('/communication-center/whatsapp/qr', [WhatsAppEngineController::class, 'qr'])
         ->middleware('throttle:120,1')
         ->name('admin.communication-center.whatsapp.qr');
+    Route::post('/communication-center/whatsapp/messages', [WhatsAppEngineController::class, 'send'])
+        ->middleware('throttle:60,1')
+        ->name('admin.communication-center.whatsapp.send');
 
     Route::get('/communication-center/{section}/export', [CommunicationCenterController::class, 'export'])
         ->where('section', $communicationSectionPattern)
