@@ -5,25 +5,27 @@ This service is the persistent Node.js process behind Project 1's existing Commu
 ## What it does
 
 - Runs `whatsapp-web.js` with `LocalAuth` session persistence.
-- Exposes a private bearer-token protected `/send-message` endpoint for Laravel.
-- Exposes private `/status` and `/qr-data` endpoints used by the cPanel WhatsApp setup page.
+- Exposes bearer-token protected `/send-message`, `/status` and `/qr-data` endpoints.
 - Forwards inbound WhatsApp messages to Laravel's signed inbound webhook.
 - Forwards delivery acknowledgements to Laravel's existing communication webhook pipeline.
 - Persists a bounded idempotency ledger so Laravel queue retries do not duplicate already accepted sends after a Node restart.
 
-## Security boundary
+## Production architecture
 
-Keep the engine bound to `127.0.0.1`. Do not expose port `3001` publicly. The Laravel application is the only intended caller.
+Production runs this engine as the `whatsapp-engine` service in the existing Docker Compose project. No host port is published. Laravel and its queue worker reach it only through the private Compose DNS name:
 
-`WHATSAPP_ENGINE_TOKEN` must match Laravel `COMMUNICATION_WHATSAPP_TOKEN`.
+`http://whatsapp-engine:3001`
 
-`LARAVEL_WEBHOOK_SECRET` must match Laravel `COMMUNICATION_WHATSAPP_WEBHOOK_SECRET`.
+The WhatsApp auth/session state is stored in the persistent `whatsapp-session` Docker volume and therefore survives container replacement and normal Laravel deployments.
 
-## Runtime
+The root Laravel `.env` supplies the two shared secrets:
 
-Node.js 18 or newer is required by `whatsapp-web.js` 1.34.7.
+- `COMMUNICATION_WHATSAPP_TOKEN` -> Node `WHATSAPP_ENGINE_TOKEN`
+- `COMMUNICATION_WHATSAPP_WEBHOOK_SECRET` -> Node `LARAVEL_WEBHOOK_SECRET`
 
-Copy `.env.example` to `.env`, fill the secrets, then run:
+## Local standalone runtime
+
+For local development outside Docker, Node.js 18 or newer is required by `whatsapp-web.js` 1.34.7. Copy `.env.example` to `.env`, fill the secrets, then run:
 
 ```bash
 npm install --omit=dev
@@ -31,11 +33,9 @@ npm run check
 npm start
 ```
 
-For production, install `whatsapp-engine.service.example` as a systemd unit after adjusting the project path and Linux service user if necessary.
-
 ## Laravel cPanel
 
-After the Laravel environment values are configured and the Node service is running, open:
+After the production `.env` values are configured and the Docker service is running, open:
 
 `/admin/communication-center/whatsapp/setup`
 
