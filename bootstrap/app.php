@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureAdminExportFormats;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureFranchisePermission;
 use App\Http\Middleware\EnsureCommunicationPermission;
+use App\Http\Middleware\InjectPublicChatWidget;
 use App\Http\Middleware\ResolveTenantContext;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -41,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'communication.permission' => EnsureCommunicationPermission::class,
         ]);
         $middleware->appendToGroup('web', ApplySeoRedirects::class);
+        $middleware->appendToGroup('web', InjectPublicChatWidget::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {})
     ->create();
