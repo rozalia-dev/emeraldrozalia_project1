@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CommunicationCenterController;
 use App\Http\Controllers\Admin\CommunicationApprovalController;
 use App\Http\Controllers\Admin\CommunicationEmailController;
 use App\Http\Controllers\Admin\CommunicationTemplateController;
+use App\Http\Controllers\Admin\WhatsAppEngineController;
 use Illuminate\Support\Facades\Route;
 
 $communicationSectionPattern = implode('|', CommunicationCenterController::SECTIONS);
@@ -25,6 +26,15 @@ Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])-
             ->defaults('section', $section)
             ->name('admin.communication-center.page.'.$section);
     }
+
+    Route::get('/communication-center/whatsapp/setup', [WhatsAppEngineController::class, 'index'])
+        ->name('admin.communication-center.whatsapp.setup');
+    Route::get('/communication-center/whatsapp/status', [WhatsAppEngineController::class, 'status'])
+        ->middleware('throttle:120,1')
+        ->name('admin.communication-center.whatsapp.status');
+    Route::get('/communication-center/whatsapp/qr', [WhatsAppEngineController::class, 'qr'])
+        ->middleware('throttle:120,1')
+        ->name('admin.communication-center.whatsapp.qr');
 
     Route::get('/communication-center/{section}/export', [CommunicationCenterController::class, 'export'])
         ->where('section', $communicationSectionPattern)
