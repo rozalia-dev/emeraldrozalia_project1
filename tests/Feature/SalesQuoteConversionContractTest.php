@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\SalesQuoteConverted;
-use App\Models\{AuditLog, Conversation, Inquiry, InventoryMovement, Order, PaymentTransaction, Product, ProductVariant, SalesQuote, User};
+use App\Models\{AuditLog, Conversation, FranchiseApplication, Inquiry, Order, Product, ProductVariant, SalesQuote, User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -12,16 +12,17 @@ class SalesQuoteConversionContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_corporate_bulk_and_franchise_enquiries_create_traceable_submitted_quotes_without_orders(): void
+    public function test_corporate_and_bulk_enquiries_create_traceable_quotes_while_franchise_apply_creates_an_application(): void
     {
-        foreach (['corporate-orders' => 'corporate', 'bulk-orders' => 'bulk', 'franchise' => 'franchise'] as $type => $orderType) {
+        foreach (['corporate-orders' => 'corporate', 'bulk-orders' => 'bulk'] as $type => $orderType) {
             $this->from('/'.$type)->post('/enquiry', [
                 'type' => $type,
                 'name' => ucfirst($orderType).' Requester',
                 'email' => $orderType.'-'.uniqid().'@example.com',
                 'company' => ucfirst($orderType).' Trading Ltd',
                 'message' => 'Please prepare a quote for our requirements.',
-                'consent' => $type === 'franchise' ? '1' : null,
+                'product_interest' => 'Branded hats and caps',
+                'estimated_quantity' => 250,
             ])->assertRedirect('/'.$type);
 
             $quote = SalesQuote::query()->where('order_type', $orderType)->latest('id')->firstOrFail();
@@ -31,8 +32,28 @@ class SalesQuoteConversionContractTest extends TestCase
             $this->assertNull($quote->order_id);
         }
 
+        $this->from('/franchise')->post('/enquiry', [
+            'type' => 'franchise',
+            'name' => 'Franchise Applicant',
+            'email' => 'franchise-'.uniqid().'@example.com',
+            'company' => 'Limerick City Centre',
+            'country' => 'Ireland',
+            'message' => 'I would like to operate an Emerald Rozalia franchise.',
+            'preferred_location' => 'Limerick City Centre',
+            'investment_range' => '€50,000–€100,000',
+            'consent' => '1',
+        ])->assertRedirect('/franchise');
+
+        $application = FranchiseApplication::query()->latest('id')->firstOrFail();
+        $this->assertSame('new', $application->status);
+        $this->assertSame('Limerick City Centre', $application->preferred_location);
+        $this->assertNotNull($application->inquiry_id);
+        $this->assertTrue(Conversation::query()->where('franchise_application_id', $application->id)->exists());
+        $this->assertFalse(SalesQuote::query()->where('inquiry_id', $application->inquiry_id)->exists());
+
         $this->assertDatabaseCount('orders', 0);
-        $this->assertDatabaseCount('sales_quotes', 3);
+        $this->assertDatabaseCount('sales_quotes', 2);
+        $this->assertDatabaseCount('franchise_applications', 1);
     }
 
     public function test_admin_can_price_approve_and_convert_a_quote_into_one_shared_order(): void
@@ -159,12 +180,12 @@ class SalesQuoteConversionContractTest extends TestCase
         $this->assertSame(7, (int) $product->fresh()->stock);
     }
 
-    public function test_insufficient_inventory_rolls_back_the_entire_conversion(): void
+    public function test_insufficient_inventory_rolls_back_the_entire_quote_conversion(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        [$quote, $product] = $this->approvedQuote('franchise', 4, 2);
+        [$quote, $product] = $this->approvedQuote('bulk', 4, 2);
 
-        $this->actingAs($admin)->withHeader('Idempotency-Key', 'franchise-conversion-1')
+        $this->actingAs($admin)->withHeader('Idempotency-Key', 'bulk-conversion-insufficient')
             ->post(route('admin.quotes.convert', $quote), ['expected_version' => 3])
             ->assertSessionHasErrors('inventory');
 
@@ -172,6 +193,35 @@ class SalesQuoteConversionContractTest extends TestCase
         $this->assertDatabaseCount('payment_transactions', 0);
         $this->assertSame(2, (int) $product->fresh()->stock);
         $this->assertSame('approved', $quote->fresh()->status);
+    }
+
+    public function test_public_franchise_inquiry_cannot_be_promoted_to_a_sales_quote_by_the_service(): void
+    {
+        $inquiry = Inquiry::create([
+            'type' => 'franchise',
+            'name' => 'Franchise Applicant',
+            'email' => 'franchise-service-guard@example.com',
+            'company' => 'Limerick',
+            'message' => 'Franchise application, not a supply order.',
+        ]);
+        $conversation = Conversation::create([
+            'inquiry_id' => $inquiry->id,
+            'channel' => 'web',
+            'contact' => $inquiry->email,
+            'subject' => 'Franchise application',
+            'status' => 'new',
+            'priority' => 'high',
+        ]);
+
+        try {
+            app(\App\Services\SalesQuoteService::class)->createFromInquiry($inquiry, $conversation);
+            $this->fail('Public franchise applications must not become sales quotes.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('type', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('sales_quotes', 0);
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_non_admin_cannot_access_the_quote_queue(): void
@@ -193,7 +243,7 @@ class SalesQuoteConversionContractTest extends TestCase
             'status' => 'active',
         ]);
         $inquiry = Inquiry::create([
-            'type' => $orderType === 'franchise' ? 'franchise' : $orderType.'-orders',
+            'type' => $orderType.'-orders',
             'name' => ucfirst($orderType).' Buyer',
             'email' => $orderType.'-buyer@example.com',
             'company' => ucfirst($orderType).' Buyer Ltd',
