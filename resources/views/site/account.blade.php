@@ -30,8 +30,8 @@
                 @php($item = $order->items->first())
                 <article class="account-order">
                     <span class="order-thumb" aria-hidden="true">ER</span>
-                    <div class="order-name"><strong>#{{ $order->number }}</strong><span>{{ $item?->name ?? 'Emerald Rozalia order' }}</span><small>{{ $item?->sku ?? 'Online order' }}</small></div>
-                    <div class="order-date"><span>{{ $order->created_at?->format('d M Y') }}</span><strong>€{{ number_format((float) $order->total, 2) }}</strong></div>
+                    <div class="order-name"><strong>#{{ $order->number }}</strong><span>{{ $item?->name ?? 'Emerald Rozalia order' }}</span><small>{{ str($order->order_type ?: 'online')->headline() }} · {{ $item?->sku ?? 'Order' }}</small></div>
+                    <div class="order-date"><span>{{ $order->created_at?->format('d M Y') }}</span><strong>{{ strtoupper($order->currency ?? 'EUR') }} {{ number_format((float) $order->total, 2) }}</strong></div>
                     <span class="order-status status-{{ str($order->status)->slug() }}">{{ str($order->status)->headline() }}</span>
                     <a class="order-link" href="{{ route('account.invoice', $order) }}">View Order <x-icon name="arrow-right" /></a>
                 </article>
@@ -55,6 +55,9 @@
             <section class="account-card quick-actions">
                 <h2>Quick Actions</h2>
                 <a href="{{ route('account.section', 'orders') }}"><x-icon name="package" /> <span>Track an Order</span> <x-icon name="chevron-right" /></a>
+                <a href="{{ route('account.section', 'corporate-orders') }}"><x-icon name="briefcase" /> <span>Corporate Quotes &amp; Orders ({{ $corporateCount }})</span> <x-icon name="chevron-right" /></a>
+                <a href="{{ route('account.section', 'bulk-orders') }}"><x-icon name="package" /> <span>Bulk Quotes &amp; Orders ({{ $bulkCount }})</span> <x-icon name="chevron-right" /></a>
+                <a href="{{ route('account.section', 'franchise') }}"><x-icon name="home" /> <span>Franchise Status &amp; Orders ({{ $franchiseCount }})</span> <x-icon name="chevron-right" /></a>
                 <a href="{{ route('account.section', 'returns') }}"><x-icon name="refresh" /> <span>Return or Exchange</span> <x-icon name="chevron-right" /></a>
                 <a href="{{ route('account.section', 'orders') }}"><x-icon name="file-text" /> <span>Download Invoices</span> <x-icon name="chevron-right" /></a>
                 <a href="{{ route('account.section', 'addresses') }}"><x-icon name="home" /> <span>Manage Addresses</span> <x-icon name="chevron-right" /></a>
