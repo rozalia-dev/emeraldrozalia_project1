@@ -196,6 +196,46 @@
         });
     };
 
+    const wirePages = () => {
+        const root = document.querySelector('[data-pages-screen]');
+        if (!root) return;
+        const tableWrap = root.querySelector('.pages-table-wrap');
+        const checkboxes = [...root.querySelectorAll('[data-page-select]')];
+        if (!tableWrap || !checkboxes.length) return;
+        checkboxes.forEach((checkbox) => {
+            checkbox.name = 'ids[]';
+            checkbox.setAttribute('form', 'pages-bulk-form');
+        });
+        const params = new URLSearchParams(window.location.search);
+        const isTrash = params.get('tab') === 'trash' || params.get('status') === 'trash';
+        makeToolbar({
+            root,
+            insertBefore: tableWrap,
+            formId: 'pages-bulk-form',
+            action: '/admin/pages/bulk-actions',
+            options: isTrash
+                ? [['restore', 'Restore selected'], ['permanent_delete', 'Permanently delete selected']]
+                : [['publish', 'Publish selected'], ['unpublish', 'Unpublish selected'], ['archive', 'Archive selected'], ['trash', 'Move selected to trash']],
+            checkboxes,
+            destructive: isTrash ? ['permanent_delete'] : ['trash'],
+        });
+        const existingSelectAll = root.querySelector('[data-pages-select-all]');
+        existingSelectAll?.addEventListener('change', () => {
+            checkboxes.forEach((checkbox) => {
+                checkbox.checked = existingSelectAll.checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+        checkboxes.forEach((checkbox) => checkbox.addEventListener('change', () => {
+            const selected = checkboxes.filter((item) => item.checked).length;
+            if (existingSelectAll) {
+                existingSelectAll.checked = selected > 0 && selected === checkboxes.length;
+                existingSelectAll.indeterminate = selected > 0 && selected < checkboxes.length;
+            }
+        }));
+    };
+
     wireProductMedia();
     wireSiteMedia();
+    wirePages();
 })();
