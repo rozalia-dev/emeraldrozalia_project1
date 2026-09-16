@@ -45,9 +45,9 @@
             <span class="contact-option-icon"><x-icon name="globe" size="27" /></span>
             <span><strong>SHOP ONLINE</strong><b>Explore Emerald Rozalia</b><small>Browse our hats and caps</small></span>
         </a>
-        <a class="contact-option" href="#contact-schedule" aria-label="Choose a live chat or meeting time">
-            <span class="contact-option-icon"><x-icon name="message" size="27" /></span>
-            <span><strong>LIVE CHAT</strong><b>Chat with our team</b><small>Choose a time to speak with us</small></span>
+        <a class="contact-option" href="#contact-schedule" aria-label="Book an appointment with Emerald Rozalia">
+            <span class="contact-option-icon"><x-icon name="calendar" size="27" /></span>
+            <span><strong>BOOK APPOINTMENT</strong><b>Choose date, time &amp; meeting type</b><small>Office, Microsoft Teams or Google Meet</small></span>
         </a>
     </section>
 
@@ -59,8 +59,9 @@
             <form id="contact-form" class="contact-form" method="post" action="{{ route('inquiry') }}">
                 @csrf
                 <input type="hidden" name="type" value="contact">
-                <input type="hidden" name="meeting_date" data-schedule-date-input>
-                <input type="hidden" name="meeting_time" data-schedule-time-input>
+                <input type="hidden" name="meeting_date" value="{{ old('meeting_date') }}" data-schedule-date-input>
+                <input type="hidden" name="meeting_time" value="{{ old('meeting_time') }}" data-schedule-time-input>
+                <input type="hidden" name="meeting_type" value="{{ old('meeting_type') }}" data-schedule-type-input>
                 <div class="contact-form-fields">
                     <div class="contact-field">
                         <label for="contact-name">Full Name <span aria-hidden="true">*</span></label>
@@ -90,20 +91,43 @@
                     </div>
                 </div>
                 <label class="contact-consent"><input type="checkbox" name="consent" value="1" required> <span>I agree to the <a href="/factory#privacy-policy">Privacy Policy</a> and <a href="/factory#terms">Terms &amp; Conditions</a>.</span></label>
-                <p class="contact-form-schedule" data-schedule-form-summary hidden></p>
+                <p class="contact-form-schedule" data-schedule-form-summary @if(! old('meeting_date')) hidden @endif>
+                    @if(old('meeting_date')) Appointment request: {{ old('meeting_date') }} at {{ old('meeting_time') }} (Irish Time). @endif
+                </p>
+                @if($errors->has('meeting_date') || $errors->has('meeting_time') || $errors->has('meeting_type'))
+                    <p class="contact-form-schedule" role="alert">{{ $errors->first('meeting_date') ?: ($errors->first('meeting_time') ?: $errors->first('meeting_type')) }}</p>
+                @endif
                 <button class="btn contact-submit" type="submit">SEND MESSAGE <x-icon name="arrow-right" size="18" /></button>
             </form>
         </article>
 
-        <section class="contact-panel contact-schedule" id="contact-schedule" data-contact-scheduler data-contact-month="{{ $contactMonth->format('Y-m') }}" data-contact-today="{{ $contactToday->format('Y-m-d') }}" aria-labelledby="schedule-title">
-            <p class="contact-section-kicker">BOOK A CONVERSATION</p>
-            <h2 id="schedule-title">PICK A TIME THAT WORKS FOR YOU</h2>
-            <p class="contact-panel-intro">Schedule a meeting with our team to discuss your needs.</p>
+        <section
+            class="contact-panel contact-schedule"
+            id="contact-schedule"
+            data-appointment-scheduler
+            data-availability-url="{{ route('appointments.availability') }}"
+            data-contact-month="{{ $contactMonth->format('Y-m') }}"
+            data-contact-today="{{ $contactToday->format('Y-m-d') }}"
+            aria-labelledby="schedule-title"
+        >
+            <p class="contact-section-kicker">BOOK AN APPOINTMENT</p>
+            <h2 id="schedule-title">CHOOSE HOW &amp; WHEN TO MEET</h2>
+            <p class="contact-panel-intro">Appointments are Monday to Friday only, between 13:00 and 14:00 Irish time, with a maximum of four bookings per day. Irish bank and public holidays are unavailable.</p>
             <div class="contact-schedule-points">
-                <div><span><x-icon name="users" size="21" /></span><p><b>One-to-one consultation</b><small>Talk to our hat experts</small></p></div>
-                <div><span><x-icon name="settings" size="21" /></span><p><b>Custom solutions</b><small>For your business or needs</small></p></div>
-                <div><span><x-icon name="clock" size="21" /></span><p><b>Quick &amp; easy</b><small>Pick a time that suits you</small></p></div>
+                <div><span><x-icon name="users" size="21" /></span><p><b>Choose meeting type</b><small>Office, Microsoft Teams or Google Meet</small></p></div>
+                <div><span><x-icon name="clock" size="21" /></span><p><b>13:00–14:00 only</b><small>Four 15-minute appointments per day</small></p></div>
+                <div><span><x-icon name="calendar" size="21" /></span><p><b>Monday–Friday</b><small>Excludes Irish bank/public holidays</small></p></div>
             </div>
+
+            <div class="contact-time-picker">
+                <div class="contact-time-heading"><strong>MEETING TYPE</strong><small>Choose one</small></div>
+                <div class="contact-time-options" role="group" aria-label="Choose meeting type">
+                    <button type="button" data-schedule-meeting-type="in_person" aria-pressed="false">In person — our office</button>
+                    <button type="button" data-schedule-meeting-type="microsoft_teams" aria-pressed="false">Microsoft Teams</button>
+                    <button type="button" data-schedule-meeting-type="google_meet" aria-pressed="false">Google Meet</button>
+                </div>
+            </div>
+
             <div class="contact-calendar" aria-label="Choose a meeting date">
                 <div class="contact-calendar-heading">
                     <button type="button" data-schedule-prev aria-label="Previous month"><x-icon name="chevron-right" size="17" /></button>
@@ -117,20 +141,22 @@
                     @for($blank = 0; $blank < $contactLeadingDays; $blank++)<span class="contact-date-spacer" aria-hidden="true"></span>@endfor
                     @for($day = 1; $day <= $contactMonth->daysInMonth; $day++)
                         @php($date = $contactMonth->copy()->day($day))
-                        <button type="button" class="contact-date-button" data-schedule-date="{{ $date->format('Y-m-d') }}" @disabled($date->lt($contactToday) || $date->isWeekend()) aria-label="{{ $date->format('l j F Y') }}">{{ $day }}</button>
+                        <button type="button" class="contact-date-button" data-schedule-date="{{ $date->format('Y-m-d') }}" disabled aria-label="{{ $date->format('l j F Y') }}. Checking availability.">{{ $day }}</button>
                     @endfor
                 </div>
             </div>
+
             <div class="contact-time-picker">
                 <div class="contact-time-heading"><strong>SELECT TIME</strong><small>(Irish Time)</small></div>
                 <div class="contact-time-options" role="group" aria-label="Choose a meeting time">
-                    @foreach(['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'] as $time)
-                        <button type="button" data-schedule-time="{{ $time }}" aria-pressed="false">{{ $time }}</button>
+                    @foreach(['13:00', '13:15', '13:30', '13:45'] as $time)
+                        <button type="button" data-schedule-time="{{ $time }}" aria-pressed="false" disabled>{{ $time }}</button>
                     @endforeach
                 </div>
             </div>
-            <p class="contact-schedule-summary" data-schedule-summary role="status" aria-live="polite">Choose a date and time, then add it to your message.</p>
-            <button class="btn contact-schedule-apply" type="button" data-schedule-apply>SCHEDULE MEETING <x-icon name="calendar" size="17" /></button>
+
+            <p class="contact-schedule-summary" data-schedule-summary role="status" aria-live="polite">Checking appointment availability…</p>
+            <button class="btn contact-schedule-apply" type="button" data-schedule-apply>SCHEDULE APPOINTMENT <x-icon name="calendar" size="17" /></button>
         </section>
     </section>
 
@@ -187,3 +213,7 @@
     </section>
 </div>
 @endsection
+
+@push('scripts')
+<script src="/js/appointment-scheduler.js?v=20260916-appointment-rules-1"></script>
+@endpush
