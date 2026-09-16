@@ -40,8 +40,17 @@ final class Chat24SevenAssistant
             $product = $this->bestProductMatch($message, $companyId);
         }
 
-        if ($product && in_array($intent, ['fabric', 'size', 'price', 'stock', 'moq', 'product'], true)) {
+        $factIntents = ['fabric', 'size', 'fabric_size', 'price', 'stock', 'moq'];
+        if ($product && in_array($intent, [...$factIntents, 'product'], true)) {
             return $this->answerForProduct($product, $intent);
+        }
+
+        if (! $product && in_array($intent, $factIntents, true)) {
+            return $this->response(
+                $this->missingProductPrompt($intent),
+                $intent,
+                false,
+            );
         }
 
         if ($intent === 'new_arrivals') {
@@ -67,7 +76,12 @@ final class Chat24SevenAssistant
                 'fifa' => 'Here are products currently matching FIFA-related catalogue terms. I will not describe any item as officially licensed unless that status is explicitly recorded in our system.',
             };
 
-            return $this->productListResponse($products, $intent, $intro, in_array($intent, ['uefa', 'fifa'], true) && $products->isEmpty());
+            return $this->productListResponse(
+                $products,
+                $intent,
+                $intro,
+                in_array($intent, ['uefa', 'fifa'], true) && $products->isEmpty(),
+            );
         }
 
         if ($intent === 'bulk') {
@@ -123,8 +137,13 @@ final class Chat24SevenAssistant
         if ($this->containsAny($message, ['gaa', 'gaelic'])) return 'gaa';
         if ($this->containsAny($message, ['uefa'])) return 'uefa';
         if ($this->containsAny($message, ['fifa'])) return 'fifa';
-        if ($this->containsAny($message, ['fabric', 'material', 'cotton', 'wool', 'polyester'])) return 'fabric';
-        if ($this->containsAny($message, ['size', 'sizes', 'fit', 'fitting', 'adjustable'])) return 'size';
+
+        $asksFabric = $this->containsAny($message, ['fabric', 'material', 'cotton', 'wool', 'polyester']);
+        $asksSize = $this->containsAny($message, ['size', 'sizes', 'fit', 'fitting', 'adjustable']);
+        if ($asksFabric && $asksSize) return 'fabric_size';
+        if ($asksFabric) return 'fabric';
+        if ($asksSize) return 'size';
+
         if ($this->containsAny($message, ['price', 'cost', 'how much', '€', 'eur'])) return 'price';
         if ($this->containsAny($message, ['stock', 'available', 'availability', 'in stock'])) return 'stock';
         if ($this->containsAny($message, ['moq', 'minimum order', 'minimum quantity', 'minimum order quantity'])) return 'moq';
@@ -147,6 +166,7 @@ final class Chat24SevenAssistant
             'size' => $facts['sizes'] !== []
                 ? "{$name} is currently recorded with these size/fit options: ".implode(', ', $facts['sizes']).'.'
                 : "I don’t have confirmed size options recorded for {$name}. I can ask our product team rather than guess.",
+            'fabric_size' => $this->fabricAndSizeAnswer($facts),
             'price' => $facts['price'] !== null
                 ? "The current listed price for {$name} is {$facts['price']}. Bulk/corporate pricing may differ by quantity and branding."
                 : "I don’t have a confirmed public price recorded for {$name}.",
@@ -159,14 +179,49 @@ final class Chat24SevenAssistant
             default => $this->productSummary($facts),
         };
 
-        $requiresHuman = in_array($intent, ['fabric', 'size', 'price', 'stock', 'moq'], true)
-            && (($intent === 'fabric' && ! $facts['material'])
-                || ($intent === 'size' && $facts['sizes'] === [])
-                || ($intent === 'price' && $facts['price'] === null)
-                || ($intent === 'stock' && $facts['stock'] === null)
-                || ($intent === 'moq' && $facts['moq'] === null));
+        $requiresHuman = match ($intent) {
+            'fabric' => ! $facts['material'],
+            'size' => $facts['sizes'] === [],
+            'fabric_size' => ! $facts['material'] || $facts['sizes'] === [],
+            'price' => $facts['price'] === null,
+            'stock' => $facts['stock'] === null,
+            'moq' => $facts['moq'] === null,
+            default => false,
+        };
 
         return $this->response($body, $intent, $requiresHuman, [$facts]);
+    }
+
+    private function fabricAndSizeAnswer(array $facts): string
+    {
+        $parts = [$facts['name'].':'];
+        $parts[] = $facts['material']
+            ? 'Material: '.$facts['material']
+            : 'Material: not yet confirmed in our catalogue.';
+        $parts[] = $facts['sizes'] !== []
+            ? 'Sizes/Fit: '.implode(', ', $facts['sizes'])
+            : 'Sizes/Fit: not yet confirmed in our catalogue.';
+
+        if (! $facts['material'] || $facts['sizes'] === []) {
+            $parts[] = 'I can ask our product team to confirm the missing detail rather than guess.';
+        }
+
+        return implode("\n", $parts);
+    }
+
+    private function missingProductPrompt(string $intent): string
+    {
+        $topic = match ($intent) {
+            'fabric' => 'fabric/material',
+            'size' => 'size/fit',
+            'fabric_size' => 'fabric and size',
+            'price' => 'current price',
+            'stock' => 'current stock',
+            'moq' => 'minimum order quantity (MOQ)',
+            default => 'product details',
+        };
+
+        return "I can check the {$topic}, but I need the product first. Tell me the product name/SKU, or open a product page and ask the same question again.";
     }
 
     private function productListResponse(Collection $products, string $intent, string $intro, bool $forceHuman = false): array
@@ -218,7 +273,10 @@ final class Chat24SevenAssistant
 
         $tokens = collect(preg_split('/[^\pL\pN]+/u', Str::lower($message)) ?: [])
             ->filter(fn (string $token) => mb_strlen($token) >= 3)
-            ->reject(fn (string $token) => in_array($token, ['what', 'kind', 'price', 'size', 'fabric', 'material', 'stock', 'available', 'minimum', 'order', 'quantity', 'this', 'that', 'product', 'please'], true))
+            ->reject(fn (string $token) => in_array($token, [
+                'what', 'kind', 'price', 'size', 'sizes', 'fabric', 'material', 'stock', 'available',
+                'minimum', 'order', 'quantity', 'this', 'that', 'product', 'please', 'cost', 'much',
+            ], true))
             ->unique()
             ->take(6)
             ->values();
