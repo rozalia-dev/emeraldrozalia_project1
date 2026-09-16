@@ -81,6 +81,12 @@ class CommunicationTemplate extends Model
     public function getDataAttribute(): array
     {
         $variables = is_array($this->variables) ? $this->variables : [];
+        if (is_array($variables['_attachment'] ?? null)) {
+            $attachment = $variables['_attachment'];
+            $attachment['has_file'] = filled($attachment['file_path'] ?? null);
+            unset($attachment['file_path']);
+            $variables['_attachment'] = $attachment;
+        }
 
         return array_merge([
             'subject' => $this->subject,
