@@ -32,4 +32,9 @@ return [
         'whatsapp' => env('COMMUNICATION_WHATSAPP_WEBHOOK_SECRET'),
         'chat' => env('COMMUNICATION_CHAT_WEBHOOK_SECRET'),
     ],
+
+    // Private localhost-only Node.js WhatsApp Web engine. The same bearer token
+    // used by the outbound HTTP provider protects status/QR endpoints as well.
+    'whatsapp_engine_url' => env('WHATSAPP_ENGINE_URL', 'http://127.0.0.1:3001'),
+    'whatsapp_company_id' => (int) env('COMMUNICATION_WHATSAPP_COMPANY_ID', 0),
 ];
