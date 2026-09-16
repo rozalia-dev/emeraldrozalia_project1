@@ -21,12 +21,11 @@ final class Chat24SevenAssistant
         'Talk to a Person',
     ];
 
-    public function answer(string $message, ?string $contextProductSlug = null): array
+    public function answer(string $message, ?string $contextProductSlug = null, ?int $companyId = null): array
     {
         $message = trim($message);
         $normalized = Str::lower($message);
         $intent = $this->intent($normalized);
-        $requiresHuman = false;
 
         if ($intent === 'human') {
             return $this->response(
@@ -36,9 +35,9 @@ final class Chat24SevenAssistant
             );
         }
 
-        $product = $contextProductSlug ? $this->productBySlug($contextProductSlug) : null;
+        $product = $contextProductSlug ? $this->productBySlug($contextProductSlug, $companyId) : null;
         if (! $product) {
-            $product = $this->bestProductMatch($message);
+            $product = $this->bestProductMatch($message, $companyId);
         }
 
         if ($product && in_array($intent, ['fabric', 'size', 'price', 'stock', 'moq', 'product'], true)) {
@@ -47,7 +46,7 @@ final class Chat24SevenAssistant
 
         if ($intent === 'new_arrivals') {
             return $this->productListResponse(
-                Product::query()->published()->where('is_new', true)->latest('published_at')->latest('id')->limit(5)->get(),
+                $this->productQuery($companyId)->published()->where('is_new', true)->latest('published_at')->latest('id')->limit(5)->get(),
                 'new_arrivals',
                 'Here are the latest products currently marked as New Arrivals.',
             );
@@ -59,7 +58,7 @@ final class Chat24SevenAssistant
                 'irish_traditional' => 'irish traditional',
                 default => $intent,
             };
-            $products = $this->productsForTopic($term);
+            $products = $this->productsForTopic($term, $companyId);
             $intro = match ($intent) {
                 'irish_heritage' => 'Here are products currently matching our Irish Heritage range.',
                 'irish_traditional' => 'Here are products currently matching our Irish Traditional range.',
@@ -186,13 +185,13 @@ final class Chat24SevenAssistant
         return $this->response($intro."\n• ".$names."\nSelect a product and I can check its fabric, sizes, price, stock or MOQ.", $intent, $forceHuman, $facts);
     }
 
-    private function productsForTopic(string $term): Collection
+    private function productsForTopic(string $term, ?int $companyId): Collection
     {
         $needle = '%'.str_replace(' ', '%', trim($term)).'%';
 
-        return Product::query()
+        return $this->productQuery($companyId)
             ->published()
-            ->where(function (Builder $query) use ($needle, $term): void {
+            ->where(function (Builder $query) use ($needle): void {
                 $query->where('name', 'like', $needle)
                     ->orWhere('description', 'like', $needle)
                     ->orWhere('material', 'like', $needle)
@@ -212,7 +211,7 @@ final class Chat24SevenAssistant
             ->get();
     }
 
-    private function bestProductMatch(string $message): ?Product
+    private function bestProductMatch(string $message, ?int $companyId): ?Product
     {
         $message = trim($message);
         if ($message === '') return null;
@@ -226,7 +225,7 @@ final class Chat24SevenAssistant
 
         if ($tokens->isEmpty()) return null;
 
-        $query = Product::query()->published();
+        $query = $this->productQuery($companyId)->published();
         $query->where(function (Builder $matching) use ($tokens): void {
             foreach ($tokens as $token) {
                 $like = '%'.$token.'%';
@@ -240,13 +239,25 @@ final class Chat24SevenAssistant
         return $query->with(['variants' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')])->first();
     }
 
-    private function productBySlug(string $slug): ?Product
+    private function productBySlug(string $slug, ?int $companyId): ?Product
     {
-        return Product::query()
+        return $this->productQuery($companyId)
             ->published()
             ->where('slug', $slug)
             ->with(['variants' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')])
             ->first();
+    }
+
+    private function productQuery(?int $companyId): Builder
+    {
+        $query = Product::withoutGlobalScopes();
+        if ($companyId && $companyId > 0) {
+            $query->where('company_id', $companyId);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
     }
 
     private function productFacts(Product $product): array
