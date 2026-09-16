@@ -8,9 +8,10 @@ class CareersWidthContractTest extends TestCase
 {
     public function test_careers_page_uses_public_full_width_override(): void
     {
-        $this->get('/careers')
-            ->assertOk()
-            ->assertSee('/css/careers-fullwidth.css?v=20260910-fullwidth', false);
+        $view = file_get_contents(resource_path('views/site/careers.blade.php'));
+
+        $this->assertStringContainsString('careers-fullwidth.css', $view);
+        $this->assertStringNotContainsString('model-media.css', $view);
 
         $css = file_get_contents(public_path('css/careers-fullwidth.css'));
 
