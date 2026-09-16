@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\AppointmentBookingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -36,18 +37,26 @@ class Inquiry extends Model
     protected static function booted(): void
     {
         static::creating(function (self $inquiry): void {
-            if ($inquiry->customer_id) {
-                return;
+            if (! $inquiry->customer_id) {
+                $user = auth()->user();
+                if ($user && $user->hasVerifiedEmail()
+                    && mb_strtolower(trim((string) $user->email)) === mb_strtolower(trim((string) $inquiry->email))) {
+                    $inquiry->customer_id = $user->id;
+                }
             }
 
-            $user = auth()->user();
-            if (! $user || ! $user->hasVerifiedEmail()) {
-                return;
+            $meta = (array) $inquiry->meta;
+            if (filled(data_get($meta, 'meeting.date')) && filled(data_get($meta, 'meeting.time'))) {
+                $meetingType = trim((string) request()->input('meeting_type', ''));
+                if ($meetingType !== '') {
+                    data_set($meta, 'meeting.type', $meetingType);
+                    $inquiry->meta = $meta;
+                }
             }
+        });
 
-            if (mb_strtolower(trim((string) $user->email)) === mb_strtolower(trim((string) $inquiry->email))) {
-                $inquiry->customer_id = $user->id;
-            }
+        static::created(function (self $inquiry): void {
+            app(AppointmentBookingService::class)->reserveInquiry($inquiry);
         });
     }
 
@@ -69,5 +78,10 @@ class Inquiry extends Model
     public function salesQuote(): HasOne
     {
         return $this->hasOne(SalesQuote::class);
+    }
+
+    public function appointmentReservation(): HasOne
+    {
+        return $this->hasOne(AppointmentReservation::class);
     }
 }
