@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Services\AppointmentBookingService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PublicInquiryRequest extends FormRequest
 {
@@ -75,5 +77,42 @@ class PublicInquiryRequest extends FormRequest
             'meeting_type' => ['nullable', 'required_with:meeting_date,meeting_time', 'string', Rule::in(self::MEETING_TYPES)],
             'idempotency_key' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/'],
         ];
+    }
+
+    public function after(): array
+    {
+        return [function ($validator): void {
+            if ($validator->errors()->isNotEmpty() || ! $this->filled('meeting_date')) {
+                return;
+            }
+
+            $booking = app(AppointmentBookingService::class);
+            try {
+                $booking->assertCanBook(
+                    $booking->resolveCompanyId(),
+                    (string) $this->input('meeting_date'),
+                    (string) $this->input('meeting_time'),
+                    (string) $this->input('meeting_type'),
+                );
+            } catch (ValidationException $exception) {
+                foreach ($exception->errors() as $field => $messages) {
+                    foreach ($messages as $message) {
+                        $validator->errors()->add($field, $message);
+                    }
+                }
+            }
+        }];
+    }
+
+    public function validated($key = null, $default = null): mixed
+    {
+        $data = parent::validated();
+        if (filled($data['meeting_date'] ?? null) && filled($data['meeting_time'] ?? null) && filled($data['meeting_type'] ?? null)) {
+            $label = app(AppointmentBookingService::class)->meetingTypeLabel((string) $data['meeting_type']);
+            $message = rtrim((string) ($data['message'] ?? ''));
+            $data['message'] = $message.($message !== '' ? "\n\n" : '').'Preferred meeting type: '.$label.'.';
+        }
+
+        return $key === null ? $data : data_get($data, $key, $default);
     }
 }
