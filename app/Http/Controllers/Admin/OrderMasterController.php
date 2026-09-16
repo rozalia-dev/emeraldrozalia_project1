@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OrderTransitionRequest;
 use App\Models\Order;
+use App\Models\SalesQuote;
 use App\Services\OrderLifecycle;
-use Illuminate\Support\Facades\Gate;
 use App\Services\OrderMasterDashboardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class OrderMasterController extends Controller
@@ -29,7 +30,43 @@ class OrderMasterController extends Controller
     {
         $this->ensureType($type);
         Gate::authorize('viewAny', Order::class);
-        return view('admin.orders.index', app(OrderMasterDashboardService::class)->build($request, $type));
+
+        $data = app(OrderMasterDashboardService::class)->build($request, $type);
+
+        if (in_array($type, ['corporate', 'bulk'], true)) {
+            $quoteBase = SalesQuote::query()->where('order_type', $type);
+            $openQuoteCount = (clone $quoteBase)
+                ->whereIn('status', ['submitted', 'approved'])
+                ->count();
+            $convertedQuoteCount = (clone $quoteBase)
+                ->where('status', 'converted')
+                ->count();
+
+            array_unshift($data['metrics'], [
+                'label' => 'Quote Requests',
+                'value' => $openQuoteCount,
+                'kind' => 'number',
+                'icon' => 'file-text',
+                'tone' => 'purple',
+                'source_label' => 'Pre-order intake · Sales Quotes & Conversions',
+            ]);
+
+            $data['meta']['subtitle'] = $data['meta']['subtitle'].' Public website requests first enter Sales Quotes & Conversions; only approved conversions are counted as orders here.';
+            $data['quoteIntake'] = [
+                'open' => $openQuoteCount,
+                'converted' => $convertedQuoteCount,
+                'route' => route('admin.quotes.index', ['order_type' => $type]),
+            ];
+
+            if (! $data['hasLiveData'] && $openQuoteCount > 0) {
+                $data['dataState'] = 'quote-intake';
+                $data['emptyStateMessage'] = number_format($openQuoteCount).' '.$type.' quote request'.($openQuoteCount === 1 ? ' is' : 's are').' waiting in Sales Quotes & Conversions. They will appear in this Order Master after approval and conversion.';
+            }
+        } elseif ($type === 'franchise') {
+            $data['meta']['subtitle'] = 'Manage product/supply orders placed by approved franchise partners. Public Franchise Apply submissions belong to Franchise Management → Applications & Leads and do not create sales orders.';
+        }
+
+        return view('admin.orders.index', $data);
     }
 
     public function show(string $type, Order $order): View
