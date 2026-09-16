@@ -28,8 +28,10 @@ final class FranchiseApplicationActionController extends Controller
         ];
 
         abort_unless(isset($transitions[$action]), 404);
+        $validated = $request->validated();
+        $activationKey = $action === 'convert' ? (string) ($validated['idempotency_key'] ?? '') : null;
 
-        return DB::transaction(function () use ($application, $action, $transitions) {
+        return DB::transaction(function () use ($application, $action, $transitions, $activationKey) {
             $locked = FranchiseApplication::query()
                 ->whereKey($application->getKey())
                 ->lockForUpdate()
@@ -43,16 +45,22 @@ final class FranchiseApplicationActionController extends Controller
                 'This application cannot take that action from its current state.',
             );
 
+            $data = is_array($locked->data) ? $locked->data : [];
             if ($action === 'convert' && $current === 'converted') {
+                $storedKey = (string) ($data['activation_key'] ?? '');
+                if ($storedKey !== '' && ! hash_equals($storedKey, (string) $activationKey)) {
+                    abort(409, 'This franchise application was already activated with another idempotency key.');
+                }
+
                 return back()->with('success', 'This franchise application is already an active partner. No sales order was created.');
             }
 
             $before = $locked->toArray();
-            $data = is_array($locked->data) ? $locked->data : [];
             if ($action === 'convert') {
                 $data = array_merge($data, [
                     'active_partner_at' => now()->toIso8601String(),
                     'activation_source' => 'franchise_application_lifecycle',
+                    'activation_key' => $activationKey,
                 ]);
             }
 
