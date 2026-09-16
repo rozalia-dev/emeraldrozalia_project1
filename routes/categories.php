@@ -19,5 +19,6 @@ Route::prefix('admin/resource/categories')
         Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
     });
 
+require __DIR__.'/appointments.php';
 require __DIR__.'/variants.php';
 require __DIR__.'/collections.php';
