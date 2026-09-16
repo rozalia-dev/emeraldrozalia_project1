@@ -75,7 +75,7 @@ services:
       WHATSAPP_LEDGER_LIMIT: 5000
       WHATSAPP_CLIENT_ID: emerald-rozalia
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
-      PUPPETEER_NO_SANDBOX: "false"
+      PUPPETEER_NO_SANDBOX: "true"
     volumes:
       - whatsapp-session:/data/.wwebjs_auth
     healthcheck:
