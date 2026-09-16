@@ -4,7 +4,7 @@ return [
     'channels' => [
         'email' => env('COMMUNICATION_EMAIL_PROVIDER'),
         'whatsapp' => env('COMMUNICATION_WHATSAPP_PROVIDER'),
-        'chat' => env('COMMUNICATION_CHAT_PROVIDER'),
+        'chat' => env('COMMUNICATION_CHAT_PROVIDER', \App\Services\Communication\BrowserChatCommunicationProvider::class),
     ],
 
     'default_providers' => [
