@@ -9,7 +9,9 @@ class PublicInquiryRequest extends FormRequest
 {
     private const TYPES = ['contact', 'franchise', 'careers', 'corporate-orders', 'bulk-orders'];
 
-    private const MEETING_TIMES = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+    private const MEETING_TIMES = ['13:00', '13:15', '13:30', '13:45'];
+
+    private const MEETING_TYPES = ['in_person', 'microsoft_teams', 'google_meet'];
 
     public function authorize(): bool
     {
@@ -21,7 +23,7 @@ class PublicInquiryRequest extends FormRequest
         $fields = [
             'type', 'name', 'email', 'phone', 'company', 'country', 'subject', 'message',
             'product_interest', 'branding_requirement', 'preferred_location', 'investment_range',
-            'business_experience', 'opening_timeline',
+            'business_experience', 'opening_timeline', 'meeting_type',
         ];
         $normalized = [];
         foreach ($fields as $field) {
@@ -68,8 +70,9 @@ class PublicInquiryRequest extends FormRequest
             'business_experience' => ['nullable', 'string', 'max:3000'],
             'opening_timeline' => ['nullable', 'string', 'max:180'],
 
-            'meeting_date' => ['nullable', 'required_with:meeting_time', 'date_format:Y-m-d', 'after_or_equal:today'],
-            'meeting_time' => ['nullable', 'required_with:meeting_date', 'date_format:H:i', Rule::in(self::MEETING_TIMES)],
+            'meeting_date' => ['nullable', 'required_with:meeting_time,meeting_type', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'meeting_time' => ['nullable', 'required_with:meeting_date,meeting_type', 'date_format:H:i', Rule::in(self::MEETING_TIMES)],
+            'meeting_type' => ['nullable', 'required_with:meeting_date,meeting_time', 'string', Rule::in(self::MEETING_TYPES)],
             'idempotency_key' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/'],
         ];
     }
