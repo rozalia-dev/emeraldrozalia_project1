@@ -6,9 +6,9 @@
 <div class="admin-page-shell" data-sales-quotes>
     <div class="admin-page-heading">
         <div>
-            <p class="admin-eyebrow">Shared Order Engine</p>
+            <p class="admin-eyebrow">Pre-order Intake → Shared Order Engine</p>
             <h1>Sales Quotes &amp; Conversions</h1>
-            <p>Review corporate, bulk and franchise enquiries, price them once, then convert them into the unified Order Master.</p>
+            <p>Corporate and Bulk public quote requests arrive here first and stay linked to their Communication Centre conversation. Price and approve the request, then convert it into the matching Corporate or Bulk Order Master. Franchise applications are managed separately under Franchise Management → Applications &amp; Leads.</p>
         </div>
         <a class="admin-button admin-button--secondary" href="{{ route('admin.order-master.overview') }}">Order Master</a>
     </div>
@@ -53,8 +53,8 @@
     <section class="admin-card">
         <div class="admin-card-heading">
             <div>
-                <h2>Live quote queue</h2>
-                <p>Every row is backed by sales_quotes and can be traced to its enquiry and conversation.</p>
+                <h2>Live pre-order quote queue</h2>
+                <p>Every row is backed by sales_quotes and traceable to its public enquiry and Communication Centre conversation. A quote is not counted as an Order until conversion succeeds.</p>
             </div>
             <span>{{ number_format($quotes->total()) }} total</span>
         </div>
@@ -63,27 +63,27 @@
                 <thead>
                     <tr>
                         <th>Quote</th>
-                        <th>Type</th>
+                        <th>Target Order Master</th>
                         <th>Requester</th>
                         <th>Value</th>
                         <th>Status</th>
                         <th>Version</th>
-                        <th>Order</th>
+                        <th>Converted Order</th>
                     </tr>
                 </thead>
                 <tbody>
                 @forelse($quotes as $quote)
                     <tr>
                         <td><a href="{{ route('admin.quotes.show', $quote) }}">{{ str($quote->uuid)->limit(13, '…') }}</a><small>{{ optional($quote->submitted_at)->format('d M Y H:i') }}</small></td>
-                        <td>{{ str($quote->order_type)->headline() }}</td>
+                        <td>{{ str($quote->order_type)->headline() }} Orders @if($quote->order_type === 'franchise')<small>Legacy/manual franchise quote</small>@endif</td>
                         <td><strong>{{ $quote->inquiry?->company ?: $quote->inquiry?->name ?: 'Unassigned requester' }}</strong><small>{{ $quote->inquiry?->email ?: 'No email' }}</small></td>
                         <td><strong>€{{ number_format((float) $quote->total, 2) }}</strong><small>{{ $quote->currency_code }}</small></td>
                         <td><span class="admin-status admin-status--{{ str($quote->status)->slug() }}">{{ str($quote->status)->replace('_', ' ')->headline() }}</span></td>
                         <td>{{ $quote->version }}</td>
-                        <td>@if($quote->order)<a href="{{ route('admin.order-master.show', [$quote->order->order_type, $quote->order]) }}">{{ $quote->order->number }}</a>@else—@endif</td>
+                        <td>@if($quote->order)<a href="{{ route('admin.order-master.show', [$quote->order->order_type, $quote->order]) }}">{{ $quote->order->number }}</a>@else<span>Not converted</span>@endif</td>
                     </tr>
                 @empty
-                    <tr><td colspan="7"><div class="admin-empty-state"><strong>No quotes match the current filters.</strong><span>Submit a corporate, bulk or franchise enquiry to create the first traceable quote.</span></div></td></tr>
+                    <tr><td colspan="7"><div class="admin-empty-state"><strong>No quotes match the current filters.</strong><span>Public Corporate and Bulk quote requests will appear here automatically and remain linked to their Communication Centre conversations.</span></div></td></tr>
                 @endforelse
                 </tbody>
             </table>
