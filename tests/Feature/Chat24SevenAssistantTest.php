@@ -165,6 +165,41 @@ class Chat24SevenAssistantTest extends TestCase
         }
     }
 
+    public function test_business_actions_include_real_forms_and_large_quantity_routes_to_bulk(): void
+    {
+        [$company] = $this->publishedProduct();
+        $assistant = app(Chat24SevenAssistant::class);
+
+        $bulk = $assistant->answer('i need 7000 pcs limerick gaa baseball cap', null, $company->id);
+        $this->assertSame('bulk', $bulk['intent']);
+        $this->assertStringContainsString('/bulk-orders#bulk-quote', $bulk['actions'][0]['url']);
+
+        $corporate = $assistant->answer('Corporate Order', null, $company->id);
+        $this->assertSame('corporate', $corporate['intent']);
+        $this->assertStringContainsString('/corporate-orders#corporate-quote', $corporate['actions'][0]['url']);
+
+        $franchise = $assistant->answer('Franchise Application', null, $company->id);
+        $this->assertSame('franchise_application', $franchise['intent']);
+        $this->assertStringContainsString('/franchise#franchise-enquiry', $franchise['actions'][0]['url']);
+
+        $retail = $assistant->answer('Franchise Retail Store', null, $company->id);
+        $this->assertSame('franchise_retail', $retail['intent']);
+        $this->assertStringContainsString('/be-a-store-owner#franchise-enquiry', $retail['actions'][0]['url']);
+
+        $requirements = $assistant->answer('Franchise Requirements', null, $company->id);
+        $this->assertSame('franchise_requirements', $requirements['intent']);
+        $this->assertStringContainsString('/franchise/requirements', $requirements['actions'][0]['url']);
+
+        $appointment = $assistant->answer('Book Appointment', null, $company->id);
+        $this->assertSame('appointment', $appointment['intent']);
+        $this->assertStringContainsString('/contact#contact-schedule', $appointment['actions'][0]['url']);
+
+        $this->get(route('franchise.requirements'))
+            ->assertOk()
+            ->assertSee('Franchise Requirements &amp; Document Checklist', false)
+            ->assertSee('Print / Save as PDF');
+    }
+
     private function publishedProduct(array $overrides = [], string $companyName = 'Emerald Chat Tenant', string $companyCode = 'CHAT'): array
     {
         $company = Company::create([
