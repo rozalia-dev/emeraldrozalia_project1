@@ -11,7 +11,7 @@
     const statusEl = root.querySelector('[data-chat24-status]');
     const form = root.querySelector('[data-chat24-form]');
     const input = root.querySelector('[data-chat24-input]');
-    const humanButton = root.querySelector('[data-chat24-human]');
+    const humanButtons = Array.from(root.querySelectorAll('[data-chat24-human]'));
 
     const csrf = root.dataset.csrf || '';
     const startUrl = root.dataset.startUrl;
@@ -137,6 +137,10 @@
         statusEl.textContent = message;
     };
 
+    const setHumanButtonsBusy = (busy) => {
+        humanButtons.forEach((button) => { button.disabled = busy; });
+    };
+
     const start = async () => {
         if (started) return;
         started = true;
@@ -160,7 +164,7 @@
                     return start();
                 }
             }
-            statusEl.textContent = 'Ask a product question or choose an application/order option.';
+            statusEl.textContent = 'Ask a product question, book an appointment, or connect to a person.';
             beginPolling();
         } catch (error) {
             conversation = null;
@@ -183,7 +187,7 @@
             (payload.messages || []).forEach(appendMessage);
             renderQuick(payload.quick_actions || []);
             statusEl.textContent = payload.human_requested
-                ? 'A team member has been requested. Keep this chat open for their reply.'
+                ? 'A team member has been alerted. Waiting for a person to join this chat.'
                 : 'Product answers use recorded Emerald Rozalia data; application links open the relevant public form.';
         } catch (error) {
             statusEl.textContent = error.message || 'Message could not be sent.';
@@ -203,8 +207,10 @@
             if (!response.ok) return;
             const payload = await response.json();
             (payload.messages || []).forEach(appendMessage);
-            if (payload.human_requested || payload.ai_paused) {
-                statusEl.textContent = 'Human support is active for this conversation.';
+            if (payload.ai_paused) {
+                statusEl.textContent = 'A person from Emerald Rozalia is handling this conversation.';
+            } else if (payload.human_requested) {
+                statusEl.textContent = 'A team member has been alerted. Waiting for a person to join this chat.';
             }
         } catch (error) {
             if (error.message === 'expired') {
@@ -222,16 +228,17 @@
     const requestHuman = async () => {
         if (!conversation) await start();
         if (!conversation) return;
-        humanButton.disabled = true;
-        statusEl.textContent = 'Requesting a team member…';
+        setHumanButtonsBusy(true);
+        statusEl.textContent = 'Alerting a team member…';
         try {
             const payload = await request(`${baseUrl}/${conversation}/human`, { method: 'POST', body: '{}' });
             appendMessage(payload.message);
-            statusEl.textContent = 'A team member has been requested. Keep this chat open for their reply.';
+            statusEl.textContent = 'A team member has been alerted. Waiting for a person to join this chat.';
+            beginPolling();
         } catch (error) {
-            statusEl.textContent = error.message || 'Unable to request a team member.';
+            statusEl.textContent = error.message || 'Unable to connect to a person.';
         } finally {
-            humanButton.disabled = false;
+            setHumanButtonsBusy(false);
         }
     };
 
@@ -251,7 +258,7 @@
         }
     });
 
-    humanButton.addEventListener('click', requestHuman);
+    humanButtons.forEach((button) => button.addEventListener('click', requestHuman));
     toggle.addEventListener('click', async () => {
         const open = panel.hidden;
         panel.hidden = !open;

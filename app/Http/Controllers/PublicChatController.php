@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Services\AuditTrail;
 use App\Services\Chat24SevenAssistant;
+use App\Services\CommunicationWorkItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -152,8 +153,11 @@ final class PublicChatController extends Controller
         ]);
     }
 
-    public function human(Request $request, string $conversation): JsonResponse
-    {
+    public function human(
+        Request $request,
+        string $conversation,
+        CommunicationWorkItemService $workItems,
+    ): JsonResponse {
         $chat = $this->ownedConversation($request, $conversation);
         $metadata = (array) $chat->metadata;
         $metadata['human_requested'] = true;
@@ -161,8 +165,30 @@ final class PublicChatController extends Controller
         $metadata['human_requested_at'] = now()->toIso8601String();
         $chat->update(['metadata' => $metadata, 'status' => 'pending', 'priority' => 'high']);
 
+        $alert = $workItems->create('alerts-notifications', [
+            'title' => 'Website chat requests a person',
+            'description' => 'A customer requested a person from Chat 24/7. Open the linked conversation and reply from the Communication Center.',
+            'status' => 'unread',
+            'category' => 'live-chat',
+            'type' => 'human-handoff',
+            'priority' => 'high',
+            'severity' => 'high',
+            'entity' => 'conversation:'.$chat->uuid,
+            'source' => 'website_chat_24_7',
+            'company_id' => $chat->company_id,
+            'conversation_id' => $chat->id,
+            'conversation_uuid' => $chat->uuid,
+            'record_date' => optional($chat->created_at)->toDateString() ?: now()->toDateString(),
+            'idempotency_key' => 'chat-human-'.$chat->uuid,
+        ]);
+
+        $metadata = (array) $chat->fresh()->metadata;
+        $metadata['human_alert_uuid'] = (string) $alert->uuid;
+        $metadata['human_alert_reference'] = (string) $alert->reference;
+        $chat->update(['metadata' => $metadata]);
+
         $message = $this->storeAssistantMessage($chat, [
-            'body' => 'I’ve asked an Emerald Rozalia team member to join this conversation. You can keep this chat open and their reply will appear here.',
+            'body' => 'I’ve alerted an Emerald Rozalia team member in the Communication Center. This chat is now waiting for a person. Keep it open; when an agent replies, the reply will appear here in the same conversation.',
             'intent' => 'human',
             'requires_human' => true,
             'products' => [],
@@ -170,9 +196,18 @@ final class PublicChatController extends Controller
             'quick_actions' => [],
         ]);
 
+        AuditTrail::record('communication.chat.human_requested', $chat, null, [
+            'conversation_uuid' => $chat->uuid,
+            'alert_uuid' => $alert->uuid,
+            'alert_reference' => $alert->reference,
+        ]);
         $this->dispatchChanged($chat->fresh(), 'human_requested');
 
-        return response()->json(['ok' => true, 'message' => $this->messagePayload($message)]);
+        return response()->json([
+            'ok' => true,
+            'message' => $this->messagePayload($message),
+            'connection_status' => 'waiting_for_person',
+        ]);
     }
 
     private function storeAssistantMessage(Conversation $conversation, array $reply): ConversationMessage
