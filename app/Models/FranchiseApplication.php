@@ -14,7 +14,20 @@ class FranchiseApplication extends Model
 
     protected static function booted():void
     {
-        static::creating(fn($row)=>$row->uuid??=Str::uuid()->toString());
+        static::creating(function (self $row): void {
+            $row->uuid ??= Str::uuid()->toString();
+
+            if (! $row->customer_id && $row->inquiry_id) {
+                $row->customer_id = Inquiry::withoutGlobalScopes()
+                    ->whereKey($row->inquiry_id)
+                    ->value('customer_id');
+            }
+        });
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     public function inquiry(): BelongsTo
