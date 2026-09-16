@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\{AddressRequest, ProfileUpdateRequest, ReturnRequestRequest};
-use App\Models\{Address, Order, PaymentTransaction, ReturnRequest};
+use App\Models\{Address, FranchiseApplication, Order, PaymentTransaction, ReturnRequest, SalesQuote};
 use App\Services\{AuditTrail, ReturnRequestService};
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +24,9 @@ class AccountController extends Controller
         return view('site.account', [
             'orders' => $user->orders()->with('items')->latest()->limit(8)->get(),
             'ordersCount' => $user->orders()->count(),
+            'corporateCount' => $this->quotesFor($user->id, 'corporate')->count(),
+            'bulkCount' => $this->quotesFor($user->id, 'bulk')->count(),
+            'franchiseCount' => FranchiseApplication::withoutGlobalScopes()->where('customer_id', $user->id)->count(),
             'rewards' => $user->rewards()->sum('points'),
             'wishlistCount' => $user->wishlistItems()->count(),
             'returnsCount' => ReturnRequest::query()->where('user_id', $user->id)->count(),
@@ -32,7 +35,7 @@ class AccountController extends Controller
 
     public function section(string $section): View|RedirectResponse
     {
-        $allowed = ['orders', 'wishlist', 'rewards', 'addresses', 'profile', 'payments', 'designs', 'bulk-orders', 'returns'];
+        $allowed = ['orders', 'wishlist', 'rewards', 'addresses', 'profile', 'payments', 'designs', 'corporate-orders', 'bulk-orders', 'franchise', 'returns'];
         abort_unless(in_array($section, $allowed, true), 404);
 
         $user = auth()->user();
@@ -41,9 +44,26 @@ class AccountController extends Controller
             return redirect()->route('admin.profile.show');
         }
 
+        $corporateQuotes = $this->quotesFor($user->id, 'corporate')->with(['order', 'conversation'])->latest()->get();
+        $bulkQuotes = $this->quotesFor($user->id, 'bulk')->with(['order', 'conversation'])->latest()->get();
+        $corporateOrders = $user->orders()->with(['items', 'payments'])->where('order_type', 'corporate')->latest()->get();
+        $bulkOrders = $user->orders()->with(['items', 'payments'])->where('order_type', 'bulk')->latest()->get();
+        $franchiseOrders = $user->orders()->with(['items', 'payments'])->whereIn('order_type', ['franchise', 'franchise_retail'])->latest()->get();
+        $franchiseApplications = FranchiseApplication::withoutGlobalScopes()
+            ->where('customer_id', $user->id)
+            ->with(['conversation', 'inquiry'])
+            ->latest()
+            ->get();
+
         return view('account.section', [
             'section' => $section,
             'orders' => $user->orders()->with(['items', 'payments'])->latest()->get(),
+            'corporateQuotes' => $corporateQuotes,
+            'bulkQuotes' => $bulkQuotes,
+            'corporateOrders' => $corporateOrders,
+            'bulkOrders' => $bulkOrders,
+            'franchiseApplications' => $franchiseApplications,
+            'franchiseOrders' => $franchiseOrders,
             'addresses' => $user->addresses,
             'wishlist' => $user->wishlistItems()->with('product')->latest()->get(),
             'rewards' => $user->rewards()->latest()->get(),
@@ -60,6 +80,13 @@ class AccountController extends Controller
             'wishlistCount' => $user->wishlistItems()->count(),
             'returnsCount' => ReturnRequest::query()->where('user_id', $user->id)->count(),
         ]);
+    }
+
+    private function quotesFor(int $customerId, string $orderType)
+    {
+        return SalesQuote::withoutGlobalScopes()
+            ->where('customer_id', $customerId)
+            ->where('order_type', $orderType);
     }
 
     public function profile(ProfileUpdateRequest $request): RedirectResponse
