@@ -29,6 +29,12 @@ Route::prefix('admin/settings')->middleware(['auth', 'admin'])->name('admin.sett
     Route::post('/backups', [SettingsController::class, 'storeBackup'])->name('backups.store');
     Route::post('/backups/{backup}/restore', [SettingsController::class, 'restoreBackup'])->name('backups.restore');
     Route::get('/maintenance/status', SystemMaintenanceController::class)->name('maintenance.status');
+
+    Route::post('/themes/apply', [ThemeController::class, 'apply'])->name('theme.apply');
+    Route::post('/themes/reset-default', [ThemeController::class, 'resetDefault'])->name('theme.reset-default');
+    Route::post('/cpanel-theme', [ThemeController::class, 'updateCpanelTheme'])->name('cpanel-theme.update');
+
+    // Kept for audited history/rollback compatibility. The normal UI uses the simple apply/reset flow above.
     Route::post('/themes/drafts', [ThemeController::class, 'store'])->name('theme.store');
     Route::patch('/themes/{theme}', [ThemeController::class, 'update'])->name('theme.update');
     Route::post('/themes/{theme}/action/{action}', [ThemeController::class, 'action'])->name('theme.action');
