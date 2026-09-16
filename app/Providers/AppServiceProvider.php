@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider {
         }
 
         Product::addGlobalScope('publicCatalogCountryClub', function (\Illuminate\Database\Eloquent\Builder $builder): void {
-            if (app()->runningInConsole() || request()->is('admin/*') || ! request()->is('shop', 'category/*')) {
+            if (request()->is('admin/*') || ! request()->is('shop', 'category/*')) {
                 return;
             }
 
