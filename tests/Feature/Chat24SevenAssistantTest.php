@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\CommunicationAlert;
 use App\Models\Company;
 use App\Models\Conversation;
 use App\Models\Product;
@@ -112,6 +113,50 @@ class Chat24SevenAssistantTest extends TestCase
         $this->withSession(['company_id' => $company->id, 'chat24_conversations' => []])
             ->getJson(route('chat24.messages', ['conversation' => $uuid]))
             ->assertNotFound();
+    }
+
+    public function test_human_request_creates_one_linked_staff_alert_and_service_buttons_are_visible(): void
+    {
+        [$company] = $this->publishedProduct();
+
+        $start = $this->withSession(['company_id' => $company->id])
+            ->postJson(route('chat24.start'))
+            ->assertCreated();
+
+        $uuid = (string) $start->json('conversation_uuid');
+
+        $this->postJson(route('chat24.human', ['conversation' => $uuid]))
+            ->assertOk()
+            ->assertJsonPath('connection_status', 'waiting_for_person')
+            ->assertJsonPath('message.actor', 'ai_assistant');
+
+        $conversation = Conversation::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $this->assertSame('pending', $conversation->status);
+        $this->assertSame('high', $conversation->priority);
+        $this->assertTrue((bool) data_get($conversation->metadata, 'human_requested'));
+
+        $alert = CommunicationAlert::withoutGlobalScopes()
+            ->where('conversation_id', $conversation->id)
+            ->firstOrFail();
+        $this->assertSame($company->id, (int) $alert->company_id);
+        $this->assertSame('unread', $alert->status);
+        $this->assertSame('high', $alert->priority);
+        $this->assertSame('high', $alert->severity);
+        $this->assertSame('human-handoff', $alert->type);
+        $this->assertSame('website_chat_24_7', $alert->source);
+        $this->assertSame((string) $alert->uuid, (string) data_get($conversation->fresh()->metadata, 'human_alert_uuid'));
+
+        $this->postJson(route('chat24.human', ['conversation' => $uuid]))
+            ->assertOk()
+            ->assertJsonPath('connection_status', 'waiting_for_person');
+        $this->assertSame(1, CommunicationAlert::withoutGlobalScopes()->where('conversation_id', $conversation->id)->count());
+
+        $this->withSession(['company_id' => $company->id])
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee('Book Appointment')
+            ->assertSee('Connect to a Person')
+            ->assertSee('/contact#contact-schedule', false);
     }
 
     public function test_human_reply_pauses_ai_and_unassigning_resumes_it(): void
