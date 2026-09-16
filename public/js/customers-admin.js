@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.crm-modal:not([hidden])').forEach(close);});
   document.querySelectorAll('[data-import-file]').forEach(input=>input.addEventListener('change',()=>{if(input.files.length)input.form.submit();}));
 
+  const selectAll=root.querySelector('[data-select-all]');
   const path=window.location.pathname.replace(/\/$/,'');
   const config=path==='/admin/customers'
     ? {bulk:'/admin/customers/bulk',destroy:'/admin/customers/',actions:[['active','Set Active'],['inactive','Set Inactive'],['blocked','Block'],['restricted','Restrict'],['delete','Delete selected']]}
@@ -60,17 +61,17 @@ document.addEventListener('DOMContentLoaded',()=>{
       });
 
       const count=form.querySelector('[data-bulk-count]');
-      const update=()=>{const selected=checks.filter(check=>check.checked).length;if(count)count.textContent=`${selected} selected`;if(all){all.checked=checks.length>0&&selected===checks.length;all.indeterminate=selected>0&&selected<checks.length;}};
+      const update=()=>{const selected=checks.filter(check=>check.checked).length;if(count)count.textContent=`${selected} selected`;if(selectAll){selectAll.checked=checks.length>0&&selected===checks.length;selectAll.indeterminate=selected>0&&selected<checks.length;}};
       checks.forEach(check=>check.addEventListener('change',update));
       form.addEventListener('submit',event=>{
         const selected=checks.filter(check=>check.checked).length;
         if(!selected){event.preventDefault();window.alert('Select at least one record first.');return;}
-        if(form.action.value==='delete'&&!window.confirm(`Delete ${selected} selected record${selected===1?'':'s'}? This action will be audited.`)){event.preventDefault();}
+        const action=form.querySelector('[name="action"]')?.value;
+        if(action==='delete'&&!window.confirm(`Delete ${selected} selected record${selected===1?'':'s'}? This action will be audited.`)){event.preventDefault();}
       });
       update();
     }
   }
 
-  const all=document.querySelector('[data-select-all]');
-  if(all)all.addEventListener('change',()=>{document.querySelectorAll('[data-row-check]').forEach(x=>x.checked=all.checked);document.querySelectorAll('[data-row-check]').forEach(x=>x.dispatchEvent(new Event('change')));});
+  if(selectAll)selectAll.addEventListener('change',()=>{document.querySelectorAll('[data-row-check]').forEach(x=>x.checked=selectAll.checked);document.querySelectorAll('[data-row-check]').forEach(x=>x.dispatchEvent(new Event('change')));});
 });
