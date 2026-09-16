@@ -77,7 +77,18 @@ class CommunicationCenter
                 'payload' => $payload,
                 'sent_at' => now(),
             ]);
-            $lockedConversation->update(['status' => 'open']);
+
+            $conversationAttributes = ['status' => 'open'];
+            if ($lockedConversation->channel === 'chat' && auth()->id()) {
+                $metadata = (array) $lockedConversation->metadata;
+                $metadata['ai_paused'] = true;
+                $metadata['human_requested'] = false;
+                $metadata['human_taken_over_at'] = now()->toIso8601String();
+                $metadata['human_taken_over_by'] = (int) auth()->id();
+                $conversationAttributes['assigned_to'] = (int) auth()->id();
+                $conversationAttributes['metadata'] = $metadata;
+            }
+            $lockedConversation->update($conversationAttributes);
 
             \App\Services\AuditTrail::record(
                 'communication.message.created',
@@ -199,6 +210,24 @@ class CommunicationCenter
                     : null;
             }
 
+            if ($lockedConversation->channel === 'chat' && array_key_exists('assigned_to', $data)) {
+                $metadata = (array) $lockedConversation->metadata;
+                $assignedTo = filled($data['assigned_to']) ? (int) $data['assigned_to'] : null;
+                if ($assignedTo) {
+                    $metadata['ai_paused'] = true;
+                    $metadata['human_requested'] = false;
+                    $metadata['human_taken_over_at'] = now()->toIso8601String();
+                    $metadata['human_taken_over_by'] = $assignedTo;
+                } else {
+                    $metadata['ai_paused'] = false;
+                    $metadata['human_requested'] = false;
+                    $metadata['human_reason'] = null;
+                    $metadata['human_resumed_ai_at'] = now()->toIso8601String();
+                    $metadata['human_taken_over_by'] = null;
+                }
+                $attributes['metadata'] = $metadata;
+            }
+
             $lockedConversation->update($attributes);
             $updated = $lockedConversation->fresh();
 
@@ -264,6 +293,8 @@ class CommunicationCenter
             'assigned_to_uuid' => $conversation->assignee?->public_uuid ?: $conversation->assignee?->uuid,
             'follow_up_at' => optional($conversation->follow_up_at)->toISOString(),
             'correlation_id' => $conversation->correlation_id,
+            'ai_paused' => $conversation->channel === 'chat' ? (bool) data_get($conversation->metadata, 'ai_paused', false) : null,
+            'human_requested' => $conversation->channel === 'chat' ? (bool) data_get($conversation->metadata, 'human_requested', false) : null,
         ];
     }
 
