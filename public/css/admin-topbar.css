@@ -1,0 +1,272 @@
+/* Shared cPanel topbar refinements: search input and profile menu. */
+.admin-top .admin-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(320px, 100%);
+    min-height: 40px;
+    padding: 0 6px 0 12px;
+    border: 1px solid #31533d;
+    border-radius: 10px;
+    background: #07150e;
+    color: #f3f7f2;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.admin-top .admin-search:focus-within {
+    border-color: #79c345;
+    background: #091a12;
+    box-shadow: 0 0 0 3px rgba(121,195,69,.16);
+}
+
+.admin-top .admin-search > .ui-icon {
+    flex: 0 0 auto;
+    color: #9eb3a4;
+}
+
+.admin-top .admin-search input[type="search"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 38px;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0;
+    background: transparent !important;
+    color: #f3f7f2 !important;
+    font: inherit;
+    line-height: 38px;
+    box-shadow: none !important;
+}
+
+.admin-top .admin-search input[type="search"]::placeholder {
+    color: #9caf9f;
+    opacity: 1;
+}
+
+.admin-top .admin-search input[type="search"]::-webkit-search-decoration,
+.admin-top .admin-search input[type="search"]::-webkit-search-cancel-button,
+.admin-top .admin-search input[type="search"]::-webkit-search-results-button,
+.admin-top .admin-search input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+}
+
+.admin-top .admin-search button[type="submit"] {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 7px;
+    background: #103522 !important;
+    color: #dff0df !important;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+
+.admin-top .admin-search button[type="submit"]:hover,
+.admin-top .admin-search button[type="submit"]:focus-visible {
+    background: #17643a !important;
+    color: #fff !important;
+}
+
+.admin-top .admin-search button[type="submit"]:active {
+    transform: translateY(1px);
+}
+
+.admin-actions {
+    overflow: visible;
+}
+
+.admin-profile-menu {
+    position: relative;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.admin-profile-menu > summary {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #f3f7f2;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    transition: background .16s ease, border-color .16s ease;
+}
+
+.admin-profile-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-profile-menu > summary:hover,
+.admin-profile-menu[open] > summary {
+    border-color: #31533d;
+    background: #0a1c13;
+}
+
+.admin-profile-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #31533d;
+    border-radius: 50%;
+    background: #103522;
+    color: #9fd26d;
+}
+
+.admin-profile-copy {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.admin-profile-copy strong {
+    max-width: 150px;
+    overflow: hidden;
+    color: #f4f8f4;
+    font-size: 12px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-profile-copy small {
+    color: #9fb0a4;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.admin-profile-chevron {
+    flex: 0 0 auto;
+    color: #93a99a;
+    transform: rotate(90deg);
+    transition: transform .16s ease;
+}
+
+.admin-profile-menu[open] .admin-profile-chevron {
+    transform: rotate(-90deg);
+}
+
+.admin-profile-dropdown {
+    position: absolute;
+    z-index: 90;
+    top: calc(100% + 9px);
+    right: 0;
+    width: min(250px, calc(100vw - 24px));
+    overflow: hidden;
+    border: 1px solid #dbe5dd;
+    border-radius: 10px;
+    background: #fff;
+    color: #203328;
+    box-shadow: 0 16px 40px rgba(0,0,0,.2);
+}
+
+.admin-profile-dropdown-head {
+    display: grid;
+    gap: 3px;
+    padding: 13px 14px 11px;
+    border-bottom: 1px solid #edf1ee;
+    background: #f7faf7;
+}
+
+.admin-profile-dropdown-head strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-profile-dropdown-head small {
+    overflow: hidden;
+    color: #718077;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-profile-dropdown a,
+.admin-profile-dropdown form button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    color: #294334;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-profile-dropdown a:hover,
+.admin-profile-dropdown a:focus-visible,
+.admin-profile-dropdown form button:hover,
+.admin-profile-dropdown form button:focus-visible {
+    background: #f0f7f1;
+    color: #126d3a;
+    outline: 0;
+}
+
+.admin-profile-dropdown form {
+    margin: 0;
+    border-top: 1px solid #edf1ee;
+}
+
+.admin-profile-dropdown form button {
+    color: #a43a3a;
+}
+
+.admin-profile-dropdown form button:hover,
+.admin-profile-dropdown form button:focus-visible {
+    background: #fff3f3;
+    color: #8f2626;
+}
+
+@media (max-width: 840px) {
+    .admin-top .admin-search {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .admin-profile-menu > summary {
+        width: 40px;
+        min-height: 40px;
+        padding: 3px;
+        justify-content: center;
+    }
+
+    .admin-profile-copy,
+    .admin-profile-chevron {
+        display: none;
+    }
+
+    .admin-profile-dropdown {
+        position: fixed;
+        top: 62px;
+        right: 10px;
+    }
+}
