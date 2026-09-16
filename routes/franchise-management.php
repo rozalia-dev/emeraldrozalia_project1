@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\FranchiseApplicationActionController;
 use App\Http\Controllers\Admin\FranchiseManagementController;
 use App\Http\Controllers\Admin\FranchiseTerritoryController;
 use Illuminate\Support\Facades\Route;
@@ -29,7 +30,7 @@ Route::prefix('admin')->middleware(['web', 'auth', 'franchise.permission'])->gro
             ->where('action', 'activate|suspend|resume|terminate')
             ->name('store.action');
 
-        Route::post('/applications/{application:uuid}/action/{action}', [FranchiseManagementController::class, 'applicationAction'])
+        Route::post('/applications/{application:uuid}/action/{action}', FranchiseApplicationActionController::class)
             ->where('action', 'start-review|approve|reject|start-onboarding|convert')
             ->name('application.action');
         Route::post('/store-setup', [FranchiseManagementController::class, 'storeSetupStore'])
