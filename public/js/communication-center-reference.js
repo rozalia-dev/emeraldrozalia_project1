@@ -2,6 +2,101 @@
     const root = document.querySelector('[data-cc-root]');
     if (!root) return;
 
+    const installInboxCategoryFilters = () => {
+        const filterbar = root.querySelector('.cc-filterbar');
+        if (!filterbar || filterbar.querySelector('[data-cc-inbox-category-filters]')) return;
+
+        const form = filterbar.closest('form');
+        if (!form) return;
+        const filterPath = new URL(form.action, window.location.href).pathname.replace(/\/$/, '');
+        if (filterPath !== '/admin/resource/inbox') return;
+
+        const search = filterbar.querySelector('.cc-search');
+        if (!search) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const pageCategories = [
+            ['Shop', 'Shop'],
+            ['Collections', 'Collections'],
+            ['Catalog', 'Catalog'],
+            ['New Arrival', 'New Arrival'],
+            ['Corporate Order', 'Corporate Order'],
+            ['Bulk Order', 'Bulk Order'],
+            ['Franchise Apply', 'Franchise Apply'],
+            ['Hiring Apply', 'Hiring Apply'],
+            ['Contact Us', 'Contact Us'],
+        ];
+        const productCategories = [
+            ['Baseball Caps', 'Baseball Caps'],
+            ['Caps', 'Caps'],
+            ['Test Category', 'Test Category'],
+            ['Bucket Hats', 'Bucket Hats'],
+            ['Snapbacks', 'Snapbacks'],
+            ['Irish Traditional Flat Caps', 'Irish Traditional Flat Caps'],
+            ['Irish Heritage Hats', 'Irish Heritage Hats'],
+            ['Beanies & More', 'Beanies & More'],
+            ['GAA Baseball Caps', 'GAA Baseball Caps'],
+            ['GAA Bucket Hats', 'GAA Bucket Hats'],
+            ['GAA Beanie Hats', 'GAA Beanie Hats'],
+            ['Spring Summer 2025', 'Spring Summer 2025'],
+            ['Best Sellers', 'Best Sellers'],
+            ['New Arrivals', 'New Arrivals'],
+            ['Premium Collection', 'Premium Collection'],
+            ['Wedding Collection', 'Wedding Collection'],
+            ['Corporate Gifting', 'Corporate Gifting'],
+            ['Limited Edition', 'Limited Edition'],
+            ['Back to College', 'Back to College'],
+            ['Gift for Her', 'Gift for Her'],
+        ];
+
+        if (!document.querySelector('[data-cc-inbox-category-style]')) {
+            const style = document.createElement('style');
+            style.dataset.ccInboxCategoryStyle = 'true';
+            style.textContent = `
+                .cc-inbox-category-filter{min-width:154px;max-width:205px}
+                .cc-inbox-category-filter[data-filter-kind="product"]{min-width:188px;max-width:238px}
+                @media(max-width:1180px){.cc-inbox-category-filter{flex:1 1 160px;max-width:none}.cc-inbox-category-filter[data-filter-kind="product"]{flex:1 1 210px;max-width:none}}
+                @media(max-width:700px){.cc-inbox-category-filter,.cc-inbox-category-filter[data-filter-kind="product"]{width:100%;max-width:none;flex:1 1 100%}}
+            `;
+            document.head.append(style);
+        }
+
+        const createSelect = (name, label, kind, options) => {
+            const select = document.createElement('select');
+            select.name = name;
+            select.className = 'cc-inbox-category-filter';
+            select.dataset.filterKind = kind;
+            select.setAttribute('aria-label', label);
+
+            const all = document.createElement('option');
+            all.value = '';
+            all.textContent = label;
+            select.append(all);
+
+            options.forEach(([value, text]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                select.append(option);
+            });
+
+            const selected = params.get(name) || '';
+            if ([...select.options].some((option) => option.value === selected)) {
+                select.value = selected;
+            }
+
+            return select;
+        };
+
+        const pageSelect = createSelect('page_category', 'All Page Categories', 'page', pageCategories);
+        const productSelect = createSelect('product_category', 'All Product Categories', 'product', productCategories);
+        pageSelect.dataset.ccInboxCategoryFilters = 'true';
+
+        search.after(pageSelect, productSelect);
+    };
+
+    installInboxCategoryFilters();
+
     const installInboxDateRangeFilter = () => {
         const filterbar = root.querySelector('.cc-filterbar');
         if (!filterbar || !filterbar.querySelector('select[name="channel"]') || filterbar.querySelector('[data-cc-date-range-filter]')) return;

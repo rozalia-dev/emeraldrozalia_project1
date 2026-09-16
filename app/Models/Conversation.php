@@ -105,16 +105,51 @@ class Conversation extends Model
     {
         $table = $query->getModel()->getTable();
 
-        // The Inbox owns its From / To controls. Apply the selected range at
-        // the query scope used by both the Inbox list and its export endpoint,
+        // The Inbox owns its From / To controls and category filters. Apply
+        // them at the query scope shared by the Inbox list and export endpoint,
         // including installations that do not have a selected company session.
-        if (request()->is('admin/resource/inbox') || request()->is('admin/communication-center/inbox/export')) {
+        if ($this->isInboxRequest()) {
             if ($from = $this->validInboxDate(request()->query('date_from'))) {
                 $query->where($table.'.created_at', '>=', $from.' 00:00:00');
             }
             if ($to = $this->validInboxDate(request()->query('date_to'))) {
                 $query->where($table.'.created_at', '<=', $to.' 23:59:59.999999');
             }
+
+            $this->applyInboxCategoryFilter($query, 'page_category', [
+                'Shop' => ['shop', '/shop'],
+                'Collections' => ['collections', 'collection', '/collections'],
+                'Catalog' => ['catalog', 'catalogue', '/catalog'],
+                'New Arrival' => ['new arrival', 'new arrivals', '/new-arrivals'],
+                'Corporate Order' => ['corporate order', '/corporate-order'],
+                'Bulk Order' => ['bulk order', '/bulk-order'],
+                'Franchise Apply' => ['franchise apply', 'franchise application', '/franchise'],
+                'Hiring Apply' => ['hiring apply', 'career', 'careers', '/hiring'],
+                'Contact Us' => ['contact us', '/contact'],
+            ]);
+
+            $this->applyInboxCategoryFilter($query, 'product_category', [
+                'Baseball Caps' => ['baseball caps'],
+                'Caps' => ['caps'],
+                'Test Category' => ['test category'],
+                'Bucket Hats' => ['bucket hats'],
+                'Snapbacks' => ['snapbacks'],
+                'Irish Traditional Flat Caps' => ['irish traditional flat caps'],
+                'Irish Heritage Hats' => ['irish heritage hats'],
+                'Beanies & More' => ['beanies & more', 'beanies and more'],
+                'GAA Baseball Caps' => ['gaa baseball caps'],
+                'GAA Bucket Hats' => ['gaa bucket hats'],
+                'GAA Beanie Hats' => ['gaa beanie hats'],
+                'Spring Summer 2025' => ['spring summer 2025'],
+                'Best Sellers' => ['best sellers'],
+                'New Arrivals' => ['new arrivals'],
+                'Premium Collection' => ['premium collection'],
+                'Wedding Collection' => ['wedding collection'],
+                'Corporate Gifting' => ['corporate gifting'],
+                'Limited Edition' => ['limited edition'],
+                'Back to College' => ['back to college'],
+                'Gift for Her' => ['gift for her'],
+            ]);
         }
 
         $companyId = session('company_id');
@@ -134,6 +169,50 @@ class Conversation extends Model
         });
 
         return $query;
+    }
+
+    private function isInboxRequest(): bool
+    {
+        return request()->is('admin/resource/inbox')
+            || request()->is('admin/communication-center/inbox/export')
+            || request()->route('section') === 'inbox';
+    }
+
+    private function applyInboxCategoryFilter(Builder $query, string $parameter, array $allowed): void
+    {
+        $value = trim((string) request()->query($parameter, ''));
+        if ($value === '' || ! array_key_exists($value, $allowed)) {
+            return;
+        }
+
+        $table = $query->getModel()->getTable();
+        $driver = $query->getConnection()->getDriverName();
+        $aliases = array_values(array_unique(array_filter(array_map(
+            static fn ($alias): string => mb_strtolower(trim((string) $alias)),
+            $allowed[$value],
+        ))));
+
+        $query->where(function (Builder $categoryQuery) use ($aliases, $driver, $table): void {
+            foreach ($aliases as $index => $alias) {
+                $needle = '%'.$alias.'%';
+                $method = $index === 0 ? 'where' : 'orWhere';
+
+                $categoryQuery->{$method}(function (Builder $match) use ($driver, $needle, $table): void {
+                    $match->whereRaw('LOWER(COALESCE('.$table.'.subject, \'\')) LIKE ?', [$needle])
+                        ->orWhereHas('messages', fn (Builder $messages) => $messages
+                            ->whereRaw('LOWER(COALESCE(body, \'\')) LIKE ?', [$needle]));
+
+                    $metadata = $table.'.metadata';
+                    if ($driver === 'pgsql') {
+                        $match->orWhereRaw('LOWER(COALESCE('.$metadata.'::text, \'\')) LIKE ?', [$needle]);
+                    } elseif ($driver === 'mysql') {
+                        $match->orWhereRaw('LOWER(COALESCE(CAST('.$metadata.' AS CHAR), \'\')) LIKE ?', [$needle]);
+                    } else {
+                        $match->orWhereRaw('LOWER(COALESCE(CAST('.$metadata.' AS TEXT), \'\')) LIKE ?', [$needle]);
+                    }
+                });
+            }
+        });
     }
 
     private function validInboxDate(mixed $value): ?string
