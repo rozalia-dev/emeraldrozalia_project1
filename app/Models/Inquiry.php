@@ -47,6 +47,10 @@ class Inquiry extends Model
 
             $meta = (array) $inquiry->meta;
             if (filled(data_get($meta, 'meeting.date')) && filled(data_get($meta, 'meeting.time'))) {
+                $booking = app(AppointmentBookingService::class);
+                if (! $inquiry->company_id) {
+                    $inquiry->company_id = $booking->resolveCompanyId();
+                }
                 $meetingType = trim((string) request()->input('meeting_type', ''));
                 if ($meetingType !== '') {
                     data_set($meta, 'meeting.type', $meetingType);
