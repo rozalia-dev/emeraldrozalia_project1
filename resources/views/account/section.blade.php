@@ -21,9 +21,9 @@
             @php($payment = $order->payments->sortByDesc('created_at')->first())
             <article class="panel">
                 <h3>{{ $order->number }}</h3>
-                <p>Status: <strong>{{ str($order->status)->headline() }}</strong> · Payment: <strong>{{ str($order->payment_status)->headline() }}</strong> · Total €{{ number_format((float) $order->total, 2) }}</p>
+                <p>Order type: <strong>{{ str($order->order_type ?: 'online')->headline() }}</strong> · Status: <strong>{{ str($order->status)->headline() }}</strong> · Payment: <strong>{{ str($order->payment_status)->headline() }}</strong> · Total {{ strtoupper($order->currency ?? 'EUR') }} {{ number_format((float) $order->total, 2) }}</p>
                 @if($payment)
-                    <p class="account-muted">Latest payment ledger entry: {{ str($payment->status)->headline() }} · {{ $payment->provider }} · €{{ number_format((float) $payment->amount, 2) }}</p>
+                    <p class="account-muted">Latest payment ledger entry: {{ str($payment->status)->headline() }} · {{ $payment->provider }} · {{ strtoupper($payment->currency ?? $order->currency ?? 'EUR') }} {{ number_format((float) $payment->amount, 2) }}</p>
                 @endif
                 <div class="account-actions">
                     <a class="btn" href="{{ route('account.invoice', $order) }}">VIEW / PRINT INVOICE</a>
@@ -44,6 +44,74 @@
         @empty
             <p>No orders yet.</p>
         @endforelse
+    @elseif(in_array($section, ['corporate-orders', 'bulk-orders'], true))
+        @php
+            $isCorporate = $section === 'corporate-orders';
+            $businessLabel = $isCorporate ? 'Corporate' : 'Bulk';
+            $businessQuotes = $isCorporate ? $corporateQuotes : $bulkQuotes;
+            $businessOrders = $isCorporate ? $corporateOrders : $bulkOrders;
+            $requestUrl = $isCorporate ? route('corporate.orders') : route('bulk.orders');
+        @endphp
+        <section class="panel">
+            <h2>{{ $businessLabel }} Quotes &amp; Orders</h2>
+            <p class="account-muted">Requests submitted while signed in with this verified account email are synchronized here. A quote becomes an order only after Emerald Rozalia approves and converts it.</p>
+            <a class="btn" href="{{ $requestUrl }}">REQUEST {{ strtoupper($businessLabel) }} QUOTE</a>
+        </section>
+
+        <h2>Quote requests</h2>
+        @forelse($businessQuotes as $quote)
+            <article class="panel">
+                <h3>Quote {{ \Illuminate\Support\Str::limit((string) $quote->uuid, 14, '…') }}</h3>
+                <p>Status: <strong>{{ str($quote->status)->headline() }}</strong> · Value: <strong>{{ strtoupper($quote->currency_code ?? 'EUR') }} {{ number_format((float) $quote->total, 2) }}</strong> · Submitted: {{ $quote->submitted_at?->format('d M Y') ?? $quote->created_at?->format('d M Y') }}</p>
+                @if($quote->order)
+                    <div class="account-actions"><a class="btn" href="{{ route('account.invoice', $quote->order) }}">VIEW CONVERTED ORDER</a></div>
+                @else
+                    <p class="account-muted">This request has not been converted into an order yet.</p>
+                @endif
+            </article>
+        @empty
+            <p>No {{ strtolower($businessLabel) }} quote requests are linked to this account yet.</p>
+        @endforelse
+
+        <h2>{{ $businessLabel }} Orders</h2>
+        @forelse($businessOrders as $order)
+            <article class="panel">
+                <h3>{{ $order->number }}</h3>
+                <p>Status: <strong>{{ str($order->status)->headline() }}</strong> · Payment: <strong>{{ str($order->payment_status)->headline() }}</strong> · Total: <strong>{{ strtoupper($order->currency ?? 'EUR') }} {{ number_format((float) $order->total, 2) }}</strong></p>
+                <div class="account-actions"><a class="btn" href="{{ route('account.invoice', $order) }}">VIEW / PRINT INVOICE</a></div>
+            </article>
+        @empty
+            <p>No converted {{ strtolower($businessLabel) }} orders yet.</p>
+        @endforelse
+    @elseif($section === 'franchise')
+        <section class="panel">
+            <h2>Franchise Applications &amp; Orders</h2>
+            <p class="account-muted">Franchise Apply is an application workflow, not an order. Applications submitted while signed in with this verified account email appear here. Actual franchise supply or retail orders are listed separately once they exist.</p>
+            <a class="btn" href="{{ route('franchise') }}">APPLY / VIEW FRANCHISE OPPORTUNITY</a>
+        </section>
+
+        <h2>My Franchise Applications</h2>
+        @forelse($franchiseApplications as $application)
+            @php($applicationStatus = $application->status === 'converted' ? 'Active Partner' : str($application->status)->headline())
+            <article class="panel">
+                <h3>Application {{ \Illuminate\Support\Str::limit((string) $application->uuid, 14, '…') }}</h3>
+                <p>Status: <strong>{{ $applicationStatus }}</strong> · Territory: <strong>{{ $application->territory ?: 'Not assigned' }}</strong> · Preferred location: <strong>{{ $application->preferred_location ?: 'Not specified' }}</strong></p>
+                <p class="account-muted">Submitted {{ $application->created_at?->format('d M Y') }}. Communication remains linked to the same application in Emerald Rozalia's Communication Centre.</p>
+            </article>
+        @empty
+            <p>No franchise application is linked to this account yet.</p>
+        @endforelse
+
+        <h2>Franchise Orders</h2>
+        @forelse($franchiseOrders as $order)
+            <article class="panel">
+                <h3>{{ $order->number }}</h3>
+                <p>Order type: <strong>{{ str($order->order_type)->headline() }}</strong> · Status: <strong>{{ str($order->status)->headline() }}</strong> · Payment: <strong>{{ str($order->payment_status)->headline() }}</strong> · Total: <strong>{{ strtoupper($order->currency ?? 'EUR') }} {{ number_format((float) $order->total, 2) }}</strong></p>
+                <div class="account-actions"><a class="btn" href="{{ route('account.invoice', $order) }}">VIEW / PRINT INVOICE</a></div>
+            </article>
+        @empty
+            <p>No franchise or franchise retail orders are linked to this account yet.</p>
+        @endforelse
     @elseif($section === 'payments')
         <section class="panel">
             <h2>Payment ledger</h2>
@@ -53,7 +121,7 @@
                     <span>{{ $payment->order->number }}</span>
                     <span>{{ str($payment->provider)->headline() }}</span>
                     <span>{{ str($payment->status)->headline() }}</span>
-                    <strong>€{{ number_format((float) $payment->amount, 2) }}</strong>
+                    <strong>{{ strtoupper($payment->currency ?? 'EUR') }} {{ number_format((float) $payment->amount, 2) }}</strong>
                 </div>
             @empty
                 <p>No payment transactions yet.</p>
@@ -84,8 +152,6 @@
         <form class="profile-form" method="post" action="{{ route('account.profile') }}">@csrf @method('PATCH')<label>Name<input name="name" value="{{ auth()->user()->name }}" required></label><label>Email<input value="{{ auth()->user()->email }}" disabled></label><label>Phone<input name="phone" value="{{ auth()->user()->phone }}"></label><button class="btn" type="submit">UPDATE PROFILE</button></form>
     @elseif($section === 'designs')
         <h2>Custom Designs</h2><p>Your saved hat customisation projects will appear here when a design configurator is connected.</p><a class="btn" href="{{ route('corporate.orders') }}">START A CUSTOM ORDER</a>
-    @elseif($section === 'bulk-orders')
-        <h2>Bulk Orders</h2><p>Use your account to request and track corporate and bulk enquiries.</p><a class="btn" href="{{ route('bulk.orders') }}">REQUEST BULK QUOTE</a>
     @elseif($section === 'returns')
         <h2>Returns and exchanges</h2>
         @forelse($returns as $return)
