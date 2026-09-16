@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SalesQuoteConvertRequest;
 use App\Http\Requests\SalesQuoteDecisionRequest;
 use App\Http\Requests\SalesQuoteUpdateRequest;
-use App\Models\SalesQuote;
+use App\Models\{Product, SalesQuote};
 use App\Services\SalesQuoteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,7 +86,16 @@ final class SalesQuoteController extends Controller
             'approver',
         ]);
 
-        return view('admin.quotes.show', compact('quote'));
+        $products = Product::query()
+            ->published()
+            ->with(['variants' => fn ($query) => $query
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')])
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.quotes.show', compact('quote', 'products'));
     }
 
     public function update(SalesQuoteUpdateRequest $request, SalesQuote $quote): RedirectResponse
