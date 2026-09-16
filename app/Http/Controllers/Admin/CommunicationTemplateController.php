@@ -7,6 +7,8 @@ use App\Http\Requests\CommunicationTemplateIndexRequest;
 use App\Http\Requests\CommunicationTemplateRequest;
 use App\Http\Resources\CommunicationTemplateResource;
 use App\Models\CommunicationTemplate;
+use App\Services\CommunicationTemplateAttachmentService;
+use App\Services\CommunicationTemplateRoleService;
 use App\Services\CommunicationTemplateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,14 +18,17 @@ use Illuminate\Support\Facades\Gate;
 
 class CommunicationTemplateController extends Controller
 {
-    public function __construct(private readonly CommunicationTemplateService $service)
-    {
+    public function __construct(
+        private readonly CommunicationTemplateService $service,
+        private readonly CommunicationTemplateAttachmentService $attachments,
+        private readonly CommunicationTemplateRoleService $roles,
+    ) {
     }
 
     public function store(CommunicationTemplateRequest $request): RedirectResponse
     {
         Gate::authorize('create', CommunicationTemplate::class);
-        $this->service->create($request->templatePayload(), $this->idempotencyKey($request));
+        $this->service->create($this->preparedPayload($request), $this->idempotencyKey($request));
 
         return back()->with('success', 'Template created.');
     }
@@ -31,14 +36,16 @@ class CommunicationTemplateController extends Controller
     public function update(CommunicationTemplateRequest $request, CommunicationTemplate $template): RedirectResponse
     {
         Gate::authorize('update', $template);
-        $this->service->update($template, $request->templatePayload());
+        $this->roles->authorizeUse($request->user(), $template);
+        $this->service->update($template, $this->preparedPayload($request, $template));
 
         return back()->with('success', 'Template updated.');
     }
 
-    public function destroy(CommunicationTemplate $template): RedirectResponse
+    public function destroy(Request $request, CommunicationTemplate $template): RedirectResponse
     {
         Gate::authorize('delete', $template);
+        $this->roles->authorizeUse($request->user(), $template);
         $this->service->delete($template);
 
         return back()->with('success', 'Template deleted.');
@@ -47,6 +54,7 @@ class CommunicationTemplateController extends Controller
     public function action(Request $request, CommunicationTemplate $template, string $action): RedirectResponse
     {
         Gate::authorize('update', $template);
+        $this->roles->authorizeUse($request->user(), $template);
 
         if ($action === 'duplicate') {
             $this->service->duplicate($template);
@@ -64,6 +72,7 @@ class CommunicationTemplateController extends Controller
             ->forCurrentCompany()
             ->with(['creator', 'updater'])
             ->where('channel', 'email')
+            ->whereIn('id', $this->roles->visibleTemplateIds($request->user()))
             ->latest('updated_at')
             ->latest('id');
 
@@ -73,9 +82,10 @@ class CommunicationTemplateController extends Controller
         return CommunicationTemplateResource::collection($query->paginate($perPage)->withQueryString());
     }
 
-    public function apiShow(CommunicationTemplate $template): CommunicationTemplateResource
+    public function apiShow(Request $request, CommunicationTemplate $template): CommunicationTemplateResource
     {
         Gate::authorize('view', $template);
+        $this->roles->authorizeUse($request->user(), $template);
 
         return new CommunicationTemplateResource($template->load(['creator', 'updater']));
     }
@@ -83,7 +93,7 @@ class CommunicationTemplateController extends Controller
     public function apiStore(CommunicationTemplateRequest $request): JsonResponse
     {
         Gate::authorize('create', CommunicationTemplate::class);
-        $template = $this->service->create($request->templatePayload(), $this->idempotencyKey($request));
+        $template = $this->service->create($this->preparedPayload($request), $this->idempotencyKey($request));
         $template->load(['creator', 'updater']);
 
         return (new CommunicationTemplateResource($template))
@@ -94,15 +104,17 @@ class CommunicationTemplateController extends Controller
     public function apiUpdate(CommunicationTemplateRequest $request, CommunicationTemplate $template): JsonResponse
     {
         Gate::authorize('update', $template);
-        $updated = $this->service->update($template, $request->templatePayload());
+        $this->roles->authorizeUse($request->user(), $template);
+        $updated = $this->service->update($template, $this->preparedPayload($request, $template));
         $updated->load(['creator', 'updater']);
 
         return (new CommunicationTemplateResource($updated))->response($request);
     }
 
-    public function apiDelete(CommunicationTemplate $template): JsonResponse
+    public function apiDelete(Request $request, CommunicationTemplate $template): JsonResponse
     {
         Gate::authorize('delete', $template);
+        $this->roles->authorizeUse($request->user(), $template);
         $this->service->delete($template);
 
         return response()->json(null, 204);
@@ -111,12 +123,33 @@ class CommunicationTemplateController extends Controller
     public function apiAction(Request $request, CommunicationTemplate $template, string $action): JsonResponse
     {
         Gate::authorize('update', $template);
+        $this->roles->authorizeUse($request->user(), $template);
         $result = $action === 'duplicate'
             ? $this->service->duplicate($template)
             : $this->service->transition($template, $action);
         $result->load(['creator', 'updater']);
 
         return (new CommunicationTemplateResource($result))->response($request);
+    }
+
+    private function preparedPayload(CommunicationTemplateRequest $request, ?CommunicationTemplate $existing = null): array
+    {
+        $payload = $request->templatePayload();
+
+        if ($existing) {
+            $payload['variables'] = array_merge(
+                is_array($existing->variables) ? $existing->variables : [],
+                is_array($payload['variables'] ?? null) ? $payload['variables'] : [],
+            );
+        }
+
+        $payload = $this->attachments->apply($request, $payload, $existing);
+
+        if ($request->has('allowed_roles')) {
+            $payload = $this->roles->applySelection($payload, (array) $request->input('allowed_roles', []));
+        }
+
+        return $payload;
     }
 
     private function applyFilters($query, Request $request): void
