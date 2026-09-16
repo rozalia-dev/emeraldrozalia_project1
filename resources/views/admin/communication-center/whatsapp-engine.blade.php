@@ -3,11 +3,15 @@
 @section('title', 'WhatsApp Setup')
 
 @push('styles')
-<link rel="stylesheet" href="/css/whatsapp-engine.css?v=20260916-1">
+<link rel="stylesheet" href="/css/whatsapp-engine.css?v=20260916-2">
 @endpush
 
 @section('content')
-<div class="wa-engine" data-wa-engine-root data-status-url="{{ route('admin.communication-center.whatsapp.status') }}" data-qr-url="{{ route('admin.communication-center.whatsapp.qr') }}">
+<div class="wa-engine"
+     data-wa-engine-root
+     data-status-url="{{ route('admin.communication-center.whatsapp.status') }}"
+     data-qr-url="{{ route('admin.communication-center.whatsapp.qr') }}"
+     data-send-url="{{ route('admin.communication-center.whatsapp.send') }}">
     <header class="wa-engine-header">
         <div>
             <p class="wa-engine-eyebrow">Communication Center · WhatsApp</p>
@@ -64,6 +68,31 @@
         </article>
     </section>
 
+    <section class="wa-engine-card wa-engine-compose-card">
+        <div class="wa-engine-card-head">
+            <div>
+                <small>NEW WHATSAPP MESSAGE</small>
+                <h2>Start a Conversation</h2>
+            </div>
+        </div>
+        <p class="wa-engine-help">Use the full international number without spaces or the + symbol, for example <b>353871234567</b>. The message is stored in Communication Center first and then delivered by the existing Laravel queue.</p>
+        <form class="wa-engine-compose" data-wa-compose>
+            @csrf
+            <label>
+                <span>WhatsApp phone number</span>
+                <input type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="353871234567" maxlength="25" required>
+            </label>
+            <label class="wa-engine-compose-message">
+                <span>Message</span>
+                <textarea name="message" rows="4" maxlength="4096" placeholder="Type your WhatsApp message…" required></textarea>
+            </label>
+            <div class="wa-engine-compose-footer">
+                <span data-wa-compose-result aria-live="polite"></span>
+                <button type="submit" data-wa-send disabled>Send WhatsApp</button>
+            </div>
+        </form>
+    </section>
+
     <section class="wa-engine-card wa-engine-flow">
         <div class="wa-engine-card-head">
             <div>
@@ -90,10 +119,18 @@
     const qr = root.querySelector('[data-wa-qr]');
     const placeholder = root.querySelector('[data-wa-qr-placeholder]');
     const refresh = root.querySelector('[data-wa-refresh]');
+    const compose = root.querySelector('[data-wa-compose]');
+    const sendButton = root.querySelector('[data-wa-send]');
+    const composeResult = root.querySelector('[data-wa-compose-result]');
+    let engineReady = false;
 
     const setStatus = (label, tone) => {
         statusEl.textContent = label;
         statusEl.dataset.tone = tone;
+    };
+
+    const updateSendButton = () => {
+        if (sendButton) sendButton.disabled = !engineReady;
     };
 
     async function loadQr() {
@@ -122,6 +159,8 @@
             const data = await response.json();
             browserEl.textContent = data.whatsapp_state || data.state || 'Unknown';
             errorEl.textContent = data.last_error || data.error || '—';
+            engineReady = Boolean(data.ready);
+            updateSendButton();
 
             if (data.ready) {
                 setStatus('Connected', 'success');
@@ -136,11 +175,56 @@
                 await loadQr();
             }
         } catch (_) {
+            engineReady = false;
+            updateSendButton();
             browserEl.textContent = 'Unavailable';
             errorEl.textContent = 'Laravel cannot reach the private Node engine.';
             setStatus('Engine Offline', 'danger');
         }
     }
+
+    compose?.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!engineReady || !sendButton) return;
+
+        composeResult.textContent = 'Queueing message…';
+        composeResult.dataset.tone = 'neutral';
+        sendButton.disabled = true;
+
+        const formData = new FormData(compose);
+        const csrf = String(formData.get('_token') || '');
+        const idempotency = window.crypto?.randomUUID?.() || `wa-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+        try {
+            const response = await fetch(root.dataset.sendUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'Idempotency-Key': `wa-compose:${idempotency}`,
+                },
+                body: JSON.stringify({
+                    phone: formData.get('phone'),
+                    message: formData.get('message'),
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to queue the WhatsApp message.');
+
+            composeResult.textContent = 'Message queued. Opening the WhatsApp conversation…';
+            composeResult.dataset.tone = 'success';
+            compose.reset();
+            window.setTimeout(() => {
+                if (data.inbox_url) window.location.assign(data.inbox_url);
+            }, 700);
+        } catch (error) {
+            composeResult.textContent = error.message || 'Unable to send the WhatsApp message.';
+            composeResult.dataset.tone = 'danger';
+        } finally {
+            sendButton.disabled = !engineReady;
+        }
+    });
 
     refresh?.addEventListener('click', loadStatus);
     loadStatus();
