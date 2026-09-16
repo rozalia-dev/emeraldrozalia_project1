@@ -93,7 +93,9 @@ final class PublicChatController extends Controller
         ]);
 
         $messages = [$this->messagePayload($inbound)];
-        $aiPaused = (bool) data_get($metadata, 'ai_paused', false) || (bool) data_get($metadata, 'human_requested', false);
+        $aiPaused = (bool) data_get($metadata, 'ai_paused', false)
+            || (bool) data_get($metadata, 'human_requested', false)
+            || $chat->assigned_to !== null;
 
         if (! $aiPaused) {
             $reply = $assistant->answer($data['message'], $metadata['context_product_slug'] ?? null);
@@ -115,6 +117,7 @@ final class PublicChatController extends Controller
             'ok' => true,
             'messages' => $messages,
             'human_requested' => (bool) data_get($chat->fresh()->metadata, 'human_requested', false),
+            'ai_paused' => $aiPaused,
             'quick_actions' => Chat24SevenAssistant::QUICK_ACTIONS,
         ]);
     }
@@ -136,7 +139,7 @@ final class PublicChatController extends Controller
             'ok' => true,
             'messages' => $messages,
             'human_requested' => (bool) data_get($chat->metadata, 'human_requested', false),
-            'ai_paused' => (bool) data_get($chat->metadata, 'ai_paused', false),
+            'ai_paused' => (bool) data_get($chat->metadata, 'ai_paused', false) || $chat->assigned_to !== null,
         ]);
     }
 
