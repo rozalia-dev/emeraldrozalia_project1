@@ -131,7 +131,7 @@
                     <span>{{ $payment->order->number }}</span>
                     <span>{{ str($payment->provider)->headline() }}</span>
                     <span>{{ str($payment->status)->headline() }}</span>
-                    <strong>{{ strtoupper($payment->currency ?? 'EUR') }} {{ number_format((float) $payment->amount, 2) }}</strong>
+                    <strong>{{ strtoupper($payment->currency ?? 'EUR') === 'EUR' ? '€' : strtoupper($payment->currency ?? 'EUR').' ' }}{{ number_format((float) $payment->amount, 2) }}</strong>
                 </div>
             @empty
                 <p>No payment transactions yet.</p>
