@@ -13,5 +13,6 @@ Route::prefix('admin/resource/360-product-view')->middleware(['auth','admin'])->
     Route::get('/export',[SpinController::class,'export'])->name('export');
     Route::post('/bulk',[SpinController::class,'bulk'])->name('bulk');
     Route::patch('/{spin}',[SpinController::class,'update'])->name('update');
+    Route::delete('/{spin}',[SpinController::class,'destroy'])->name('destroy');
     Route::get('/{spin}/audit',[SpinController::class,'audit'])->name('audit');
 });
