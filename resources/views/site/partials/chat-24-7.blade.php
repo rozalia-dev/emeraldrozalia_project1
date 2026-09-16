@@ -47,3 +47,4 @@
     </section>
 </div>
 <script src="/js/chat-24-7.js?v=20260916-visible-service-actions-1" defer></script>
+<script src="/js/appointment-scheduler.js?v=20260916-appointment-rules-1" defer></script>
