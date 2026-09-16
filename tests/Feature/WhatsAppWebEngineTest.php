@@ -150,11 +150,56 @@ class WhatsAppWebEngineTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.communication-center.whatsapp.setup'))
             ->assertOk()
-            ->assertSee(['WhatsApp Web Engine', 'Open WhatsApp Inbox'], false);
+            ->assertSee(['WhatsApp Web Engine', 'Start a Conversation', 'Open WhatsApp Inbox'], false);
 
         $this->actingAs($admin)
             ->getJson(route('admin.communication-center.whatsapp.status'))
             ->assertOk()
             ->assertJson(['ready' => true, 'state' => 'ready']);
+    }
+
+    public function test_admin_can_start_a_whatsapp_conversation_and_queue_the_first_message(): void
+    {
+        config([
+            'communication.whatsapp_engine_url' => 'http://127.0.0.1:3001',
+            'communication.endpoints.whatsapp' => 'http://127.0.0.1:3001/send-message',
+            'communication.tokens.whatsapp' => 'engine-token',
+            'communication.webhook_secrets.whatsapp' => 'test-secret',
+        ]);
+
+        Http::fake([
+            'http://127.0.0.1:3001/status' => Http::response([
+                'ok' => true,
+                'ready' => true,
+                'state' => 'ready',
+            ]),
+            'http://127.0.0.1:3001/send-message' => Http::response([
+                'ok' => true,
+                'status' => 'accepted',
+                'provider_message_id' => 'provider-first-message',
+            ]),
+        ]);
+
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->withHeader('Idempotency-Key', 'wa-compose:test-first-message')
+            ->postJson(route('admin.communication-center.whatsapp.send'), [
+                'phone' => '+353 87 123 4567',
+                'message' => 'Hello from the Emerald Rozalia Communication Center',
+            ])
+            ->assertStatus(202)
+            ->assertJson(['queued' => true]);
+
+        $conversation = Conversation::withoutGlobalScopes()->where('channel', 'whatsapp')->firstOrFail();
+        $this->assertSame('353871234567', $conversation->contact);
+        $this->assertSame('open', $conversation->status);
+
+        $message = ConversationMessage::withoutGlobalScopes()->where('conversation_id', $conversation->id)->firstOrFail();
+        $this->assertSame('outbound', $message->direction);
+        $this->assertSame('Hello from the Emerald Rozalia Communication Center', $message->body);
+        $this->assertSame('wa-compose:test-first-message', $message->idempotency_key);
+        $this->assertSame('provider-first-message', $message->provider_message_id);
+        $this->assertSame('queued', $message->delivery_status);
     }
 }
