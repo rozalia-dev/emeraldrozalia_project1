@@ -44,15 +44,46 @@
 
     const scrollMessages = () => { messagesEl.scrollTop = messagesEl.scrollHeight; };
 
+    const safeLocalUrl = (value) => {
+        try {
+            const url = new URL(value || '', window.location.origin);
+            return url.origin === window.location.origin ? url.href : null;
+        } catch (_) {
+            return null;
+        }
+    };
+
+    const renderMessageActions = (actions, container) => {
+        if (!Array.isArray(actions) || actions.length === 0) return;
+        const actionWrap = document.createElement('div');
+        actionWrap.className = 'chat24-actions';
+        actions.forEach((action) => {
+            const href = safeLocalUrl(action && action.url);
+            if (!href) return;
+            const link = document.createElement('a');
+            link.className = 'chat24-action';
+            link.href = href;
+            link.textContent = (action && action.label) || 'Open';
+            actionWrap.appendChild(link);
+        });
+        if (actionWrap.children.length) container.appendChild(actionWrap);
+    };
+
     const appendMessage = (message) => {
         if (!message || document.querySelector(`[data-chat24-message-id="${message.id}"]`)) return;
         const row = document.createElement('div');
         row.className = `chat24-message ${message.direction || 'outbound'} ${message.actor || ''}`;
         row.dataset.chat24MessageId = message.id;
+
+        const content = document.createElement('div');
+        content.className = 'chat24-message-content';
         const bubble = document.createElement('div');
         bubble.className = 'chat24-bubble';
         bubble.textContent = message.body || '';
-        row.appendChild(bubble);
+        content.appendChild(bubble);
+        renderMessageActions(message.actions || [], content);
+        row.appendChild(content);
+
         messagesEl.appendChild(row);
         lastId = Math.max(lastId, Number(message.id || 0));
         renderProducts(message.products || []);
@@ -63,9 +94,11 @@
         if (!Array.isArray(products) || products.length === 0) return;
         productsEl.replaceChildren();
         products.forEach((product) => {
+            const href = safeLocalUrl(product.url || '#');
+            if (!href) return;
             const link = document.createElement('a');
             link.className = 'chat24-product';
-            link.href = product.url || '#';
+            link.href = href;
             const copy = document.createElement('div');
             const name = document.createElement('strong');
             name.textContent = product.name || 'Product';
@@ -80,7 +113,7 @@
             link.append(copy, arrow);
             productsEl.appendChild(link);
         });
-        productsEl.hidden = false;
+        productsEl.hidden = productsEl.children.length === 0;
     };
 
     const renderQuick = (items) => {
@@ -127,7 +160,7 @@
                     return start();
                 }
             }
-            statusEl.textContent = 'Ask a product question or request a human agent.';
+            statusEl.textContent = 'Ask a product question or choose an application/order option.';
             beginPolling();
         } catch (error) {
             conversation = null;
@@ -141,7 +174,7 @@
     const send = async (text) => {
         if (!conversation) await start();
         if (!conversation) return;
-        setBusy(true, 'Checking our product data…');
+        setBusy(true, 'Checking our product and service information…');
         try {
             const payload = await request(`${baseUrl}/${conversation}/messages`, {
                 method: 'POST',
@@ -151,7 +184,7 @@
             renderQuick(payload.quick_actions || []);
             statusEl.textContent = payload.human_requested
                 ? 'A team member has been requested. Keep this chat open for their reply.'
-                : 'AI answers use currently recorded Emerald Rozalia product data.';
+                : 'Product answers use recorded Emerald Rozalia data; application links open the relevant public form.';
         } catch (error) {
             statusEl.textContent = error.message || 'Message could not be sent.';
         } finally {
