@@ -13,9 +13,13 @@ use Illuminate\View\View;
 
 class AccountController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(): View|RedirectResponse
     {
         $user = auth()->user();
+
+        if ($user->is_admin) {
+            return redirect()->route('admin.profile.show');
+        }
 
         return view('site.account', [
             'orders' => $user->orders()->with('items')->latest()->limit(8)->get(),
@@ -26,12 +30,16 @@ class AccountController extends Controller
         ]);
     }
 
-    public function section(string $section): View
+    public function section(string $section): View|RedirectResponse
     {
         $allowed = ['orders', 'wishlist', 'rewards', 'addresses', 'profile', 'payments', 'designs', 'bulk-orders', 'returns'];
         abort_unless(in_array($section, $allowed, true), 404);
 
         $user = auth()->user();
+
+        if ($user->is_admin) {
+            return redirect()->route('admin.profile.show');
+        }
 
         return view('account.section', [
             'section' => $section,
@@ -57,6 +65,11 @@ class AccountController extends Controller
     public function profile(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = auth()->user();
+
+        if ($user->is_admin) {
+            return redirect()->route('admin.profile.show');
+        }
+
         $before = $user->only(['name', 'phone']);
         $user->update($request->validated());
         AuditTrail::record('customer.profile_updated', $user, $before, $user->fresh()->only(['name', 'phone']));
