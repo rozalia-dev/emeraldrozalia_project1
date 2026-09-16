@@ -31,12 +31,26 @@ class Conversation extends Model
         static::creating(function (self $row): void {
             $row->uuid ??= Str::uuid()->toString();
 
+            if ($row->inquiry_id) {
+                $inquiry = Inquiry::withoutGlobalScopes()->find($row->inquiry_id);
+                $meeting = (array) data_get($inquiry?->meta, 'meeting', []);
+                if ($meeting !== []) {
+                    $metadata = (array) $row->metadata;
+                    $metadata['meeting'] = array_filter([
+                        'date' => $meeting['date'] ?? null,
+                        'time' => $meeting['time'] ?? null,
+                        'mode' => $meeting['mode'] ?? null,
+                    ], fn ($value) => filled($value));
+                    $row->metadata = $metadata;
+                }
+            }
+
             if (! $row->customer_id || ! $row->inquiry_id) {
                 return;
             }
 
             $customer = User::query()->find($row->customer_id);
-            $inquiry = Inquiry::withoutGlobalScopes()->find($row->inquiry_id);
+            $inquiry = $inquiry ?? Inquiry::withoutGlobalScopes()->find($row->inquiry_id);
             $customerEmail = mb_strtolower(trim((string) $customer?->email));
             $inquiryEmail = mb_strtolower(trim((string) $inquiry?->email));
             $contactEmail = mb_strtolower(trim((string) $row->contact));
@@ -105,9 +119,6 @@ class Conversation extends Model
     {
         $table = $query->getModel()->getTable();
 
-        // The Inbox owns its From / To controls. Apply the selected range at
-        // the query scope used by both the Inbox list and its export endpoint,
-        // including installations that do not have a selected company session.
         if (request()->is('admin/resource/inbox') || request()->is('admin/communication-center/inbox/export')) {
             if ($from = $this->validInboxDate(request()->query('date_from'))) {
                 $query->where($table.'.created_at', '>=', $from.' 00:00:00');
@@ -124,10 +135,6 @@ class Conversation extends Model
 
         $query->withoutGlobalScope('tenant')->where(function (Builder $visible) use ($table, $companyId): void {
             $visible->where($table.'.company_id', (int) $companyId);
-
-            // Global administrators may still resolve legacy conversations whose
-            // tenant was not recoverable during the ownership backfill. New
-            // records are always assigned by BelongsToTenant.
             if (auth()->user()?->is_admin) {
                 $visible->orWhereNull($table.'.company_id');
             }
@@ -152,9 +159,6 @@ class Conversation extends Model
         $field ??= $this->getRouteKeyName();
         $table = $this->getTable();
 
-        // Implicit binding can run before the appended web middleware has
-        // established the selected company. Build from the model query (no
-        // global scopes), then apply the visibility rule explicitly.
         $query = $this->newModelQuery()
             ->whereNull($this->getQualifiedDeletedAtColumn())
             ->where($table.'.'.$field, $value);
