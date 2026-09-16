@@ -19,10 +19,14 @@ class CommunicationCenter
 
     /**
      * Persist one outbound reply and enqueue delivery after the transaction.
-     * A repeated key is safe only when it describes the same conversation/body.
+     * A repeated key is safe only when it describes the same conversation/body/context.
      */
-    public function sendReply(Conversation $conversation, string $body, ?string $idempotencyKey = null): ConversationMessage
-    {
+    public function sendReply(
+        Conversation $conversation,
+        string $body,
+        ?string $idempotencyKey = null,
+        array $deliveryContext = [],
+    ): ConversationMessage {
         if (trim($body) === '') {
             throw ValidationException::withMessages(['body' => 'A reply body is required.']);
         }
@@ -30,7 +34,7 @@ class CommunicationCenter
         $idempotencyKey = $this->normalizeIdempotencyKey($idempotencyKey);
         $message = null;
 
-        DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey): void {
+        DB::transaction(function () use (&$message, $conversation, $body, $idempotencyKey, $deliveryContext): void {
             $lockedConversation = $this->visibleConversationQuery()
                 ->lockForUpdate()
                 ->find($conversation->getKey());
@@ -39,7 +43,7 @@ class CommunicationCenter
                 throw (new ModelNotFoundException())->setModel(Conversation::class, [$conversation->getKey()]);
             }
 
-            $requestHash = $this->replyHash($lockedConversation, $body);
+            $requestHash = $this->replyHash($lockedConversation, $body, $deliveryContext);
             if ($idempotencyKey !== null) {
                 $existing = ConversationMessage::query()
                     ->where('idempotency_key', $idempotencyKey)
@@ -58,17 +62,19 @@ class CommunicationCenter
             }
 
             $correlationId = $this->correlationId();
+            $payload = array_merge([
+                'source' => 'communication_center_reply',
+                'correlation_id' => $correlationId,
+                'request_hash' => $requestHash,
+            ], $deliveryContext);
+
             $message = $lockedConversation->messages()->create([
                 'user_id' => auth()->id(),
                 'direction' => 'outbound',
                 'body' => $body,
                 'delivery_status' => 'queued',
                 'idempotency_key' => $idempotencyKey,
-                'payload' => [
-                    'source' => 'communication_center_reply',
-                    'correlation_id' => $correlationId,
-                    'request_hash' => $requestHash,
-                ],
+                'payload' => $payload,
                 'sent_at' => now(),
             ]);
             $lockedConversation->update(['status' => 'open']);
@@ -225,12 +231,13 @@ class CommunicationCenter
         return $key;
     }
 
-    public function replyHash(Conversation $conversation, string $body): string
+    public function replyHash(Conversation $conversation, string $body, array $deliveryContext = []): string
     {
         return hash('sha256', (string) json_encode([
             'conversation_uuid' => $conversation->uuid,
             'body' => $body,
-        ], JSON_UNESCAPED_SLASHES));
+            'delivery_context' => $deliveryContext,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 
     public function messageState(ConversationMessage $message): array
