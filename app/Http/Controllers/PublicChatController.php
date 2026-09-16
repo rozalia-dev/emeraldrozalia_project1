@@ -166,6 +166,7 @@ final class PublicChatController extends Controller
             'intent' => 'human',
             'requires_human' => true,
             'products' => [],
+            'actions' => [],
             'quick_actions' => [],
         ]);
 
@@ -187,6 +188,7 @@ final class PublicChatController extends Controller
                 'intent' => $reply['intent'],
                 'requires_human' => (bool) $reply['requires_human'],
                 'products' => $reply['products'] ?? [],
+                'actions' => $reply['actions'] ?? [],
             ],
             'sent_at' => now(),
             'delivered_at' => now(),
@@ -223,6 +225,7 @@ final class PublicChatController extends Controller
             'body' => (string) $message->body,
             'actor' => data_get($payload, 'actor', $message->direction === 'outbound' ? 'team' : 'customer'),
             'products' => data_get($payload, 'products', []),
+            'actions' => data_get($payload, 'actions', []),
             'sent_at' => optional($message->sent_at ?: $message->created_at)->toIso8601String(),
         ];
     }
