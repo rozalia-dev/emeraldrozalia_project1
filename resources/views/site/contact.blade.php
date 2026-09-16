@@ -10,6 +10,15 @@
     $contactToday = now()->startOfDay();
     $contactWeekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     $contactLeadingDays = $contactMonth->dayOfWeekIso - 1;
+    $contactBranding = data_get($siteSettings ?? [], 'company-branding', []);
+    $contactEmail = data_get($contactBranding, 'email') ?: config('app.brand_contact.email', 'urmos@rozalia.ie');
+    $contactWhatsApp = data_get($contactBranding, 'phone') ?: config('app.brand_contact.whatsapp', '0899788187');
+    $contactWhatsAppDigits = preg_replace('/\D+/', '', (string) $contactWhatsApp);
+    if (str_starts_with($contactWhatsAppDigits, '0')) {
+        $contactWhatsAppDigits = '353'.substr($contactWhatsAppDigits, 1);
+    }
+    $contactGmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to='.rawurlencode((string) $contactEmail);
+    $contactWhatsAppUrl = $contactWhatsAppDigits ? 'https://wa.me/'.$contactWhatsAppDigits : '#contact-form';
 @endphp
 
 @section('content')
@@ -37,13 +46,13 @@
             <span class="contact-option-icon"><x-icon name="phone" size="27" /></span>
             <span><strong>MESSAGE US</strong><b>Send an enquiry</b><small>Use the form to contact our team</small></span>
         </a>
-        <a class="contact-option" href="#contact-form" aria-label="Send an email enquiry to Emerald Rozalia">
+        <a class="contact-option" href="{{ $contactGmailUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Email Emerald Rozalia with Gmail">
             <span class="contact-option-icon"><x-icon name="mail" size="27" /></span>
-            <span><strong>EMAIL ENQUIRY</strong><b>Send us a message</b><small>We’ll route your enquiry to the right team</small></span>
+            <span><strong>GMAIL</strong><b>Open Gmail</b><small>Write directly to our team</small></span>
         </a>
-        <a class="contact-option" href="/shop" aria-label="Explore the Emerald Rozalia shop">
-            <span class="contact-option-icon"><x-icon name="globe" size="27" /></span>
-            <span><strong>SHOP ONLINE</strong><b>Explore Emerald Rozalia</b><small>Browse our hats and caps</small></span>
+        <a class="contact-option" href="{{ $contactWhatsAppUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Message Emerald Rozalia on WhatsApp">
+            <span class="contact-option-icon"><x-icon name="phone" size="27" /></span>
+            <span><strong>WHATSAPP</strong><b>Message on WhatsApp</b><small>Start a direct conversation</small></span>
         </a>
         <a class="contact-option" href="#contact-schedule" aria-label="Choose a live chat or meeting time">
             <span class="contact-option-icon"><x-icon name="message" size="27" /></span>
