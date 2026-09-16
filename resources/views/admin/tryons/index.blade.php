@@ -44,7 +44,7 @@
     <a class="sd-reset" href="{{ route('admin.tryons.index') }}">↻ Reset</a>
 </form>
 
-<form method="post" action="{{ route('admin.tryons.bulk') }}" data-bulk>@csrf
+<form method="post" action="{{ route('admin.tryons.bulk') }}" data-bulk onsubmit="return this.querySelector('[name=action]').value !== 'delete' || confirm('Delete the selected virtual try-on assets permanently? Their stored files will also be removed. This cannot be undone.')">@csrf
 <div class="sd-table"><table><thead><tr><th><input type="checkbox" data-select-all aria-label="Select all visible assets"></th><th>Preview</th><th>Product / SKU</th><th>Type</th><th>Model / Target</th><th>Status</th><th>Platform</th><th>Try-Ons (30D)</th><th>Last Updated</th><th>Actions</th></tr></thead><tbody>
 @forelse($assets as $asset)
 <tr @class(['sd-selected'=>$selected?->id===$asset->id])>
@@ -57,7 +57,7 @@
 <td><span class="to-platform" title="Web">◎</span>@if($asset->settings['mobile']??true)<span title="iOS">●</span><span title="Android">◆</span>@endif</td>
 <td>{{ number_format($asset->visits_count) }}</td>
 <td>{{ $asset->updated_at->format('d M Y') }}<small>by {{ $asset->updated_by ?: 'Admin User' }}</small></td>
-<td><div class="sd-actions"><a href="{{ route('virtual-tryon',['product_id'=>$asset->product_id]) }}" target="_blank" rel="noopener" aria-label="Launch {{ $asset->title }}"><x-icon name="eye" size="16" /></a><a href="{{ route('admin.tryons.index',array_merge(request()->query(),['edit'=>$asset->id])) }}#editor" aria-label="Edit {{ $asset->title }}"><x-icon name="edit" size="16" /></a><button type="button" data-audit="{{ route('admin.tryons.audit',$asset->id) }}" aria-label="Audit history for {{ $asset->title }}">⋮</button></div></td>
+<td><div class="sd-actions"><a href="{{ route('virtual-tryon',['product_id'=>$asset->product_id]) }}" target="_blank" rel="noopener" aria-label="Launch {{ $asset->title }}"><x-icon name="eye" size="16" /></a><a href="{{ route('admin.tryons.index',array_merge(request()->query(),['edit'=>$asset->id])) }}#editor" aria-label="Edit {{ $asset->title }}"><x-icon name="edit" size="16" /></a><button type="submit" form="tryon-delete-{{ $asset->id }}" aria-label="Delete {{ $asset->title }}" title="Delete permanently"><x-icon name="trash" size="16" /></button><button type="button" data-audit="{{ route('admin.tryons.audit',$asset->id) }}" aria-label="Audit history for {{ $asset->title }}">⋮</button></div></td>
 </tr>
 @empty
 <tr><td colspan="10"><div class="sd-empty"><x-icon name="camera" size="36" /><h2>{{ request()->hasAny(['q','status','type','product_id'])?'No matching try-on assets':'Your Virtual Try-On library starts here' }}</h2><p>Upload a browser overlay or AR package and link it to a product to create your first customer try-on experience.</p><button class="sd-button" type="button" data-create>Create Try-On Asset</button></div></td></tr>
@@ -76,6 +76,9 @@
 </div>
 <div class="sd-bulk"><label>Selected assets<select name="action"><option value="draft">Move to Draft</option><option value="in_review">Send to Review</option><option value="published">Publish</option><option value="needs_attention">Needs Attention</option><option value="archived">Archive</option><option value="delete">Delete permanently</option></select></label><button class="sd-button sd-outline" type="submit">Apply</button><a href="{{ route('admin.tryons.export',request()->except(['page','edit'])) }}">Export CSV</a><small data-selection>0 selected</small></div>
 </form>
+@foreach($assets as $asset)
+<form id="tryon-delete-{{ $asset->id }}" method="post" action="{{ route('admin.tryons.destroy',$asset) }}" hidden onsubmit="return confirm('Delete this virtual try-on asset permanently? Its stored files will also be removed. This cannot be undone.')">@csrf @method('DELETE')</form>
+@endforeach
 </section>
 
 <section id="editor" class="to-workbench" aria-label="Virtual try-on workbench">
