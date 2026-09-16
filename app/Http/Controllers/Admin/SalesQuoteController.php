@@ -90,6 +90,7 @@ final class SalesQuoteController extends Controller
             ->published()
             ->with(['variants' => fn ($query) => $query
                 ->where('is_active', true)
+                ->whereIn('status', ['active', 'published'])
                 ->orderBy('sort_order')
                 ->orderBy('id')])
             ->orderBy('name')
