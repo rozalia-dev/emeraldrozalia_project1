@@ -2,6 +2,48 @@
 
 @section('title', $title)
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const page = document.querySelector('[data-resource-page]');
+    if (!page) return;
+    const checkboxes = [...page.querySelectorAll('[data-resource-select]')];
+    const selectAll = page.querySelector('[data-resource-select-all]');
+    const count = page.querySelector('[data-resource-selection-count]');
+    const form = page.querySelector('#resource-bulk-form');
+    const update = () => {
+        const selected = checkboxes.filter((checkbox) => checkbox.checked).length;
+        if (count) count.textContent = `${selected} selected`;
+        if (selectAll) {
+            selectAll.checked = checkboxes.length > 0 && selected === checkboxes.length;
+            selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
+        }
+    };
+    selectAll?.addEventListener('change', () => {
+        checkboxes.forEach((checkbox) => { checkbox.checked = selectAll.checked; });
+        update();
+    });
+    checkboxes.forEach((checkbox) => checkbox.addEventListener('change', update));
+    form?.addEventListener('submit', (event) => {
+        const selected = checkboxes.filter((checkbox) => checkbox.checked).length;
+        if (selected === 0) {
+            event.preventDefault();
+            window.alert('Select at least one record first.');
+            return;
+        }
+        const action = form.querySelector('[name=action]')?.value;
+        const destructive = action === 'trash' || action === 'permanent_delete';
+        if (destructive && !window.confirm(action === 'permanent_delete'
+            ? `Permanently delete ${selected} selected record${selected === 1 ? '' : 's'}? This cannot be undone.`
+            : `Move ${selected} selected record${selected === 1 ? '' : 's'} to trash?`)) {
+            event.preventDefault();
+        }
+    });
+    update();
+});
+</script>
+@endpush
+
 @section('content')
 <div class="admin-title">
     <div>
@@ -58,9 +100,26 @@
             @if($search !== '' || $status !== '' || $dateFrom !== '' || $dateTo !== '')<a class="clear-filter" href="{{ route('admin.resource', $tab === 'trash' ? [$module, 'tab' => 'trash'] : $module) }}">Clear</a>@endif
         </form>
 
+        <form id="resource-bulk-form" class="module-toolbar resource-bulk-toolbar" method="post" action="{{ route('admin.resource.bulk-actions', $module) }}">
+            @csrf
+            <label>Bulk action
+                <select name="action" required>
+                    @if($tab === 'active')
+                        <option value="archive">Archive selected</option>
+                        <option value="trash">Move selected to trash</option>
+                    @else
+                        <option value="restore">Restore selected</option>
+                        <option value="permanent_delete">Permanently delete selected</option>
+                    @endif
+                </select>
+            </label>
+            <button type="submit">APPLY</button>
+            <span class="panel-caption" data-resource-selection-count>0 selected</span>
+        </form>
+
         <div class="table-wrap">
             <table class="data-table resource-table">
-                <thead><tr><th>Reference</th><th>Title</th><th>Status</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead>
+                <thead><tr><th><input type="checkbox" data-resource-select-all aria-label="Select all visible records"></th><th>Reference</th><th>Title</th><th>Status</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead>
                 <tbody>
                 @forelse($records as $record)
                     @php
@@ -68,6 +127,7 @@
                         $actions = app(\App\Services\AdminActionRegistry::class)->for($record);
                     @endphp
                     <tr data-record-id="{{ $record->getKey() }}" data-record-status="{{ $record->status }}">
+                        <td><input type="checkbox" name="ids[]" value="{{ $record->getKey() }}" form="resource-bulk-form" data-resource-select aria-label="Select {{ $record->title }}"></td>
                         <td><code>{{ $record->reference ?: '—' }}</code></td>
                         <td><strong>{{ $record->title }}</strong>@if($notes)<small class="resource-note" title="{{ $notes }}">{{ str($notes)->limit(120) }}</small>@endif</td>
                         <td><span class="resource-status resource-status--{{ str($record->status)->slug() }}">{{ str($record->status)->headline() }}</span>@if($record->trashed())<small class="resource-deleted-at">Trashed {{ $record->deleted_at?->format('d M Y H:i') }}</small>@endif</td>
@@ -93,7 +153,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="empty-note">{{ $tab === 'trash' ? 'Trash is empty.' : 'No records found. Use Add Record above to create the first one.' }}</td></tr>
+                    <tr><td colspan="7" class="empty-note">{{ $tab === 'trash' ? 'Trash is empty.' : 'No records found. Use Add Record above to create the first one.' }}</td></tr>
                 @endforelse
                 </tbody>
             </table>
