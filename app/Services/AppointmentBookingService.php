@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\AppointmentReservation;
+use App\Models\Company;
 use App\Models\Inquiry;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -18,16 +21,25 @@ final class AppointmentBookingService
         'google_meet' => 'Google Meet',
     ];
 
+    public function resolveCompanyId(?int $preferred = null): int
+    {
+        $preferred ??= app()->bound('session') ? (int) session('company_id', 0) : 0;
+        if ($preferred > 0 && Company::query()->whereKey($preferred)->where('active', true)->exists()) {
+            return $preferred;
+        }
+
+        $companyId = (int) Company::query()->where('active', true)->orderBy('id')->value('id');
+        abort_unless($companyId > 0, 503, 'Appointment booking is temporarily unavailable.');
+
+        return $companyId;
+    }
+
     public function assertCanBook(int $companyId, string $date, string $time, string $meetingType): void
     {
         $day = $this->parseDate($date);
         $slot = $this->parseSlot($date, $time);
 
-        if (! array_key_exists($meetingType, self::MEETING_TYPES)) {
-            throw ValidationException::withMessages([
-                'meeting_type' => 'Choose in person, Microsoft Teams or Google Meet.',
-            ]);
-        }
+        $this->assertMeetingType($meetingType);
 
         if ($day->isWeekend()) {
             throw ValidationException::withMessages([
@@ -64,6 +76,52 @@ final class AppointmentBookingService
             throw ValidationException::withMessages([
                 'meeting_time' => 'That appointment time has already been booked. Please choose another available time.',
             ]);
+        }
+    }
+
+    public function reserveInquiry(Inquiry $inquiry): void
+    {
+        $meeting = (array) data_get($inquiry->meta, 'meeting', []);
+        $date = trim((string) ($meeting['date'] ?? ''));
+        $time = trim((string) ($meeting['time'] ?? ''));
+        $meetingType = trim((string) ($meeting['type'] ?? ''));
+        if ($date === '' || $time === '') {
+            return;
+        }
+
+        $day = $this->parseDate($date);
+        $slot = $this->parseSlot($date, $time);
+        if ($day->isWeekend() || $this->holidayName($day) !== null || ! in_array($time, self::SLOTS, true) || $slot->lessThanOrEqualTo(CarbonImmutable::now(self::TIMEZONE))) {
+            throw ValidationException::withMessages([
+                'meeting_time' => 'The selected appointment is no longer available. Please choose another date and time.',
+            ]);
+        }
+        if ($meetingType !== '') {
+            $this->assertMeetingType($meetingType);
+        }
+
+        try {
+            AppointmentReservation::withoutGlobalScopes()->create([
+                'company_id' => (int) $inquiry->company_id,
+                'inquiry_id' => (int) $inquiry->id,
+                'appointment_date' => $date,
+                'appointment_time' => $time,
+                'meeting_type' => $meetingType !== '' ? $meetingType : null,
+            ]);
+        } catch (QueryException $exception) {
+            $alreadyReserved = AppointmentReservation::withoutGlobalScopes()
+                ->where('company_id', (int) $inquiry->company_id)
+                ->where('appointment_date', $date)
+                ->where('appointment_time', $time)
+                ->exists();
+
+            if ($alreadyReserved) {
+                throw ValidationException::withMessages([
+                    'meeting_time' => 'That appointment time was just booked by another customer. Please choose another available time.',
+                ]);
+            }
+
+            throw $exception;
         }
     }
 
@@ -146,6 +204,15 @@ final class AppointmentBookingService
         $holidays = $this->holidaysForYear($date->year);
 
         return $holidays[$date->format('Y-m-d')] ?? null;
+    }
+
+    private function assertMeetingType(string $meetingType): void
+    {
+        if (! array_key_exists($meetingType, self::MEETING_TYPES)) {
+            throw ValidationException::withMessages([
+                'meeting_type' => 'Choose in person, Microsoft Teams or Google Meet.',
+            ]);
+        }
     }
 
     private function bookingsForDate(int $companyId, string $date): Collection
