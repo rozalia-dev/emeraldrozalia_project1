@@ -57,6 +57,36 @@ services:
     depends_on:
       app:
         condition: service_healthy
+  whatsapp-engine:
+    build:
+      context: ./services/whatsapp-engine
+    image: emerald-rozalia-whatsapp-engine
+    init: true
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      WHATSAPP_ENGINE_TOKEN: ${COMMUNICATION_WHATSAPP_TOKEN:-}
+      LARAVEL_WEBHOOK_SECRET: ${COMMUNICATION_WHATSAPP_WEBHOOK_SECRET:-}
+      LARAVEL_INBOUND_URL: http://nginx/api/v1/communication/whatsapp/inbound
+      LARAVEL_DELIVERY_WEBHOOK_URL: http://nginx/api/v1/communication/webhooks/whatsapp
+      WHATSAPP_SESSION_PATH: /data/.wwebjs_auth
+      WHATSAPP_LEDGER_PATH: /data/.wwebjs_auth/delivery-ledger.json
+      WHATSAPP_LEDGER_LIMIT: 5000
+      WHATSAPP_CLIENT_ID: emerald-rozalia
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_NO_SANDBOX: "false"
+    volumes:
+      - whatsapp-session:/data/.wwebjs_auth
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/status',{headers:{Authorization:'Bearer '+process.env.WHATSAPP_ENGINE_TOKEN}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 8s
+      start_period: 45s
+      retries: 5
+    depends_on:
+      nginx:
+        condition: service_healthy
   db:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -78,4 +108,4 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-volumes: {pgsql: {}, storage: {}, public-assets: {}}
+volumes: {pgsql: {}, storage: {}, public-assets: {}, whatsapp-session: {}}
