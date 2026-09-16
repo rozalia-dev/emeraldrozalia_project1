@@ -67,7 +67,15 @@ class WhatsAppEngineController extends Controller
             ], 409);
         }
 
-        $companyId = session('company_id') ? (int) session('company_id') : null;
+        $sessionCompanyId = session('company_id') ? (int) session('company_id') : null;
+        $configuredCompanyId = (int) config('communication.whatsapp_company_id', 0);
+        if ($configuredCompanyId > 0 && $sessionCompanyId && $sessionCompanyId !== $configuredCompanyId) {
+            return response()->json([
+                'message' => 'This linked WhatsApp account belongs to another company context. Switch to the configured company before sending.',
+            ], 403);
+        }
+        $companyId = $configuredCompanyId > 0 ? $configuredCompanyId : $sessionCompanyId;
+
         $conversation = DB::transaction(function () use ($phone, $companyId): Conversation {
             $query = Conversation::withoutGlobalScopes()
                 ->whereNull('deleted_at')
