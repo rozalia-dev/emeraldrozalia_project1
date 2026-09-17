@@ -30,6 +30,13 @@ class MediaAsset extends Model
     {
         static::creating(function (self $asset): void {
             $asset->uuid ??= (string) Str::uuid();
+
+            if (data_get($asset->metadata, 'source') === 'banner-upload') {
+                $asset->approval_status = 'approved';
+                $asset->approved_at ??= now();
+                $asset->approved_by ??= auth()->id();
+                $asset->active = true;
+            }
         });
     }
 
