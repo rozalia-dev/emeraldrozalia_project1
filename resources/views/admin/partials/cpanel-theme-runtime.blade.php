@@ -55,3 +55,14 @@
 @media(max-width:700px){.admin-sidebar{width:100%}}
 @endif
 </style>
+
+@if($isActiveTheme)
+<script id="cpanel-branding-runtime">
+document.addEventListener('DOMContentLoaded', () => {
+    const logo = document.querySelector('.admin-logo-image');
+    if (!logo) return;
+    logo.src = @json(asset(ltrim((string) $token('branding.logo_path', '/assets/logo/logo_two_line.png'), '/')));
+    logo.alt = @json((string) $token('branding.logo_alt', 'Emerald Rozalia Limited'));
+});
+</script>
+@endif
