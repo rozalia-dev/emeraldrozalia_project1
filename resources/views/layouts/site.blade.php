@@ -65,11 +65,11 @@
         </form>
     </div>
 </div>
-<header class="site-header" data-public-shell-region="header">
-    @php($headerLogo = data_get($siteSettings, 'theme_assets.header_logo', []))
-    @php($headerLogo = is_array($headerLogo) && \Illuminate\Support\Str::isUuid((string) ($headerLogo['uuid'] ?? '')) ? $headerLogo : $publicMedia->forLegacyPath('assets/logo/logo_one_line.png', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
+<header class="site-header" data-public-shell-region="header" style="--layout-header-bg: {{ data_get($siteLayoutRegions, 'header.colors.background', '#010705') }}; --layout-header-text: {{ data_get($siteLayoutRegions, 'header.colors.text', '#f4f4ef') }}; --layout-header-accent: {{ data_get($siteLayoutRegions, 'header.colors.accent', '#8cc63e') }};">
+    @php($headerLogoAlt = data_get($siteLayoutRegions, 'header.logo.alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
+    @php($headerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'header.logo.path', '/assets/logo/logo_one_line.png'), '/'))
+    @php($headerLogo = $publicMedia->forLegacyPath($headerLogoPath, $headerLogoAlt))
     @php($headerLogoUrl = data_get($headerLogo, 'url'))
-    @php($headerLogoAlt = data_get($siteBranding, 'trading_name') ?: data_get($siteLayoutRegions, 'header.logo.alt', data_get($headerLogo, 'alt', 'Emerald Rozalia Limited')))
     <a href="{{ url('/') }}" class="brand">
         @if($headerLogoUrl)
             <img class="brand-logo-image" src="{{ $headerLogoUrl }}" @if(data_get($headerLogo, 'srcset')) srcset="{{ data_get($headerLogo, 'srcset') }}" sizes="{{ data_get($headerLogo, 'sizes') }}" @endif width="{{ data_get($headerLogo, 'width') ?: '' }}" height="{{ data_get($headerLogo, 'height') ?: '' }}" alt="{{ $headerLogoAlt }}">
@@ -79,19 +79,11 @@
     </a>
     <button class="nav-toggle" type="button" data-nav-toggle aria-label="Open menu"><x-icon name="menu" size="22" /></button>
     @php($sitePrimaryMenu = (array) data_get($siteLayoutRegions, 'header.primary_menu', []))
-    @php($sitePrimaryMenuHasContact = false)
-    @foreach($sitePrimaryMenu as $sitePrimaryMenuItem)
-        @if($layoutPath($layoutUrl($sitePrimaryMenuItem)) === '/contact')
-            @php($sitePrimaryMenuHasContact = true)
-        @endif
-    @endforeach
-    @if(! $sitePrimaryMenuHasContact)
-        @php($sitePrimaryMenu[] = ['label' => 'CONTACT US', 'href' => '/contact'])
-    @endif
     <nav data-nav aria-label="Primary">
         @foreach($sitePrimaryMenu as $navItem)
+            @php($navEnabled = !array_key_exists('enabled', $navItem) || filter_var(data_get($navItem, 'enabled'), FILTER_VALIDATE_BOOLEAN))
             @php($navHref = $layoutUrl($navItem))
-            @if($navHref)
+            @if($navEnabled && $navHref)
                 @php($navPath = $layoutPath($navHref))
                 @php($isShopMenu = $navPath === '/shop')
                 @php($isCollectionsMenu = $navPath === '/collections')
@@ -136,6 +128,8 @@
             </select>
         </form>
         @foreach((array) data_get($siteLayoutRegions, 'header.utility_menu', []) as $utilityItem)
+            @php($utilityEnabled = !array_key_exists('enabled', $utilityItem) || filter_var(data_get($utilityItem, 'enabled'), FILTER_VALIDATE_BOOLEAN))
+            @continue(!$utilityEnabled)
             @php($utilityLink = $utilityItem)
             @if(auth()->check() && filled(data_get($utilityItem, 'auth_href')))
                 @php($utilityLink = array_merge($utilityItem, ['href' => data_get($utilityItem, 'auth_href')]))
@@ -163,11 +157,11 @@
     <div class="flash error">{{ implode(' ', $errors->all()) }}</div>
 @endif
 <main>@yield('content')</main>
-<footer class="site-footer" data-public-shell-region="footer">
-    @php($footerLogo = data_get($siteSettings, 'theme_assets.footer_logo', []))
-    @php($footerLogo = is_array($footerLogo) && \Illuminate\Support\Str::isUuid((string) ($footerLogo['uuid'] ?? '')) ? $footerLogo : $publicMedia->forLegacyPath('assets/logo/logo_two_line.png', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
+<footer class="site-footer" data-public-shell-region="footer" style="--layout-footer-bg: {{ data_get($siteLayoutRegions, 'footer.colors.background', '#03100b') }}; --layout-footer-text: {{ data_get($siteLayoutRegions, 'footer.colors.text', '#c7d1ca') }}; --layout-footer-accent: {{ data_get($siteLayoutRegions, 'footer.colors.accent', '#8cc63e') }};">
+    @php($footerLogoAlt = data_get($siteLayoutRegions, 'footer.logo.alt', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
+    @php($footerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'footer.logo.path', '/assets/logo/logo_two_line.png'), '/'))
+    @php($footerLogo = $publicMedia->forLegacyPath($footerLogoPath, $footerLogoAlt))
     @php($footerLogoUrl = data_get($footerLogo, 'url'))
-    @php($footerLogoAlt = data_get($siteBranding, 'legal_name') ?: data_get($siteLayoutRegions, 'footer.logo.alt', data_get($footerLogo, 'alt', 'Emerald Rozalia Limited')))
     <div class="footer-brand">
         @if($footerLogoUrl)
             <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
