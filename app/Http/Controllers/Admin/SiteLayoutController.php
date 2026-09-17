@@ -73,6 +73,20 @@ class SiteLayoutController extends Controller
     private function regions(Request $request, ?array $regions): array
     {
         if ($regions !== null) {
+            if ($request->boolean('layout_lists_managed')) {
+                foreach ([
+                    'header.primary_menu',
+                    'header.utility_menu',
+                    'footer.columns',
+                    'footer.social_links',
+                    'footer.legal_links',
+                ] as $path) {
+                    if (! $request->has('regions.'.$path)) {
+                        data_set($regions, $path, []);
+                    }
+                }
+            }
+
             return $regions;
         }
 
