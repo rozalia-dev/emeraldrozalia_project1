@@ -3,9 +3,9 @@
 @section('title', ($activeCategory?->name ? $activeCategory->name.' — ' : 'Shop Hats & Caps — ').'Emerald Rozalia')
 
 @push('styles')
-<link rel="stylesheet" href="/css/shop.css?v=20260910-reference">
+<link rel="stylesheet" href="/css/shop.css?v=20260917-catalog-filters">
 <style>
-.shop-country-filter{display:grid;gap:7px;margin:12px 0 2px}.shop-country-filter>span{font-size:11px;font-weight:800;letter-spacing:.06em;color:#dfe9df}.shop-country-filter select{width:100%;height:40px;padding:0 34px 0 11px;border:1px solid #294731;border-radius:6px;background:#06140d;color:#f4f4ef;font:inherit;cursor:pointer}.shop-country-filter small{color:#8fa395;font-size:10px;line-height:1.4}.shop-country-filter select:focus{outline:1px solid #8cc63e;outline-offset:1px;border-color:#8cc63e}
+.shop-view-tools{flex-wrap:wrap;justify-content:flex-end}.shop-toolbar-filter{display:grid;gap:4px;min-width:142px}.shop-toolbar-filter>span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5b685f}.shop-toolbar-filter select{min-width:142px;max-width:210px}.shop-toolbar-filter--county select{min-width:180px;max-width:250px}.shop-toolbar-filter--subcategory select{min-width:180px;max-width:250px}.shop-toolbar-filter small{font-size:9px;line-height:1.25;color:#718078;max-width:210px}.shop-view-tools .shop-layout-switch{align-self:end}@media(max-width:1050px){.shop-results-top{align-items:flex-start}.shop-view-tools{width:100%;justify-content:flex-start}.shop-toolbar-filter{flex:1 1 145px}.shop-toolbar-filter select{width:100%;max-width:none}}@media(max-width:650px){.shop-view-tools{display:grid!important;grid-template-columns:1fr 1fr}.shop-toolbar-filter,.shop-view-tools>label{min-width:0!important}.shop-toolbar-filter select,.shop-view-tools>label select{width:100%;min-width:0!important;max-width:none}.shop-layout-switch{grid-column:1/-1;justify-self:end}}
 </style>
 @endpush
 
@@ -31,8 +31,16 @@
     $currentMax = request()->filled('max_price') ? (int) request('max_price') : $priceCeiling;
     $activeFilterCount = count($selectedCategories) + count($selectedMaterials) + count($selectedColours) + count($selectedSizes)
         + (filled($selectedCountry ?? '') ? 1 : 0)
+        + (filled($selectedCounty ?? '') ? 1 : 0)
+        + (filled($selectedSubcategory ?? '') ? 1 : 0)
         + ($availability ? 1 : 0) + (request()->boolean('sale') ? 1 : 0)
         + (request()->filled('min_price') ? 1 : 0) + (request()->filled('max_price') ? 1 : 0);
+    $selectedCountyLabel = filled($selectedCounty ?? '')
+        ? (data_get(collect($catalogFilterCounties ?? [])->firstWhere('code', $selectedCounty), 'name') ?: $selectedCounty)
+        : null;
+    $selectedSubcategoryLabel = filled($selectedSubcategory ?? '')
+        ? (data_get(collect($catalogSubcategoryOptions ?? [])->firstWhere('value', $selectedSubcategory), 'label') ?: $selectedSubcategory)
+        : null;
 @endphp
 
 @section('content')
@@ -92,23 +100,6 @@
                     <x-icon name="search" size="15" />
                     <input type="search" name="q" value="{{ request('q') }}" placeholder="Search products or SKU" aria-label="Search shop">
                 </div>
-
-                <label class="shop-country-filter">
-                    <span>SELECT COUNTRY</span>
-                    <select name="country" aria-label="Select country">
-                        <option value="">All Countries</option>
-                        @foreach($catalogFilterCountries ?? [] as $country)
-                            <option value="{{ $country->code }}" @selected(($selectedCountry ?? '') === $country->code)>{{ $country->name }}</option>
-                        @endforeach
-                    </select>
-                    @if(in_array($catalogCountryScope ?? '', ['traditional','heritage'], true))
-                        <small>EU countries only for {{ str($catalogCountryScope)->headline() }}.</small>
-                    @elseif(($catalogCountryScope ?? '') === 'uefa')
-                        <small>UEFA countries and associations only.</small>
-                    @else
-                        <small>Choose a country to filter country-linked catalogue categories.</small>
-                    @endif
-                </label>
 
                 @unless($activeCategory)
                 <details class="shop-filter-group" open>
@@ -191,6 +182,8 @@
                         <div class="shop-active-filters">
                             @if(request()->filled('q'))<span>“{{ request('q') }}”</span>@endif
                             @if(filled($selectedCountry ?? ''))<span>{{ optional(($catalogFilterCountries ?? collect())->firstWhere('code', $selectedCountry))->name ?: $selectedCountry }}</span>@endif
+                            @if($selectedCountyLabel)<span>{{ $selectedCountyLabel }}</span>@endif
+                            @if($selectedSubcategoryLabel)<span>{{ $selectedSubcategoryLabel }}</span>@endif
                             @foreach($selectedCategories as $value)<span>{{ str($value)->replace('-',' ')->headline() }}</span>@endforeach
                             @foreach($selectedMaterials as $value)<span>{{ $value }}</span>@endforeach
                             @foreach($selectedColours as $value)<span>{{ str($value)->headline() }}</span>@endforeach
@@ -202,6 +195,48 @@
                     @endif
                 </div>
                 <div class="shop-view-tools">
+                    <label class="shop-toolbar-filter">
+                        <span>Country</span>
+                        <select name="country" form="shop-filter-form" aria-label="Select country" data-shop-country>
+                            <option value="">All Countries</option>
+                            @foreach($catalogFilterCountries as $country)
+                                <option value="{{ $country->code }}" @selected($selectedCountry === $country->code)>{{ $country->name }}</option>
+                            @endforeach
+                        </select>
+                        @if(in_array($catalogCountryScope ?? '', ['traditional','heritage'], true))
+                            <small>EU countries only for {{ str($catalogCountryScope)->headline() }}.</small>
+                        @elseif(($catalogCountryScope ?? '') === 'uefa')
+                            <small>UEFA countries and associations only.</small>
+                        @endif
+                    </label>
+                    @if($catalogCountyEnabled)
+                    <label class="shop-toolbar-filter shop-toolbar-filter--county">
+                        <span>County</span>
+                        <select name="county" form="shop-filter-form" aria-label="Select county" data-shop-county @disabled(!$selectedCountry)>
+                            @if(!$selectedCountry)
+                                <option value="">Select Country First</option>
+                            @else
+                                <option value="">All Counties</option>
+                                @foreach($catalogFilterCounties as $county)
+                                    <option value="{{ $county['code'] }}" @selected($selectedCounty === $county['code'])>{{ $county['name'] }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </label>
+                    @endif
+                    <label class="shop-toolbar-filter shop-toolbar-filter--subcategory">
+                        <span>Subcategory</span>
+                        <select name="subcategory" form="shop-filter-form" aria-label="Select subcategory" data-shop-subcategory>
+                            <option value="">All Subcategories</option>
+                            @foreach(collect($catalogSubcategoryOptions)->groupBy('group') as $group => $options)
+                                <optgroup label="{{ $group }}">
+                                    @foreach($options as $option)
+                                        <option value="{{ $option['value'] }}" @selected($selectedSubcategory === $option['value'])>{{ $option['label'] }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
+                    </label>
                     <label>Sort by
                         <select aria-label="Sort products" data-shop-sort>
                             <option value="newest" @selected($sort==='newest')>Newest</option>
@@ -323,5 +358,5 @@
 @endsection
 
 @push('scripts')
-<script src="/js/shop.js?v=20260910-reference" defer></script>
+<script src="/js/shop.js?v=20260917-catalog-filters" defer></script>
 @endpush
