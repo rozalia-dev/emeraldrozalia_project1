@@ -61,6 +61,63 @@ class Order extends Model
         });
     }
 
+    public function getSubtotalAttribute($value): string
+    {
+        return $this->reportingAmount('subtotal', $value);
+    }
+
+    public function getShippingAttribute($value): string
+    {
+        return $this->reportingAmount('shipping', $value);
+    }
+
+    public function getDiscountAttribute($value): string
+    {
+        return $this->reportingAmount('discount', $value);
+    }
+
+    public function getTotalAttribute($value): string
+    {
+        return $this->reportingAmount('total', $value);
+    }
+
+    public function getCurrencyAttribute($value): string
+    {
+        if ($this->isBaseCurrencyReportingRequest()) {
+            return (string) ($this->attributes['base_currency_code'] ?? $value ?? 'EUR');
+        }
+
+        return (string) ($value ?? 'EUR');
+    }
+
+    public function transactionCurrency(): string
+    {
+        return strtoupper((string) ($this->attributes['currency_code'] ?? $this->attributes['currency'] ?? 'EUR'));
+    }
+
+    public function baseCurrency(): string
+    {
+        return strtoupper((string) ($this->attributes['base_currency_code'] ?? $this->attributes['currency'] ?? 'EUR'));
+    }
+
+    private function reportingAmount(string $field, mixed $value): string
+    {
+        if ($this->isBaseCurrencyReportingRequest()) {
+            $base = $this->attributes['base_'.$field] ?? null;
+            if ($base !== null) return Money::round($base);
+        }
+
+        return Money::round($value ?? 0);
+    }
+
+    private function isBaseCurrencyReportingRequest(): bool
+    {
+        if (! app()->bound('request')) return false;
+
+        return request()->routeIs('admin.sales-reports.*')
+            || request()->routeIs('admin.reports.*');
+    }
+
     public function items() { return $this->hasMany(OrderItem::class); }
     public function user() { return $this->belongsTo(User::class); }
     public function payments() { return $this->hasMany(PaymentTransaction::class); }
