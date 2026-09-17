@@ -116,7 +116,7 @@ class AppServiceProvider extends ServiceProvider {
             ]);
         });
 
-        View::composer('layouts.admin', function (): void {
+        View::composer('layouts.admin', function ($view): void {
             $cpanelThemeSnapshot = app(CpanelThemeVersionService::class)->activeSnapshot();
 
             $view->with('cpanelThemeSnapshot', $cpanelThemeSnapshot);
