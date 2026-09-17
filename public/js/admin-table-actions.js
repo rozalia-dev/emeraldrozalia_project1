@@ -1,4 +1,13 @@
 (() => {
+    const adminHeading = document.querySelector('.admin-heading strong');
+    if (adminHeading) {
+        const activeNav = document.querySelector('.admin-sidebar a.active, .admin-nav-subgroup > summary.active');
+        const activeLabel = activeNav?.querySelector('.admin-nav-item-label > span:last-child, .admin-nav-parent-label > span:last-child')?.textContent?.trim()
+            || activeNav?.textContent?.replace(/\s+/g, ' ')?.trim();
+        const documentPageTitle = document.title.replace(/\s*-\s*Emerald Rozalia cPanel\s*$/i, '').trim();
+        adminHeading.textContent = activeLabel || documentPageTitle || 'Dashboard';
+    }
+
     const style = document.createElement('style');
     style.textContent = `
         .admin-bulk-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0;padding:11px 12px;border:1px solid #d7e2d8;border-radius:10px;background:#f7faf7}
