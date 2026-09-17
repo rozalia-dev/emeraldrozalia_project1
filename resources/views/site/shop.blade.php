@@ -210,7 +210,7 @@
                                 <option value="{{ $country->code }}" @selected($selectedCountry === $country->code)>{{ $country->name }}</option>
                             @endforeach
                         </select>
-                        <small>Choose country first.</small>
+                        <small>EU countries only for {{ str($catalogCountryScope)->headline() }}. Choose country first.</small>
                     </label>
                     <label class="shop-toolbar-filter shop-toolbar-filter--county">
                         <span>County</span>
