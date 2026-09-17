@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -30,17 +31,28 @@ class Product extends Model
         return ! $this->trashed() && (bool) $this->is_active && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
     }
 
-    public function getNameAttribute($value): string { return $this->localizedValue('name', (string) $value); }
+    public function getNameAttribute($value): string { return $this->localizedValue('name', (string) $value) ?? (string) $value; }
     public function getDescriptionAttribute($value): ?string { return $this->localizedValue('description', $value === null ? null : (string) $value); }
 
     private function localizedValue(string $field, ?string $fallback): ?string
     {
         if (app()->bound('request') && request()->is('admin/*')) return $fallback;
         $locale = app()->getLocale();
-        if ($locale === '' || $locale === 'en') return $fallback;
+        $context = app(TenantContext::class);
+        if ($locale === '' || $locale === $context->defaultLocale()) return $fallback;
+
         $translations = $this->getAttribute('translations');
-        $translated = is_array($translations) ? data_get($translations, $locale.'.'.$field) : null;
-        return is_string($translated) && trim($translated) !== '' ? $translated : $fallback;
+        if (! is_array($translations)) return $fallback;
+
+        $chain = [$locale];
+        $language = Language::query()->whereKey($locale)->first();
+        if ($language?->fallback_locale && ! in_array($language->fallback_locale, $chain, true)) $chain[] = $language->fallback_locale;
+        foreach ($chain as $candidate) {
+            $translated = data_get($translations, $candidate.'.'.$field);
+            if (is_string($translated) && trim($translated) !== '') return $translated;
+        }
+
+        return $fallback;
     }
 
     public function category() { return $this->belongsTo(Category::class); }
