@@ -40,6 +40,7 @@ class BannerDashboardService
         'Home - Main Slider',
         'Home - Below Slider',
         'Home - Middle',
+        'Category Hero',
         'Top Banner',
         'Popup (Exit Intent)',
         'Popup (Time Delay)',
@@ -124,6 +125,8 @@ class BannerDashboardService
             $query->where('type', 'slider');
         } elseif ($tab === 'banners') {
             $query->where('type', 'banner');
+        } elseif ($tab === 'category-hero') {
+            $query->where('position', 'Category Hero');
         } elseif ($tab === 'top-banner') {
             $query->where('position', 'Top Banner');
         } elseif ($tab === 'popup') {
@@ -292,6 +295,7 @@ class BannerDashboardService
             'all' => 'All Banners / Sliders',
             'sliders' => 'Sliders',
             'banners' => 'Banners',
+            'category-hero' => 'Category Hero',
             'top-banner' => 'Top Banner',
             'popup' => 'Popup',
             'footer' => 'Footer',
