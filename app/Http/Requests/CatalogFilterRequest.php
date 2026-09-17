@@ -27,6 +27,16 @@ class CatalogFilterRequest extends FormRequest
         if (isset($normalized['county'])) {
             $normalized['county'] = strtoupper($normalized['county']);
         }
+        if (isset($normalized['subcategory'])
+            && $normalized['subcategory'] !== ''
+            && ! str_contains($normalized['subcategory'], ':')
+            && preg_match('/^[a-z0-9][a-z0-9-]*$/i', $normalized['subcategory'])) {
+            // Backward compatibility for older storefront links that passed the
+            // child category slug directly (for example ?subcategory=heritage).
+            // The current hierarchy uses an explicit category: prefix so product
+            // types and category descendants cannot collide.
+            $normalized['subcategory'] = 'category:'.$normalized['subcategory'];
+        }
         $this->merge($normalized);
     }
 
