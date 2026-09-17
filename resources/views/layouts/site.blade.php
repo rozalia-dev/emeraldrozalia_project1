@@ -34,7 +34,7 @@
     <link rel="stylesheet" href="/css/public-shell.css?v=20260913-shared-shell">
     <style id="public-media-contract">:root{--public-asset-home-reference:none;--public-asset-home-hero:none;--public-asset-home-collections:none;--public-asset-bulk-order:none;--public-asset-corporate-order:none;--public-asset-logo-two-line:none}</style>
     <style id="public-catalog-navigation">
-        .site-nav-dropdown{position:relative;display:inline-flex;height:100%;align-items:center;color:#f4f4ef}.site-nav-dropdown summary{display:inline-flex;align-items:center;gap:5px;padding:3px 0 4px;list-style:none;cursor:pointer;color:#f4f4ef;border-bottom:2px solid transparent}.site-nav-dropdown summary::-webkit-details-marker{display:none}.site-nav-dropdown summary.is-active{color:#8cc63e;border-bottom-color:#8cc63e}.site-nav-dropdown summary span{font-size:10px;transition:transform 160ms ease}.site-nav-dropdown[open] summary span{transform:rotate(180deg)}.site-nav-dropdown-menu{position:absolute;top:calc(100% - 14px);left:50%;z-index:90;display:grid;min-width:250px;max-width:330px;max-height:70vh;overflow:auto;padding:8px;transform:translateX(-50%);background:#06140d;border:1px solid #294731;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.35)}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{display:flex;min-height:38px;align-items:center;justify-content:space-between;gap:16px;padding:9px 11px;border:0;border-radius:7px;color:#f4f4ef;text-decoration:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:hover,.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:focus-visible{background:#0e2a1b;color:#9bd451}.site-nav-dropdown-menu a:first-child{font-weight:700;border-bottom:1px solid #294731!important;border-radius:7px 7px 0 0!important}.site-nav-dropdown-menu small{color:#9fb0a5;font-size:11px}.site-body .site-header[data-public-shell-region="header"] .header-context-control{display:flex;align-items:center;margin:0}.site-body .site-header[data-public-shell-region="header"] .header-context-control select{height:34px;min-width:54px;max-width:78px;padding:0 6px;border:1px solid rgba(140,198,62,.28);border-radius:6px;background:#010705;color:#f4f4ef;font:600 11px/1 var(--site-font-family,Inter,Arial,sans-serif);cursor:pointer}.site-body .site-header[data-public-shell-region="header"] .header-context-control--currency select{min-width:68px;max-width:86px}.site-body .site-header[data-public-shell-region="header"] .header-context-control select:hover{border-color:rgba(140,198,62,.65);color:#9bd451}@media(hover:hover) and (min-width:1101px){.site-nav-dropdown:not([open]):hover .site-nav-dropdown-menu{display:grid}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}}@media(max-width:1100px){.site-body .site-header[data-public-shell-region="header"] nav.open{max-height:calc(100vh - 72px);overflow-y:auto}.site-nav-dropdown{display:block;width:100%;height:auto}.site-nav-dropdown summary{width:100%;min-height:44px;justify-content:space-between;padding:11px 0}.site-nav-dropdown-menu{position:static;display:grid;width:100%;max-width:none;max-height:none;padding:4px 0 8px;transform:none;background:transparent;border:0;border-radius:0;box-shadow:none}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{min-height:40px;padding:9px 14px;color:#d9e6dc;background:#081a11}.site-nav-dropdown-menu a:first-child{border-bottom:0!important}.site-body .site-header[data-public-shell-region="header"] .header-context-control select{height:32px;min-width:50px;max-width:68px;font-size:10px}.site-body .site-header[data-public-shell-region="header"] .header-context-control--currency select{min-width:62px;max-width:74px}}@media(max-width:700px){.site-body .site-header[data-public-shell-region="header"] .header-context-control{display:none}}
+        .site-nav-dropdown{position:relative;display:inline-flex;height:100%;align-items:center;color:var(--layout-header-text,#f4f4ef)}.site-nav-dropdown summary{display:inline-flex;align-items:center;gap:5px;padding:3px 0 4px;list-style:none;cursor:pointer;color:var(--layout-header-text,#f4f4ef);border-bottom:2px solid transparent}.site-nav-dropdown summary::-webkit-details-marker{display:none}.site-nav-dropdown summary.is-active{color:#8cc63e;border-bottom-color:var(--layout-header-accent,#8cc63e)}.site-nav-dropdown summary span{font-size:10px;transition:transform 160ms ease}.site-nav-dropdown[open] summary span{transform:rotate(180deg)}.site-nav-dropdown-menu{position:absolute;top:calc(100% - 14px);left:50%;z-index:90;display:grid;min-width:250px;max-width:330px;max-height:70vh;overflow:auto;padding:8px;transform:translateX(-50%);background:#06140d;border:1px solid #294731;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.35)}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{display:flex;min-height:38px;align-items:center;justify-content:space-between;gap:16px;padding:9px 11px;border:0;border-radius:7px;color:var(--layout-header-text,#f4f4ef);text-decoration:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:hover,.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:focus-visible{background:#0e2a1b;color:var(--layout-header-accent,#9bd451)}.site-nav-dropdown-menu a:first-child{font-weight:700;border-bottom:1px solid #294731!important;border-radius:7px 7px 0 0!important}.site-nav-dropdown-menu small{color:#9fb0a5;font-size:11px}.site-body .site-header[data-public-shell-region="header"] .header-context-control{display:flex;align-items:center;margin:0}.site-body .site-header[data-public-shell-region="header"] .header-context-control select{height:34px;min-width:54px;max-width:78px;padding:0 6px;border:1px solid rgba(140,198,62,.28);border-radius:6px;background:var(--layout-header-bg,#010705);color:var(--layout-header-text,#f4f4ef);font:600 11px/1 var(--site-font-family,Inter,Arial,sans-serif);cursor:pointer}.site-body .site-header[data-public-shell-region="header"] .header-context-control--currency select{min-width:68px;max-width:86px}.site-body .site-header[data-public-shell-region="header"] .header-context-control select:hover{border-color:var(--layout-header-accent,#8cc63e);color:var(--layout-header-accent,#9bd451)}@media(hover:hover) and (min-width:1101px){.site-nav-dropdown:not([open]):hover .site-nav-dropdown-menu{display:grid}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}}@media(max-width:1100px){.site-body .site-header[data-public-shell-region="header"] nav.open{max-height:calc(100vh - 72px);overflow-y:auto}.site-nav-dropdown{display:block;width:100%;height:auto}.site-nav-dropdown summary{width:100%;min-height:44px;justify-content:space-between;padding:11px 0}.site-nav-dropdown-menu{position:static;display:grid;width:100%;max-width:none;max-height:none;padding:4px 0 8px;transform:none;background:transparent;border:0;border-radius:0;box-shadow:none}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{min-height:40px;padding:9px 14px;color:#d9e6dc;background:#081a11}.site-nav-dropdown-menu a:first-child{border-bottom:0!important}.site-body .site-header[data-public-shell-region="header"] .header-context-control select{height:32px;min-width:50px;max-width:68px;font-size:10px}.site-body .site-header[data-public-shell-region="header"] .header-context-control--currency select{min-width:62px;max-width:74px}}@media(max-width:700px){.site-body .site-header[data-public-shell-region="header"] .header-context-control{display:none}}
     </style>
     @stack('styles')
 </head>
@@ -65,11 +65,14 @@
         </form>
     </div>
 </div>
-<header class="site-header" data-public-shell-region="header">
-    @php($headerLogo = data_get($siteSettings, 'theme_assets.header_logo', []))
-    @php($headerLogo = is_array($headerLogo) && \Illuminate\Support\Str::isUuid((string) ($headerLogo['uuid'] ?? '')) ? $headerLogo : $publicMedia->forLegacyPath('assets/logo/logo_one_line.png', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
+<header class="site-header" data-public-shell-region="header" style="--layout-header-bg: {{ data_get($siteLayoutRegions, 'header.colors.background', '#010705') }}; --layout-header-text: {{ data_get($siteLayoutRegions, 'header.colors.text', '#f4f4ef') }}; --layout-header-accent: {{ data_get($siteLayoutRegions, 'header.colors.accent', '#8cc63e') }};">
+    @php($layoutFallback = data_get($siteLayoutMeta, 'source') === 'default-layout-fallback')
+    @php($headerLogoAlt = $layoutFallback
+        ? (data_get($siteBranding, 'trading_name') ?: data_get($siteLayoutRegions, 'header.logo.alt', 'Emerald Rozalia Limited'))
+        : data_get($siteLayoutRegions, 'header.logo.alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
+    @php($headerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'header.logo.path', '/assets/logo/logo_one_line.png'), '/'))
+    @php($headerLogo = $publicMedia->forLegacyPath($headerLogoPath, $headerLogoAlt))
     @php($headerLogoUrl = data_get($headerLogo, 'url'))
-    @php($headerLogoAlt = data_get($siteBranding, 'trading_name') ?: data_get($siteLayoutRegions, 'header.logo.alt', data_get($headerLogo, 'alt', 'Emerald Rozalia Limited')))
     <a href="{{ url('/') }}" class="brand">
         @if($headerLogoUrl)
             <img class="brand-logo-image" src="{{ $headerLogoUrl }}" @if(data_get($headerLogo, 'srcset')) srcset="{{ data_get($headerLogo, 'srcset') }}" sizes="{{ data_get($headerLogo, 'sizes') }}" @endif width="{{ data_get($headerLogo, 'width') ?: '' }}" height="{{ data_get($headerLogo, 'height') ?: '' }}" alt="{{ $headerLogoAlt }}">
@@ -79,19 +82,11 @@
     </a>
     <button class="nav-toggle" type="button" data-nav-toggle aria-label="Open menu"><x-icon name="menu" size="22" /></button>
     @php($sitePrimaryMenu = (array) data_get($siteLayoutRegions, 'header.primary_menu', []))
-    @php($sitePrimaryMenuHasContact = false)
-    @foreach($sitePrimaryMenu as $sitePrimaryMenuItem)
-        @if($layoutPath($layoutUrl($sitePrimaryMenuItem)) === '/contact')
-            @php($sitePrimaryMenuHasContact = true)
-        @endif
-    @endforeach
-    @if(! $sitePrimaryMenuHasContact)
-        @php($sitePrimaryMenu[] = ['label' => 'CONTACT US', 'href' => '/contact'])
-    @endif
     <nav data-nav aria-label="Primary">
         @foreach($sitePrimaryMenu as $navItem)
+            @php($navEnabled = !array_key_exists('enabled', $navItem) || filter_var(data_get($navItem, 'enabled'), FILTER_VALIDATE_BOOLEAN))
             @php($navHref = $layoutUrl($navItem))
-            @if($navHref)
+            @if($navEnabled && $navHref)
                 @php($navPath = $layoutPath($navHref))
                 @php($isShopMenu = $navPath === '/shop')
                 @php($isCollectionsMenu = $navPath === '/collections')
@@ -136,6 +131,8 @@
             </select>
         </form>
         @foreach((array) data_get($siteLayoutRegions, 'header.utility_menu', []) as $utilityItem)
+            @php($utilityEnabled = !array_key_exists('enabled', $utilityItem) || filter_var(data_get($utilityItem, 'enabled'), FILTER_VALIDATE_BOOLEAN))
+            @continue(!$utilityEnabled)
             @php($utilityLink = $utilityItem)
             @if(auth()->check() && filled(data_get($utilityItem, 'auth_href')))
                 @php($utilityLink = array_merge($utilityItem, ['href' => data_get($utilityItem, 'auth_href')]))
@@ -163,11 +160,13 @@
     <div class="flash error">{{ implode(' ', $errors->all()) }}</div>
 @endif
 <main>@yield('content')</main>
-<footer class="site-footer" data-public-shell-region="footer">
-    @php($footerLogo = data_get($siteSettings, 'theme_assets.footer_logo', []))
-    @php($footerLogo = is_array($footerLogo) && \Illuminate\Support\Str::isUuid((string) ($footerLogo['uuid'] ?? '')) ? $footerLogo : $publicMedia->forLegacyPath('assets/logo/logo_two_line.png', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
+<footer class="site-footer" data-public-shell-region="footer" style="--layout-footer-bg: {{ data_get($siteLayoutRegions, 'footer.colors.background', '#03100b') }}; --layout-footer-text: {{ data_get($siteLayoutRegions, 'footer.colors.text', '#c7d1ca') }}; --layout-footer-accent: {{ data_get($siteLayoutRegions, 'footer.colors.accent', '#8cc63e') }};">
+    @php($footerLogoAlt = $layoutFallback
+        ? (data_get($siteBranding, 'legal_name') ?: data_get($siteLayoutRegions, 'footer.logo.alt', 'Emerald Rozalia Limited'))
+        : data_get($siteLayoutRegions, 'footer.logo.alt', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
+    @php($footerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'footer.logo.path', '/assets/logo/logo_two_line.png'), '/'))
+    @php($footerLogo = $publicMedia->forLegacyPath($footerLogoPath, $footerLogoAlt))
     @php($footerLogoUrl = data_get($footerLogo, 'url'))
-    @php($footerLogoAlt = data_get($siteBranding, 'legal_name') ?: data_get($siteLayoutRegions, 'footer.logo.alt', data_get($footerLogo, 'alt', 'Emerald Rozalia Limited')))
     <div class="footer-brand">
         @if($footerLogoUrl)
             <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">

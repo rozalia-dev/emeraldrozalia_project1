@@ -75,6 +75,49 @@ class SiteLayoutVersionLifecycleTest extends TestCase
         $this->assertDatabaseCount('site_layout_versions', 0);
     }
 
+    public function test_primary_navigation_and_public_shell_branding_are_fully_manageable(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $company = Company::create(['name' => 'Managed Shell Tenant', 'code' => 'MANAGED-SHELL', 'active' => true]);
+        $regions = SiteLayoutVersionService::DEFAULT_REGIONS;
+        $regions['header']['logo']['path'] = '/assets/logo/logo_two_line.png';
+        $regions['footer']['logo']['path'] = '/assets/logo/logo_one_line.png';
+        $regions['header']['colors'] = ['background' => '#112233', 'text' => '#fefefe', 'accent' => '#44aa66'];
+        $regions['footer']['colors'] = ['background' => '#221100', 'text' => '#eeeeee', 'accent' => '#ccaa44'];
+        $regions['header']['primary_menu'] = [
+            ['label' => 'SHOP NOW', 'href' => '/shop', 'enabled' => true],
+            ['label' => 'HIDDEN PAGE', 'href' => '/factory', 'enabled' => false],
+            ['label' => 'HOME', 'href' => '/', 'enabled' => true],
+        ];
+
+        $this->withTenant($admin, $company)->post(route('admin.pages.layouts.store'), [
+            'name' => 'Owner managed shell',
+            'environment' => 'production',
+            'locale' => 'en',
+            'regions' => $regions,
+        ])->assertRedirect();
+
+        $layout = SiteLayoutVersion::withoutGlobalScopes()->where('company_id', $company->id)->firstOrFail();
+        $this->assertSame('SHOP NOW', data_get($layout->regions, 'header.primary_menu.0.label'));
+        $this->assertFalse(data_get($layout->regions, 'header.primary_menu.1.enabled'));
+        $this->assertSame('/assets/logo/logo_two_line.png', data_get($layout->regions, 'header.logo.path'));
+        $this->assertSame('/assets/logo/logo_one_line.png', data_get($layout->regions, 'footer.logo.path'));
+
+        foreach (['validate', 'submit', 'approve', 'activate'] as $action) {
+            $this->withTenant($admin, $company)
+                ->post(route('admin.pages.layouts.action', ['layout' => $layout, 'action' => $action]))
+                ->assertRedirect();
+            $layout = $layout->fresh();
+        }
+
+        $this->withSession(['company_id' => $company->id])->get('/')
+            ->assertOk()
+            ->assertSeeText('SHOP NOW')
+            ->assertDontSeeText('HIDDEN PAGE')
+            ->assertSee('--layout-header-bg: #112233', false)
+            ->assertSee('--layout-footer-bg: #221100', false);
+    }
+
     public function test_layout_versions_are_not_mutable_from_another_company_context(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

@@ -21,6 +21,11 @@ final class SiteLayoutVersionService
                 'path' => '/assets/logo/logo_one_line.png',
                 'alt' => 'Emerald Rozalia Limited',
             ],
+            'colors' => [
+                'background' => '#010705',
+                'text' => '#f4f4ef',
+                'accent' => '#8cc63e',
+            ],
             'primary_menu' => [
                 ['label' => 'HOME', 'href' => '/'],
                 ['label' => 'SHOP', 'href' => '/shop'],
@@ -39,8 +44,24 @@ final class SiteLayoutVersionService
             ],
         ],
         'footer' => [
+            'logo' => [
+                'path' => '/assets/logo/logo_two_line.png',
+                'alt' => 'Emerald Rozalia Limited',
+            ],
+            'colors' => [
+                'background' => '#03100b',
+                'text' => '#c7d1ca',
+                'accent' => '#8cc63e',
+            ],
             'brand_description' => null,
-            'social_links' => [],
+            'social_links' => [
+                ['label' => 'Facebook', 'icon' => 'facebook', 'href' => 'https://www.facebook.com/emeraldrozalia/'],
+                ['label' => 'Instagram', 'icon' => 'instagram', 'href' => 'https://www.instagram.com/emeraldrozalia2020/'],
+                ['label' => 'X', 'icon' => 'x', 'href' => 'https://x.com/EmeraldRozalia'],
+                ['label' => 'TikTok', 'icon' => 'tiktok', 'href' => 'https://www.tiktok.com/@emeraldrozalia1?lang=en'],
+                ['label' => 'YouTube', 'icon' => 'youtube', 'href' => 'https://www.youtube.com/@EmeraldRozalia-w4p'],
+                ['label' => 'LinkedIn', 'icon' => 'linkedin', 'href' => 'https://www.linkedin.com/in/emerald-rozalia-24921b410/'],
+            ],
             'columns' => [
                 [
                     'title' => 'SHOP',
@@ -430,6 +451,15 @@ final class SiteLayoutVersionService
                 FILTER_VALIDATE_BOOLEAN,
             );
         }
+        foreach (['primary_menu', 'utility_menu'] as $menuKey) {
+            foreach ((array) data_get($regions, 'header.'.$menuKey, []) as $index => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $regions['header'][$menuKey][$index]['enabled'] = ! array_key_exists('enabled', $item)
+                    || filter_var($item['enabled'], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
         $errors = $this->regionErrors($regions);
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
@@ -446,6 +476,7 @@ final class SiteLayoutVersionService
             'header.announcement.eyebrow' => 180,
             'header.announcement.headline' => 180,
             'header.logo.alt' => 180,
+            'footer.logo.alt' => 180,
             'footer.brand_description' => 500,
             'footer.newsletter.title' => 120,
             'footer.newsletter.description' => 500,
@@ -456,9 +487,20 @@ final class SiteLayoutVersionService
                 $errors[$path] = 'This public layout value is too long or has an invalid type.';
             }
         }
-        $logoPath = data_get($regions, 'header.logo.path');
-        if (! in_array($logoPath, ['/assets/logo/logo_one_line.png', '/assets/logo/logo_two_line.png'], true)) {
-            $errors['header.logo.path'] = 'Use one of the approved Emerald Rozalia logo assets.';
+        foreach (['header.logo.path', 'footer.logo.path'] as $logoPathKey) {
+            $logoPath = data_get($regions, $logoPathKey);
+            if (! in_array($logoPath, ['/assets/logo/logo_one_line.png', '/assets/logo/logo_two_line.png'], true)) {
+                $errors[$logoPathKey] = 'Use one of the approved Emerald Rozalia logo assets.';
+            }
+        }
+        foreach ([
+            'header.colors.background', 'header.colors.text', 'header.colors.accent',
+            'footer.colors.background', 'footer.colors.text', 'footer.colors.accent',
+        ] as $colorPath) {
+            $value = data_get($regions, $colorPath);
+            if (! is_string($value) || ! preg_match('/\A#[0-9a-fA-F]{6}\z/', $value)) {
+                $errors[$colorPath] = 'Use a six-digit hexadecimal colour such as #075b2f.';
+            }
         }
         foreach (['header.primary_menu', 'header.utility_menu', 'footer.columns'] as $path) {
             if (! is_array(data_get($regions, $path))) {
@@ -473,27 +515,6 @@ final class SiteLayoutVersionService
                 if (! is_array($link) || $this->urlFor($link) === null) {
                     $errors[$path.'.'.$index.'.href'] = 'Every menu item needs a safe local or HTTPS destination.';
                 }
-            }
-        }
-        $canonicalMenu = array_map(
-            static fn (array $link): array => ['label' => $link['label'], 'href' => $link['href']],
-            self::DEFAULT_REGIONS['header']['primary_menu'],
-        );
-        $submittedMenu = array_map(
-            static fn (mixed $link): array => is_array($link)
-                ? ['label' => trim((string) ($link['label'] ?? '')), 'href' => trim((string) ($link['href'] ?? ''))]
-                : ['label' => '', 'href' => ''],
-            array_values((array) data_get($regions, 'header.primary_menu', [])),
-        );
-        $submittedBaseMenu = array_slice($submittedMenu, 0, count($canonicalMenu));
-        if ($submittedBaseMenu !== $canonicalMenu) {
-            $errors['header.primary_menu'] = 'The approved eight-item public navigation must remain first and in its fixed order.';
-        }
-        foreach (array_slice($submittedMenu, count($canonicalMenu)) as $index => $link) {
-            $label = mb_strtolower(trim((string) ($link['label'] ?? '')));
-            $href = trim((string) ($link['href'] ?? ''));
-            if ($label === 'contact us' || trim($href, '/') === 'contact' || str_ends_with($href, '/contact')) {
-                $errors['header.primary_menu.'.(count($canonicalMenu) + $index).'.label'] = 'Contact Us is footer-only and cannot be added to the primary menu.';
             }
         }
         foreach ((array) data_get($regions, 'footer.columns', []) as $columnIndex => $column) {

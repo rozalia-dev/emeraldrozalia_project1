@@ -66,8 +66,9 @@ class AppServiceProvider extends ServiceProvider {
             $siteLayout = is_array($previewLayout)
                 ? $previewLayout
                 : app(SiteLayoutVersionService::class)->publicSnapshot();
-            $siteLayout = $this->withCatalogueMenu($siteLayout);
-            $siteLayout = $this->withOfficialSocialLinks($siteLayout);
+            if (data_get($siteLayout, 'meta.source') === 'default-layout-fallback') {
+                $siteLayout = $this->withCatalogueMenu($siteLayout);
+            }
             $footerPages = ContentPage::query()
                 ->where('locale', app()->getLocale())
                 ->where('status', 'published')
@@ -115,9 +116,10 @@ class AppServiceProvider extends ServiceProvider {
             ]);
         });
 
-        View::composer('layouts.admin', function (): void {
+        View::composer('layouts.admin', function ($view): void {
             $cpanelThemeSnapshot = app(CpanelThemeVersionService::class)->activeSnapshot();
 
+            $view->with('cpanelThemeSnapshot', $cpanelThemeSnapshot);
             View::startPush('styles', view('admin.partials.cpanel-theme-runtime', [
                 'cpanelThemeSnapshot' => $cpanelThemeSnapshot,
             ])->render());

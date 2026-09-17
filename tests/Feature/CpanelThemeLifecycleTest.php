@@ -85,6 +85,49 @@ class CpanelThemeLifecycleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'settings.cpanel-theme.activated']);
     }
 
+    public function test_cpanel_logo_is_versioned_and_changes_only_after_activation(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $company = Company::create(['name' => 'cPanel Logo Tenant', 'code' => 'CPANEL-LOGO', 'active' => true]);
+        $tokens = CpanelThemeVersionService::DEFAULT_TOKENS;
+        $tokens['branding']['logo_path'] = '/assets/logo/logo_one_line.png';
+        $tokens['branding']['logo_alt'] = 'Emerald Rozalia Limited cPanel';
+
+        $this->withTenant($admin, $company)->post(route('admin.settings.cpanel-theme.store'), [
+            'name' => 'cPanel logo revision',
+            'environment' => 'production',
+            'locale' => 'en',
+            'tokens' => $tokens,
+        ])->assertRedirect();
+
+        $theme = ThemeVersion::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('scope', 'admin')
+            ->where('name', 'cPanel logo revision')
+            ->firstOrFail();
+
+        $this->withTenant($admin, $company)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('assets/logo/logo_two_line.png', false)
+            ->assertDontSee('Emerald Rozalia Limited cPanel', false);
+
+        foreach (['validate', 'submit', 'approve', 'activate'] as $action) {
+            $this->withTenant($admin, $company)
+                ->post(route('admin.settings.cpanel-theme.action', ['theme' => $theme, 'action' => $action]))
+                ->assertRedirect();
+        }
+
+        $this->withTenant($admin, $company)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('logo_one_line.png', false)
+            ->assertSee('Emerald Rozalia Limited cPanel', false);
+
+        $this->withTenant($admin, $company)->get(route('admin.settings.cpanel-theme.index'))
+            ->assertOk()
+            ->assertSeeText('cPanel Appearance')
+            ->assertSeeText('cPanel logo');
+    }
+
     public function test_cpanel_theme_scope_is_independent_from_public_theme_scope(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
