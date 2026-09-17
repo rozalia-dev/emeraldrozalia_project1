@@ -74,8 +74,8 @@ html body.site-body.site-body[class] *:focus-visible {
     display: block;
     width: 232px;
     height: 58px;
-    object-fit: cover;
-    object-position: center 65%;
+    object-fit: contain;
+    object-position: center;
 }
 
 .site-body .site-header[data-public-shell-region="header"] nav {
