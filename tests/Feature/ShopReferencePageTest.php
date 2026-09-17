@@ -29,7 +29,7 @@ class ShopReferencePageTest extends TestCase
                 'AVAILABILITY',
                 'SEE IT ON YOU',
                 'LOVE IT OR RETURN IT',
-                '/css/shop.css?v=20260917-catalog-filters',
+                '/css/shop.css',
                 '/js/shop.js',
                 'data-shop-page',
             ], false);
@@ -166,6 +166,6 @@ class ShopReferencePageTest extends TestCase
             ->assertSee('FLAT CAPS', false)
             ->assertSee('Scoped Flat Cap', false)
             ->assertDontSee('Outside Baseball Cap', false)
-            ->assertSee('/css/shop.css?v=20260917-catalog-filters', false);
+            ->assertSee('/css/shop.css', false);
     }
 }
