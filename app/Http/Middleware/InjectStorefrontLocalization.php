@@ -2,109 +2,102 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\TenantContext;
+use App\Services\{StorefrontTranslator, TenantContext};
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class InjectStorefrontLocalization
 {
-    private const GA_UI = [
-        'HOME' => 'BAILE',
-        'SHOP' => 'SIOPA',
-        'SHOP ALL' => 'SIOPA UILE',
-        'COLLECTIONS' => 'BAILIÚCHÁIN',
-        'VIEW ALL COLLECTIONS' => 'FÉACH GACH BAILIÚCHÁN',
-        'CATALOGUE' => 'CATALÓG',
-        'NEW ARRIVALS' => 'NUA-THAGTHA',
-        'CORPORATE ORDER' => 'ORDÚ CORPARÁIDEACH',
-        'BULK ORDER' => 'MÓRORDÚ',
-        'FRANCHISE APPLY' => 'IARRATAS SAINCHEADÚNAIS',
-        'HIRING APPLY' => 'IARRATAS POIST',
-        'CONTACT US' => 'DÉAN TEAGMHÁIL',
-        'ALL PRODUCTS' => 'GACH TÁIRGE',
-        'TRADITIONAL' => 'TRAIDISIÚNTA',
-        'HERITAGE' => 'OIDHREACHT',
-        'CLASSIC' => 'CLASAICEACH',
-        'OUTDOOR' => 'LASMUIGH',
-        'WINTER' => 'GEIMHREADH',
-        'SPORTS' => 'SPÓRT',
-        'WORKWEAR' => 'ÉADAÍ OIBRE',
-        'KIDS' => 'PÁISTÍ',
-        'COSTUME' => 'FEISTEAS',
-        'FILTERS' => 'SCAGAIRÍ',
-        'RESET ALL' => 'ATHSHOCRIGH UILE',
-        'COLOUR' => 'DATH',
-        'MATERIAL' => 'ÁBHAR',
-        'SIZE' => 'MÉID',
-        'PRICE' => 'PRAGHAS',
-        'AVAILABILITY' => 'INFHAIGHTEACHT',
-        'APPLY FILTERS' => 'CUIR SCAGAIRÍ I BHFEIDHM',
-        'ADD TO CART' => 'CUIR SA CHISEÁN',
-        'VIEW DETAILS' => 'FÉACH SONRAÍ',
-        'NEW ARRIVAL' => 'NUA-THAGTHA',
-        'IN STOCK' => 'I STOC',
-        'OUT OF STOCK' => 'AS STOC',
-        'SEARCH' => 'CUARDAIGH',
-    ];
-
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
 
-        if (! $request->isMethod('GET') || $request->is('admin/*') || ! $response instanceof Response) {
-            return $response;
-        }
-        if (! str_contains(strtolower((string) $response->headers->get('Content-Type')), 'text/html')) {
-            return $response;
-        }
+        if (! $request->isMethod('GET') || $request->is('admin/*') || ! $response instanceof Response) return $response;
+        if (! str_contains(strtolower((string) $response->headers->get('Content-Type')), 'text/html')) return $response;
 
         $html = (string) $response->getContent();
-        if ($html === '' || ! str_contains($html, '</body>')) {
-            return $response;
-        }
+        if ($html === '' || ! str_contains($html, '</body>')) return $response;
 
         $payload = app(TenantContext::class)->storefrontPayload();
-        if ($request->routeIs('order.success')) {
-            $payload['rate'] = 1.0;
-        }
-        $payload['convert_prices'] = ! $request->routeIs('account.*');
-        $payload['translations'] = $payload['locale'] === 'ga' ? self::GA_UI : [];
+        $payload['translations'] = app(StorefrontTranslator::class)->runtimeMap($payload['locale']);
+        $payload['convert_prices'] = ! $request->routeIs('account.*') && ! $request->routeIs('order.success');
+        if (! $payload['convert_prices']) $payload['rate'] = 1.0;
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         $script = <<<'HTML'
 <script id="storefront-localization-runtime">
 (() => {
     const cfg = __PAYLOAD__;
+    const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase(cfg.locale || undefined);
+    const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const excluded = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','OPTION','CODE','PRE']);
+
+    document.documentElement.lang = String(cfg.locale || 'en').replace('_', '-');
+    document.documentElement.dir = cfg.direction === 'rtl' ? 'rtl' : 'ltr';
     document.documentElement.dataset.storefrontLocale = cfg.locale;
     document.documentElement.dataset.storefrontCurrency = cfg.currency;
-    const excluded = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','OPTION']);
-    const amountPattern = /€\s?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/g;
+
+    const moneyFormatter = (() => {
+        try {
+            return new Intl.NumberFormat(String(cfg.locale || 'en').replace('_', '-'), {
+                style: 'currency', currency: cfg.currency, minimumFractionDigits: cfg.decimals, maximumFractionDigits: cfg.decimals,
+            });
+        } catch (_) {
+            return null;
+        }
+    })();
     const money = (raw) => {
         const numeric = Number(String(raw).replace(/,/g, ''));
         if (!Number.isFinite(numeric)) return raw;
-        return cfg.symbol + (numeric * Number(cfg.rate || 1)).toLocaleString('en-IE', {minimumFractionDigits: cfg.decimals, maximumFractionDigits: cfg.decimals});
+        const converted = numeric * Number(cfg.rate || 1);
+        if (moneyFormatter) return moneyFormatter.format(converted);
+        const number = converted.toLocaleString(undefined, {minimumFractionDigits: cfg.decimals, maximumFractionDigits: cfg.decimals});
+        return cfg.symbol_position === 'after' ? `${number} ${cfg.symbol}` : `${cfg.symbol}${number}`;
     };
+
+    const baseMarkers = [cfg.base_symbol, cfg.base_currency].filter(Boolean).map(escapeRegExp);
+    const amountPattern = baseMarkers.length
+        ? new RegExp(`(?:${baseMarkers.join('|')})\\s?(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{1,2})?|\\d+(?:\\.\\d{1,2})?)`, 'g')
+        : null;
+
     const translate = (text) => {
         if (!cfg.translations || !Object.keys(cfg.translations).length) return text;
-        const trimmed = text.trim();
+        const trimmed = String(text || '').trim();
         if (!trimmed) return text;
-        const translated = cfg.translations[trimmed.toUpperCase()];
+        const translated = cfg.translations[normalize(trimmed)];
         if (!translated) return text;
-        const start = text.indexOf(trimmed);
-        return text.slice(0, start) + translated + text.slice(start + trimmed.length);
+        const start = String(text).indexOf(trimmed);
+        return String(text).slice(0, start) + translated + String(text).slice(start + trimmed.length);
     };
+
     const processText = (node) => {
         if (!node || !node.parentElement || excluded.has(node.parentElement.tagName)) return;
         let next = translate(node.nodeValue || '');
-        if (cfg.convert_prices) next = next.replace(amountPattern, (_, value) => money(value));
+        if (cfg.convert_prices && amountPattern) next = next.replace(amountPattern, (_, value) => money(value));
         if (next !== node.nodeValue) node.nodeValue = next;
     };
-    const walk = (root) => {
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-        let node;
-        while ((node = walker.nextNode())) processText(node);
+
+    const processAttributes = (element) => {
+        if (!(element instanceof Element) || excluded.has(element.tagName)) return;
+        ['placeholder','title','aria-label'].forEach((name) => {
+            if (!element.hasAttribute(name)) return;
+            const before = element.getAttribute(name) || '';
+            const after = translate(before);
+            if (after !== before) element.setAttribute(name, after);
+        });
     };
+
+    const walk = (root) => {
+        if (root instanceof Element) processAttributes(root);
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+            if (node.nodeType === Node.TEXT_NODE) processText(node);
+            else processAttributes(node);
+        }
+    };
+
     const adjustPriceInputs = () => {
         if (!cfg.convert_prices || Number(cfg.rate || 1) === 1) return;
         document.querySelectorAll('input[name="min_price"],input[name="max_price"],input[data-price-filter]').forEach((input) => {
@@ -120,6 +113,7 @@ class InjectStorefrontLocalization
             }, {once:true});
         });
     };
+
     walk(document.body);
     adjustPriceInputs();
     new MutationObserver((mutations) => mutations.forEach((mutation) => {
