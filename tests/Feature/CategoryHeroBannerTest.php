@@ -13,20 +13,20 @@ class CategoryHeroBannerTest extends TestCase
     public function test_category_hero_banner_renders_only_on_its_selected_category(): void
     {
         $traditional = Category::create([
-            'name' => 'Traditional',
-            'slug' => 'traditional',
+            'name' => 'Category Hero Traditional',
+            'slug' => 'category-hero-traditional',
             'status' => 'active',
             'is_active' => true,
             'is_visible' => true,
-            'sort_order' => 1,
+            'sort_order' => 901,
         ]);
         $heritage = Category::create([
-            'name' => 'Heritage',
-            'slug' => 'heritage',
+            'name' => 'Category Hero Heritage',
+            'slug' => 'category-hero-heritage',
             'status' => 'active',
             'is_active' => true,
             'is_visible' => true,
-            'sort_order' => 2,
+            'sort_order' => 902,
         ]);
 
         $media = MediaAsset::create([
@@ -50,7 +50,7 @@ class CategoryHeroBannerTest extends TestCase
             'status' => 'published',
             'priority' => 100,
             'media_uuid' => $media->uuid,
-            'specific_pages' => ['category:traditional'],
+            'specific_pages' => ['category:category-hero-traditional'],
             'device_visibility' => ['desktop', 'tablet', 'mobile'],
             'alt_text' => 'Traditional Emerald Rozalia hats',
         ]);
