@@ -183,7 +183,6 @@
                         ['slug' => 'general-configuration', 'label' => 'General Configuration', 'icon' => 'settings'],
                         ['slug' => 'company-branding', 'label' => 'Company & Branding', 'icon' => 'briefcase'],
                         ['theme' => true, 'label' => 'Public Theme & Colors', 'icon' => 'palette'],
-                        ['cpanel_theme' => true, 'label' => 'cPanel Appearance & Logo', 'icon' => 'palette'],
                         ['slug' => 'email-notifications', 'label' => 'Email & Notifications', 'icon' => 'mail'],
                         ['slug' => 'whatsapp-messaging', 'label' => 'WhatsApp & Messaging', 'icon' => 'message'],
                         ['slug' => 'payment-gateways', 'label' => 'Payment Gateways', 'icon' => 'credit-card'],
@@ -201,20 +200,10 @@
                     ];
                 @endphp
                 @foreach($settingsNav as $item)
-                    @php
-                        $active = !empty($item['theme'])
-                            ? request()->routeIs('admin.settings.theme.index')
-                            : (!empty($item['cpanel_theme'])
-                                ? request()->routeIs('admin.settings.cpanel-theme.index')
-                                : ($item['slug'] === null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section') === $item['slug']));
-                        $settingsHref = !empty($item['theme'])
-                            ? route('admin.settings.theme.index')
-                            : (!empty($item['cpanel_theme'])
-                                ? route('admin.settings.cpanel-theme.index')
-                                : ($item['slug'] === null ? route('admin.settings.overview') : route('admin.settings.page', $item['slug'])));
-                    @endphp
-                    <a class="{{$active?'active':''}}" href="{{$settingsHref}}"><span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span></a>
+                    @php $active = !empty($item['theme']) ? request()->routeIs('admin.settings.theme.index') : ($item['slug'] === null ? $item['active'] : request()->routeIs('admin.settings.page') && request()->route('section') === $item['slug']); @endphp
+                    <a class="{{$active?'active':''}}" href="{{!empty($item['theme']) ? route('admin.settings.theme.index') : ($item['slug'] === null ? route('admin.settings.overview') : route('admin.settings.page', $item['slug']))}}"><span class="admin-nav-item-label"><x-icon name="{{$item['icon']}}" size="14" /><span>{{$item['label']}}</span></span></a>
                 @endforeach
+                <a class="{{request()->routeIs('admin.settings.cpanel-theme.*')?'active':''}}" href="{{route('admin.settings.cpanel-theme.index')}}"><span class="admin-nav-item-label"><x-icon name="palette" size="14" /><span>cPanel Appearance &amp; Logo</span></span></a>
             </div>
         </details>
     </nav>
