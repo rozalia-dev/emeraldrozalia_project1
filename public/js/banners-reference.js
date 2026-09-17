@@ -14,8 +14,8 @@
     var specificPagesLabel = null;
 
     var categoryHeroOptions = [
-        ['traditional', 'Traditional'],
-        ['heritage', 'Heritage'],
+        ['irish-traditional-flat-caps', 'Traditional'],
+        ['irish-heritage-hats', 'Heritage'],
         ['classic', 'Classic'],
         ['outdoor', 'Outdoor'],
         ['winter', 'Winter'],
@@ -24,6 +24,10 @@
         ['kids', 'Kids'],
         ['costume', 'Costume']
     ];
+    var legacyCategoryHeroTargets = {
+        traditional: 'irish-traditional-flat-caps',
+        heritage: 'irish-heritage-hats'
+    };
 
     function closeModals() {
         modals.forEach(function (modal) { modal.hidden = true; });
@@ -83,10 +87,11 @@
         if (isCategoryHero) {
             var match = String(specificPagesField.value || '').match(/^category:([a-z0-9-]+)$/i);
             var selected = match ? match[1].toLowerCase() : '';
+            selected = legacyCategoryHeroTargets[selected] || selected;
             if (categoryHeroOptions.some(function (item) { return item[0] === selected; })) {
                 categoryHeroSelect.value = selected;
             } else {
-                categoryHeroSelect.value = 'traditional';
+                categoryHeroSelect.value = 'irish-traditional-flat-caps';
             }
             specificPagesField.value = 'category:' + categoryHeroSelect.value;
             var type = editorForm.querySelector('[name="type"]');
