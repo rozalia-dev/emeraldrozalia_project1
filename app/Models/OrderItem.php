@@ -37,6 +37,26 @@ class OrderItem extends Model
         });
     }
 
+    public function getUnitPriceAttribute($value): string
+    {
+        return $this->reportingAmount('unit_price', $value);
+    }
+
+    public function getTotalAttribute($value): string
+    {
+        return $this->reportingAmount('total', $value);
+    }
+
+    private function reportingAmount(string $field, mixed $value): string
+    {
+        if (app()->bound('request') && (request()->routeIs('admin.sales-reports.*') || request()->routeIs('admin.reports.*'))) {
+            $base = $this->attributes['base_'.$field] ?? null;
+            if ($base !== null) return Money::round($base);
+        }
+
+        return Money::round($value ?? 0);
+    }
+
     public function order() { return $this->belongsTo(Order::class); }
     public function product() { return $this->belongsTo(Product::class); }
     public function variant() { return $this->belongsTo(ProductVariant::class, 'product_variant_id'); }
