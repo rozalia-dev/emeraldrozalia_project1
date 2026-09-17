@@ -9,7 +9,22 @@ class DatabaseSeeder extends Seeder {
   $company=Company::updateOrCreate(['code'=>'ERL'],['name'=>'Emerald Rozalia','legal_name'=>'Emerald Rozalia Limited','country_code'=>'IE','base_currency'=>'EUR','default_locale'=>'en','active'=>true]);
   Currency::updateOrCreate(['code'=>'EUR'],['name'=>'Euro','symbol'=>'€','decimals'=>2,'active'=>true]); Language::updateOrCreate(['locale'=>'en'],['name'=>'English','native_name'=>'English','active'=>true]);
   $company->currencies()->syncWithoutDetaching(['EUR'=>['is_base'=>true,'enabled_storefront'=>true]]); $company->languages()->syncWithoutDetaching(['en'=>['is_default'=>true]]);
-  $categories=[]; foreach([['Baseball Caps','baseball-caps'],['Bucket Hats','bucket-hats'],['Snapbacks','snapbacks'],['Irish Traditional Flat Caps','irish-traditional-flat-caps'],['Irish Heritage Hats','irish-heritage-hats'],['Beanies & More','beanies-more'],['GAA Baseball Caps','gaa-baseball-caps'],['GAA Bucket Hats','gaa-bucket-hats'],['GAA Beanie Hats','gaa-beanie-hats']] as $i=>$c)$categories[]=Category::updateOrCreate(['slug'=>$c[1]],['company_id'=>$company->id,'name'=>$c[0],'description'=>'Premium Emerald Rozalia headwear made in Limerick, Ireland.','sort_order'=>$i,'is_active'=>true]);
+  $categories=[];
+  foreach([
+   ['Baseball Caps','baseball-caps',null],
+   ['Bucket Hats','bucket-hats',null],
+   ['Snapbacks','snapbacks',null],
+   ['Irish Traditional Flat Caps','irish-traditional-flat-caps','traditional'],
+   ['Irish Heritage Hats','irish-heritage-hats','heritage'],
+   ['Beanies & More','beanies-more',null],
+   ['GAA Baseball Caps','gaa-baseball-caps',null],
+   ['GAA Bucket Hats','gaa-bucket-hats',null],
+   ['GAA Beanie Hats','gaa-beanie-hats',null],
+  ] as $i=>$c){
+   $categoryData=['company_id'=>$company->id,'name'=>$c[0],'description'=>'Premium Emerald Rozalia headwear made in Limerick, Ireland.','sort_order'=>$i,'is_active'=>true];
+   if($c[2]!==null)$categoryData['taxonomy_type']=$c[2];
+   $categories[]=Category::updateOrCreate(['slug'=>$c[1]],$categoryData);
+  }
   foreach([['Classic Emerald Cap',3499],['Emerald Signature Cap',3499],['Rozalia Snapback',3699],['Emerald Flat Cap',4499],['Emerald Beanie',2999],['Emerald Trucker Cap',3499]] as $i=>$seed){$p=Product::updateOrCreate(['sku'=>'ER-'.str_pad((string)($i+1),4,'0',STR_PAD_LEFT)],['company_id'=>$company->id,'category_id'=>$categories[$i]->id,'name'=>$seed[0],'slug'=>str($seed[0])->slug(),'description'=>'Premium quality, Irish character and expert craftsmanship.','price'=>$seed[1]/100,'stock'=>100,'material'=>'Premium headwear fabric','is_new'=>true,'is_active'=>true,'status'=>'active','brand'=>'Emerald Rozalia']);ProductVariant::updateOrCreate(['sku'=>$p->sku.'-STD'],['company_id'=>$company->id,'product_id'=>$p->id,'colour'=>'Emerald / Black','size'=>'Adjustable','price'=>$p->price,'stock'=>100,'is_active'=>true]);}
   $collectionSeeds=[
    ['Spring Summer 2025','spring-summer-2025','seasonal','Spring / Summer 2025',true,'visible'],
