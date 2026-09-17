@@ -7,6 +7,8 @@ use App\Models\CatalogClub;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Services\AuditTrail;
+use App\Support\CatalogCounties;
+use App\Support\CatalogProductTypes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,52 +27,63 @@ class CatalogTaxonomyController extends Controller
         'heritage' => 'Heritage',
     ];
 
-    private const PRODUCT_TYPES = [
-        'beanies' => 'Beanies',
-        'caps' => 'Caps',
-        'hats' => 'Hats',
-    ];
-
     private const CLUB_TAXONOMIES = ['uefa', 'fifa', 'gaa'];
+    private const COUNTY_TAXONOMIES = ['traditional', 'heritage'];
 
     public function index(Request $request): View
     {
         $taxonomy = strtolower((string) $request->query('taxonomy_type', ''));
         $countryId = (int) $request->query('catalog_country_id', 0);
+        $countyCode = strtoupper(trim((string) $request->query('catalog_county_code', '')));
         $clubId = (int) $request->query('catalog_club_id', 0);
         $productType = strtolower((string) $request->query('product_type', ''));
+        $productTypes = CatalogProductTypes::all();
 
         $categories = Category::query()
             ->whereNotNull('taxonomy_type')
             ->with(['parent', 'catalogCountry', 'catalogClub'])
             ->when(isset(self::TAXONOMIES[$taxonomy]), fn ($query) => $query->where('taxonomy_type', $taxonomy))
             ->when($countryId > 0, fn ($query) => $query->where('catalog_country_id', $countryId))
+            ->when($countyCode !== '', fn ($query) => $query->where('catalog_county_code', $countyCode))
             ->when($clubId > 0, fn ($query) => $query->where('catalog_club_id', $clubId))
-            ->when(isset(self::PRODUCT_TYPES[$productType]), fn ($query) => $query->where('product_type', $productType))
+            ->when(isset($productTypes[$productType]), fn ($query) => $query->where('product_type', $productType))
             ->orderBy('taxonomy_type')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->paginate(30)
             ->withQueryString();
 
+        $countries = CatalogCountry::query()->active()->orderBy('name')->get();
+        $clubs = CatalogClub::query()->active()->with('country')->orderBy('governing_body')->orderBy('name')->get();
+        $countyOptionsByCountry = CatalogCounties::all();
+        $countyNames = collect($countyOptionsByCountry)
+            ->flatten(1)
+            ->filter(fn ($row) => is_array($row) && filled($row['code'] ?? null))
+            ->mapWithKeys(fn ($row) => [(string) $row['code'] => (string) ($row['name'] ?? $row['code'])])
+            ->all();
+
         return view('admin.categories.taxonomy', [
             'categories' => $categories,
-            'countries' => CatalogCountry::query()->active()->orderBy('name')->get(),
-            'clubs' => CatalogClub::query()->active()->with('country')->orderBy('governing_body')->orderBy('name')->get(),
+            'countries' => $countries,
+            'clubs' => $clubs,
+            'countyOptionsByCountry' => $countyOptionsByCountry,
+            'countyNames' => $countyNames,
             'taxonomyTypes' => self::TAXONOMIES,
-            'productTypes' => self::PRODUCT_TYPES,
-            'filters' => compact('taxonomy', 'countryId', 'clubId', 'productType'),
+            'productTypes' => $productTypes,
+            'filters' => compact('taxonomy', 'countryId', 'countyCode', 'clubId', 'productType'),
         ]);
     }
 
     public function build(Request $request): RedirectResponse
     {
+        $productTypes = CatalogProductTypes::all();
         $data = $request->validate([
             'taxonomy_type' => ['required', Rule::in(array_keys(self::TAXONOMIES))],
             'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
+            'catalog_county_code' => ['nullable', 'string', 'max:16'],
             'catalog_club_id' => ['nullable', 'integer', Rule::exists('catalog_clubs', 'id')->where('is_active', true)],
             'product_types' => ['required', 'array', 'min:1'],
-            'product_types.*' => ['required', Rule::in(array_keys(self::PRODUCT_TYPES))],
+            'product_types.*' => ['required', Rule::in(array_keys($productTypes))],
         ]);
 
         $taxonomy = $data['taxonomy_type'];
@@ -78,20 +91,24 @@ class CatalogTaxonomyController extends Controller
         $club = filled($data['catalog_club_id'] ?? null)
             ? CatalogClub::query()->active()->with('country')->findOrFail((int) $data['catalog_club_id'])
             : null;
+        $countyCode = strtoupper(trim((string) ($data['catalog_county_code'] ?? '')));
 
         $this->guardCountryScope($taxonomy, $country);
         $this->guardClubScope($taxonomy, $country, $club);
+        $county = $this->resolveCounty($taxonomy, $country, $countyCode);
+        $countyCode = $county['code'] ?? null;
 
         $created = 0;
         $lastCategory = null;
 
-        DB::transaction(function () use ($taxonomy, $country, $club, $data, &$created, &$lastCategory): void {
+        DB::transaction(function () use ($taxonomy, $country, $county, $countyCode, $club, $data, $productTypes, &$created, &$lastCategory): void {
             $top = $this->ensureCategory(
                 parent: null,
                 name: self::TAXONOMIES[$taxonomy],
                 slug: $taxonomy,
                 taxonomy: $taxonomy,
                 country: null,
+                countyCode: null,
                 club: null,
                 productType: null,
                 sortOrder: array_search($taxonomy, array_keys(self::TAXONOMIES), true) + 10,
@@ -104,6 +121,7 @@ class CatalogTaxonomyController extends Controller
                 slug: $taxonomy.'-'.strtolower($country->code),
                 taxonomy: $taxonomy,
                 country: $country,
+                countyCode: null,
                 club: null,
                 productType: null,
                 sortOrder: max(1, (int) $country->sort_order),
@@ -111,13 +129,27 @@ class CatalogTaxonomyController extends Controller
             );
 
             $parent = $countryCategory;
-            if (in_array($taxonomy, self::CLUB_TAXONOMIES, true) && $club) {
+            if ($county) {
+                $parent = $this->ensureCategory(
+                    parent: $countryCategory,
+                    name: $county['name'],
+                    slug: $countryCategory->slug.'-'.Str::slug(strtolower((string) $countyCode)),
+                    taxonomy: $taxonomy,
+                    country: $country,
+                    countyCode: $countyCode,
+                    club: null,
+                    productType: null,
+                    sortOrder: 10,
+                    created: $created,
+                );
+            } elseif (in_array($taxonomy, self::CLUB_TAXONOMIES, true) && $club) {
                 $parent = $this->ensureCategory(
                     parent: $countryCategory,
                     name: $club->name,
                     slug: $taxonomy.'-'.strtolower($country->code).'-'.$club->slug,
                     taxonomy: $taxonomy,
                     country: $country,
+                    countyCode: null,
                     club: $club,
                     productType: null,
                     sortOrder: max(1, (int) $club->sort_order),
@@ -128,10 +160,11 @@ class CatalogTaxonomyController extends Controller
             foreach (array_values(array_unique($data['product_types'])) as $index => $productType) {
                 $lastCategory = $this->ensureCategory(
                     parent: $parent,
-                    name: self::PRODUCT_TYPES[$productType],
+                    name: $productTypes[$productType],
                     slug: $parent->slug.'-'.$productType,
                     taxonomy: $taxonomy,
                     country: $country,
+                    countyCode: $countyCode,
                     club: $club,
                     productType: $productType,
                     sortOrder: ($index + 1) * 10,
@@ -143,6 +176,7 @@ class CatalogTaxonomyController extends Controller
         return redirect()->route('admin.categories.taxonomy', [
             'taxonomy_type' => $taxonomy,
             'catalog_country_id' => $country->id,
+            'catalog_county_code' => $countyCode,
             'catalog_club_id' => $club?->id,
         ])->with('success', ($created > 0 ? $created.' menu item(s) created.' : 'The menu hierarchy already existed and was synchronized.').($lastCategory ? ' Product types are ready under '.$lastCategory->parent?->name.'.' : ''));
     }
@@ -300,7 +334,7 @@ class CatalogTaxonomyController extends Controller
         if ($taxonomy === 'uefa' && ! $country->is_uefa) {
             throw ValidationException::withMessages(['catalog_country_id' => 'UEFA menus can only use countries/associations enabled for UEFA.']);
         }
-        if (in_array($taxonomy, ['traditional', 'heritage'], true) && ! $country->is_eu) {
+        if (in_array($taxonomy, self::COUNTY_TAXONOMIES, true) && ! $country->is_eu) {
             throw ValidationException::withMessages(['catalog_country_id' => 'Traditional and Heritage menus are restricted to EU countries.']);
         }
     }
@@ -322,12 +356,31 @@ class CatalogTaxonomyController extends Controller
         }
     }
 
+    private function resolveCounty(string $taxonomy, CatalogCountry $country, string $countyCode): ?array
+    {
+        if (! in_array($taxonomy, self::COUNTY_TAXONOMIES, true)) {
+            return null;
+        }
+
+        if ($countyCode === '') {
+            throw ValidationException::withMessages(['catalog_county_code' => 'Select a county or administrative subdivision for Traditional and Heritage.']);
+        }
+
+        $county = CatalogCounties::find($country->code, $countyCode);
+        if (! $county) {
+            throw ValidationException::withMessages(['catalog_county_code' => 'The selected county does not belong to the selected country.']);
+        }
+
+        return $county;
+    }
+
     private function ensureCategory(
         ?Category $parent,
         string $name,
         string $slug,
         string $taxonomy,
         ?CatalogCountry $country,
+        ?string $countyCode,
         ?CatalogClub $club,
         ?string $productType,
         int $sortOrder,
@@ -339,6 +392,7 @@ class CatalogTaxonomyController extends Controller
             'name' => $name,
             'taxonomy_type' => $taxonomy,
             'catalog_country_id' => $country?->id,
+            'catalog_county_code' => $countyCode,
             'catalog_club_id' => $club?->id,
             'product_type' => $productType,
             'status' => 'active',
