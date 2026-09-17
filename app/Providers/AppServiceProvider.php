@@ -76,26 +76,25 @@ class AppServiceProvider extends ServiceProvider {
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get();
-            $catalogNavCategories = collect();
-            $flattenCatalog = function ($nodes, int $depth = 0) use (&$flattenCatalog, $catalogNavCategories): void {
-                foreach ($nodes as $node) {
-                    $displayNode = clone $node;
-                    if ($depth > 0) {
-                        $displayNode->setAttribute('name', str_repeat('↳ ', $depth).$node->name);
-                    }
-                    $catalogNavCategories->push($displayNode);
-                    $children = $node->childrenRecursive ?? collect();
-                    if ($children->isNotEmpty()) {
-                        $flattenCatalog($children, $depth + 1);
-                    }
-                }
-            };
-            $flattenCatalog($catalogTree);
 
-            if (request()->routeIs('home')) {
-                $catalogNavCategories = $catalogNavCategories
-                    ->filter(fn (Category $category): bool => is_null($category->parent_id))
-                    ->values();
+            if (request()->getPathInfo() === '/') {
+                $catalogNavCategories = $catalogTree->values();
+            } else {
+                $catalogNavCategories = collect();
+                $flattenCatalog = function ($nodes, int $depth = 0) use (&$flattenCatalog, $catalogNavCategories): void {
+                    foreach ($nodes as $node) {
+                        $displayNode = clone $node;
+                        if ($depth > 0) {
+                            $displayNode->setAttribute('name', str_repeat('↳ ', $depth).$node->name);
+                        }
+                        $catalogNavCategories->push($displayNode);
+                        $children = $node->childrenRecursive ?? collect();
+                        if ($children->isNotEmpty()) {
+                            $flattenCatalog($children, $depth + 1);
+                        }
+                    }
+                };
+                $flattenCatalog($catalogTree);
             }
 
             $view->with([
