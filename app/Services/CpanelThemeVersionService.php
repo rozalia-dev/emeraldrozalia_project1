@@ -43,6 +43,10 @@ final class CpanelThemeVersionService
             'button_radius' => '6px',
             'input_radius' => '6px',
         ],
+        'branding' => [
+            'logo_path' => '/assets/logo/logo_two_line.png',
+            'logo_alt' => 'Emerald Rozalia Limited',
+        ],
     ];
 
     private const COLOR_PATHS = [
@@ -424,6 +428,15 @@ final class CpanelThemeVersionService
             if (! in_array($value, ['Inter, Arial, sans-serif', 'system-ui, sans-serif', 'Georgia, serif'], true)) {
                 $errors[$path] = 'Choose one of the approved font stacks.';
             }
+        }
+
+        $logoPath = data_get($merged, 'branding.logo_path');
+        if (! in_array($logoPath, ['/assets/logo/logo_one_line.png', '/assets/logo/logo_two_line.png'], true)) {
+            $errors['branding.logo_path'] = 'Choose one of the approved Emerald Rozalia logo assets.';
+        }
+        $logoAlt = data_get($merged, 'branding.logo_alt');
+        if (! is_string($logoAlt) || trim($logoAlt) === '' || mb_strlen($logoAlt) > 180) {
+            $errors['branding.logo_alt'] = 'Enter logo alt text up to 180 characters.';
         }
 
         $sidebarWidth = (int) rtrim((string) data_get($merged, 'spacing.sidebar_width'), 'px');
