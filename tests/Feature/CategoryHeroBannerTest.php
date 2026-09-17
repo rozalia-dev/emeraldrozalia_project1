@@ -12,7 +12,15 @@ class CategoryHeroBannerTest extends TestCase
 
     public function test_category_hero_banner_renders_only_on_its_selected_category(): void
     {
-        $company = Company::query()->where('active', true)->firstOrFail();
+        $company = Company::create([
+            'name' => 'Emerald Rozalia Test',
+            'legal_name' => 'Emerald Rozalia Test Limited',
+            'code' => 'ERTEST',
+            'country_code' => 'IE',
+            'base_currency' => 'EUR',
+            'default_locale' => 'en',
+            'active' => true,
+        ]);
 
         $traditional = Category::create([
             'company_id' => $company->id,
