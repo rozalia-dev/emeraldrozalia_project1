@@ -1,9 +1,7 @@
 @php
     $regionValue = static fn (string $path, mixed $fallback = ''): mixed => data_get($editorRegions, $path, $fallback);
     $regionList = static fn (string $path, array $fallback = []): array => array_values((array) data_get($editorRegions, $path, $fallback));
-    $primaryMenuDefaults = array_values($defaults['header']['primary_menu'] ?? []);
-    $primaryMenu = $regionList('header.primary_menu', $primaryMenuDefaults);
-    $primaryMenuAdditional = array_slice($primaryMenu, count($primaryMenuDefaults));
+    $primaryMenu = $regionList('header.primary_menu', array_values($defaults['header']['primary_menu'] ?? []));
     $utilityMenu = $regionList('header.utility_menu', $defaults['header']['utility_menu'] ?? []);
     $footerColumns = $regionList('footer.columns', $defaults['footer']['columns'] ?? []);
     $officialSocialLinks = [
@@ -48,31 +46,40 @@
 
     <section class="layout-editor-group">
         <div class="layout-editor-group-heading">
-            <div><span class="layout-editor-number">03</span><div><h3>Primary menu</h3><p>The approved eight-item public navigation stays first and in order. Add optional items below; Contact Us remains footer-only.</p></div></div>
+            <div><span class="layout-editor-number">02A</span><div><h3>Header colours</h3><p>Control the public header background, text and active/accent colour.</p></div></div>
+        </div>
+        <div class="layout-editor-fields">
+            @foreach(['background' => 'Header background', 'text' => 'Header text', 'accent' => 'Header accent'] as $colorKey => $colorLabel)
+                <label>{{ $colorLabel }}<span class="layout-colour-field"><input type="color" name="regions[header][colors][{{ $colorKey }}]" value="{{ $regionValue('header.colors.'.$colorKey, data_get($defaults, 'header.colors.'.$colorKey)) }}"></span></label>
+            @endforeach
+        </div>
+    </section>
+
+    <section class="layout-editor-group">
+        <div class="layout-editor-group-heading">
+            <div><span class="layout-editor-number">03</span><div><h3>Primary menu</h3><p>Add, edit, reorder, enable/disable or delete any public navigation item. Safe local and HTTPS destinations are validated on save.</p></div></div>
             <button class="layout-editor-add" type="button" data-layout-add="primary-menu">Add menu item</button>
         </div>
         <div class="layout-repeat-list" data-layout-list="primary-menu">
-            @foreach($primaryMenuDefaults as $index => $item)
+            @foreach($primaryMenu as $index => $item)
                 <div class="layout-repeat-row" data-layout-row data-layout-index="{{ $index }}">
-                    <div class="layout-repeat-row-heading"><strong>Menu item {{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</strong><span class="layout-editor-lock">Locked</span></div>
-                    <div class="layout-editor-fields">
-                        <label>Label<input name="regions[header][primary_menu][{{ $index }}][label]" maxlength="120" value="{{ data_get($item, 'label') }}" placeholder="HOME" readonly></label>
-                        <label>Destination<input name="regions[header][primary_menu][{{ $index }}][href]" value="{{ data_get($item, 'href') }}" placeholder="/shop" readonly></label>
+                    <div class="layout-repeat-row-heading">
+                        <strong>Menu item {{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</strong>
+                        <span class="layout-actions">
+                            <button class="layout-editor-add" type="button" data-layout-move="up" aria-label="Move menu item up">↑</button>
+                            <button class="layout-editor-add" type="button" data-layout-move="down" aria-label="Move menu item down">↓</button>
+                            <button class="layout-editor-remove" type="button" data-layout-remove>Remove</button>
+                        </span>
                     </div>
-                </div>
-            @endforeach
-            @foreach($primaryMenuAdditional as $offset => $item)
-                @php($index = count($primaryMenuDefaults) + $offset)
-                <div class="layout-repeat-row" data-layout-row data-layout-index="{{ $index }}">
-                    <div class="layout-repeat-row-heading"><strong>Added menu item {{ str_pad((string) ($offset + 1), 2, '0', STR_PAD_LEFT) }}</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div>
                     <div class="layout-editor-fields">
-                        <label>Label<input name="regions[header][primary_menu][{{ $index }}][label]" maxlength="120" value="{{ data_get($item, 'label') }}" placeholder="ABOUT US"></label>
-                        <label>Destination<input name="regions[header][primary_menu][{{ $index }}][href]" value="{{ data_get($item, 'href') }}" placeholder="/about"></label>
+                        <label>Label<input name="regions[header][primary_menu][{{ $index }}][label]" maxlength="120" value="{{ data_get($item, 'label') }}" placeholder="SHOP"></label>
+                        <label>Destination<input name="regions[header][primary_menu][{{ $index }}][href]" value="{{ data_get($item, 'href') }}" placeholder="/shop"></label>
+                        <label class="layout-editor-check"><input type="hidden" name="regions[header][primary_menu][{{ $index }}][enabled]" value="0"><input type="checkbox" name="regions[header][primary_menu][{{ $index }}][enabled]" value="1" @checked(!array_key_exists('enabled', $item) || filter_var(data_get($item, 'enabled'), FILTER_VALIDATE_BOOLEAN))> Show in header</label>
                     </div>
                 </div>
             @endforeach
         </div>
-        <template data-layout-template="primary-menu"><div class="layout-repeat-row" data-layout-row data-layout-index="__INDEX__"><div class="layout-repeat-row-heading"><strong>New menu item</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields"><label>Label<input name="regions[header][primary_menu][__INDEX__][label]" maxlength="120" placeholder="ABOUT US"></label><label>Destination<input name="regions[header][primary_menu][__INDEX__][href]" placeholder="/about"></label></div></div></template>
+        <template data-layout-template="primary-menu"><div class="layout-repeat-row" data-layout-row data-layout-index="__INDEX__"><div class="layout-repeat-row-heading"><strong>New menu item</strong><span class="layout-actions"><button class="layout-editor-add" type="button" data-layout-move="up">↑</button><button class="layout-editor-add" type="button" data-layout-move="down">↓</button><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></span></div><div class="layout-editor-fields"><label>Label<input name="regions[header][primary_menu][__INDEX__][label]" maxlength="120" placeholder="ABOUT US"></label><label>Destination<input name="regions[header][primary_menu][__INDEX__][href]" placeholder="/about"></label><label class="layout-editor-check"><input type="hidden" name="regions[header][primary_menu][__INDEX__][enabled]" value="0"><input type="checkbox" name="regions[header][primary_menu][__INDEX__][enabled]" value="1" checked> Show in header</label></div></div></template>
     </section>
 
     <section class="layout-editor-group">
@@ -96,6 +103,23 @@
             @endforeach
         </div>
         <template data-layout-template="utility-menu"><div class="layout-repeat-row" data-layout-row data-layout-index="__INDEX__"><div class="layout-repeat-row-heading"><strong>New utility item</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields layout-editor-fields--utility"><label>Label<input name="regions[header][utility_menu][__INDEX__][label]" maxlength="120" placeholder="Search"></label><label>Icon<select name="regions[header][utility_menu][__INDEX__][icon]"><option value="search">Search</option><option value="user">User</option><option value="shopping-bag">Shopping bag</option><option value="link">Link</option></select></label><label>Guest label<input name="regions[header][utility_menu][__INDEX__][guest_label]" maxlength="120" placeholder="Login"></label><label>Signed-in label<input name="regions[header][utility_menu][__INDEX__][auth_label]" maxlength="120" placeholder="Account"></label><label>Guest destination<input name="regions[header][utility_menu][__INDEX__][href]" placeholder="/login"></label><label>Signed-in destination<input name="regions[header][utility_menu][__INDEX__][auth_href]" placeholder="/account"></label></div></div></template>
+    </section>
+
+    <section class="layout-editor-group">
+        <div class="layout-editor-group-heading">
+            <div><span class="layout-editor-number">04A</span><div><h3>Footer logo &amp; colours</h3><p>Select the approved footer wordmark and control footer background, text and accent colours.</p></div></div>
+            <span class="layout-editor-badge">Approved assets only</span>
+        </div>
+        <div class="layout-editor-fields">
+            <label>Footer logo asset<select name="regions[footer][logo][path]">
+                <option value="/assets/logo/logo_one_line.png" @selected($regionValue('footer.logo.path') === '/assets/logo/logo_one_line.png')>Approved one-line wordmark</option>
+                <option value="/assets/logo/logo_two_line.png" @selected($regionValue('footer.logo.path', '/assets/logo/logo_two_line.png') === '/assets/logo/logo_two_line.png')>Approved two-line wordmark</option>
+            </select></label>
+            <label>Footer logo alt text<input name="regions[footer][logo][alt]" maxlength="180" value="{{ $regionValue('footer.logo.alt', 'Emerald Rozalia Limited') }}"></label>
+            @foreach(['background' => 'Footer background', 'text' => 'Footer text', 'accent' => 'Footer accent'] as $colorKey => $colorLabel)
+                <label>{{ $colorLabel }}<input type="color" name="regions[footer][colors][{{ $colorKey }}]" value="{{ $regionValue('footer.colors.'.$colorKey, data_get($defaults, 'footer.colors.'.$colorKey)) }}"></label>
+            @endforeach
+        </div>
     </section>
 
     <section class="layout-editor-group">
