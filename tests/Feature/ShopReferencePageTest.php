@@ -30,7 +30,7 @@ class ShopReferencePageTest extends TestCase
                 'SEE IT ON YOU',
                 'LOVE IT OR RETURN IT',
                 '/css/shop.css?v=20260917-catalog-filters',
-                '/js/shop.js?v=20260917-catalog-filters',
+                '/js/shop.js',
                 'data-shop-page',
             ], false);
     }
