@@ -39,24 +39,32 @@ class StorefrontTaxonomyClassificationTest extends TestCase
         $this->assertSame('traditional', $traditional->fresh()->taxonomy_type);
         $this->assertSame('heritage', $heritage->fresh()->taxonomy_type);
 
-        $expectedEuCodes = CatalogCountry::query()
+        $expectedEuCountries = CatalogCountry::query()
             ->active()
             ->where('is_eu', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->pluck('code')
-            ->all();
+            ->get(['code', 'name']);
+        $nonEuCountry = CatalogCountry::query()
+            ->active()
+            ->where('is_eu', false)
+            ->orderBy('name')
+            ->firstOrFail(['code', 'name']);
+
+        $this->assertCount(27, $expectedEuCountries);
 
         foreach ([$traditional, $heritage] as $category) {
-            $this->get(route('category', $category->fresh()))
+            $response = $this->get(route('category', $category->fresh()))
                 ->assertOk()
                 ->assertSee('data-shop-country', false)
                 ->assertSee('data-shop-county', false)
                 ->assertSee('Select Country First', false)
-                ->assertViewHas('catalogCountyEnabled', true)
-                ->assertViewHas('catalogFilterCountries', function ($countries) use ($expectedEuCodes): bool {
-                    return $countries->pluck('code')->all() === $expectedEuCodes;
-                });
+                ->assertSee('EU countries only for', false)
+                ->assertDontSee('<option value="'.$nonEuCountry->code.'">', false);
+
+            foreach ($expectedEuCountries as $country) {
+                $response->assertSee('<option value="'.$country->code.'">'.$country->name.'</option>', false);
+            }
         }
     }
 }
