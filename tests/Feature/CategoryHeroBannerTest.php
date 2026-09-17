@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Banner, Category, MediaAsset};
+use App\Models\{Banner, Category, Company, MediaAsset};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,7 +12,10 @@ class CategoryHeroBannerTest extends TestCase
 
     public function test_category_hero_banner_renders_only_on_its_selected_category(): void
     {
+        $company = Company::query()->where('active', true)->firstOrFail();
+
         $traditional = Category::create([
+            'company_id' => $company->id,
             'name' => 'Category Hero Traditional',
             'slug' => 'category-hero-traditional',
             'status' => 'active',
@@ -21,6 +24,7 @@ class CategoryHeroBannerTest extends TestCase
             'sort_order' => 901,
         ]);
         $heritage = Category::create([
+            'company_id' => $company->id,
             'name' => 'Category Hero Heritage',
             'slug' => 'category-hero-heritage',
             'status' => 'active',
@@ -30,6 +34,7 @@ class CategoryHeroBannerTest extends TestCase
         ]);
 
         $media = MediaAsset::create([
+            'company_id' => $company->id,
             'name' => 'Traditional category hero',
             'disk' => 'local',
             'path' => 'site-media/banners/traditional-hero.jpg',
@@ -42,6 +47,7 @@ class CategoryHeroBannerTest extends TestCase
         ]);
 
         Banner::create([
+            'company_id' => $company->id,
             'title' => 'Traditional Hero',
             'type' => 'banner',
             'position' => 'Category Hero',
