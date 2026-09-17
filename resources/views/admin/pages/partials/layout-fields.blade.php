@@ -20,6 +20,7 @@
 @endphp
 
 <div class="layout-visual-editor" data-layout-visual-editor>
+    <input type="hidden" name="layout_lists_managed" value="1">
     <section class="layout-editor-group">
         <div class="layout-editor-group-heading">
             <div><span class="layout-editor-number">01</span><div><h3>Header announcement</h3><p>Set the small public message above the approved wordmark.</p></div></div>
