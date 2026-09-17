@@ -87,22 +87,34 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->actingAs($admin)->post(route('admin.categories.taxonomy.build'), [
             'taxonomy_type' => 'traditional',
             'catalog_country_id' => $usa->id,
+            'catalog_county_code' => 'US-CA',
             'product_types' => ['caps'],
         ])->assertSessionHasErrors('catalog_country_id');
 
         $this->actingAs($admin)->post(route('admin.categories.taxonomy.build'), [
             'taxonomy_type' => 'heritage',
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LK',
             'product_types' => ['beanies', 'caps', 'hats'],
         ])->assertSessionHasNoErrors();
 
         $country = Category::query()->where('slug', 'heritage-ie')->firstOrFail();
+        $county = Category::query()
+            ->where('taxonomy_type', 'heritage')
+            ->where('catalog_country_id', $ireland->id)
+            ->where('catalog_county_code', 'IE-LK')
+            ->whereNull('product_type')
+            ->firstOrFail();
+
         $this->assertNull($country->catalog_club_id);
+        $this->assertSame($country->id, $county->parent_id);
+        $this->assertNull($county->catalog_club_id);
         $this->assertDatabaseHas('categories', [
-            'slug' => 'heritage-ie-caps',
-            'parent_id' => $country->id,
+            'slug' => $county->slug.'-caps',
+            'parent_id' => $county->id,
             'taxonomy_type' => 'heritage',
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LK',
             'catalog_club_id' => null,
             'product_type' => 'caps',
         ]);
