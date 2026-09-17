@@ -32,18 +32,9 @@ class Product extends Model
     {
         $table = $query->getModel()->getTable();
 
-        $query
+        return $query
             ->where($table.'.is_active', true)
             ->whereIn($table.'.status', self::PUBLIC_STATUSES);
-
-        if ((request()->is('shop') || request()->is('category/*')) && request()->filled('country')) {
-            $country = strtoupper(trim((string) request()->query('country')));
-            $query->whereHas('category.catalogCountry', fn (Builder $countryQuery) => $countryQuery
-                ->where('code', $country)
-                ->where('is_active', true));
-        }
-
-        return $query;
     }
 
     public function isPubliclyPublished(): bool

@@ -29,8 +29,8 @@ class ShopReferencePageTest extends TestCase
                 'AVAILABILITY',
                 'SEE IT ON YOU',
                 'LOVE IT OR RETURN IT',
-                '/css/shop.css?v=20260910-reference',
-                '/js/shop.js?v=20260910-reference',
+                '/css/shop.css?v=20260917-catalog-filters',
+                '/js/shop.js?v=20260917-catalog-filters',
                 'data-shop-page',
             ], false);
     }
@@ -166,6 +166,6 @@ class ShopReferencePageTest extends TestCase
             ->assertSee('FLAT CAPS', false)
             ->assertSee('Scoped Flat Cap', false)
             ->assertDontSee('Outside Baseball Cap', false)
-            ->assertSee('/css/shop.css?v=20260910-reference', false);
+            ->assertSee('/css/shop.css?v=20260917-catalog-filters', false);
     }
 }

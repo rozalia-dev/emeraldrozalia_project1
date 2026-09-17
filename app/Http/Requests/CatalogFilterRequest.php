@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\CatalogCounties;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,13 +16,16 @@ class CatalogFilterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $normalized = [];
-        foreach (['q', 'country', 'min_price', 'max_price', 'availability', 'sort'] as $field) {
+        foreach (['q', 'country', 'county', 'subcategory', 'min_price', 'max_price', 'availability', 'sort'] as $field) {
             if ($this->has($field)) {
                 $normalized[$field] = trim((string) $this->input($field));
             }
         }
         if (isset($normalized['country'])) {
             $normalized['country'] = strtoupper($normalized['country']);
+        }
+        if (isset($normalized['county'])) {
+            $normalized['county'] = strtoupper($normalized['county']);
         }
         $this->merge($normalized);
     }
@@ -31,6 +35,22 @@ class CatalogFilterRequest extends FormRequest
         return [
             'q' => ['nullable', 'string', 'max:120'],
             'country' => ['nullable', 'string', 'max:3', Rule::exists('catalog_countries', 'code')->where('is_active', true)],
+            'county' => [
+                'nullable',
+                'string',
+                'max:16',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! filled($value)) {
+                        return;
+                    }
+
+                    $country = strtoupper(trim((string) $this->input('country', '')));
+                    if ($country === '' || ! CatalogCounties::isValid($country, (string) $value)) {
+                        $fail('The selected county does not belong to the selected country.');
+                    }
+                },
+            ],
+            'subcategory' => ['nullable', 'string', 'max:200', 'regex:/^(?:type|category):[a-z0-9][a-z0-9-]*$/i'],
             'category' => ['nullable'],
             'category.*' => ['string', 'max:80'],
             'material' => ['nullable'],

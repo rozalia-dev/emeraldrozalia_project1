@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\{CatalogFilterRequest, PublicInquiryRequest};
-use App\Models\{Banner,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
+use App\Models\{Banner,CatalogCountry,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AuditTrail;
 use App\Services\PublicMediaResolver;
 use App\Services\SalesQuoteService;
+use App\Support\CatalogCounties;
+use App\Support\CatalogProductTypes;
 use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 
@@ -243,6 +246,68 @@ class SiteController extends Controller
 
     private function shopCatalog(CatalogFilterRequest $request, ?Category $activeCategory = null)
     {
+        // One category query supplies the sidebar, parent/descendant expansion and
+        // toolbar subcategory context. Keeping the hierarchy in memory avoids N+1
+        // parent/children queries while the product query eagerly loads card data.
+        $categories = Category::query()
+            ->websiteVisible()
+            ->withCount(['products' => fn ($productQuery) => $productQuery->published()])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $categoriesById = $categories->keyBy('id');
+        $categoriesBySlug = $categories->keyBy('slug');
+        $childrenByParent = $categories->groupBy(fn (Category $category): int => (int) ($category->parent_id ?? 0));
+
+        $rawCategories = $request->input('category', []);
+        if (is_string($rawCategories)) $rawCategories = [$rawCategories];
+        $selectedCategories = array_values(array_unique(array_filter((array) $rawCategories, fn ($value) => is_string($value) && trim($value) !== '')));
+        if ($activeCategory) $selectedCategories = [$activeCategory->slug];
+
+        $contextCategory = $activeCategory;
+        if (! $contextCategory && count($selectedCategories) === 1) {
+            $contextCategory = $categoriesBySlug->get($selectedCategories[0]);
+        }
+        $catalogCountryScope = $this->catalogTaxonomyForCategory($contextCategory, $categoriesById);
+        $catalogCountyEnabled = in_array($catalogCountryScope, ['traditional', 'heritage'], true);
+
+        $catalogFilterCountries = CatalogCountry::query()
+            ->active()
+            ->forTaxonomy($catalogCountryScope)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+        $selectedCountry = strtoupper(trim((string) $request->input('country', '')));
+        $selectedCountryModel = $selectedCountry !== '' ? $catalogFilterCountries->firstWhere('code', $selectedCountry) : null;
+        if ($selectedCountry !== '' && ! $selectedCountryModel) {
+            throw ValidationException::withMessages(['country' => 'The selected country is not available for this catalogue category.']);
+        }
+
+        $selectedCounty = strtoupper(trim((string) $request->input('county', '')));
+        if ($selectedCounty !== '' && (! $catalogCountyEnabled || $selectedCountry === '' || ! CatalogCounties::isValid($selectedCountry, $selectedCounty))) {
+            throw ValidationException::withMessages(['county' => 'The selected county is not available for this catalogue category and country.']);
+        }
+        $catalogFilterCounties = $catalogCountyEnabled && $selectedCountry !== ''
+            ? CatalogCounties::forCountry($selectedCountry)
+            : [];
+
+        $catalogSubcategoryOptions = collect(CatalogProductTypes::all())
+            ->map(fn (string $label, string $value): array => [
+                'value' => 'type:'.$value,
+                'label' => $label,
+                'group' => 'Common',
+            ])->values()->all();
+        if ($contextCategory) {
+            foreach ($this->catalogDescendantOptions($contextCategory, $childrenByParent) as $option) {
+                $catalogSubcategoryOptions[] = $option;
+            }
+        }
+
+        $selectedSubcategory = trim((string) $request->input('subcategory', ''));
+        if ($selectedSubcategory !== '' && ! in_array($selectedSubcategory, array_column($catalogSubcategoryOptions, 'value'), true)) {
+            throw ValidationException::withMessages(['subcategory' => 'The selected subcategory is not available for this catalogue category.']);
+        }
+
         $query = Product::query()
             ->with([
                 'category',
@@ -264,12 +329,35 @@ class SiteController extends Controller
             });
         }
 
-        $rawCategories = $request->input('category', []);
-        if (is_string($rawCategories)) $rawCategories = [$rawCategories];
-        $selectedCategories = array_values(array_unique(array_filter((array) $rawCategories, fn ($value) => is_string($value) && trim($value) !== '')));
-        if ($activeCategory) $selectedCategories = [$activeCategory->slug];
         if ($selectedCategories) {
-            $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->whereIn('slug', $selectedCategories));
+            $selectedCategoryIds = [];
+            foreach ($selectedCategories as $slug) {
+                $category = $categoriesBySlug->get($slug);
+                if (! $category) {
+                    throw ValidationException::withMessages(['category' => 'One or more selected categories are unavailable.']);
+                }
+                $selectedCategoryIds = array_merge($selectedCategoryIds, $this->catalogDescendantIds($category, $childrenByParent));
+            }
+            $query->whereIn('category_id', array_values(array_unique($selectedCategoryIds)));
+        }
+
+        if ($selectedCountryModel) {
+            $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_country_id', $selectedCountryModel->id));
+        }
+        if ($selectedCounty !== '') {
+            $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_county_code', $selectedCounty));
+        }
+        if ($selectedSubcategory !== '') {
+            [$kind, $value] = explode(':', $selectedSubcategory, 2);
+            if ($kind === 'type') {
+                $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('product_type', $value));
+            } else {
+                $subcategory = $categoriesBySlug->get($value);
+                if (! $subcategory) {
+                    throw ValidationException::withMessages(['subcategory' => 'The selected subcategory is unavailable.']);
+                }
+                $query->whereIn('category_id', $this->catalogDescendantIds($subcategory, $childrenByParent));
+            }
         }
 
         $selectedMaterials = array_values(array_unique(array_filter((array) $request->input('material', []), fn ($value) => is_string($value) && trim($value) !== '')));
@@ -334,13 +422,6 @@ class SiteController extends Controller
         $perPage = in_array((int) $request->input('per_page', 12), [12, 24, 36], true) ? (int) $request->input('per_page', 12) : 12;
         $products = $query->paginate($perPage)->withQueryString();
 
-        $categories = Category::query()
-            ->websiteVisible()
-            ->withCount(['products' => fn ($productQuery) => $productQuery->published()])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-
         $catalogMax = Money::round((string) (Product::published()->max('price') ?? '0'));
         $priceCeiling = max(50, (int) (ceil(max(1, Money::toMinor($catalogMax)) / 1000) * 10));
 
@@ -352,6 +433,14 @@ class SiteController extends Controller
             'selectedMaterials' => $selectedMaterials,
             'selectedColours' => $selectedColours,
             'selectedSizes' => $selectedSizes,
+            'selectedCountry' => $selectedCountry,
+            'selectedCounty' => $selectedCounty,
+            'selectedSubcategory' => $selectedSubcategory,
+            'catalogFilterCountries' => $catalogFilterCountries,
+            'catalogFilterCounties' => $catalogFilterCounties,
+            'catalogSubcategoryOptions' => $catalogSubcategoryOptions,
+            'catalogCountryScope' => $catalogCountryScope,
+            'catalogCountyEnabled' => $catalogCountyEnabled,
             'availability' => $availability,
             'sort' => $sort,
             'perPage' => $perPage,
@@ -370,6 +459,69 @@ class SiteController extends Controller
                 'red' => '#8b352d',
             ],
         ]);
+    }
+
+    private function catalogTaxonomyForCategory(?Category $category, Collection $categoriesById): ?string
+    {
+        $visited = [];
+        while ($category) {
+            if (filled($category->taxonomy_type)) {
+                return strtolower((string) $category->taxonomy_type);
+            }
+            if (isset($visited[$category->id])) {
+                break;
+            }
+            $visited[$category->id] = true;
+            $category = $category->parent_id ? $categoriesById->get($category->parent_id) : null;
+        }
+
+        return null;
+    }
+
+    private function catalogDescendantIds(Category $root, Collection $childrenByParent): array
+    {
+        $ids = [];
+        $queue = [$root->id];
+        while ($queue) {
+            $id = (int) array_shift($queue);
+            if (isset($ids[$id])) {
+                continue;
+            }
+            $ids[$id] = true;
+            foreach ($childrenByParent->get($id, collect()) as $child) {
+                $queue[] = $child->id;
+            }
+        }
+
+        return array_keys($ids);
+    }
+
+    private function catalogDescendantOptions(Category $root, Collection $childrenByParent): array
+    {
+        $options = [];
+        $queue = [];
+        foreach ($childrenByParent->get($root->id, collect()) as $child) {
+            $queue[] = [$child, 0];
+        }
+
+        $visited = [];
+        while ($queue) {
+            [$category, $depth] = array_shift($queue);
+            if (isset($visited[$category->id])) {
+                continue;
+            }
+            $visited[$category->id] = true;
+            $options[] = [
+                'value' => 'category:'.$category->slug,
+                'label' => str_repeat('↳ ', $depth).$category->name,
+                'group' => 'This Category',
+            ];
+            foreach ($childrenByParent->get($category->id, collect()) as $child) {
+                $queue[] = [$child, $depth + 1];
+            }
+        }
+
+        return $options;
     }
 
     public function product(Product $product)

@@ -28,6 +28,7 @@ class Category extends Model
         'seo',
         'taxonomy_type',
         'catalog_country_id',
+        'catalog_county_code',
         'catalog_club_id',
         'product_type',
         'created_by',
