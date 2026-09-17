@@ -59,11 +59,20 @@ class StorefrontTaxonomyClassificationTest extends TestCase
                 ->assertSee('data-shop-country', false)
                 ->assertSee('data-shop-county', false)
                 ->assertSee('Select Country First', false)
-                ->assertSee('EU countries only for', false)
-                ->assertDontSee('<option value="'.$nonEuCountry->code.'">', false);
+                ->assertSee('EU countries only for', false);
+
+            $content = (string) $response->getContent();
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/<option\s+value="'.preg_quote($nonEuCountry->code, '/').'"[^>]*>/i',
+                $content,
+            );
 
             foreach ($expectedEuCountries as $country) {
-                $response->assertSee('<option value="'.$country->code.'">'.$country->name.'</option>', false);
+                $this->assertMatchesRegularExpression(
+                    '/<option\s+value="'.preg_quote($country->code, '/').'"[^>]*>\s*'.preg_quote($country->name, '/').'\s*<\/option>/i',
+                    $content,
+                );
             }
         }
     }
