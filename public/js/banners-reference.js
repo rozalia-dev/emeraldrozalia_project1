@@ -8,10 +8,92 @@
     var editor = root.parentElement.querySelector('[data-banner-modal="editor"]');
     var editorForm = editor ? editor.querySelector('[data-banner-editor-form]') : null;
     var editorTitle = editor ? editor.querySelector('[data-banner-editor-title]') : null;
+    var categoryHeroSelect = null;
+    var categoryHeroLabel = null;
+    var specificPagesField = null;
+    var specificPagesLabel = null;
+
+    var categoryHeroOptions = [
+        ['traditional', 'Traditional'],
+        ['heritage', 'Heritage'],
+        ['classic', 'Classic'],
+        ['outdoor', 'Outdoor'],
+        ['winter', 'Winter'],
+        ['sports', 'Sports'],
+        ['workwear', 'Workwear'],
+        ['kids', 'Kids'],
+        ['costume', 'Costume']
+    ];
 
     function closeModals() {
         modals.forEach(function (modal) { modal.hidden = true; });
         document.body.classList.remove('banner-modal-open');
+    }
+
+    function installCategoryHeroControls() {
+        if (!editorForm || categoryHeroSelect) return;
+        var position = editorForm.querySelector('[name="position"]');
+        specificPagesField = editorForm.querySelector('[name="specific_pages"]');
+        if (!position || !specificPagesField) return;
+
+        specificPagesLabel = specificPagesField.closest('label');
+        categoryHeroLabel = document.createElement('label');
+        categoryHeroLabel.className = specificPagesLabel ? specificPagesLabel.className : 'banner-editor-wide';
+        categoryHeroLabel.setAttribute('data-banner-category-hero-field', '');
+
+        var title = document.createElement('span');
+        title.textContent = 'Target Category *';
+        categoryHeroSelect = document.createElement('select');
+        categoryHeroSelect.setAttribute('aria-label', 'Target category for category hero');
+        categoryHeroSelect.setAttribute('data-banner-category-hero', '');
+
+        categoryHeroOptions.forEach(function (item) {
+            var option = document.createElement('option');
+            option.value = item[0];
+            option.textContent = item[1];
+            categoryHeroSelect.appendChild(option);
+        });
+
+        var help = document.createElement('small');
+        help.textContent = 'This banner will appear in the right side of the selected public category hero.';
+        categoryHeroLabel.appendChild(title);
+        categoryHeroLabel.appendChild(categoryHeroSelect);
+        categoryHeroLabel.appendChild(help);
+
+        if (specificPagesLabel && specificPagesLabel.parentNode) {
+            specificPagesLabel.parentNode.insertBefore(categoryHeroLabel, specificPagesLabel);
+        } else {
+            editorForm.appendChild(categoryHeroLabel);
+        }
+
+        position.addEventListener('change', syncCategoryHeroTarget);
+        categoryHeroSelect.addEventListener('change', function () {
+            if (specificPagesField) specificPagesField.value = 'category:' + categoryHeroSelect.value;
+        });
+        syncCategoryHeroTarget();
+    }
+
+    function syncCategoryHeroTarget() {
+        if (!editorForm || !categoryHeroSelect || !specificPagesField) return;
+        var position = editorForm.querySelector('[name="position"]');
+        var isCategoryHero = position && position.value === 'Category Hero';
+        categoryHeroLabel.hidden = !isCategoryHero;
+        if (specificPagesLabel) specificPagesLabel.hidden = isCategoryHero;
+
+        if (isCategoryHero) {
+            var match = String(specificPagesField.value || '').match(/^category:([a-z0-9-]+)$/i);
+            var selected = match ? match[1].toLowerCase() : '';
+            if (categoryHeroOptions.some(function (item) { return item[0] === selected; })) {
+                categoryHeroSelect.value = selected;
+            } else {
+                categoryHeroSelect.value = 'traditional';
+            }
+            specificPagesField.value = 'category:' + categoryHeroSelect.value;
+            var type = editorForm.querySelector('[name="type"]');
+            if (type && type.value === 'slider') type.value = 'banner';
+        } else if (String(specificPagesField.value || '').indexOf('category:') === 0) {
+            specificPagesField.value = '';
+        }
     }
 
     function setEditorMode(mode) {
@@ -50,6 +132,7 @@
             var fileName = editorForm.querySelector('[data-banner-file-name]');
             if (fileName) fileName.textContent = 'No new image selected';
         }
+        syncCategoryHeroTarget();
     }
 
     function openModal(kind) {
@@ -63,6 +146,8 @@
         var focusTarget = modal.querySelector('input:not([type="hidden"]), select, button');
         if (focusTarget) window.setTimeout(function () { focusTarget.focus(); }, 25);
     }
+
+    installCategoryHeroControls();
 
     root.parentElement.addEventListener('click', function (event) {
         var opener = event.target.closest('[data-banner-modal-open]');
