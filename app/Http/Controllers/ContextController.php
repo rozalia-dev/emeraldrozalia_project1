@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\{CompanyContextRequest, CurrencyContextRequest, LocaleContextRequest};
+use App\Services\TenantContext;
+use Illuminate\Validation\ValidationException;
 
 class ContextController extends Controller
 {
@@ -14,20 +16,34 @@ class ContextController extends Controller
         }
 
         session(['company_id' => $id]);
+        session()->forget(['locale', 'currency']);
 
         return back();
     }
 
-    public function locale(LocaleContextRequest $request)
+    public function locale(LocaleContextRequest $request, TenantContext $context)
     {
-        session(['locale' => $request->validated()['locale']]);
+        $locale = (string) $request->validated()['locale'];
+        if (! $context->availableLanguages()->contains(fn ($language) => (string) $language->locale === $locale)) {
+            throw ValidationException::withMessages(['locale' => 'That language is not enabled for this storefront.']);
+        }
+
+        session(['locale' => $locale]);
 
         return back();
     }
 
-    public function currency(CurrencyContextRequest $request)
+    public function currency(CurrencyContextRequest $request, TenantContext $context)
     {
-        session(['currency' => $request->validated()['currency']]);
+        $currency = strtoupper((string) $request->validated()['currency']);
+        if (! $context->availableCurrencies()->contains(fn ($item) => strtoupper((string) $item->code) === $currency)) {
+            throw ValidationException::withMessages(['currency' => 'That currency is not enabled for this storefront.']);
+        }
+        if ($currency !== 'EUR' && $context->exchangeRate('EUR', $currency) === null) {
+            throw ValidationException::withMessages(['currency' => 'That currency does not have an exchange rate yet.']);
+        }
+
+        session(['currency' => $currency]);
 
         return back();
     }

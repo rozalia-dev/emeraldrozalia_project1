@@ -19,18 +19,15 @@ class PaymentTransaction extends Model
     protected static function booted(): void
     {
         static::creating(function (self $payment): void {
-            if ($payment->company_id || ! $payment->order_id) {
-                return;
-            }
+            if (! $payment->order_id) return;
 
-            $payment->company_id = Order::query()
-                ->whereKey($payment->order_id)
-                ->value('company_id');
+            $order = Order::withoutGlobalScopes()->find($payment->order_id);
+            if (! $order) return;
+
+            $payment->company_id ??= $order->company_id;
+            $payment->currency = $order->currency_code ?: $order->currency ?: 'EUR';
         });
     }
 
-    public function order()
-    {
-        return $this->belongsTo(Order::class);
-    }
+    public function order() { return $this->belongsTo(Order::class); }
 }

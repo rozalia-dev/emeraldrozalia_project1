@@ -14,6 +14,20 @@
         link.innerHTML='<span>cPanel Appearance</span>';
         publicTheme.insertAdjacentElement('afterend',link);
     };
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addCpanelThemeLink,{once:true});else addCpanelThemeLink();
+    const addLocalizationManagerLink=()=>{
+        if(document.querySelector('[data-localization-manager-nav]'))return;
+        const localizationPath=new URL(@json(route('admin.settings.page','localization')),location.origin).pathname;
+        const localization=[...document.querySelectorAll('.admin-sidebar a')]
+            .find(link=>new URL(link.href,location.origin).pathname===localizationPath);
+        if(!localization)return;
+        const link=document.createElement('a');
+        link.href=@json(route('admin.localization.index'));
+        link.dataset.localizationManagerNav='';
+        link.className=location.pathname===new URL(link.href,location.origin).pathname?'active':'';
+        link.innerHTML='<span>Language &amp; Currency Manager</span>';
+        localization.insertAdjacentElement('afterend',link);
+    };
+    const mount=()=>{addCpanelThemeLink();addLocalizationManagerLink();};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
 </script>

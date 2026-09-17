@@ -12,36 +12,35 @@ class Product extends Model
     use BelongsToTenant, SoftDeletes;
 
     public const PUBLIC_STATUSES = ['active', 'published'];
-
     protected $guarded = [];
     protected $casts = [
-        'colours' => 'array',
-        'sizes' => 'array',
-        'spin_images' => 'array',
-        'product_metadata' => 'array',
-        'published_at' => 'datetime',
-        'seo' => 'array',
-        'is_new' => 'boolean',
-        'is_active' => 'boolean',
-        'price' => 'decimal:2',
-        'compare_price' => 'decimal:2',
-        'deleted_at' => 'datetime',
+        'colours' => 'array', 'sizes' => 'array', 'spin_images' => 'array', 'product_metadata' => 'array',
+        'translations' => 'array', 'published_at' => 'datetime', 'seo' => 'array', 'is_new' => 'boolean',
+        'is_active' => 'boolean', 'price' => 'decimal:2', 'compare_price' => 'decimal:2', 'deleted_at' => 'datetime',
     ];
 
     public function scopePublished(Builder $query): Builder
     {
         $table = $query->getModel()->getTable();
-
-        return $query
-            ->where($table.'.is_active', true)
-            ->whereIn($table.'.status', self::PUBLIC_STATUSES);
+        return $query->where($table.'.is_active', true)->whereIn($table.'.status', self::PUBLIC_STATUSES);
     }
 
     public function isPubliclyPublished(): bool
     {
-        return ! $this->trashed()
-            && (bool) $this->is_active
-            && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
+        return ! $this->trashed() && (bool) $this->is_active && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
+    }
+
+    public function getNameAttribute($value): string { return $this->localizedValue('name', (string) $value); }
+    public function getDescriptionAttribute($value): ?string { return $this->localizedValue('description', $value === null ? null : (string) $value); }
+
+    private function localizedValue(string $field, ?string $fallback): ?string
+    {
+        if (app()->bound('request') && request()->is('admin/*')) return $fallback;
+        $locale = app()->getLocale();
+        if ($locale === '' || $locale === 'en') return $fallback;
+        $translations = $this->getAttribute('translations');
+        $translated = is_array($translations) ? data_get($translations, $locale.'.'.$field) : null;
+        return is_string($translated) && trim($translated) !== '' ? $translated : $fallback;
     }
 
     public function category() { return $this->belongsTo(Category::class); }
@@ -55,32 +54,15 @@ class Product extends Model
 
     public function latestPublicSpin(): ?ProductSpin
     {
-        $spins = $this->relationLoaded('spins')
-            ? $this->spins
-            : $this->spins()
-                ->where('status', 'published')
-                ->where('visibility', 'public')
-                ->latest('updated_at')
-                ->get();
-
-        return $spins
-            ->filter(fn (ProductSpin $spin): bool => $spin->status === 'published'
-                && $spin->visibility === 'public'
-                && count($spin->frames ?? []) >= 2)
-            ->sortByDesc(fn (ProductSpin $spin): int => $spin->updated_at?->getTimestamp() ?? 0)
-            ->first();
+        $spins = $this->relationLoaded('spins') ? $this->spins : $this->spins()->where('status', 'published')->where('visibility', 'public')->latest('updated_at')->get();
+        return $spins->filter(fn (ProductSpin $spin): bool => $spin->status === 'published' && $spin->visibility === 'public' && count($spin->frames ?? []) >= 2)
+            ->sortByDesc(fn (ProductSpin $spin): int => $spin->updated_at?->getTimestamp() ?? 0)->first();
     }
 
     public function getSpinImagesAttribute($value): array
     {
-        if ($this->exists && ($managed = $this->latestPublicSpin())) {
-            return $managed->viewerData()['frames'];
-        }
-
-        if (is_array($value)) {
-            return $value;
-        }
-
+        if ($this->exists && ($managed = $this->latestPublicSpin())) return $managed->viewerData()['frames'];
+        if (is_array($value)) return $value;
         $decoded = json_decode((string) $value, true);
         return is_array($decoded) ? $decoded : [];
     }

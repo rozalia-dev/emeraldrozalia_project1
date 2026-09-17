@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\LocalizationController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SystemMaintenanceController;
 use App\Http\Controllers\Admin\ThemeController;
@@ -8,6 +9,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/admin/resource/settings/company-branding/theme', [ThemeController::class, 'index'])
     ->middleware(['auth', 'admin'])
     ->name('admin.settings.theme.index');
+
+Route::prefix('admin/resource/settings/localization/manage')->middleware(['auth', 'admin'])->name('admin.localization.')->group(function (): void {
+    Route::get('/', [LocalizationController::class, 'index'])->name('index');
+    Route::post('/language', [LocalizationController::class, 'language'])->name('language');
+    Route::post('/currency', [LocalizationController::class, 'currency'])->name('currency');
+    Route::post('/rate', [LocalizationController::class, 'rate'])->name('rate');
+});
 
 Route::prefix('admin/resource/settings')->middleware(['auth', 'admin'])->name('admin.settings.')->group(function (): void {
     Route::get('/', [SettingsController::class, 'overview'])->name('overview');
@@ -36,8 +44,8 @@ Route::prefix('admin/settings')->middleware(['auth', 'admin'])->name('admin.sett
 
 Route::middleware(['auth', 'admin'])->prefix('admin/resource')->group(function (): void {
     Route::get('/company-profile', fn () => redirect()->route('admin.settings.page', 'company-branding'));
-    Route::get('/language', fn () => redirect()->route('admin.settings.page', 'localization'));
-    Route::get('/currency', fn () => redirect()->route('admin.settings.page', 'localization'));
+    Route::get('/language', fn () => redirect()->route('admin.localization.index'));
+    Route::get('/currency', fn () => redirect()->route('admin.localization.index'));
     Route::get('/payment-settings', fn () => redirect()->route('admin.settings.page', 'payment-gateways'));
     Route::get('/notifications', fn () => redirect()->route('admin.settings.page', 'email-notifications'));
     Route::get('/branding', fn () => redirect()->route('admin.settings.page', 'company-branding'));

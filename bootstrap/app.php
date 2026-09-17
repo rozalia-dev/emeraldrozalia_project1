@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureFranchisePermission;
 use App\Http\Middleware\EnsureCommunicationPermission;
 use App\Http\Middleware\InjectProductMoqField;
 use App\Http\Middleware\InjectPublicChatWidget;
+use App\Http\Middleware\InjectStorefrontLocalization;
 use App\Http\Middleware\ResolveTenantContext;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -26,14 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // The host TLS proxy terminates HTTPS before traffic reaches this container.
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', 'REMOTE_ADDR'));
-        // Provider webhooks authenticate with an HMAC secret, not a browser session.
         $middleware->validateCsrfTokens(except: [
             'api/v1/communication/webhooks/*',
             'api/v1/communication/email/inbound',
         ]);
         $middleware->appendToGroup('web', ResolveTenantContext::class);
+        $middleware->appendToGroup('web', InjectStorefrontLocalization::class);
         $middleware->appendToGroup('web', AttachRequestCorrelation::class);
         $middleware->appendToGroup('web', EnsureAdminExportFormats::class);
         $middleware->alias([
