@@ -61,7 +61,7 @@ class PublicCountryCatalogFilterTest extends TestCase
 
         $this->get('/shop')
             ->assertOk()
-            ->assertSee('SELECT COUNTRY', false)
+            ->assertSee('data-shop-country', false)
             ->assertSee('All Countries', false)
             ->assertSee('Ireland', false);
 
