@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -50,13 +51,13 @@ class MediaAsset extends Model
 
     public function scopeVisibleToCurrentCompany(Builder $query): Builder
     {
-        $companyId = session('company_id');
+        $companyId = $this->currentCompanyId();
 
         return $query
             ->withoutGlobalScope('tenant')
             ->where(function (Builder $visible) use ($companyId): void {
                 if ($companyId) {
-                    $visible->whereNull('company_id')->orWhere('company_id', (int) $companyId);
+                    $visible->whereNull('company_id')->orWhere('company_id', $companyId);
                 } else {
                     $visible->whereNull('company_id');
                 }
@@ -74,17 +75,36 @@ class MediaAsset extends Model
 
     public function isVisibleToCurrentCompany(): bool
     {
-        $companyId = session('company_id');
+        $companyId = $this->currentCompanyId();
 
         return $companyId
-            ? $this->company_id === null || (int) $this->company_id === (int) $companyId
+            ? $this->company_id === null || (int) $this->company_id === $companyId
             : $this->company_id === null;
     }
 
     /**
      * Global baseline assets are public to every tenant, while uploaded assets
-     * remain limited to the current company. Route binding must apply the same
-     * visibility rule as the public resolver instead of the tenant scope alone.
+     * remain limited to the current storefront company. Public storefront requests
+     * do not necessarily carry the admin company session, so fall back to the
+     * active company selected by TenantContext.
+     */
+    private function currentCompanyId(): ?int
+    {
+        $sessionCompanyId = app()->bound('session') ? session('company_id') : null;
+        if ($sessionCompanyId) {
+            return (int) $sessionCompanyId;
+        }
+
+        if (! app()->bound('session')) {
+            return null;
+        }
+
+        return app(TenantContext::class)->company()?->getKey();
+    }
+
+    /**
+     * Route binding must apply the same visibility rule as the public resolver
+     * instead of the tenant scope alone.
      */
     public function resolveRouteBindingQuery($query, $value, $field = null)
     {
