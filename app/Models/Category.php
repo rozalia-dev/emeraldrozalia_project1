@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,10 +51,21 @@ class Category extends Model
     {
         if (app()->bound('request') && request()->is('admin/*')) return $fallback;
         $locale = app()->getLocale();
-        if ($locale === '' || $locale === 'en') return $fallback;
+        $context = app(TenantContext::class);
+        if ($locale === '' || $locale === $context->defaultLocale()) return $fallback;
+
         $translations = $this->getAttribute('translations');
-        $translated = is_array($translations) ? data_get($translations, $locale.'.'.$field) : null;
-        return is_string($translated) && trim($translated) !== '' ? $translated : $fallback;
+        if (! is_array($translations)) return $fallback;
+
+        $chain = [$locale];
+        $language = Language::query()->whereKey($locale)->first();
+        if ($language?->fallback_locale && ! in_array($language->fallback_locale, $chain, true)) $chain[] = $language->fallback_locale;
+        foreach ($chain as $candidate) {
+            $translated = data_get($translations, $candidate.'.'.$field);
+            if (is_string($translated) && trim($translated) !== '') return $translated;
+        }
+
+        return $fallback;
     }
 
     public function parent(): BelongsTo { return $this->belongsTo(self::class, 'parent_id'); }

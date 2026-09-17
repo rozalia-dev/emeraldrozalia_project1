@@ -18,10 +18,13 @@ class RewardTransaction extends Model
         static::creating(function (self $reward): void {
             if ($reward->type !== 'earn' || blank($reward->reference)) return;
             $order = Order::withoutGlobalScopes()->where('number', $reward->reference)->first();
-            $rate = (float) ($order?->exchange_rate ?? 1);
-            if (! $order || $rate <= 0 || abs($rate - 1.0) < 0.00000001) return;
+            if (! $order) return;
 
-            $baseTotal = (float) $order->total / $rate;
+            $baseTotal = $order->base_total;
+            if ($baseTotal === null) {
+                $rate = (float) ($order->exchange_rate ?? 1);
+                $baseTotal = $rate > 0 ? (float) $order->total / $rate : (float) $order->total;
+            }
             $reward->points = intdiv(max(0, Money::toMinor($baseTotal)), 100);
         });
     }

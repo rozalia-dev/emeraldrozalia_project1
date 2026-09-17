@@ -16,18 +16,45 @@ class OrderItem extends Model
         'options' => 'array',
         'unit_price' => 'decimal:2',
         'total' => 'decimal:2',
+        'base_unit_price' => 'decimal:2',
+        'base_total' => 'decimal:2',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (self $item): void {
             if (! $item->order_id || ! request()->routeIs('checkout.store')) return;
-            $rate = (float) (Order::withoutGlobalScopes()->whereKey($item->order_id)->value('exchange_rate') ?? 1);
+            $order = Order::withoutGlobalScopes()->find($item->order_id);
+            if (! $order) return;
+
+            $item->base_unit_price = Money::round($item->unit_price ?? 0);
+            $item->base_total = Money::round($item->total ?? 0);
+            $rate = (float) ($order->exchange_rate ?? 1);
             if ($rate <= 0 || abs($rate - 1.0) < 0.00000001) return;
 
-            $item->unit_price = Money::round((float) $item->unit_price * $rate);
-            $item->total = Money::round((float) $item->total * $rate);
+            $item->unit_price = Money::round((float) $item->base_unit_price * $rate);
+            $item->total = Money::round((float) $item->base_total * $rate);
         });
+    }
+
+    public function getUnitPriceAttribute($value): string
+    {
+        return $this->reportingAmount('unit_price', $value);
+    }
+
+    public function getTotalAttribute($value): string
+    {
+        return $this->reportingAmount('total', $value);
+    }
+
+    private function reportingAmount(string $field, mixed $value): string
+    {
+        if (app()->bound('request') && (request()->routeIs('admin.sales-reports.*') || request()->routeIs('admin.reports.*'))) {
+            $base = $this->attributes['base_'.$field] ?? null;
+            if ($base !== null) return Money::round($base);
+        }
+
+        return Money::round($value ?? 0);
     }
 
     public function order() { return $this->belongsTo(Order::class); }

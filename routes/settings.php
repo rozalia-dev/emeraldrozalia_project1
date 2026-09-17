@@ -15,6 +15,9 @@ Route::prefix('admin/resource/settings/localization/manage')->middleware(['auth'
     Route::post('/language', [LocalizationController::class, 'language'])->name('language');
     Route::post('/currency', [LocalizationController::class, 'currency'])->name('currency');
     Route::post('/rate', [LocalizationController::class, 'rate'])->name('rate');
+    Route::post('/rates/sync', [LocalizationController::class, 'syncRates'])->name('rates.sync');
+    Route::post('/translation', [LocalizationController::class, 'translation'])->name('translation');
+    Route::post('/content-translation', [LocalizationController::class, 'contentTranslation'])->name('content-translation');
 });
 
 Route::prefix('admin/resource/settings')->middleware(['auth', 'admin'])->name('admin.settings.')->group(function (): void {
