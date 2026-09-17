@@ -223,7 +223,8 @@
                 @if(isset($footerLogoUrl) && $footerLogoUrl)
                     <img src="{{ $footerLogoUrl }}" alt="Logo" style="height: 20px; width: auto; object-fit: contain;">
                 @endif
-                {{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }}
+                {{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }} <br>
+                <div> {{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Designed & Manufactured in Limerick, Ireland') }}</div>
             </span>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <span style="display: flex; align-items: center; gap: 8px; color: #f5f2ea;"><x-icon name="phone" size="14" style="color: #9bc63e;" /> +353 (89) 978 8187</span>
