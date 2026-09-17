@@ -4,6 +4,9 @@
 
 @push('styles')
 <link rel="stylesheet" href="/css/shop.css?v=20260910-reference">
+<style>
+.shop-country-filter{display:grid;gap:7px;margin:12px 0 2px}.shop-country-filter>span{font-size:11px;font-weight:800;letter-spacing:.06em;color:#dfe9df}.shop-country-filter select{width:100%;height:40px;padding:0 34px 0 11px;border:1px solid #294731;border-radius:6px;background:#06140d;color:#f4f4ef;font:inherit;cursor:pointer}.shop-country-filter small{color:#8fa395;font-size:10px;line-height:1.4}.shop-country-filter select:focus{outline:1px solid #8cc63e;outline-offset:1px;border-color:#8cc63e}
+</style>
 @endpush
 
 @php
@@ -27,6 +30,7 @@
     $resetUrl = $activeCategory ? route('category', $activeCategory) : route('shop');
     $currentMax = request()->filled('max_price') ? (int) request('max_price') : $priceCeiling;
     $activeFilterCount = count($selectedCategories) + count($selectedMaterials) + count($selectedColours) + count($selectedSizes)
+        + (filled($selectedCountry ?? '') ? 1 : 0)
         + ($availability ? 1 : 0) + (request()->boolean('sale') ? 1 : 0)
         + (request()->filled('min_price') ? 1 : 0) + (request()->filled('max_price') ? 1 : 0);
 @endphp
@@ -88,6 +92,23 @@
                     <x-icon name="search" size="15" />
                     <input type="search" name="q" value="{{ request('q') }}" placeholder="Search products or SKU" aria-label="Search shop">
                 </div>
+
+                <label class="shop-country-filter">
+                    <span>SELECT COUNTRY</span>
+                    <select name="country" aria-label="Select country">
+                        <option value="">All Countries</option>
+                        @foreach($catalogFilterCountries ?? [] as $country)
+                            <option value="{{ $country->code }}" @selected(($selectedCountry ?? '') === $country->code)>{{ $country->name }}</option>
+                        @endforeach
+                    </select>
+                    @if(in_array($catalogCountryScope ?? '', ['traditional','heritage'], true))
+                        <small>EU countries only for {{ str($catalogCountryScope)->headline() }}.</small>
+                    @elseif(($catalogCountryScope ?? '') === 'uefa')
+                        <small>UEFA countries and associations only.</small>
+                    @else
+                        <small>Choose a country to filter country-linked catalogue categories.</small>
+                    @endif
+                </label>
 
                 @unless($activeCategory)
                 <details class="shop-filter-group" open>
@@ -169,6 +190,7 @@
                     @if($activeFilterCount || request()->filled('q'))
                         <div class="shop-active-filters">
                             @if(request()->filled('q'))<span>“{{ request('q') }}”</span>@endif
+                            @if(filled($selectedCountry ?? ''))<span>{{ optional(($catalogFilterCountries ?? collect())->firstWhere('code', $selectedCountry))->name ?: $selectedCountry }}</span>@endif
                             @foreach($selectedCategories as $value)<span>{{ str($value)->replace('-',' ')->headline() }}</span>@endforeach
                             @foreach($selectedMaterials as $value)<span>{{ $value }}</span>@endforeach
                             @foreach($selectedColours as $value)<span>{{ str($value)->headline() }}</span>@endforeach
