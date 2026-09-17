@@ -95,10 +95,40 @@
 
     const nextIndex = (list) => Math.max(-1, ...[...list.querySelectorAll('[data-layout-row]')].map((row) => Number(row.dataset.layoutIndex)).filter(Number.isFinite)) + 1;
     const replaceTokens = (html, tokens) => Object.entries(tokens).reduce((result, [token, value]) => result.replaceAll(token, String(value)), html);
+    const renumberPrimaryMenu = () => {
+        const list = editor.querySelector('[data-layout-list="primary-menu"]');
+        if (!list) return;
+        [...list.querySelectorAll(':scope > [data-layout-row]')].forEach((row, index) => {
+            row.dataset.layoutIndex = String(index);
+            const title = row.querySelector('.layout-repeat-row-heading strong');
+            if (title) title.textContent = `Menu item ${String(index + 1).padStart(2, '0')}`;
+            row.querySelectorAll('[name]').forEach((field) => {
+                field.name = field.name.replace(/regions\[header\]\[primary_menu\]\[\d+\]/, `regions[header][primary_menu][${index}]`);
+            });
+        });
+    };
     const bindEditor = (root) => {
-        root.querySelectorAll('[data-layout-remove]').forEach((button) => button.addEventListener('click', () => button.closest('[data-layout-row]')?.remove(), { once: true }));
+        root.querySelectorAll('[data-layout-remove]').forEach((button) => button.addEventListener('click', () => {
+            const row = button.closest('[data-layout-row]');
+            const list = row?.parentElement;
+            row?.remove();
+            if (list?.matches('[data-layout-list="primary-menu"]')) renumberPrimaryMenu();
+        }, { once: true }));
+        root.querySelectorAll('[data-layout-move]').forEach((button) => button.addEventListener('click', () => {
+            const row = button.closest('[data-layout-row]');
+            const list = row?.parentElement;
+            if (!row || !list) return;
+            if (button.dataset.layoutMove === 'up' && row.previousElementSibling) {
+                list.insertBefore(row, row.previousElementSibling);
+            }
+            if (button.dataset.layoutMove === 'down' && row.nextElementSibling) {
+                list.insertBefore(row.nextElementSibling, row);
+            }
+            renumberPrimaryMenu();
+        }));
     };
     bindEditor(editor);
+    editor.closest('form')?.addEventListener('submit', renumberPrimaryMenu);
 
     editor.querySelectorAll('[data-layout-add]').forEach((button) => button.addEventListener('click', () => {
         const key = button.dataset.layoutAdd;
@@ -111,7 +141,7 @@
         wrapper.appendChild(fragment);
         wrapper.innerHTML = replaceTokens(wrapper.innerHTML, {'__INDEX__': index});
         const row = wrapper.firstElementChild;
-        if (row) { list.appendChild(row); bindEditor(row); row.querySelector('input,select,textarea')?.focus(); }
+        if (row) { list.appendChild(row); bindEditor(row); if (key === 'primary-menu') renumberPrimaryMenu(); row.querySelector('input,select,textarea')?.focus(); }
     }));
 
     const addFooterLink = (button) => {
