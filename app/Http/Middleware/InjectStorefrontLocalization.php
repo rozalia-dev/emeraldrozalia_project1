@@ -12,7 +12,6 @@ class InjectStorefrontLocalization
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
-
         if (! $request->isMethod('GET') || $request->is('admin/*') || ! $response instanceof Response) return $response;
         if (! str_contains(strtolower((string) $response->headers->get('Content-Type')), 'text/html')) return $response;
 
@@ -38,14 +37,34 @@ class InjectStorefrontLocalization
     document.documentElement.dataset.storefrontLocale = cfg.locale;
     document.documentElement.dataset.storefrontCurrency = cfg.currency;
 
+    const syncSelectors = () => {
+        const languages = new Map((cfg.languages || []).map(item => [String(item.locale), item]));
+        document.querySelectorAll('select[name="locale"]').forEach((select) => {
+            [...select.options].forEach((option) => {
+                const item = languages.get(option.value);
+                if (!item) { option.remove(); return; }
+                option.textContent = `${item.native_name} (${item.locale})`;
+            });
+            if (languages.has(cfg.locale)) select.value = cfg.locale;
+        });
+
+        const currencies = new Map((cfg.currencies || []).map(item => [String(item.code), item]));
+        document.querySelectorAll('select[name="currency"]').forEach((select) => {
+            [...select.options].forEach((option) => {
+                const item = currencies.get(option.value);
+                if (!item) { option.remove(); return; }
+                option.textContent = `${item.code} ${item.symbol} — ${item.name}`;
+            });
+            if (currencies.has(cfg.currency)) select.value = cfg.currency;
+        });
+    };
+
     const moneyFormatter = (() => {
         try {
             return new Intl.NumberFormat(String(cfg.locale || 'en').replace('_', '-'), {
                 style: 'currency', currency: cfg.currency, minimumFractionDigits: cfg.decimals, maximumFractionDigits: cfg.decimals,
             });
-        } catch (_) {
-            return null;
-        }
+        } catch (_) { return null; }
     })();
     const money = (raw) => {
         const numeric = Number(String(raw).replace(/,/g, ''));
@@ -114,6 +133,7 @@ class InjectStorefrontLocalization
         });
     };
 
+    syncSelectors();
     walk(document.body);
     adjustPriceInputs();
     new MutationObserver((mutations) => mutations.forEach((mutation) => {
@@ -128,7 +148,6 @@ class InjectStorefrontLocalization
 HTML;
         $script = str_replace('__PAYLOAD__', $json ?: '{}', $script);
         $response->setContent(str_replace('</body>', $script."\n</body>", $html));
-
         return $response;
     }
 }
