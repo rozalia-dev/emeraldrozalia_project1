@@ -36,7 +36,7 @@ class Product extends Model
             ->where($table.'.is_active', true)
             ->whereIn($table.'.status', self::PUBLIC_STATUSES);
 
-        if (request()->routeIs('shop', 'category') && request()->filled('country')) {
+        if ((request()->is('shop') || request()->is('category/*')) && request()->filled('country')) {
             $country = strtoupper(trim((string) request()->query('country')));
             $query->whereHas('category.catalogCountry', fn (Builder $countryQuery) => $countryQuery
                 ->where('code', $country)
