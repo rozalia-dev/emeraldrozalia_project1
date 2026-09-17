@@ -82,7 +82,9 @@ class LocalizationController extends Controller
         if ($company = $context->company()) {
             $makeDefault = $request->boolean('is_default');
             if ($makeDefault) {
-                $company->languages()->updateExistingPivot($company->languages()->pluck('locale')->all(), ['is_default'=>false]);
+                foreach ($company->languages()->get() as $existing) {
+                    $company->languages()->updateExistingPivot($existing->locale, ['is_default'=>false]);
+                }
                 $company->forceFill(['default_locale'=>$language->locale])->save();
             }
             $company->languages()->syncWithoutDetaching([$language->locale=>[
