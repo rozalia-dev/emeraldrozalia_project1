@@ -66,7 +66,10 @@
     </div>
 </div>
 <header class="site-header" data-public-shell-region="header" style="--layout-header-bg: {{ data_get($siteLayoutRegions, 'header.colors.background', '#010705') }}; --layout-header-text: {{ data_get($siteLayoutRegions, 'header.colors.text', '#f4f4ef') }}; --layout-header-accent: {{ data_get($siteLayoutRegions, 'header.colors.accent', '#8cc63e') }};">
-    @php($headerLogoAlt = data_get($siteLayoutRegions, 'header.logo.alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
+    @php($layoutFallback = data_get($siteLayoutMeta, 'source') === 'default-layout-fallback')
+    @php($headerLogoAlt = $layoutFallback
+        ? (data_get($siteBranding, 'trading_name') ?: data_get($siteLayoutRegions, 'header.logo.alt', 'Emerald Rozalia Limited'))
+        : data_get($siteLayoutRegions, 'header.logo.alt', data_get($siteBranding, 'trading_name', 'Emerald Rozalia Limited')))
     @php($headerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'header.logo.path', '/assets/logo/logo_one_line.png'), '/'))
     @php($headerLogo = $publicMedia->forLegacyPath($headerLogoPath, $headerLogoAlt))
     @php($headerLogoUrl = data_get($headerLogo, 'url'))
@@ -158,7 +161,9 @@
 @endif
 <main>@yield('content')</main>
 <footer class="site-footer" data-public-shell-region="footer" style="--layout-footer-bg: {{ data_get($siteLayoutRegions, 'footer.colors.background', '#03100b') }}; --layout-footer-text: {{ data_get($siteLayoutRegions, 'footer.colors.text', '#c7d1ca') }}; --layout-footer-accent: {{ data_get($siteLayoutRegions, 'footer.colors.accent', '#8cc63e') }};">
-    @php($footerLogoAlt = data_get($siteLayoutRegions, 'footer.logo.alt', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
+    @php($footerLogoAlt = $layoutFallback
+        ? (data_get($siteBranding, 'legal_name') ?: data_get($siteLayoutRegions, 'footer.logo.alt', 'Emerald Rozalia Limited'))
+        : data_get($siteLayoutRegions, 'footer.logo.alt', data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited')))
     @php($footerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'footer.logo.path', '/assets/logo/logo_two_line.png'), '/'))
     @php($footerLogo = $publicMedia->forLegacyPath($footerLogoPath, $footerLogoAlt))
     @php($footerLogoUrl = data_get($footerLogo, 'url'))
