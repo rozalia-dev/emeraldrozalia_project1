@@ -10,6 +10,15 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 class AppServiceProvider extends ServiceProvider {
+    private const OFFICIAL_SOCIAL_LINKS = [
+        ['label' => 'Facebook', 'icon' => 'facebook', 'href' => 'https://www.facebook.com/emeraldrozalia/'],
+        ['label' => 'Instagram', 'icon' => 'instagram', 'href' => 'https://www.instagram.com/emeraldrozalia2020/'],
+        ['label' => 'X', 'icon' => 'x', 'href' => 'https://x.com/EmeraldRozalia'],
+        ['label' => 'TikTok', 'icon' => 'tiktok', 'href' => 'https://www.tiktok.com/@emeraldrozalia1?lang=en'],
+        ['label' => 'YouTube', 'icon' => 'youtube', 'href' => 'https://www.youtube.com/@EmeraldRozalia-w4p'],
+        ['label' => 'LinkedIn', 'icon' => 'linkedin', 'href' => 'https://www.linkedin.com/in/emerald-rozalia-24921b410/'],
+    ];
+
     public function register(): void {}
 
     public function boot(): void
@@ -58,6 +67,7 @@ class AppServiceProvider extends ServiceProvider {
                 ? $previewLayout
                 : app(SiteLayoutVersionService::class)->publicSnapshot();
             $siteLayout = $this->withCatalogueMenu($siteLayout);
+            $siteLayout = $this->withOfficialSocialLinks($siteLayout);
             $footerPages = ContentPage::query()
                 ->where('locale', app()->getLocale())
                 ->where('status', 'published')
@@ -113,6 +123,13 @@ class AppServiceProvider extends ServiceProvider {
             ])->render());
             View::startPush('scripts', view('admin.partials.cpanel-theme-nav')->render());
         });
+    }
+
+    private function withOfficialSocialLinks(array $siteLayout): array
+    {
+        data_set($siteLayout, 'regions.footer.social_links', self::OFFICIAL_SOCIAL_LINKS);
+
+        return $siteLayout;
     }
 
     private function withCatalogueMenu(array $siteLayout): array
