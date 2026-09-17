@@ -1,6 +1,6 @@
 <?php
 namespace App\Providers;
-use App\Models\{Address,AdminRecord,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
+use App\Models\{Address,AdminRecord,CatalogCountry,Category,ContentPage,Discount,Inquiry,InventoryMovement,Order,OrderItem,PaymentTransaction,Product,ProductMedia,ProductVariant,ReturnRequest,Review,RewardTransaction,ShippingMethod,Store,User,Wishlist};
 use App\Services\{CpanelThemeVersionService, PublishedSiteSettings, SiteLayoutVersionService};
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -97,6 +97,35 @@ class AppServiceProvider extends ServiceProvider {
                 'siteSettings' => $siteSettings,
                 'siteLayout' => $siteLayout,
                 'catalogNavCategories' => $catalogNavCategories,
+            ]);
+        });
+
+        View::composer('site.shop', function ($view): void {
+            $activeCategory = $view->getData()['activeCategory'] ?? null;
+            $taxonomy = strtolower((string) ($activeCategory?->taxonomy_type ?? ''));
+            $slug = strtolower((string) ($activeCategory?->slug ?? ''));
+            $name = strtolower((string) ($activeCategory?->name ?? ''));
+
+            if ($taxonomy === '') {
+                foreach (['traditional', 'heritage', 'uefa', 'fifa', 'gaa'] as $candidate) {
+                    if (str_contains($slug, $candidate) || str_contains($name, $candidate)) {
+                        $taxonomy = $candidate;
+                        break;
+                    }
+                }
+            }
+
+            $countryQuery = CatalogCountry::query()->where('is_active', true);
+            if (in_array($taxonomy, ['traditional', 'heritage'], true)) {
+                $countryQuery->where('is_eu', true);
+            } elseif ($taxonomy === 'uefa') {
+                $countryQuery->where('is_uefa', true);
+            }
+
+            $view->with([
+                'catalogFilterCountries' => $countryQuery->orderBy('sort_order')->orderBy('name')->get(['code', 'name']),
+                'selectedCountry' => strtoupper(trim((string) request()->query('country', ''))),
+                'catalogCountryScope' => $taxonomy,
             ]);
         });
 

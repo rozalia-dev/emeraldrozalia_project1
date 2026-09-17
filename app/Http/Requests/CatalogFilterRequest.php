@@ -15,10 +15,13 @@ class CatalogFilterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $normalized = [];
-        foreach (['q', 'min_price', 'max_price', 'availability', 'sort'] as $field) {
+        foreach (['q', 'country', 'min_price', 'max_price', 'availability', 'sort'] as $field) {
             if ($this->has($field)) {
                 $normalized[$field] = trim((string) $this->input($field));
             }
+        }
+        if (isset($normalized['country'])) {
+            $normalized['country'] = strtoupper($normalized['country']);
         }
         $this->merge($normalized);
     }
@@ -27,6 +30,7 @@ class CatalogFilterRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:120'],
+            'country' => ['nullable', 'string', 'max:3', Rule::exists('catalog_countries', 'code')->where('is_active', true)],
             'category' => ['nullable'],
             'category.*' => ['string', 'max:80'],
             'material' => ['nullable'],
