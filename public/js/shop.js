@@ -65,18 +65,41 @@
     const perPage = page.querySelector('[data-shop-per-page]');
     const sortHidden = page.querySelector('[data-shop-sort-hidden]');
     const perPageHidden = page.querySelector('[data-shop-per-page-hidden]');
+    const country = page.querySelector('[data-shop-country]');
+    const county = page.querySelector('[data-shop-county]');
+    const subcategory = page.querySelector('[data-shop-subcategory]');
+    const submitFilters = () => {
+        if (!form) return;
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+    };
+
+    if (form && country) {
+        country.addEventListener('change', () => {
+            if (county) county.value = '';
+            submitFilters();
+        });
+    }
+
+    if (form && county) {
+        county.addEventListener('change', submitFilters);
+    }
+
+    if (form && subcategory) {
+        subcategory.addEventListener('change', submitFilters);
+    }
 
     if (form && sort && sortHidden) {
         sort.addEventListener('change', () => {
             sortHidden.value = sort.value;
-            form.submit();
+            submitFilters();
         });
     }
 
     if (form && perPage && perPageHidden) {
         perPage.addEventListener('change', () => {
             perPageHidden.value = perPage.value;
-            form.submit();
+            submitFilters();
         });
     }
 
