@@ -120,8 +120,12 @@ class CpanelThemeLifecycleTest extends TestCase
         $this->withTenant($admin, $company)->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('assets/logo/logo_one_line.png', false)
-            ->assertSee('Emerald Rozalia Limited cPanel', false)
-            ->assertSeeText('cPanel Appearance & Logo');
+            ->assertSee('Emerald Rozalia Limited cPanel', false);
+
+        $this->withTenant($admin, $company)->get(route('admin.settings.cpanel-theme.index'))
+            ->assertOk()
+            ->assertSeeText('cPanel Appearance')
+            ->assertSeeText('cPanel logo');
     }
 
     public function test_cpanel_theme_scope_is_independent_from_public_theme_scope(): void
