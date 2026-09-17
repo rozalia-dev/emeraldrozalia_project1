@@ -27,6 +27,12 @@
         return $palette[$value] ?? '#31412f';
     };
 
+    $mainCategories = $categories->filter(fn ($category) => is_null($category->parent_id))->values();
+    $hasCategoryContext = (bool) $activeCategory || count($selectedCategories) === 1;
+    $hierarchicalLocation = (bool) ($catalogCountyEnabled ?? false);
+    $subcategoryReady = $hasCategoryContext && (! $hierarchicalLocation || (filled($selectedCountry ?? '') && filled($selectedCounty ?? '')));
+    $displaySubcategoryOptions = collect($catalogSubcategoryOptions ?? [])->where('group', 'This Category')->values();
+
     $resetUrl = $activeCategory ? route('category', $activeCategory) : route('shop');
     $currentMax = request()->filled('max_price') ? (int) request('max_price') : $priceCeiling;
     $activeFilterCount = count($selectedCategories) + count($selectedMaterials) + count($selectedColours) + count($selectedSizes)
@@ -75,9 +81,9 @@
         <div><x-icon name="shopping-bag" size="28" /><span><b>SECURE CHECKOUT</b><small>Protected payment</small></span></div>
     </section>
 
-    <section class="shop-category-strip" aria-label="Popular categories">
+    <section class="shop-category-strip" aria-label="Main product categories">
         <a class="{{ !$activeCategory && !$selectedCategories ? 'is-active' : '' }}" href="{{ route('shop') }}"><span>ALL</span>All Products</a>
-        @foreach($categories->take(7) as $category)
+        @foreach($mainCategories as $category)
             <a class="{{ in_array($category->slug, $selectedCategories, true) ? 'is-active' : '' }}" href="{{ route('category', $category) }}">
                 <span>{{ str($category->name)->substr(0,1)->upper() }}</span>{{ $category->name }}
             </a>
@@ -105,7 +111,7 @@
                 <details class="shop-filter-group" open>
                     <summary>CATEGORY <x-icon name="chevron-down" size="13" /></summary>
                     <div class="shop-filter-options">
-                        @foreach($categories->take(12) as $category)
+                        @foreach($mainCategories as $category)
                             <label class="shop-check">
                                 <input type="checkbox" name="category[]" value="{{ $category->slug }}" @checked(in_array($category->slug, $selectedCategories, true))>
                                 <span>{{ $category->name }}</span><small>{{ number_format($category->products_count) }}</small>
@@ -195,47 +201,51 @@
                     @endif
                 </div>
                 <div class="shop-view-tools">
+                    @if($hierarchicalLocation)
                     <label class="shop-toolbar-filter">
                         <span>Country</span>
                         <select name="country" form="shop-filter-form" aria-label="Select country" data-shop-country>
-                            <option value="">All Countries</option>
+                            <option value="">Select Country</option>
                             @foreach($catalogFilterCountries as $country)
                                 <option value="{{ $country->code }}" @selected($selectedCountry === $country->code)>{{ $country->name }}</option>
                             @endforeach
                         </select>
-                        @if(in_array($catalogCountryScope ?? '', ['traditional','heritage'], true))
-                            <small>EU countries only for {{ str($catalogCountryScope)->headline() }}.</small>
-                        @elseif(($catalogCountryScope ?? '') === 'uefa')
-                            <small>UEFA countries and associations only.</small>
-                        @endif
+                        <small>Choose country first.</small>
                     </label>
-                    @if($catalogCountyEnabled)
                     <label class="shop-toolbar-filter shop-toolbar-filter--county">
                         <span>County</span>
                         <select name="county" form="shop-filter-form" aria-label="Select county" data-shop-county @disabled(!$selectedCountry)>
                             @if(!$selectedCountry)
                                 <option value="">Select Country First</option>
                             @else
-                                <option value="">All Counties</option>
+                                <option value="">Select County</option>
                                 @foreach($catalogFilterCounties as $county)
                                     <option value="{{ $county['code'] }}" @selected($selectedCounty === $county['code'])>{{ $county['name'] }}</option>
                                 @endforeach
                             @endif
                         </select>
+                        <small>Then choose county.</small>
                     </label>
                     @endif
                     <label class="shop-toolbar-filter shop-toolbar-filter--subcategory">
                         <span>Subcategory</span>
-                        <select name="subcategory" form="shop-filter-form" aria-label="Select subcategory" data-shop-subcategory>
-                            <option value="">All Subcategories</option>
-                            @foreach(collect($catalogSubcategoryOptions)->groupBy('group') as $group => $options)
-                                <optgroup label="{{ $group }}">
-                                    @foreach($options as $option)
-                                        <option value="{{ $option['value'] }}" @selected($selectedSubcategory === $option['value'])>{{ $option['label'] }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endforeach
+                        <select name="subcategory" form="shop-filter-form" aria-label="Select subcategory" data-shop-subcategory @disabled(!$subcategoryReady)>
+                            @if(!$hasCategoryContext)
+                                <option value="">Select Main Category First</option>
+                            @elseif($hierarchicalLocation && !$selectedCountry)
+                                <option value="">Select Country First</option>
+                            @elseif($hierarchicalLocation && !$selectedCounty)
+                                <option value="">Select County First</option>
+                            @else
+                                <option value="">All Subcategories</option>
+                                @foreach($displaySubcategoryOptions as $option)
+                                    <option value="{{ $option['value'] }}" @selected($selectedSubcategory === $option['value'])>{{ $option['label'] }}</option>
+                                @endforeach
+                            @endif
                         </select>
+                        @if($hasCategoryContext && $displaySubcategoryOptions->isEmpty())
+                            <small>No subcategories are configured for this main category.</small>
+                        @endif
                     </label>
                     <label>Sort by
                         <select aria-label="Sort products" data-shop-sort>
@@ -358,5 +368,5 @@
 @endsection
 
 @push('scripts')
-<script src="/js/shop.js?v=20260917-catalog-filters" defer></script>
+<script src="/js/shop.js?v=20260917-category-hierarchy" defer></script>
 @endpush
