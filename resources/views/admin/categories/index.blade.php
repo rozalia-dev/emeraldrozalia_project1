@@ -65,6 +65,7 @@
                 <div class="cat-toolbar-actions">
                     <button class="cat-btn" type="button" data-expand-all><span>↕</span> Expand All</button>
                     <button class="cat-btn" type="button" data-collapse-all><span>↕</span> Collapse All</button>
+                    <button class="cat-btn cat-btn--outline js-add-subcategory" type="button" @disabled(!$selected) data-parent-id="{{ $selected?->id }}" data-parent-name="{{ $selected?->name }}"><x-icon name="plus" size="15" /> Add Sub-Category</button>
                     <button class="cat-btn cat-btn--primary js-add-category" type="button"><x-icon name="plus" size="15" /> Add Category</button>
                 </div>
             </section>
