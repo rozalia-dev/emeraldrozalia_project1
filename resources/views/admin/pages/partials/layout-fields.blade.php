@@ -6,7 +6,18 @@
     $primaryMenuAdditional = array_slice($primaryMenu, count($primaryMenuDefaults));
     $utilityMenu = $regionList('header.utility_menu', $defaults['header']['utility_menu'] ?? []);
     $footerColumns = $regionList('footer.columns', $defaults['footer']['columns'] ?? []);
-    $socialLinks = $regionList('footer.social_links', []);
+    $officialSocialLinks = [
+        ['label' => 'Facebook', 'icon' => 'facebook', 'href' => 'https://www.facebook.com/emeraldrozalia/'],
+        ['label' => 'Instagram', 'icon' => 'instagram', 'href' => 'https://www.instagram.com/emeraldrozalia2020/'],
+        ['label' => 'X', 'icon' => 'x', 'href' => 'https://x.com/EmeraldRozalia'],
+        ['label' => 'TikTok', 'icon' => 'tiktok', 'href' => 'https://www.tiktok.com/@emeraldrozalia1?lang=en'],
+        ['label' => 'YouTube', 'icon' => 'youtube', 'href' => 'https://www.youtube.com/@EmeraldRozalia-w4p'],
+        ['label' => 'LinkedIn', 'icon' => 'linkedin', 'href' => 'https://www.linkedin.com/in/emerald-rozalia-24921b410/'],
+    ];
+    $socialLinks = $regionList('footer.social_links', $officialSocialLinks);
+    if ($socialLinks === []) {
+        $socialLinks = $officialSocialLinks;
+    }
     $legalLinks = $regionList('footer.legal_links', $defaults['footer']['legal_links'] ?? []);
 @endphp
 
@@ -127,15 +138,15 @@
 
     <section class="layout-editor-group">
         <div class="layout-editor-group-heading">
-            <div><span class="layout-editor-number">07</span><div><h3>Social profiles</h3><p>Only HTTPS profiles render publicly. Leave the list empty until a profile is approved.</p></div></div>
+            <div><span class="layout-editor-number">07</span><div><h3>Social profiles</h3><p>Emerald Rozalia's approved Facebook, Instagram, X, TikTok, YouTube and LinkedIn profiles are preconfigured here.</p></div></div>
             <button class="layout-editor-add" type="button" data-layout-add="social-links">Add profile</button>
         </div>
         <div class="layout-repeat-list" data-layout-list="social-links">
             @foreach($socialLinks as $index => $social)
-                <div class="layout-repeat-row" data-layout-row data-layout-index="{{ $index }}"><div class="layout-repeat-row-heading"><strong>Profile {{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields"><label>Label<input name="regions[footer][social_links][{{ $index }}][label]" maxlength="120" value="{{ data_get($social, 'label') }}" placeholder="Instagram"></label><label>Icon<select name="regions[footer][social_links][{{ $index }}][icon]"><option value="facebook" @selected(data_get($social, 'icon') === 'facebook')>Facebook</option><option value="instagram" @selected(data_get($social, 'icon') === 'instagram')>Instagram</option><option value="linkedin" @selected(data_get($social, 'icon') === 'linkedin')>LinkedIn</option><option value="youtube" @selected(data_get($social, 'icon') === 'youtube')>YouTube</option><option value="link" @selected(data_get($social, 'icon') === 'link')>Link</option></select></label><label class="layout-editor-field-wide">HTTPS profile URL<input name="regions[footer][social_links][{{ $index }}][href]" value="{{ data_get($social, 'href') }}" placeholder="https://www.instagram.com/your-profile"></label></div></div>
+                <div class="layout-repeat-row" data-layout-row data-layout-index="{{ $index }}"><div class="layout-repeat-row-heading"><strong>Profile {{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields"><label>Label<input name="regions[footer][social_links][{{ $index }}][label]" maxlength="120" value="{{ data_get($social, 'label') }}" placeholder="Instagram"></label><label>Icon<select name="regions[footer][social_links][{{ $index }}][icon]"><option value="facebook" @selected(data_get($social, 'icon') === 'facebook')>Facebook</option><option value="instagram" @selected(data_get($social, 'icon') === 'instagram')>Instagram</option><option value="x" @selected(data_get($social, 'icon') === 'x')>X</option><option value="tiktok" @selected(data_get($social, 'icon') === 'tiktok')>TikTok</option><option value="linkedin" @selected(data_get($social, 'icon') === 'linkedin')>LinkedIn</option><option value="youtube" @selected(data_get($social, 'icon') === 'youtube')>YouTube</option><option value="link" @selected(data_get($social, 'icon') === 'link')>Link</option></select></label><label class="layout-editor-field-wide">HTTPS profile URL<input name="regions[footer][social_links][{{ $index }}][href]" value="{{ data_get($social, 'href') }}" placeholder="https://www.instagram.com/your-profile"></label></div></div>
             @endforeach
         </div>
-        <template data-layout-template="social-links"><div class="layout-repeat-row" data-layout-row data-layout-index="__INDEX__"><div class="layout-repeat-row-heading"><strong>New profile</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields"><label>Label<input name="regions[footer][social_links][__INDEX__][label]" maxlength="120" placeholder="Instagram"></label><label>Icon<select name="regions[footer][social_links][__INDEX__][icon]"><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="link">Link</option></select></label><label class="layout-editor-field-wide">HTTPS profile URL<input name="regions[footer][social_links][__INDEX__][href]" placeholder="https://www.instagram.com/your-profile"></label></div></div></template>
+        <template data-layout-template="social-links"><div class="layout-repeat-row" data-layout-row data-layout-index="__INDEX__"><div class="layout-repeat-row-heading"><strong>New profile</strong><button class="layout-editor-remove" type="button" data-layout-remove>Remove</button></div><div class="layout-editor-fields"><label>Label<input name="regions[footer][social_links][__INDEX__][label]" maxlength="120" placeholder="Instagram"></label><label>Icon<select name="regions[footer][social_links][__INDEX__][icon]"><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="x">X</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="link">Link</option></select></label><label class="layout-editor-field-wide">HTTPS profile URL<input name="regions[footer][social_links][__INDEX__][href]" placeholder="https://www.instagram.com/your-profile"></label></div></div></template>
     </section>
 
     <section class="layout-editor-group">
