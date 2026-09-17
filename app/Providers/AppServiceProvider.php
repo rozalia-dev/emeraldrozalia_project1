@@ -92,6 +92,12 @@ class AppServiceProvider extends ServiceProvider {
             };
             $flattenCatalog($catalogTree);
 
+            if (request()->routeIs('home')) {
+                $catalogNavCategories = $catalogNavCategories
+                    ->filter(fn (Category $category): bool => is_null($category->parent_id))
+                    ->values();
+            }
+
             $view->with([
                 'footerPages' => $footerPages,
                 'siteSettings' => $siteSettings,
