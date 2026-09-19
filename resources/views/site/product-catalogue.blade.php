@@ -10,7 +10,7 @@
 .product-catalogue-cover{width:100%;min-width:0;min-height:380px;border-radius:var(--site-radius);overflow:hidden;background:linear-gradient(150deg,var(--site-brand-primary),var(--site-brand-secondary));display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 16px 38px rgba(0,0,0,.13)}
 .product-catalogue-cover img{width:100%;height:100%;min-height:380px;object-fit:cover}
 .product-catalogue-cover-fallback{display:flex;align-items:center;flex-direction:column;gap:22px;padding:clamp(20px,3vw,38px);text-align:center}
-.product-catalogue-cover-logo{display:block;width:min(100%,420px);max-height:160px;object-fit:contain}
+.product-catalogue-cover .product-catalogue-cover-logo{display:block;width:min(100%,420px);height:auto;min-height:0;max-height:160px;object-fit:contain}
 .product-catalogue-cover-fallback span{font-size:.78rem;letter-spacing:.12em;line-height:1.6}
 .product-catalogue-identifiers{display:grid;gap:5px;margin:0 0 12px}
 .product-catalogue-identifier{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:start;gap:8px;color:var(--site-text-muted);font-size:.72rem;line-height:1.35}
