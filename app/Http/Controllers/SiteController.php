@@ -298,7 +298,7 @@ class SiteController extends Controller
                 'group' => 'Common',
             ])->values()->all();
         if ($contextCategory) {
-            foreach ($this->catalogDescendantOptions($contextCategory, $childrenByParent) as $option) {
+            foreach ($this->catalogDescendantOptions($contextCategory, $childrenByParent, $catalogCountyEnabled) as $option) {
                 $catalogSubcategoryOptions[] = $option;
             }
         }
@@ -496,7 +496,7 @@ class SiteController extends Controller
         return array_keys($ids);
     }
 
-    private function catalogDescendantOptions(Category $root, Collection $childrenByParent): array
+    private function catalogDescendantOptions(Category $root, Collection $childrenByParent, bool $excludeLocationScoped = false): array
     {
         $options = [];
         $queue = [];
@@ -511,11 +511,18 @@ class SiteController extends Controller
                 continue;
             }
             $visited[$category->id] = true;
-            $options[] = [
-                'value' => 'category:'.$category->slug,
-                'label' => str_repeat('↳ ', $depth).$category->name,
-                'group' => 'This Category',
-            ];
+
+            $locationScoped = $excludeLocationScoped
+                && (filled($category->catalog_country_id) || filled($category->catalog_county_code));
+
+            if (! $locationScoped) {
+                $options[] = [
+                    'value' => 'category:'.$category->slug,
+                    'label' => str_repeat('↳ ', $depth).$category->name,
+                    'group' => 'This Category',
+                ];
+            }
+
             foreach ($childrenByParent->get($category->id, collect()) as $child) {
                 $queue[] = [$child, $depth + 1];
             }
