@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -411,35 +412,76 @@ class VariantController extends Controller
     public function storeMedia(Request $request, ProductVariant $variant, PublicMediaDerivativeService $derivatives): RedirectResponse
     {
         $this->guardTenant($variant);
-        $data = $request->validate([
+        $fileRules = [
+            'file',
+            new MediaDimensions,
+            'max:102400',
+            'mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime',
+        ];
+        $request->validate([
             'type' => ['required', Rule::in(self::MEDIA_TYPES)],
-            'file' => ['required', 'file', new MediaDimensions, 'max:102400', 'mimetypes:image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime'],
+            'files' => ['nullable', 'array', 'max:10'],
+            'files.*' => $fileRules,
+            // Keep accepting the original single-file field for existing clients.
+            'file' => ['nullable', ...$fileRules],
             'alt_text' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $disk = 'public';
-        $path = $request->file('file')->store('variant-media/'.$variant->id, $disk);
-        $media = $variant->media()->create([
-            'type' => $data['type'],
-            'disk' => $disk,
-            'path' => $path,
-            'alt_text' => $data['alt_text'] ?? null,
-            'sort_order' => ((int) $variant->media()->max('sort_order')) + 1,
-            'active' => true,
-            'approval_status' => 'pending',
-            'mime_type' => $request->file('file')->getMimeType(),
-            'bytes' => (int) ($request->file('file')->getSize() ?: 0) ?: null,
-        ]);
-        $media->updateQuietly(['responsive_variants' => $derivatives->generate($media, 1) ?: null]);
-
-        if ($data['type'] === 'image' && blank($variant->image)) {
-            $variant->update(['image' => $path, 'updated_by' => auth()->id()]);
+        $files = collect($request->file('files', []))->filter();
+        if ($request->hasFile('file')) {
+            $files->push($request->file('file'));
+        }
+        if ($files->isEmpty()) {
+            throw ValidationException::withMessages(['files' => 'Select at least one file to upload.']);
         }
 
-        AuditTrail::record('variant.media.created', $media, null, $media->toArray());
+        $disk = 'public';
+        $storedPaths = [];
+        try {
+            $uploadedCount = DB::transaction(function () use ($variant, $request, $files, $disk, $derivatives, &$storedPaths): int {
+                $sortOrder = (int) $variant->media()->max('sort_order');
+                $uploadedCount = 0;
+
+                foreach ($files as $file) {
+                    $path = $file->store('variant-media/'.$variant->id, $disk);
+                    $storedPaths[] = $path;
+                    $media = $variant->media()->create([
+                        'type' => $request->input('type'),
+                        'disk' => $disk,
+                        'path' => $path,
+                        'alt_text' => $request->input('alt_text') ?: trim(implode(' ', array_filter([
+                            $variant->product?->name,
+                            $variant->colour,
+                            $variant->sku,
+                        ]))),
+                        'sort_order' => ++$sortOrder,
+                        'active' => true,
+                        'approval_status' => 'pending',
+                        'mime_type' => $file->getMimeType(),
+                        'bytes' => (int) ($file->getSize() ?: 0) ?: null,
+                    ]);
+                    $media->updateQuietly(['responsive_variants' => $derivatives->generate($media, 1) ?: null]);
+
+                    if ($media->type === 'image' && blank($variant->image)) {
+                        $variant->update(['image' => $path, 'updated_by' => auth()->id()]);
+                    }
+
+                    AuditTrail::record('variant.media.created', $media, null, $media->toArray());
+                    $uploadedCount++;
+                }
+
+                return $uploadedCount;
+            });
+        } catch (Throwable $exception) {
+            foreach ($storedPaths as $path) {
+                Storage::disk($disk)->delete($path);
+            }
+
+            throw $exception;
+        }
 
         return redirect()->route('admin.variants.index', ['selected' => $variant->public_uuid])
-            ->with('success', 'Variant media uploaded.');
+            ->with('success', $uploadedCount.' media file(s) uploaded. Approve images before they appear on the store.');
     }
 
     public function destroyMedia(ProductVariant $variant, VariantMedia $media): RedirectResponse
