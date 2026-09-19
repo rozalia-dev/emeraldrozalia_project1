@@ -39,14 +39,17 @@ class PublicInquiryRequest extends FormRequest
     public function rules(): array
     {
         $type = (string) $this->input('type', '');
-        $requiresMessage = in_array($type, ['contact', 'franchise', 'corporate-orders', 'bulk-orders'], true);
+        $requiresMessage = in_array($type, ['contact', 'corporate-orders', 'bulk-orders'], true)
+            || ($type === 'franchise' && ! $this->filled('business_experience'));
+        $requiresBusinessExperience = $type === 'franchise' && ! $this->filled('message');
+        $requiresPreferredLocation = $type === 'franchise' && ! $this->filled('company');
         $requiresConsent = in_array($type, ['contact', 'franchise'], true);
 
         return [
             'type' => ['required', 'string', Rule::in(self::TYPES)],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'phone' => [Rule::requiredIf($type === 'franchise'), 'nullable', 'string', 'max:50'],
             'company' => ['nullable', 'string', 'max:120'],
             'country' => ['nullable', 'string', 'max:120'],
             'subject' => ['required_if:type,contact', 'nullable', 'string', 'max:150'],
@@ -61,11 +64,11 @@ class PublicInquiryRequest extends FormRequest
             'branding_requirement' => ['nullable', 'string', 'max:180'],
             'required_by' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
 
-            // Structured Franchise application data. Existing forms that use the
-            // Company/Location and Message fields are still mapped server-side.
-            'preferred_location' => ['nullable', 'string', 'max:180'],
+            // Structured Franchise intake. Legacy forms can continue using
+            // Company for location and Message for experience.
+            'preferred_location' => [Rule::requiredIf($requiresPreferredLocation), 'nullable', 'string', 'max:180'],
             'investment_range' => ['nullable', 'string', 'max:180'],
-            'business_experience' => ['nullable', 'string', 'max:3000'],
+            'business_experience' => [Rule::requiredIf($requiresBusinessExperience), 'nullable', 'string', 'max:3000'],
             'opening_timeline' => ['nullable', 'string', 'max:180'],
 
             'meeting_date' => ['nullable', 'required_with:meeting_time', 'date_format:Y-m-d', 'after_or_equal:today'],
