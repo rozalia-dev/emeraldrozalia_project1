@@ -5,7 +5,7 @@
 @push('styles')
 <link rel="stylesheet" href="/css/shop.css?v=20260917-catalog-filters">
 <style>
-.shop-view-tools{flex-wrap:wrap;justify-content:flex-end}.shop-toolbar-filter{display:grid;gap:4px;min-width:142px}.shop-toolbar-filter>span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5b685f}.shop-toolbar-filter select{min-width:142px;max-width:210px}.shop-toolbar-filter--county select{min-width:180px;max-width:250px}.shop-toolbar-filter--subcategory select{min-width:180px;max-width:250px}.shop-toolbar-filter small{font-size:9px;line-height:1.25;color:#718078;max-width:210px}.shop-view-tools .shop-layout-switch{align-self:end}.shop-hero.has-category-banner:before{z-index:1;background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 29%,rgba(3,16,11,.82) 36%,rgba(3,16,11,.24) 46%,rgba(3,16,11,0) 58%)}.shop-hero.has-category-banner .shop-hero-shade{z-index:1}.shop-hero.has-category-banner .shop-hero-content{width:36%;max-width:640px;box-sizing:border-box}.shop-category-hero-media{position:absolute;z-index:0;inset:0 0 0 36%;display:block;overflow:hidden;background:#07130d}.shop-category-hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}.shop-category-hero-media:hover img{transform:scale(1.01)}.shop-category-hero-media img{transition:transform .25s ease}@media(max-width:1050px){.shop-results-top{align-items:flex-start}.shop-view-tools{width:100%;justify-content:flex-start}.shop-toolbar-filter{flex:1 1 145px}.shop-toolbar-filter select{width:100%;max-width:none}.shop-hero.has-category-banner .shop-hero-content{width:44%}.shop-category-hero-media{left:44%}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 35%,rgba(3,16,11,.72) 44%,rgba(3,16,11,.12) 58%,rgba(3,16,11,0) 70%)}}@media(max-width:700px){.shop-hero.has-category-banner .shop-hero-content{width:100%;max-width:none}.shop-category-hero-media{inset:0;opacity:.42}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,rgba(3,16,11,.94),rgba(3,16,11,.72))}}@media(max-width:650px){.shop-view-tools{display:grid!important;grid-template-columns:1fr 1fr}.shop-toolbar-filter,.shop-view-tools>label{min-width:0!important}.shop-toolbar-filter select,.shop-view-tools>label select{width:100%;min-width:0!important;max-width:none}.shop-layout-switch{grid-column:1/-1;justify-self:end}}
+.shop-view-tools{flex-wrap:wrap;justify-content:flex-end}.shop-toolbar-filter{display:grid;gap:4px;min-width:142px}.shop-toolbar-filter>span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5b685f}.shop-toolbar-filter select{min-width:142px;max-width:210px}.shop-toolbar-filter--county select{min-width:180px;max-width:250px}.shop-toolbar-filter--subcategory select{min-width:180px;max-width:250px}.shop-toolbar-filter small{font-size:9px;line-height:1.25;color:#718078;max-width:210px}.shop-view-tools .shop-layout-switch{align-self:end}.shop-hero.has-category-banner:before{z-index:1;background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 29%,rgba(3,16,11,.82) 36%,rgba(3,16,11,.24) 46%,rgba(3,16,11,0) 58%)}.shop-hero.has-category-banner .shop-hero-shade{z-index:1}.shop-hero.has-category-banner .shop-hero-content{width:36%;max-width:640px;box-sizing:border-box}.shop-category-hero-media{position:absolute;z-index:0;inset:0 0 0 36%;display:block;overflow:hidden;background:#07130d}.shop-category-hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}.shop-category-hero-media:hover img{transform:scale(1.01)}.shop-category-hero-media img{transition:transform .25s ease}@media(max-width:1050px){.shop-results-top{align-items:flex-start}.shop-view-tools{width:100%;justify-content:flex-start}.shop-toolbar-filter{flex:1 1 145px}.shop-toolbar-filter select{width:100%;max-width:none}.shop-hero.has-category-banner .shop-hero-content{width:44%}.shop-category-hero-media{left:44%}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 35%,rgba(3,16,11,.72) 44%,rgba(3,16,11,.12) 58%,rgba(3,16,11,0) 70%)}}@media(max-width:700px){.shop-hero.has-category-banner .shop-hero-content{width:100%;max-width:none}.shop-category-hero-media{inset:0;opacity:.42}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,rgba(3,16,11,.94),rgba(3,16,11,.72))}}@media(max-width:650px){.shop-view-tools{display:grid!important;grid-template-columns:1fr 1fr}.shop-toolbar-filter,.shop-view-tools>label{min-width:0!important}.shop-toolbar-filter select,.shop-view-tools>label select{width:100%;min-width:0!important;max-width:none}.shop-layout-switch{grid-column:1/-1;justify-self:end}}.shop-empty-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}.shop-empty-actions a{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding:10px 18px;border:1px solid #075b2f;border-radius:8px;font-weight:800;text-decoration:none}.shop-empty-actions .shop-empty-contact{background:#075b2f;color:#fff}.shop-empty-actions .shop-empty-contact:hover,.shop-empty-actions .shop-empty-contact:focus-visible{background:#064a27}.shop-empty-actions .shop-empty-reset{background:transparent;color:#075b2f}
 </style>
 @endpush
 
@@ -30,8 +30,8 @@
     $mainCategories = $categories->filter(fn ($category) => is_null($category->parent_id))->values();
     $hasCategoryContext = (bool) $activeCategory || count($selectedCategories) === 1;
     $hierarchicalLocation = (bool) ($catalogCountyEnabled ?? false);
-    $subcategoryReady = $hasCategoryContext && (! $hierarchicalLocation || (filled($selectedCountry ?? '') && filled($selectedCounty ?? '')));
-    $displaySubcategoryOptions = collect($catalogSubcategoryOptions ?? [])->where('group', 'This Category')->values();
+    $subcategoryReady = $hasCategoryContext;
+    $displaySubcategoryOptions = collect($catalogSubcategoryOptions ?? [])->unique('value')->values();
 
     $resetUrl = $activeCategory ? route('category', $activeCategory) : route('shop');
     $currentMax = request()->filled('max_price') ? (int) request('max_price') : $priceCeiling;
@@ -263,10 +263,6 @@
                         <select name="subcategory" form="shop-filter-form" aria-label="Select subcategory" data-shop-subcategory @disabled(!$subcategoryReady)>
                             @if(!$hasCategoryContext)
                                 <option value="">Select Main Category First</option>
-                            @elseif($hierarchicalLocation && !$selectedCountry)
-                                <option value="">Select Country First</option>
-                            @elseif($hierarchicalLocation && !$selectedCounty)
-                                <option value="">Select County First</option>
                             @else
                                 <option value="">All Subcategories</option>
                                 @foreach($displaySubcategoryOptions as $option)
@@ -276,6 +272,8 @@
                         </select>
                         @if($hasCategoryContext && $displaySubcategoryOptions->isEmpty())
                             <small>No subcategories are configured for this main category.</small>
+                        @elseif($hierarchicalLocation)
+                            <small>Independent of country and county.</small>
                         @endif
                     </label>
                     <label>Sort by
@@ -371,8 +369,11 @@
                     <div class="shop-empty">
                         <x-icon name="search" size="32" />
                         <h2>No products match those filters</h2>
-                        <p>Try removing a filter or search term to see more Emerald Rozalia products.</p>
-                        <a href="{{ $resetUrl }}">RESET FILTERS</a>
+                        <p>Try removing a filter or contact us and we can help you find the right Emerald Rozalia product.</p>
+                        <div class="shop-empty-actions">
+                            <a class="shop-empty-contact" href="{{ route('contact') }}">CONTACT US</a>
+                            <a class="shop-empty-reset" href="{{ $resetUrl }}">RESET FILTERS</a>
+                        </div>
                     </div>
                 @endforelse
             </div>
