@@ -226,27 +226,29 @@
         <p class="payments">VISA &nbsp; Mastercard &nbsp; PayPal &nbsp; Apple Pay &nbsp; Google Pay</p>
     </div>
     <div class="footer-bottom">
-        <div style="display: flex; align-items: flex-start; gap: 20px;">
-            <span style="display: flex; align-items: center; gap: 8px;">
+        <div class="footer-bottom-details">
+            <div class="footer-bottom-branding">
                 @if(isset($footerLogoUrl) && $footerLogoUrl)
-                    <img src="{{ $footerLogoUrl }}" alt="Logo" style="height: 20px; width: auto; object-fit: contain;">
+                    <img src="{{ $footerLogoUrl }}" alt="Logo" class="footer-bottom-logo">
                 @endif
-                {{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }} <br>
-                <div> {{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Designed & Manufactured in Limerick, Ireland') }}</div>
-            </span>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <span style="display: flex; align-items: center; gap: 8px; color: #f5f2ea;"><x-icon name="phone" size="14" style="color: #9bc63e;" /> +353 (89) 978 8187</span>
-                <span style="display: flex; align-items: center; gap: 8px; color: #f5f2ea;"><x-icon name="mail" size="14" style="color: #9bc63e;" /> urmos@rozalia.ie</span>
-                <span style="display: flex; align-items: center; gap: 8px; color: #f5f2ea;"><x-icon name="globe" size="14" style="color: #9bc63e;" /> https://emeraldrozalia.ie</span>
-                <span style="display: flex; align-items: center; gap: 8px; color: #f5f2ea;"><x-icon name="globe" size="14" style="color: #9bc63e;" /> Unit 7, Limerick Business Park, Limerick, Ireland.</span>
+                <div>
+                    <div>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }}</div>
+                    <div>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Designed & Manufactured in Limerick, Ireland') }}</div>
+                </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px;">
-                <a href="https://www.facebook.com/emeraldrozalia/" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #f5f2ea; text-decoration: none;"><x-icon name="facebook" size="14" style="color: #9bc63e;" /> Facebook</a>
-                <a href="https://www.instagram.com/emeraldrozalia2020/" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #f5f2ea; text-decoration: none;"><x-icon name="instagram" size="14" style="color: #9bc63e;" /> Instagram</a>
-                <a href="https://x.com/EmeraldRozalia" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #f5f2ea; text-decoration: none;"><x-icon name="twitter" size="14" style="color: #9bc63e;" /> Twitter</a>
-                <a href="https://www.tiktok.com/@emeraldrozalia1?lang=en" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #f5f2ea; text-decoration: none;"><x-icon name="tiktok" size="14" style="color: #9bc63e;" /> TikTok</a>
-                <a href="https://www.youtube.com/@EmeraldRozalia-w4p" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #f5f2ea; text-decoration: none;"><x-icon name="youtube" size="14" style="color: #9bc63e;" /> YouTube</a>
-                <a href="https://www.linkedin.com/in/emerald-rozalia-24921b410/" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #f5f2ea; text-decoration: none;"><x-icon name="linkedin" size="14" style="color: #9bc63e;" /> LinkedIn</a>
+            <div class="footer-bottom-contact">
+                <span><x-icon name="phone" size="14" /> +353 (89) 978 8187</span>
+                <span><x-icon name="mail" size="14" /> urmos@rozalia.ie</span>
+                <span><x-icon name="globe" size="14" /> https://emeraldrozalia.ie</span>
+                <span><x-icon name="globe" size="14" /> Unit 7, Limerick Business Park, Limerick, Ireland.</span>
+            </div>
+            <div class="footer-bottom-social">
+                <a href="https://www.facebook.com/emeraldrozalia/" target="_blank" rel="noopener"><x-icon name="facebook" size="14" /> Facebook</a>
+                <a href="https://www.instagram.com/emeraldrozalia2020/" target="_blank" rel="noopener"><x-icon name="instagram" size="14" /> Instagram</a>
+                <a href="https://x.com/EmeraldRozalia" target="_blank" rel="noopener"><x-icon name="x" size="14" /> Twitter</a>
+                <a href="https://www.tiktok.com/@emeraldrozalia1?lang=en" target="_blank" rel="noopener"><x-icon name="tiktok" size="14" /> TikTok</a>
+                <a href="https://www.youtube.com/@EmeraldRozalia-w4p" target="_blank" rel="noopener"><x-icon name="youtube" size="14" /> YouTube</a>
+                <a href="https://www.linkedin.com/in/emerald-rozalia-24921b410/" target="_blank" rel="noopener"><x-icon name="linkedin" size="14" /> LinkedIn</a>
             </div>
         </div>
         <span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in {{ data_get($siteBranding, 'city', 'Limerick') }}, {{ data_get($siteBranding, 'country', 'Ireland') }}</span>
