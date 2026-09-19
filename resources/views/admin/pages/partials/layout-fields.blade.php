@@ -129,10 +129,13 @@
         </div>
         <div class="layout-editor-fields">
             <label class="layout-editor-field-wide">Brand description<textarea name="regions[footer][brand_description]" maxlength="500" rows="3" placeholder="Proudly manufacturing hats and caps in Limerick, Ireland.">{{ $regionValue('footer.brand_description') }}</textarea></label>
-            <label class="layout-editor-check"><input type="hidden" name="regions[footer][newsletter][enabled]" value="0"><input type="checkbox" name="regions[footer][newsletter][enabled]" value="1" @checked(filter_var($regionValue('footer.newsletter.enabled', false), FILTER_VALIDATE_BOOLEAN))> Enable newsletter panel</label>
+            <label>Copyright text<input name="regions[footer][copyright_text]" maxlength="240" value="{{ $regionValue('footer.copyright_text') }}" placeholder="© {{ now()->year }} Emerald Rozalia Limited. All rights reserved."></label>
+            <label>Manufacturing line<input name="regions[footer][manufacturing_text]" maxlength="240" value="{{ $regionValue('footer.manufacturing_text', 'Designed & Manufactured in Limerick, Ireland') }}" placeholder="Designed & Manufactured in Limerick, Ireland"></label>
+            <label class="layout-editor-check"><input type="hidden" name="regions[footer][newsletter][enabled]" value="0"><input type="checkbox" name="regions[footer][newsletter][enabled]" value="1" @checked(filter_var($regionValue('footer.newsletter.enabled', true), FILTER_VALIDATE_BOOLEAN))> Enable newsletter panel</label>
             <label>Newsletter title<input name="regions[footer][newsletter][title]" maxlength="120" value="{{ $regionValue('footer.newsletter.title', 'NEWSLETTER') }}" placeholder="NEWSLETTER"></label>
             <label>Newsletter description<textarea name="regions[footer][newsletter][description]" maxlength="500" rows="3" placeholder="Stay updated with new arrivals and offers.">{{ $regionValue('footer.newsletter.description', 'Stay updated with new arrivals and offers.') }}</textarea></label>
-            <label>Newsletter button label<input name="regions[footer][newsletter][cta_label]" maxlength="120" value="{{ $regionValue('footer.newsletter.cta_label', 'Contact our team') }}" placeholder="Contact our team"></label>
+            <label>Email placeholder<input name="regions[footer][newsletter][placeholder]" maxlength="120" value="{{ $regionValue('footer.newsletter.placeholder', 'Your email address') }}" placeholder="Your email address"></label>
+            <label>Newsletter submit label<input name="regions[footer][newsletter][cta_label]" maxlength="120" value="{{ $regionValue('footer.newsletter.cta_label', 'Submit email') }}" placeholder="Submit email"></label>
             <label>Newsletter destination<input name="regions[footer][newsletter][href]" value="{{ $regionValue('footer.newsletter.href', '/contact') }}" placeholder="/contact"></label>
         </div>
     </section>
