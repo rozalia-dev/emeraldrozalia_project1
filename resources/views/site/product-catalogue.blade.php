@@ -9,9 +9,13 @@
 .product-catalogue-hero>*{min-width:0}
 .product-catalogue-cover{width:100%;min-width:0;min-height:380px;border-radius:var(--site-radius);overflow:hidden;background:linear-gradient(150deg,var(--site-brand-primary),var(--site-brand-secondary));display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 16px 38px rgba(0,0,0,.13)}
 .product-catalogue-cover img{width:100%;height:100%;min-height:380px;object-fit:cover}
-.product-catalogue-cover-fallback{padding:clamp(20px,3vw,38px);text-align:center}
-.product-catalogue-cover-fallback strong{display:block;font-family:var(--site-heading-family);font-size:clamp(1.6rem,3vw,2rem);line-height:1.15;margin-bottom:12px}
-.product-catalogue-cover-fallback span{font-size:.78rem;letter-spacing:.12em}
+.product-catalogue-cover-fallback{display:flex;align-items:center;flex-direction:column;gap:22px;padding:clamp(20px,3vw,38px);text-align:center}
+.product-catalogue-cover-logo{display:block;width:min(100%,420px);max-height:160px;object-fit:contain}
+.product-catalogue-cover-fallback span{font-size:.78rem;letter-spacing:.12em;line-height:1.6}
+.product-catalogue-identifiers{display:grid;gap:5px;margin:0 0 12px}
+.product-catalogue-identifier{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:start;gap:8px;color:var(--site-text-muted);font-size:.72rem;line-height:1.35}
+.product-catalogue-identifier span{font-weight:750}
+.product-catalogue-identifier code{min-width:0;overflow-wrap:anywhere;color:var(--site-text);font: .68rem/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
 .product-catalogue-copy{min-width:0}
 .product-catalogue-copy .eyebrow{font-size:.76rem;letter-spacing:.16em;font-weight:900;color:var(--site-brand-primary)}
 .product-catalogue-copy h1{font-family:var(--site-heading-family);font-size:clamp(2rem,4.5vw,4.1rem);line-height:1.04;margin:11px 0 18px;overflow-wrap:anywhere}
@@ -78,7 +82,7 @@
                 <img src="{{ route('catalogue.cover') }}" alt="{{ $catalogue->title ?: 'Emerald Rozalia Product Catalogue' }} cover">
             @else
                 <div class="product-catalogue-cover-fallback">
-                    <strong>EMERALD ROZALIA LIMITED</strong>
+                    <img class="product-catalogue-cover-logo" src="{{ asset('assets/logo/logo_one_line.png') }}" alt="Emerald Rozalia">
                     <span>PRODUCT CATALOGUE · IRISH MANUFACTURER · LIMERICK</span>
                 </div>
             @endif
@@ -113,13 +117,17 @@
 
         @if($categories->isNotEmpty())
             <nav class="product-catalogue-chips" aria-label="Catalogue categories">
-                @foreach($categories as $categoryName => $categoryProducts)
-                    <a class="product-catalogue-chip" href="#catalogue-{{ \Illuminate\Support\Str::slug($categoryName) }}">{{ $categoryName }} · {{ $categoryProducts->count() }}</a>
+                @foreach($categories as $category)
+                    @php($categoryName = $category['name'])
+                    @php($categoryProducts = $category['products'])
+                    <a class="product-catalogue-chip" href="#catalogue-{{ $category['slug'] }}">{{ $categoryName }} · {{ $categoryProducts->count() }}</a>
                 @endforeach
             </nav>
 
-            @foreach($categories as $categoryName => $categoryProducts)
-                <section class="product-catalogue-category" id="catalogue-{{ \Illuminate\Support\Str::slug($categoryName) }}">
+            @foreach($categories as $category)
+                @php($categoryName = $category['name'])
+                @php($categoryProducts = $category['products'])
+                <section class="product-catalogue-category" id="catalogue-{{ $category['slug'] }}">
                     <div class="product-catalogue-category-head"><h3>{{ $categoryName }}</h3><span></span></div>
                     <div class="product-catalogue-grid">
                         @foreach($categoryProducts as $product)
@@ -137,6 +145,10 @@
                                         <span class="category">{{ $categoryName }}</span>
                                         <h4>{{ $product->name }}</h4>
                                         @if($product->description)<p>{{ \Illuminate\Support\Str::limit(strip_tags((string)$product->description),95) }}</p>@endif
+                                        <div class="product-catalogue-identifiers">
+                                            <div class="product-catalogue-identifier"><span>Product UUID</span><code>{{ $product->public_uuid ?: 'Not assigned' }}</code></div>
+                                            <div class="product-catalogue-identifier"><span>Barcode</span><code>Not assigned</code></div>
+                                        </div>
                                         <div class="product-catalogue-card-foot"><small>SKU {{ $product->sku }}</small><strong>€{{ number_format((float)$product->price,2) }}</strong></div>
                                     </div>
                                 </a>
