@@ -175,7 +175,7 @@
                 </section>
             @endforeach
         @else
-            <div class="product-catalogue-empty">There are no published products available in the catalogue yet.</div>
+            <div class="product-catalogue-empty">There are no published products available in the catalogue yet.@include('site.partials.product-search-contact')</div>
         @endif
     </section>
 </div>

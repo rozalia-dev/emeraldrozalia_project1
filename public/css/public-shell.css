@@ -1502,3 +1502,36 @@ html body.site-body.site-body[class] *:focus-visible {
     }
 }
 
+
+
+/* Shared contact action for public product searches with no results. */
+.site-body .public-product-search-contact {
+    margin-top: 16px;
+}
+
+.site-body .public-product-search-contact a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 20px;
+    border: 1px solid var(--site-brand-primary, #075b2f);
+    border-radius: var(--site-button-radius, 8px);
+    background: var(--site-brand-primary, #075b2f);
+    color: #fff;
+    font: 800 .9rem/1 var(--site-font-family, Arial, sans-serif);
+    letter-spacing: .03em;
+    text-decoration: none;
+    transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
+}
+
+.site-body .public-product-search-contact a:hover {
+    border-color: var(--site-brand-secondary, #0b1711);
+    background: var(--site-brand-secondary, #0b1711);
+    transform: translateY(-1px);
+}
+
+.site-body .public-product-search-contact a:active {
+    transform: translateY(0);
+}

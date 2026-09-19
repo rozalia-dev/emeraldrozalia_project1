@@ -384,7 +384,7 @@
                         <h2>No products match those filters</h2>
                         <p>Try removing a filter or contact us and we can help you find the right Emerald Rozalia product.</p>
                         <div class="shop-empty-actions">
-                            <a class="shop-empty-contact" href="{{ route('contact') }}">CONTACT US</a>
+                            <a class="shop-empty-contact public-search-contact-link" href="{{ route('contact') }}">CONTACT US</a>
                             <a class="shop-empty-reset" href="{{ $resetUrl }}">RESET FILTERS</a>
                         </div>
                     </div>

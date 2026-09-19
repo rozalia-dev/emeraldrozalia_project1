@@ -159,7 +159,7 @@
                         </div>
                     </article>
                 @empty
-                    <div class="arrival-empty"><strong>No new arrivals match those filters.</strong><p>Reset the filters to see all newly launched Emerald Rozalia styles.</p></div>
+                    <div class="arrival-empty"><strong>No new arrivals match those filters.</strong><p>Reset the filters to see all newly launched Emerald Rozalia styles.</p>@include('site.partials.product-search-contact')</div>
                 @endforelse
             </div>
             <div class="arrival-pagination">{{ $products->links() }}</div>

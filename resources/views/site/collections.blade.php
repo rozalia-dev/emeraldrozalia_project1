@@ -96,6 +96,7 @@
                 @endforeach
             @else
                 <p class="home-managed-empty">No published products are currently available.</p>
+                @include('site.partials.product-search-contact')
             @endif
         </div>
     </section>

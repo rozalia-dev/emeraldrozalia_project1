@@ -75,6 +75,7 @@
         <div class="collection-empty">
             <h2>No published products match this collection.</h2>
             <p>Products appear here only when they are published and assigned to this collection in cPanel.</p>
+            @include('site.partials.product-search-contact')
         </div>
     @endif
 </section>
