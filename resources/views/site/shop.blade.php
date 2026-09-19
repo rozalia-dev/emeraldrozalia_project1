@@ -6,6 +6,19 @@
 <link rel="stylesheet" href="/css/shop.css?v=20260919-catalog-type-scale">
 <style>
 .shop-view-tools{flex-wrap:wrap;justify-content:flex-end}.shop-toolbar-filter{display:grid;gap:4px;min-width:142px}.shop-toolbar-filter>span{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5b685f}.shop-toolbar-filter select{min-width:142px;max-width:210px}.shop-toolbar-filter--county select{min-width:180px;max-width:250px}.shop-toolbar-filter--subcategory select{min-width:180px;max-width:250px}.shop-toolbar-filter small{font-size:11px;line-height:1.25;color:#718078;max-width:210px}.shop-view-tools .shop-layout-switch{align-self:end}.shop-hero.has-category-banner:before{z-index:1;background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 29%,rgba(3,16,11,.82) 36%,rgba(3,16,11,.24) 46%,rgba(3,16,11,0) 58%)}.shop-hero.has-category-banner .shop-hero-shade{z-index:1}.shop-hero.has-category-banner .shop-hero-content{width:36%;max-width:640px;box-sizing:border-box}.shop-category-hero-media{position:absolute;z-index:0;inset:0 0 0 36%;display:block;overflow:hidden;background:#07130d}.shop-category-hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}.shop-category-hero-media:hover img{transform:scale(1.01)}.shop-category-hero-media img{transition:transform .25s ease}@media(max-width:1050px){.shop-results-top{align-items:flex-start}.shop-view-tools{width:100%;justify-content:flex-start}.shop-toolbar-filter{flex:1 1 145px}.shop-toolbar-filter select{width:100%;max-width:none}.shop-hero.has-category-banner .shop-hero-content{width:44%}.shop-category-hero-media{left:44%}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 35%,rgba(3,16,11,.72) 44%,rgba(3,16,11,.12) 58%,rgba(3,16,11,0) 70%)}}@media(max-width:700px){.shop-hero.has-category-banner .shop-hero-content{width:100%;max-width:none}.shop-category-hero-media{inset:0;opacity:.42}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,rgba(3,16,11,.94),rgba(3,16,11,.72))}}@media(max-width:650px){.shop-view-tools{display:grid!important;grid-template-columns:1fr 1fr}.shop-toolbar-filter,.shop-view-tools>label{min-width:0!important}.shop-toolbar-filter select,.shop-view-tools>label select{width:100%;min-width:0!important;max-width:none}.shop-layout-switch{grid-column:1/-1;justify-self:end}}.shop-empty-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}.shop-empty-actions a{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding:10px 18px;border:1px solid #075b2f;border-radius:8px;font-weight:800;text-decoration:none}.shop-empty-actions .shop-empty-contact{background:#075b2f;color:#fff}.shop-empty-actions .shop-empty-contact:hover,.shop-empty-actions .shop-empty-contact:focus-visible{background:#064a27}.shop-empty-actions .shop-empty-reset{background:transparent;color:#075b2f}
+.shop-product-card--coming-soon{display:flex;height:100%;flex-direction:column;cursor:default;border-style:dashed;border-color:rgba(143,191,89,.62);background:linear-gradient(180deg,#0b1912,#07110c)}
+.shop-product-card--coming-soon:hover{transform:none;border-color:rgba(143,191,89,.62);box-shadow:none}
+.shop-product-card--coming-soon .shop-product-media{display:grid;flex:0 0 auto;place-items:center;background:radial-gradient(circle at 50% 42%,rgba(46,133,74,.3),transparent 53%),linear-gradient(145deg,#0b2418,#07150e)}
+.shop-coming-soon-art{display:grid;justify-items:center;gap:9px;padding:16px;text-align:center;color:#e8f1e9}
+.shop-coming-soon-mark{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(143,191,89,.72);border-radius:50%;color:#a8d94a;font-size:27px;line-height:1}
+.shop-coming-soon-art strong{font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:.1em}
+.shop-coming-soon-art small{color:#c7d5cb;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.shop-product-card--coming-soon .shop-product-content{display:flex;flex:1;flex-direction:column}
+.shop-product-card--coming-soon .shop-product-category{color:#a8d94a}
+.shop-product-card--coming-soon .shop-product-content h3{color:#f4f7f3}
+.shop-coming-soon-copy{margin:0 0 12px;color:#c7d5cb;font-size:12px;line-height:1.5}
+.shop-product-card--coming-soon .shop-card-footer{margin-top:auto;padding-top:10px;border-top:1px solid rgba(196,218,202,.2)}
+.shop-coming-soon-status{color:#c7d5cb;font-size:9px;font-weight:700;letter-spacing:.08em}
 </style>
 @endpush
 
@@ -376,6 +389,26 @@
                         </div>
                     </div>
                 @endforelse
+
+                @if($products->count() > 0)
+                    @for($shopPlaceholder = $products->count(); $shopPlaceholder < 4; $shopPlaceholder++)
+                        <article class="shop-product-card shop-product-card--coming-soon" aria-label="More products coming soon. This card is not available to purchase.">
+                            <div class="shop-product-media shop-coming-soon-media" aria-hidden="true">
+                                <div class="shop-coming-soon-art">
+                                    <span class="shop-coming-soon-mark">+</span>
+                                    <strong>MORE STYLES</strong>
+                                    <small>Coming soon</small>
+                                </div>
+                            </div>
+                            <div class="shop-product-content">
+                                <small class="shop-product-category">COMING SOON</small>
+                                <h3>More styles are on the way</h3>
+                                <p class="shop-coming-soon-copy">New products will appear here when they are published.</p>
+                                <div class="shop-card-footer"><span class="shop-coming-soon-status">NOT AVAILABLE YET</span></div>
+                            </div>
+                        </article>
+                    @endfor
+                @endif
             </div>
 
             @if($products->hasPages())
