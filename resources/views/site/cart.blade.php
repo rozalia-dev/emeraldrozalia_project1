@@ -3,7 +3,7 @@
 @section('title', 'Cart — Emerald Rozalia')
 
 @section('content')
-    <section class="page-hero">
+    <section class="page-hero cart-hero">
         <span class="eyebrow">YOUR BAG</span>
         <h1>Shopping Cart</h1>
         <p>{{ array_sum(array_column($items, 'quantity')) }} item(s) ready for checkout.</p>
