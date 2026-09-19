@@ -117,23 +117,23 @@
 
         @if($categories->isNotEmpty())
             <nav class="product-catalogue-chips" aria-label="Catalogue categories">
-                @foreach($categories as $category)
-                    @php($categoryName = $category['name'])
-                    @php($categoryProducts = $category['products'])
-                    <a class="product-catalogue-chip" href="#catalogue-{{ $category['slug'] }}">{{ $categoryName }} · {{ $categoryProducts->count() }}</a>
+                @foreach($categories as $catalogueCategorySection)
+                    @php($categoryName = $catalogueCategorySection['name'])
+                    @php($categoryProducts = $catalogueCategorySection['products'])
+                    <a class="product-catalogue-chip" href="#catalogue-{{ $catalogueCategorySection['slug'] }}">{{ $categoryName }} · {{ $categoryProducts->count() }}</a>
                 @endforeach
             </nav>
 
-            @foreach($categories as $category)
-                @php($categoryName = $category['name'])
-                @php($categoryProducts = $category['products'])
-                <section class="product-catalogue-category" id="catalogue-{{ $category['slug'] }}">
+            @foreach($categories as $catalogueCategorySection)
+                @php($categoryName = $catalogueCategorySection['name'])
+                @php($categoryProducts = $catalogueCategorySection['products'])
+                <section class="product-catalogue-category" id="catalogue-{{ $catalogueCategorySection['slug'] }}">
                     <div class="product-catalogue-category-head"><h3>{{ $categoryName }}</h3><span></span></div>
                     <div class="product-catalogue-grid">
-                        @foreach($categoryProducts as $product)
-                            @php($image = $productMedia[$product->id] ?? null)
+                        @foreach($categoryProducts as $catalogueProduct)
+                            @php($image = $productMedia[$catalogueProduct->id] ?? null)
                             <article class="product-catalogue-card">
-                                <a href="{{ route('product',['product'=>$product->slug]) }}">
+                                <a href="{{ route('product',['product'=>$catalogueProduct->slug]) }}">
                                     <div class="product-catalogue-media">
                                         @if($image)
                                             <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="(max-width:560px) 100vw,(max-width:1020px) 50vw,25vw" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
@@ -143,13 +143,13 @@
                                     </div>
                                     <div class="product-catalogue-info">
                                         <span class="category">{{ $categoryName }}</span>
-                                        <h4>{{ $product->name }}</h4>
-                                        @if($product->description)<p>{{ \Illuminate\Support\Str::limit(strip_tags((string)$product->description),95) }}</p>@endif
+                                        <h4>{{ $catalogueProduct->name }}</h4>
+                                        @if($catalogueProduct->description)<p>{{ \Illuminate\Support\Str::limit(strip_tags((string)$catalogueProduct->description),95) }}</p>@endif
                                         <div class="product-catalogue-identifiers">
-                                            <div class="product-catalogue-identifier"><span>Product UUID</span><code>{{ $product->public_uuid ?: 'Not assigned' }}</code></div>
+                                            <div class="product-catalogue-identifier"><span>Product UUID</span><code>{{ $catalogueProduct->public_uuid ?: 'Not assigned' }}</code></div>
                                             <div class="product-catalogue-identifier"><span>Barcode</span><code>Not assigned</code></div>
                                         </div>
-                                        <div class="product-catalogue-card-foot"><small>SKU {{ $product->sku }}</small><strong>€{{ number_format((float)$product->price,2) }}</strong></div>
+                                        <div class="product-catalogue-card-foot"><small>SKU {{ $catalogueProduct->sku }}</small><strong>€{{ number_format((float)$catalogueProduct->price,2) }}</strong></div>
                                     </div>
                                 </a>
                             </article>
