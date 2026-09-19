@@ -12,7 +12,7 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_heritage_shop_enforces_country_county_then_category_subcategory_hierarchy(): void
+    public function test_heritage_subcategory_is_independent_while_county_remains_country_dependent(): void
     {
         [$root, $limerickCaps, $limerickHats, $dublinCaps] = $this->heritageTree();
 
@@ -26,22 +26,31 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
             ->assertSee('data-shop-county', false)
             ->assertSee('data-shop-subcategory', false)
             ->assertSee('Select Country First', false)
+            ->assertSee('All Subcategories', false)
+            ->assertSee('value="type:caps"', false)
+            ->assertSee('value="type:beanies"', false)
             ->assertSee('Ireland', false)
             ->assertDontSee('United States', false)
-            ->assertDontSee('value="type:beanies"', false);
+            ->assertDontSee('value="category:heritage-filter-ie-lk-caps"', false);
 
         $this->get(route('category', $root).'?country=IE')
             ->assertOk()
             ->assertSee('Limerick', false)
             ->assertSee('Dublin', false)
-            ->assertSee('Select County First', false);
-
-        $this->get(route('category', $root).'?country=IE&county=IE-LK')
-            ->assertOk()
             ->assertSee('All Subcategories', false)
-            ->assertSee('value="category:heritage-filter-ie-lk-caps"', false)
-            ->assertSee('value="category:heritage-filter-ie-lk-hats"', false)
-            ->assertDontSee('value="type:beanies"', false);
+            ->assertSee('value="type:caps"', false);
+
+        $this->get(route('category', $root).'?country=IE&subcategory=type:caps')
+            ->assertOk()
+            ->assertSee('Limerick Heritage Cap', false)
+            ->assertSee('Dublin Heritage Cap', false)
+            ->assertDontSee('Limerick Heritage Hat', false);
+
+        $this->get(route('category', $root).'?country=IE&county=IE-LK&subcategory=type:caps')
+            ->assertOk()
+            ->assertSee('Limerick Heritage Cap', false)
+            ->assertDontSee('Dublin Heritage Cap', false)
+            ->assertDontSee('Limerick Heritage Hat', false);
     }
 
     public function test_county_filter_is_country_scoped_and_filters_products(): void
