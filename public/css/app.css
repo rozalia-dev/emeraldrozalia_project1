@@ -1120,3 +1120,7 @@ button:not(:disabled):hover,input[type=submit]:not(:disabled):hover,input[type=b
 .contact-option-whatsapp .contact-option-icon{color:#25d366;border-color:rgba(37,211,102,.95);background:rgba(37,211,102,.14);box-shadow:0 0 0 3px rgba(37,211,102,.2),0 0 18px rgba(37,211,102,.18)}
 .contact-option-whatsapp .contact-option-icon .ui-icon{width:32px;height:32px;filter:drop-shadow(0 0 4px rgba(37,211,102,.45))}
 .contact-option-whatsapp:hover .contact-option-icon,.contact-option-whatsapp:focus-visible .contact-option-icon{color:#65f18c;border-color:#65f18c;background:rgba(37,211,102,.22)}
+
+
+/* Keep native FAQ accordion keyboard focus clearly visible. */
+.contact-faq summary:focus-visible{outline:2px solid #d5e86b;outline-offset:-3px;border-radius:4px}
