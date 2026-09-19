@@ -54,6 +54,8 @@ final class SiteLayoutVersionService
                 'accent' => '#8cc63e',
             ],
             'brand_description' => null,
+            'copyright_text' => null,
+            'manufacturing_text' => 'Designed & Manufactured in Limerick, Ireland',
             'social_links' => [
                 ['label' => 'Facebook', 'icon' => 'facebook', 'href' => 'https://www.facebook.com/emeraldrozalia/'],
                 ['label' => 'Instagram', 'icon' => 'instagram', 'href' => 'https://www.instagram.com/emeraldrozalia2020/'],
@@ -102,11 +104,12 @@ final class SiteLayoutVersionService
                 ],
             ],
             'newsletter' => [
-                'enabled' => false,
+                'enabled' => true,
                 'title' => 'NEWSLETTER',
                 'description' => 'Stay updated with new arrivals and offers.',
+                'placeholder' => 'Your email address',
                 'href' => '/contact',
-                'cta_label' => 'Contact our team',
+                'cta_label' => 'Submit email',
             ],
             'legal_links' => [
                 ['label' => 'Privacy Policy', 'href' => '/factory'],
@@ -478,8 +481,11 @@ final class SiteLayoutVersionService
             'header.logo.alt' => 180,
             'footer.logo.alt' => 180,
             'footer.brand_description' => 500,
+            'footer.copyright_text' => 240,
+            'footer.manufacturing_text' => 240,
             'footer.newsletter.title' => 120,
             'footer.newsletter.description' => 500,
+            'footer.newsletter.placeholder' => 120,
             'footer.newsletter.cta_label' => 120,
         ] as $path => $maxLength) {
             $value = data_get($regions, $path);
