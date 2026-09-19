@@ -10,6 +10,12 @@
     $contactToday = now()->startOfDay();
     $contactWeekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     $contactLeadingDays = $contactMonth->dayOfWeekIso - 1;
+    $whatsappNumber = preg_replace('/[^0-9]/', '', (string) config('app.brand_contact.whatsapp', '0899788187'));
+    if (str_starts_with($whatsappNumber, '00')) {
+        $whatsappNumber = substr($whatsappNumber, 2);
+    } elseif (str_starts_with($whatsappNumber, '0')) {
+        $whatsappNumber = '353'.substr($whatsappNumber, 1);
+    }
 @endphp
 
 @section('content')
@@ -36,6 +42,10 @@
         <a class="contact-option" href="#contact-form" aria-label="Send an enquiry to Emerald Rozalia">
             <span class="contact-option-icon"><x-icon name="phone" size="27" /></span>
             <span><strong>MESSAGE US</strong><b>Send an enquiry</b><small>Use the form to contact our team</small></span>
+        </a>
+        <a class="contact-option contact-option-whatsapp" href="https://wa.me/{{ $whatsappNumber }}" target="_blank" rel="noopener noreferrer" aria-label="Start a WhatsApp chat with Emerald Rozalia">
+            <span class="contact-option-icon"><x-icon name="message" size="27" /></span>
+            <span><strong>WHATSAPP</strong><b>Send a WhatsApp message</b><small>Message our team directly</small></span>
         </a>
         <a class="contact-option" href="#contact-form" aria-label="Send an email enquiry to Emerald Rozalia">
             <span class="contact-option-icon"><x-icon name="mail" size="27" /></span>
