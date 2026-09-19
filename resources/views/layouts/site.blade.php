@@ -31,7 +31,7 @@
     @endif
     <link rel="stylesheet" href="/css/app.css?v=20260905-public-header-type">
     <link rel="stylesheet" href="/css/theme-runtime.css?v=20260913-batch17-typography">
-    <link rel="stylesheet" href="/css/public-shell.css?v=20260913-shared-shell">
+    <link rel="stylesheet" href="/css/public-shell.css?v=20260919-reference-footer">
     <style id="public-media-contract">:root{--public-asset-home-reference:none;--public-asset-home-hero:none;--public-asset-home-collections:none;--public-asset-bulk-order:none;--public-asset-corporate-order:none;--public-asset-logo-two-line:none}</style>
     <style id="public-catalog-navigation">
         .site-nav-dropdown{position:relative;display:inline-flex;height:100%;align-items:center;color:var(--layout-header-text,#f4f4ef)}.site-nav-dropdown summary{display:inline-flex;align-items:center;gap:5px;padding:3px 0 4px;list-style:none;cursor:pointer;color:var(--layout-header-text,#f4f4ef);border-bottom:2px solid transparent}.site-nav-dropdown summary::-webkit-details-marker{display:none}.site-nav-dropdown summary.is-active{color:#8cc63e;border-bottom-color:var(--layout-header-accent,#8cc63e)}.site-nav-dropdown summary span{font-size:10px;transition:transform 160ms ease}.site-nav-dropdown[open] summary span{transform:rotate(180deg)}.site-nav-dropdown-menu{position:absolute;top:calc(100% - 14px);left:50%;z-index:90;display:grid;min-width:250px;max-width:330px;max-height:70vh;overflow:auto;padding:8px;transform:translateX(-50%);background:#06140d;border:1px solid #294731;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.35)}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{display:flex;min-height:38px;align-items:center;justify-content:space-between;gap:16px;padding:9px 11px;border:0;border-radius:7px;color:var(--layout-header-text,#f4f4ef);text-decoration:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:hover,.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a:focus-visible{background:#0e2a1b;color:var(--layout-header-accent,#9bd451)}.site-nav-dropdown-menu a:first-child{font-weight:700;border-bottom:1px solid #294731!important;border-radius:7px 7px 0 0!important}.site-nav-dropdown-menu small{color:#9fb0a5;font-size:11px}.site-body .site-header[data-public-shell-region="header"] .header-context-menu{position:relative;display:flex;align-items:center;margin:0}.site-body .site-header[data-public-shell-region="header"] .header-context-menu>summary{display:grid;place-items:center;width:34px;height:34px;padding:0;list-style:none;cursor:pointer;border:1px solid rgba(140,198,62,.28);border-radius:7px;background:transparent;color:var(--layout-header-text,#f4f4ef)}.site-body .site-header[data-public-shell-region="header"] .header-context-menu>summary::-webkit-details-marker{display:none}.site-body .site-header[data-public-shell-region="header"] .header-context-menu>summary:hover,.site-body .site-header[data-public-shell-region="header"] .header-context-menu>summary:focus-visible,.site-body .site-header[data-public-shell-region="header"] .header-context-menu[open]>summary{border-color:var(--layout-header-accent,#8cc63e);color:var(--layout-header-accent,#9bd451)}.site-body .site-header[data-public-shell-region="header"] .header-context-popover{position:absolute;top:calc(100% + 9px);right:0;z-index:110;display:grid;min-width:170px;max-height:310px;overflow:auto;padding:7px;background:#06140d;border:1px solid #294731;border-radius:9px;box-shadow:0 16px 34px rgba(0,0,0,.38)}.site-body .site-header[data-public-shell-region="header"] .header-context-popover button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:14px;padding:9px 10px;border:0;border-radius:6px;background:transparent;color:#f4f4ef;text-align:left;font:600 12px/1.2 var(--site-font-family,Inter,Arial,sans-serif);cursor:pointer}.site-body .site-header[data-public-shell-region="header"] .header-context-popover button:hover,.site-body .site-header[data-public-shell-region="header"] .header-context-popover button:focus-visible{background:#0e2a1b;color:var(--layout-header-accent,#9bd451)}.site-body .site-header[data-public-shell-region="header"] .header-context-popover button.is-active{color:var(--layout-header-accent,#9bd451)}.site-body .site-header[data-public-shell-region="header"] .header-context-popover small{font-size:10px;color:#9fb0a5}@media(hover:hover) and (min-width:1101px){.site-nav-dropdown:not([open]):hover .site-nav-dropdown-menu{display:grid}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}}@media(max-width:1100px){.site-body .site-header[data-public-shell-region="header"] nav.open{max-height:calc(100vh - 72px);overflow-y:auto}.site-nav-dropdown{display:block;width:100%;height:auto}.site-nav-dropdown summary{width:100%;min-height:44px;justify-content:space-between;padding:11px 0}.site-nav-dropdown-menu{position:static;display:grid;width:100%;max-width:none;max-height:none;padding:4px 0 8px;transform:none;background:transparent;border:0;border-radius:0;box-shadow:none}.site-nav-dropdown:not([open]) .site-nav-dropdown-menu{display:none}.site-body .site-header[data-public-shell-region="header"] nav .site-nav-dropdown-menu a{min-height:40px;padding:9px 14px;color:#d9e6dc;background:#081a11}.site-nav-dropdown-menu a:first-child{border-bottom:0!important}.site-body .site-header[data-public-shell-region="header"] .header-context-menu>summary{width:32px;height:32px}.site-body .site-header[data-public-shell-region="header"] .header-context-popover{min-width:160px}}@media(max-width:700px){.site-body .site-header[data-public-shell-region="header"] .header-context-menu{display:none}}
@@ -175,94 +175,92 @@
     @php($footerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'footer.logo.path', '/assets/logo/logo_two_line.png'), '/'))
     @php($footerLogo = $publicMedia->forLegacyPath($footerLogoPath, $footerLogoAlt))
     @php($footerLogoUrl = data_get($footerLogo, 'url'))
-    <div class="footer-brand">
-        @if($footerLogoUrl)
-            <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
-        @else
-            <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
-        @endif
-        <p>{{ $footerBrandDescription }}</p>
-        <div class="footer-contact" aria-label="Emerald Rozalia contact details">
-            @if(filled($footerPhone))<a href="tel:{{ preg_replace('/\D+/', '', (string) $footerPhone) }}"><x-icon name="phone" size="14" /> {{ $footerPhone }}</a>@endif
-            @if(filled($footerEmail))<a href="mailto:{{ $footerEmail }}"><x-icon name="mail" size="14" /> {{ $footerEmail }}</a>@endif
-            @if(filled($footerWebsite))<a href="{{ $footerWebsiteUrl }}" target="_blank" rel="noopener"><x-icon name="globe" size="14" /> {{ $footerWebsite }}</a>@endif
-            @if(filled($footerLocation))<span><x-icon name="globe" size="14" /> {{ $footerLocation }}</span>@endif
-        </div>
-        <div class="socials">
-            @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
-                @php($socialHref = $layoutUrl($social))
-                @if($socialHref)
-                    <a href="{{ $socialHref }}" aria-label="{{ data_get($social, 'label', 'Social profile') }}" rel="me noopener" target="_blank">
-                        <x-icon name="{{ data_get($social, 'icon', 'link') }}" label="{{ data_get($social, 'label', 'Social profile') }}" />
-                    </a>
-                @endif
-            @endforeach
-        </div>
-    </div>
-    @foreach((array) data_get($siteLayoutRegions, 'footer.columns', []) as $footerColumn)
-        <div>
-            <h4>{{ data_get($footerColumn, 'title') }}</h4>
-            @foreach((array) data_get($footerColumn, 'links', []) as $footerLink)
-                @php($footerHref = $layoutUrl($footerLink))
-                @if($footerHref)
-                    <a href="{{ $footerHref }}">{{ data_get($footerLink, 'label') }}</a>
-                @endif
-            @endforeach
-            @if(data_get($footerColumn, 'title') === 'COMPANY')
-                @foreach($footerPages ?? [] as $footerPage)
-                    <a href="{{ route('content.page', ['page' => $footerPage->slug]) }}">{{ $footerPage->title }}</a>
-                @endforeach
-            @endif
-        </div>
-    @endforeach
-    @php($newsletter = data_get($siteLayoutRegions, 'footer.newsletter', []))
+    @php($footerColumns = array_values((array) data_get($siteLayoutRegions, 'footer.columns', [])))
+    @php($newsletter = (array) data_get($siteLayoutRegions, 'footer.newsletter', []))
     @php($newsletterHref = $layoutUrl($newsletter))
-    <div class="newsletter">
-        <h4>{{ data_get($newsletter, 'title', 'NEWSLETTER') }}</h4>
-        <p>{{ data_get($newsletter, 'description', 'Stay updated with new arrivals and offers.') }}</p>
-        @if($newsletterHref)
-            <a class="btn" href="{{ $newsletterHref }}">{{ data_get($newsletter, 'cta_label', 'Contact our team') }} <x-icon name="arrow-right" /></a>
-        @endif
-        <p class="payments">VISA &nbsp; Mastercard &nbsp; PayPal &nbsp; Apple Pay &nbsp; Google Pay</p>
-    </div>
-    <div class="footer-bottom">
-        <div class="footer-bottom-details">
-            <div class="footer-bottom-branding">
-                @if(isset($footerLogoUrl) && $footerLogoUrl)
-                    <img src="{{ $footerLogoUrl }}" alt="Logo" class="footer-bottom-logo">
+    @php($newsletterEnabled = ! array_key_exists('enabled', $newsletter) || filter_var(data_get($newsletter, 'enabled', true), FILTER_VALIDATE_BOOLEAN))
+    @php($footerCopyright = data_get($siteLayoutRegions, 'footer.copyright_text')
+        ?: data_get($siteBranding, 'footer_text')
+        ?: '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.')
+    @php($footerManufacturing = data_get($siteLayoutRegions, 'footer.manufacturing_text')
+        ?: 'Designed & Manufactured in '.data_get($siteBranding, 'city', 'Limerick').', '.data_get($siteBranding, 'country', 'Ireland'))
+
+    <div class="footer-main">
+        <section class="footer-brand" aria-label="Emerald Rozalia">
+            @if($footerLogoUrl)
+                <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
+            @else
+                <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
+            @endif
+            <p class="footer-brand-description">{{ $footerBrandDescription }}</p>
+            <div class="footer-contact sr-only" aria-label="Emerald Rozalia contact details">
+                @if(filled($footerPhone))<a href="tel:{{ preg_replace('/\\D+/', '', (string) $footerPhone) }}">{{ preg_replace('/\\D+/', '', (string) $footerPhone) }}</a>@endif
+                @if(filled($footerEmail))<a href="mailto:{{ $footerEmail }}">{{ $footerEmail }}</a>@endif
+                @if(filled($footerWebsite))<a href="{{ $footerWebsiteUrl }}" target="_blank" rel="noopener">{{ $footerWebsite }}</a>@endif
+                @if(filled($footerLocation))<span>{{ $footerLocation }}</span>@endif
+            </div>
+            <div class="socials" aria-label="Social profiles">
+                @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
+                    @php($socialHref = $layoutUrl($social))
+                    @if($socialHref)
+                        <a href="{{ $socialHref }}" aria-label="{{ data_get($social, 'label', 'Social profile') }}" rel="me noopener" target="_blank">
+                            <x-icon name="{{ data_get($social, 'icon', 'link') }}" size="15" />
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </section>
+
+        @foreach($footerColumns as $footerColumn)
+            <nav class="footer-column" aria-label="{{ data_get($footerColumn, 'title', 'Footer links') }}">
+                <h4>{{ data_get($footerColumn, 'title') }}</h4>
+                @foreach((array) data_get($footerColumn, 'links', []) as $footerLink)
+                    @php($footerHref = $layoutUrl($footerLink))
+                    @if($footerHref)
+                        <a href="{{ $footerHref }}">{{ data_get($footerLink, 'label') }}</a>
+                    @endif
+                @endforeach
+                @if(strtoupper((string) data_get($footerColumn, 'title')) === 'COMPANY')
+                    @foreach($footerPages ?? [] as $footerPage)
+                        <a href="{{ route('content.page', ['page' => $footerPage->slug]) }}">{{ $footerPage->title }}</a>
+                    @endforeach
                 @endif
-                <div>
-                    <div>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }}</div>
-                    <div>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Designed & Manufactured in Limerick, Ireland') }}</div>
+            </nav>
+        @endforeach
+
+        @if($newsletterEnabled)
+            <section class="newsletter" aria-label="{{ data_get($newsletter, 'title', 'Newsletter') }}">
+                <h4>{{ data_get($newsletter, 'title', 'NEWSLETTER') }}</h4>
+                <p>{{ data_get($newsletter, 'description', 'Stay updated with new arrivals and offers.') }}</p>
+                @if($newsletterHref)
+                    <form class="footer-newsletter-form" method="get" action="{{ $newsletterHref }}">
+                        <label class="sr-only" for="footer-newsletter-email">{{ data_get($newsletter, 'placeholder', 'Your email address') }}</label>
+                        <input id="footer-newsletter-email" type="email" name="email" autocomplete="email" placeholder="{{ data_get($newsletter, 'placeholder', 'Your email address') }}" aria-label="{{ data_get($newsletter, 'placeholder', 'Your email address') }}">
+                        <button type="submit" aria-label="{{ data_get($newsletter, 'cta_label', 'Submit email') }}" title="{{ data_get($newsletter, 'cta_label', 'Submit email') }}"><x-icon name="arrow-right" size="16" /></button>
+                    </form>
+                @endif
+                <div class="payments" aria-label="Accepted payment methods">
+                    <span class="payment-badge payment-badge--visa" aria-label="Visa">VISA</span>
+                    <span class="payment-badge payment-badge--mastercard" aria-label="Mastercard"><i></i><i></i></span>
+                    <span class="payment-word payment-word--paypal">PayPal</span>
+                    <span class="payment-word payment-word--apple">Apple Pay</span>
+                    <span class="payment-word payment-word--gpay"><b>G</b> Pay</span>
                 </div>
-            </div>
-            <div class="footer-bottom-contact">
-                <span><x-icon name="phone" size="14" /> +353 (89) 978 8187</span>
-                <span><x-icon name="mail" size="14" /> urmos@rozalia.ie</span>
-                <span><x-icon name="globe" size="14" /> https://emeraldrozalia.ie</span>
-                <span><x-icon name="globe" size="14" /> Unit 7, Limerick Business Park, Limerick, Ireland.</span>
-            </div>
-            <div class="footer-bottom-social">
-                <a href="https://www.facebook.com/emeraldrozalia/" target="_blank" rel="noopener"><x-icon name="facebook" size="14" /> Facebook</a>
-                <a href="https://www.instagram.com/emeraldrozalia2020/" target="_blank" rel="noopener"><x-icon name="instagram" size="14" /> Instagram</a>
-                <a href="https://x.com/EmeraldRozalia" target="_blank" rel="noopener"><x-icon name="x" size="14" /> Twitter</a>
-                <a href="https://www.tiktok.com/@emeraldrozalia1?lang=en" target="_blank" rel="noopener"><x-icon name="tiktok" size="14" /> TikTok</a>
-                <a href="https://www.youtube.com/@EmeraldRozalia-w4p" target="_blank" rel="noopener"><x-icon name="youtube" size="14" /> YouTube</a>
-                <a href="https://www.linkedin.com/in/emerald-rozalia-24921b410/" target="_blank" rel="noopener"><x-icon name="linkedin" size="14" /> LinkedIn</a>
-            </div>
-        </div>
-        <span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in {{ data_get($siteBranding, 'city', 'Limerick') }}, {{ data_get($siteBranding, 'country', 'Ireland') }}</span>
-        <span>
+            </section>
+        @endif
+    </div>
+
+    <div class="footer-bottom">
+        <span class="footer-copyright">{{ $footerCopyright }}</span>
+        <span class="footer-manufacturing"><x-icon name="clover" size="16" /> {{ $footerManufacturing }}</span>
+        <nav class="footer-legal" aria-label="Legal">
             @foreach((array) data_get($siteLayoutRegions, 'footer.legal_links', []) as $legalLink)
                 @php($legalHref = $layoutUrl($legalLink))
                 @if($legalHref)
                     <a href="{{ $legalHref }}">{{ data_get($legalLink, 'label') }}</a>
-                    @if(!$loop->last)
-                        &nbsp;
-                    @endif
                 @endif
             @endforeach
-        </span>
+        </nav>
     </div>
 </footer>
 @stack('scripts')
