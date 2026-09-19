@@ -28,6 +28,11 @@ class SalesReportController extends Controller
         'buyer' => ['label' => 'Buyer Orders', 'color' => '#1b7065'],
     ];
 
+    private const CHANNELS = [
+        'Website', 'Mobile App', 'Franchise Portal',
+        'Marketplace', 'Other Integrations', 'Unattributed',
+    ];
+
     private const TABS = [
         'overview' => 'Overview', 'orders-by-category' => 'Orders by Category', 'sales-by-products' => 'Sales by Products',
         'sales-by-customers' => 'Sales by Customers', 'sales-by-franchises' => 'Sales by Franchises',
@@ -277,7 +282,7 @@ class SalesReportController extends Controller
     {
         $countries = $orders->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'country_name', data_get($order->shipping_address, 'country', 'Unknown')))->filter()->unique()->values()->all();
         $payments = $orders->map(fn (Order $order): string => (string) ($order->payment_method ?: 'Other'))->filter()->unique()->values()->all();
-        return ['categories' => collect(self::ORDER_TYPES)->mapWithKeys(fn (array $meta, string $key): array => [$key => $meta['label']])->all(), 'channels' => $orders->map(fn (Order $order): string => $this->orderChannel($order))->unique()->values()->all(), 'franchises' => $orders->map(fn (Order $order): string => $this->orderFranchise($order))->unique()->values()->all(), 'stores' => $orders->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'store', 'Unknown'))->unique()->values()->all(), 'countries' => $countries, 'customer_groups' => $orders->map(fn (Order $order): string => $this->customerGroup($order))->unique()->values()->all(), 'payments' => $payments, 'fulfillment' => $orders->pluck('fulfillment_status')->filter()->unique()->values()->all(), 'currencies' => $orders->pluck('currency')->filter()->unique()->values()->all()];
+        return ['categories' => collect(self::ORDER_TYPES)->mapWithKeys(fn (array $meta, string $key): array => [$key => $meta['label']])->all(), 'channels' => self::CHANNELS, 'franchises' => $orders->map(fn (Order $order): string => $this->orderFranchise($order))->unique()->values()->all(), 'stores' => $orders->map(fn (Order $order): string => (string) data_get($order->shipping_address, 'store', 'Unknown'))->unique()->values()->all(), 'countries' => $countries, 'customer_groups' => $orders->map(fn (Order $order): string => $this->customerGroup($order))->unique()->values()->all(), 'payments' => $payments, 'fulfillment' => $orders->pluck('fulfillment_status')->filter()->unique()->values()->all(), 'currencies' => $orders->pluck('currency')->filter()->unique()->values()->all()];
     }
 
     private function recentReports(): array
