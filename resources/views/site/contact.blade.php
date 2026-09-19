@@ -10,7 +10,7 @@
     $contactToday = now()->startOfDay();
     $contactWeekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     $contactLeadingDays = $contactMonth->dayOfWeekIso - 1;
-    $whatsappNumber = preg_replace('/[^0-9]/', '', (string) config('app.brand_contact.whatsapp', '0899788187'));
+    $whatsappNumber = preg_replace('/[^0-9]/', '', (string) (config('app.brand_contact.whatsapp') ?: '0899788187'));
     if (str_starts_with($whatsappNumber, '00')) {
         $whatsappNumber = substr($whatsappNumber, 2);
     } elseif (str_starts_with($whatsappNumber, '0')) {
