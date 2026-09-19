@@ -114,7 +114,7 @@ html body.site-body.site-body[class] *:focus-visible {
     min-width: 104px;
     align-items: center;
     justify-content: flex-end;
-    gap: 16px;
+    gap: 10px;
     margin-left: 0;
 }
 
@@ -187,7 +187,7 @@ html body.site-body.site-body[class] *:focus-visible {
 
     .site-body .site-header[data-public-shell-region="header"] .utilities {
         min-width: 90px;
-        gap: 13px;
+        gap: 8px;
     }
 }
 
