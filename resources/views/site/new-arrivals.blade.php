@@ -2,7 +2,8 @@
 @section('body-class','new-arrivals-reference-page')
 @section('title','New Arrivals — Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/new-arrivals.css?v=20260908-approved">
+<link rel="stylesheet" href="/css/new-arrivals.css?v=20260919-arrival-card-parity">
+<link rel="stylesheet" href="/css/shop.css?v=20260919-catalog-type-scale">
 @endpush
 @section('content')
 @php
@@ -116,31 +117,46 @@
                     @php($colours = collect($product->colours ?? [])->filter()->take(3))
                     @php($hasPublicSpin = $product->latestPublicSpin() !== null)
                     @php($image = $productImage($product))
-                    <article class="arrival-product-card">
-                        <a class="arrival-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
-                            <div class="arrival-product-media" data-public-media-state="{{ $image ? 'approved' : 'awaiting-approved-media' }}">
-                                @if($image)<img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}">@else<span class="arrival-media-empty">Approved product media is not configured.</span>@endif
-                                <span class="arrival-new-badge">NEW</span>
-                                @if($hasPublicSpin)<span class="arrival-spin-badge">360°</span>@endif
-                            </div>
-                            <div class="arrival-product-info">
+                    <article class="arrival-product-card shop-product-card">
+                        <div class="arrival-product-media shop-product-media" data-public-media-state="{{ $image ? 'approved' : 'awaiting-approved-media' }}">
+                            <a class="arrival-product-link" href="{{ route('product',['product'=>$product->slug]) }}" aria-label="View {{ $product->name }}">
+                                @if($image)
+                                    <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}">
+                                @else
+                                    <span class="shop-product-placeholder"><x-icon name="clover" size="34" /><b>EMERALD ROZALIA</b><small>Product image coming soon</small></span>
+                                @endif
+                            </a>
+                            <div class="shop-card-badges"><span class="shop-badge shop-badge--new">NEW</span></div>
+                            @if($hasPublicSpin)<span class="arrival-spin-badge">360°</span>@endif
+                        </div>
+                        <div class="arrival-product-info shop-product-content">
+                            <a href="{{ route('product',['product'=>$product->slug]) }}" class="shop-product-main-link">
+                                <small class="shop-product-category">{{ $product->category?->name ?: 'Emerald Rozalia' }}</small>
                                 <h3>{{ $product->name }}</h3>
-                                <div class="arrival-rating"><span class="arrival-stars">{{ str_repeat('★',$rating) }}{{ str_repeat('☆',5-$rating) }}</span><span class="arrival-reviews">({{ $product->reviews_count ?? 0 }})</span></div>
-                                <strong class="arrival-price">€{{ number_format((float)$product->price,2) }}</strong>
-                                <div class="arrival-card-bottom">
-                                    <div class="arrival-swatches" aria-label="Available colours">
-                                        @forelse($colours as $colour)<span class="arrival-swatch" title="{{ $colour }}" style="background:{{ $swatchColour($colour) }}"></span>@empty
-                                            <span class="arrival-no-swatches">Colour data not configured</span>
-                                        @endforelse
-                                    </div>
+                                <div class="arrival-rating shop-rating" aria-label="Rated {{ number_format((float) ($product->reviews_avg_rating ?? 0), 1) }} out of 5">
+                                    <span class="arrival-stars">{{ str_repeat('★',$rating) }}{{ str_repeat('☆',5-$rating) }}</span>
+                                    <small class="arrival-reviews">({{ $product->reviews_count ?? 0 }})</small>
+                                </div>
+                                <div class="shop-price-row"><strong class="arrival-price">€{{ number_format((float)$product->price,2) }}</strong></div>
+                            </a>
+                            <div class="arrival-card-bottom shop-card-footer">
+                                <div class="arrival-swatches shop-swatches" aria-label="Available colours">
+                                    @forelse($colours as $colour)
+                                        <span class="arrival-swatch" title="{{ $colour }}" style="--shop-swatch:{{ $swatchColour($colour) }}"></span>
+                                    @empty
+                                        <small class="arrival-no-swatches">Colour data not configured</small>
+                                    @endforelse
                                 </div>
                             </div>
-                        </a>
-                        <form method="post" action="{{ route('cart.add',$product) }}" class="arrival-cart-form">
-                            @csrf
-                            <input type="hidden" name="quantity" value="1">
-                            <button class="arrival-cart" type="submit" aria-label="Add {{ $product->name }} to cart"><x-icon name="shopping-bag" size="16" /></button>
-                        </form>
+                            <div class="shop-product-actions">
+                                <a href="{{ route('product',['product'=>$product->slug]) }}">VIEW DETAILS</a>
+                                <form method="post" action="{{ route('cart.add',$product) }}" class="arrival-cart-form">
+                                    @csrf
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button class="arrival-cart" type="submit" aria-label="Add {{ $product->name }} to cart"><x-icon name="shopping-bag" size="15" /> ADD TO CART</button>
+                                </form>
+                            </div>
+                        </div>
                     </article>
                 @empty
                     <div class="arrival-empty"><strong>No new arrivals match those filters.</strong><p>Reset the filters to see all newly launched Emerald Rozalia styles.</p></div>
