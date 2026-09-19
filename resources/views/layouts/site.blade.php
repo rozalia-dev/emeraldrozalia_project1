@@ -29,7 +29,7 @@
     @if($seoMetadata['schema'])
         <script type="application/ld+json">{!! json_encode($seoMetadata['schema'], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
     @endif
-    <link rel="stylesheet" href="/css/app.css?v=20260919-whatsapp-brand-icon">
+    <link rel="stylesheet" href="/css/app.css?v=20260919-contact-channel-icons">
     <link rel="stylesheet" href="/css/theme-runtime.css?v=20260913-batch17-typography">
     <link rel="stylesheet" href="/css/public-shell.css?v=20260919-empty-search-contact">
     <style id="public-media-contract">:root{--public-asset-home-reference:none;--public-asset-home-hero:none;--public-asset-home-collections:none;--public-asset-bulk-order:none;--public-asset-corporate-order:none;--public-asset-logo-two-line:none}</style>

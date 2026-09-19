@@ -1112,3 +1112,11 @@ button:not(:disabled):hover,input[type=submit]:not(:disabled):hover,input[type=b
 .contact-option-whatsapp .contact-option-icon{color:#25d366;border-color:rgba(37,211,102,.88);background:rgba(37,211,102,.11);box-shadow:0 0 0 3px rgba(37,211,102,.15),inset 0 0 0 1px rgba(37,211,102,.13)}
 .contact-option-whatsapp .contact-option-icon .ui-icon{width:28px;height:28px;stroke-width:2}
 .contact-option-whatsapp:hover .contact-option-icon,.contact-option-whatsapp:focus-visible .contact-option-icon{color:#6af196;border-color:#6af196;background:rgba(37,211,102,.19)}
+
+
+/* Clear, high-contrast icons for each contact channel. */
+.contact-options .contact-option-icon{color:#a9e26f;border-color:#81b93d;background:rgba(129,185,61,.09);box-shadow:0 0 0 3px rgba(129,185,61,.13),inset 0 0 0 1px rgba(129,185,61,.12)}
+.contact-options .contact-option-icon .ui-icon{width:29px;height:29px;stroke-width:2;filter:drop-shadow(0 0 3px rgba(169,226,111,.28))}
+.contact-option-whatsapp .contact-option-icon{color:#25d366;border-color:rgba(37,211,102,.95);background:rgba(37,211,102,.14);box-shadow:0 0 0 3px rgba(37,211,102,.2),0 0 18px rgba(37,211,102,.18)}
+.contact-option-whatsapp .contact-option-icon .ui-icon{width:32px;height:32px;filter:drop-shadow(0 0 4px rgba(37,211,102,.45))}
+.contact-option-whatsapp:hover .contact-option-icon,.contact-option-whatsapp:focus-visible .contact-option-icon{color:#65f18c;border-color:#65f18c;background:rgba(37,211,102,.22)}

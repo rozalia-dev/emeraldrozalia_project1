@@ -40,23 +40,23 @@
 
     <section class="contact-options" aria-label="Contact options">
         <a class="contact-option" href="#contact-form" aria-label="Send an enquiry to Emerald Rozalia">
-            <span class="contact-option-icon"><x-icon name="phone" size="27" /></span>
+            <span class="contact-option-icon"><x-icon name="send" size="29" /></span>
             <span><strong>MESSAGE US</strong><b>Send an enquiry</b><small>Use the form to contact our team</small></span>
         </a>
         <a class="contact-option contact-option-whatsapp" href="https://wa.me/{{ $whatsappNumber }}" target="_blank" rel="noopener noreferrer" aria-label="Start a WhatsApp chat with Emerald Rozalia">
-            <span class="contact-option-icon"><x-icon name="whatsapp" size="29" /></span>
+            <span class="contact-option-icon"><x-icon name="whatsapp" size="32" /></span>
             <span><strong>WHATSAPP</strong><b>Send a WhatsApp message</b><small>Message our team directly</small></span>
         </a>
         <a class="contact-option" href="#contact-form" aria-label="Send an email enquiry to Emerald Rozalia">
-            <span class="contact-option-icon"><x-icon name="mail" size="27" /></span>
+            <span class="contact-option-icon"><x-icon name="mail" size="29" /></span>
             <span><strong>EMAIL ENQUIRY</strong><b>Send us a message</b><small>We’ll route your enquiry to the right team</small></span>
         </a>
         <a class="contact-option" href="/shop" aria-label="Explore the Emerald Rozalia shop">
-            <span class="contact-option-icon"><x-icon name="globe" size="27" /></span>
+            <span class="contact-option-icon"><x-icon name="store" size="29" /></span>
             <span><strong>SHOP ONLINE</strong><b>Explore Emerald Rozalia</b><small>Browse our hats and caps</small></span>
         </a>
         <a class="contact-option" href="#contact-schedule" aria-label="Choose a live chat or meeting time">
-            <span class="contact-option-icon"><x-icon name="message" size="27" /></span>
+            <span class="contact-option-icon"><x-icon name="messages-square" size="29" /></span>
             <span><strong>LIVE CHAT</strong><b>Chat with our team</b><small>Choose a time to speak with us</small></span>
         </a>
     </section>
