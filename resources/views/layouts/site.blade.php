@@ -193,6 +193,12 @@
                 <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
             @endif
             <p class="footer-brand-description">{{ $footerBrandDescription }}</p>
+            <div class="footer-contact sr-only" aria-label="Emerald Rozalia contact details">
+                @if(filled($footerPhone))<a href="tel:{{ preg_replace('/\\D+/', '', (string) $footerPhone) }}">{{ preg_replace('/\\D+/', '', (string) $footerPhone) }}</a>@endif
+                @if(filled($footerEmail))<a href="mailto:{{ $footerEmail }}">{{ $footerEmail }}</a>@endif
+                @if(filled($footerWebsite))<a href="{{ $footerWebsiteUrl }}" target="_blank" rel="noopener">{{ $footerWebsite }}</a>@endif
+                @if(filled($footerLocation))<span>{{ $footerLocation }}</span>@endif
+            </div>
             <div class="socials" aria-label="Social profiles">
                 @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
                     @php($socialHref = $layoutUrl($social))
@@ -214,6 +220,11 @@
                         <a href="{{ $footerHref }}">{{ data_get($footerLink, 'label') }}</a>
                     @endif
                 @endforeach
+                @if(strtoupper((string) data_get($footerColumn, 'title')) === 'COMPANY')
+                    @foreach($footerPages ?? [] as $footerPage)
+                        <a href="{{ route('content.page', ['page' => $footerPage->slug]) }}">{{ $footerPage->title }}</a>
+                    @endforeach
+                @endif
             </nav>
         @endforeach
 
