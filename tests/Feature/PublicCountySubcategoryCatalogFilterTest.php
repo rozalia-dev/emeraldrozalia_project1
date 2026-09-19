@@ -53,6 +53,28 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
             ->assertDontSee('Limerick Heritage Hat', false);
     }
 
+    public function test_traditional_subcategory_is_available_before_country_or_county_selection(): void
+    {
+        $root = Category::create([
+            'name' => 'Traditional',
+            'slug' => 'traditional-independent-subcategory',
+            'taxonomy_type' => 'traditional',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->get(route('category', $root))
+            ->assertOk()
+            ->assertSee('data-shop-country', false)
+            ->assertSee('data-shop-county', false)
+            ->assertSee('data-shop-subcategory', false)
+            ->assertSee('All Subcategories', false)
+            ->assertSee('value="type:caps"', false)
+            ->assertSee('value="type:hats"', false);
+    }
+
     public function test_county_filter_is_country_scoped_and_filters_products(): void
     {
         [$root, $limerickCaps, $limerickHats, $dublinCaps] = $this->heritageTree();
