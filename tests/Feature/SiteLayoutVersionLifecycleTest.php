@@ -118,6 +118,47 @@ class SiteLayoutVersionLifecycleTest extends TestCase
             ->assertSee('--layout-footer-bg: #221100', false);
     }
 
+    public function test_contact_us_repair_updates_the_active_production_layout_snapshot(): void
+    {
+        $company = Company::create(['name' => 'Legacy Layout Tenant', 'code' => 'LEGACY-LAYOUT', 'active' => true]);
+        $regions = SiteLayoutVersionService::DEFAULT_REGIONS;
+        $regions['header']['primary_menu'] = array_values(array_filter(
+            $regions['header']['primary_menu'],
+            fn (array $item): bool => ($item['href'] ?? null) !== '/contact',
+        ));
+
+        $layout = SiteLayoutVersion::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'name' => 'Legacy active public shell',
+            'scope' => 'public',
+            'environment' => 'production',
+            'locale' => 'en',
+            'version' => 1,
+            'status' => SiteLayoutVersion::STATUS_ACTIVE,
+            'regions' => $regions,
+            'activated_at' => now(),
+        ]);
+
+        $this->assertFalse(collect(data_get($layout->regions, 'header.primary_menu', []))
+            ->contains(fn (array $item): bool => ($item['href'] ?? null) === '/contact'));
+
+        $migration = require database_path('migrations/2026_09_19_120000_restore_contact_us_to_active_public_layouts.php');
+        $migration->up();
+
+        $layout->refresh();
+        $contactItems = collect(data_get($layout->regions, 'header.primary_menu', []))
+            ->filter(fn (array $item): bool => ($item['href'] ?? null) === '/contact')
+            ->values();
+
+        $this->assertCount(1, $contactItems);
+        $this->assertSame('CONTACT US', $contactItems->first()['label']);
+        $this->assertTrue($contactItems->first()['enabled']);
+
+        $this->withSession(['company_id' => $company->id])->get('/')
+            ->assertOk()
+            ->assertSeeText('CONTACT US');
+    }
+
     public function test_layout_versions_are_not_mutable_from_another_company_context(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
