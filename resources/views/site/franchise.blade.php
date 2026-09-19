@@ -2,9 +2,8 @@
 @section('body-class','franchise-reference-page')
 @section('title','Franchise Opportunity | Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/franchise.css?v=20260908-approved-reference">
+<link rel="stylesheet" href="/css/franchise.css?v=20260919-franchise-flow">
 @endpush
-@php($franchiseLogo = app(\App\Services\PublicMediaResolver::class)->forLegacyPath('assets/logo/logo_two_line.png', 'Emerald Rozalia Limited'))
 @section('content')
 <div class="franchise-reference" data-public-media-register="franchise" data-public-media-state="awaiting-approved-media">
     <section class="fr-hero" aria-labelledby="franchise-title">
@@ -12,12 +11,12 @@
             <div class="fr-breadcrumb"><a href="/">Home</a><span>›</span><span>Franchise Opportunity</span></div>
             <p class="fr-kicker">JOIN THE LEGACY.</p>
             <h1 id="franchise-title">FRANCHISE WITH<br><em>EMERALD ROZALIA</em></h1>
-            <p class="fr-intro">Partner with Ireland's premium hat brand and be part of a growing global legacy. Authentic Irish craftsmanship, timeless style, proven business.</p>
+            <p class="fr-intro">Explore an Ireland-first retail opportunity with an Irish manufacturer based in Limerick. Tell us the area you have in mind, your experience and your plans.</p>
             <div class="fr-hero-points" aria-label="Franchise highlights">
                 <article><x-icon name="clover" size="32" /><strong>Authentic<br>Irish Brand</strong></article>
                 <article><x-icon name="star" size="32" /><strong>Premium<br>Quality</strong></article>
-                <article><x-icon name="chart" size="32" /><strong>Proven<br>Business Model</strong></article>
-                <article><x-icon name="globe" size="32" /><strong>Global<br>Opportunity</strong></article>
+                <article><x-icon name="home" size="32" /><strong>Limerick<br>Headquarters</strong></article>
+                <article><x-icon name="map-pin" size="32" /><strong>Ireland-first<br>Enquiries</strong></article>
             </div>
         </div>
         <div class="fr-store-image fr-store-image--hero" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise retail-store media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
@@ -26,61 +25,68 @@
     <section class="fr-main-band" id="franchise-enquiry">
         <div class="fr-partner-area">
             <h2>WHY PARTNER WITH US?</h2>
+            <p class="fr-section-intro">A first conversation to explore whether Emerald Rozalia could be the right fit for your plans.</p>
             <div class="fr-partner-grid">
-                <article><x-icon name="star" size="42" /><h3>STRONG BRAND HERITAGE</h3><p>Built on Irish heritage, quality and timeless style loved by customers worldwide.</p></article>
-                <article><x-icon name="chart" size="42" /><h3>PROVEN BUSINESS MODEL</h3><p>Established systems, marketing support and operational guidance for your success.</p></article>
-                <article><x-icon name="users" size="42" /><h3>COMPREHENSIVE SUPPORT</h3><p>From site selection to training, we're with you every step of the way.</p></article>
-                <article><x-icon name="package" size="42" /><h3>PREMIUM PRODUCTS</h3><p>High-quality, Irish made hats and caps with strong margins and repeat demand.</p></article>
-                <article><x-icon name="message" size="42" /><h3>MARKETING SUPPORT</h3><p>National &amp; local marketing campaigns, in-store branding and digital support.</p></article>
-                <article><x-icon name="globe" size="42" /><h3>GROWING GLOBAL MARKET</h3><p>Join a growing brand with expanding demand across Ireland and worldwide.</p></article>
+                <article><x-icon name="star" size="42" /><h3>IRISH BRAND HERITAGE</h3><p>Our hat and cap business is rooted in Limerick and Irish craftsmanship.</p></article>
+                <article><x-icon name="map-pin" size="42" /><h3>IRELAND-FIRST ENQUIRIES</h3><p>We are currently hearing from people interested in locations across Ireland.</p></article>
+                <article><x-icon name="users" size="42" /><h3>FRANCHISE GUIDANCE</h3><p>Discuss territory availability, store planning and next steps with our team.</p></article>
+                <article><x-icon name="package" size="42" /><h3>PREMIUM PRODUCTS</h3><p>Explore the Emerald Rozalia range of Irish-made hats and caps.</p></article>
+                <article><x-icon name="message" size="42" /><h3>BRAND RESOURCES</h3><p>Ask about brand assets and marketing resources during your enquiry.</p></article>
+                <article><x-icon name="globe" size="42" /><h3>BUILT IN LIMERICK</h3><p>Start with the story of an Irish manufacturer based in Limerick.</p></article>
             </div>
         </div>
 
-        <aside class="fr-form-card" aria-label="Franchise application form">
-            <h2>INTERESTED IN OWNING YOUR<br><em>EMERALD ROZALIA</em> STORE?</h2>
-            <p>Fill out the form and our franchise team will get in touch with you.</p>
+        <aside class="fr-form-card" aria-labelledby="franchise-form-title">
+            <h2 id="franchise-form-title">START A FRANCHISE<br><em>CONVERSATION</em></h2>
+            <p>Franchise enquiries currently focus on Ireland. Share your preferred area, experience and plans. Investment details are optional at this stage.</p>
             <form method="post" action="{{ route('inquiry') }}">
                 @csrf
                 <input type="hidden" name="type" value="franchise">
-                <input name="name" value="{{ old('name') }}" placeholder="Full Name *" aria-label="Full name" autocomplete="name" required>
-                <input name="email" type="email" value="{{ old('email') }}" placeholder="Email Address *" aria-label="Email address" autocomplete="email" required>
-                <input name="phone" value="{{ old('phone') }}" placeholder="Phone Number *" aria-label="Phone number" autocomplete="tel" required>
+                <input type="hidden" name="country" value="Ireland">
+                <input type="hidden" name="idempotency_key" value="{{ old('idempotency_key', (string) \Illuminate\Support\Str::uuid()) }}">
+                <label class="fr-field"><span>Full name <b>*</b></span><input name="name" value="{{ old('name') }}" autocomplete="name" required></label>
                 <div class="fr-form-row">
-                    <select name="country" aria-label="Country" required>
-                        <option value="">Country *</option>
-                        @foreach(['Ireland','United Kingdom','United States','France','Germany','Spain','Italy','Netherlands','Belgium','United Arab Emirates','Canada','Australia','Other'] as $country)
-                            <option value="{{ $country }}" @selected(old('country')===$country)>{{ $country }}</option>
-                        @endforeach
-                    </select>
-                    <input name="company" value="{{ old('company') }}" placeholder="Preferred City / Region *" aria-label="Preferred city or region" required>
+                    <label class="fr-field"><span>Email address <b>*</b></span><input name="email" type="email" value="{{ old('email') }}" autocomplete="email" required></label>
+                    <label class="fr-field"><span>Phone number <b>*</b></span><input name="phone" type="tel" value="{{ old('phone') }}" autocomplete="tel" required></label>
                 </div>
-                <textarea name="message" placeholder="Tell us about yourself and your interest in franchising with us *" aria-label="Franchise interest and background" required>{{ old('message') }}</textarea>
+                <label class="fr-field"><span>Preferred town or county in Ireland <b>*</b></span><input name="preferred_location" value="{{ old('preferred_location', old('company')) }}" autocomplete="address-level2" maxlength="180" required></label>
+                <div class="fr-form-row">
+                    <label class="fr-field"><span>Investment range <small>(optional)</small></span><input name="investment_range" value="{{ old('investment_range') }}" maxlength="180" placeholder="Share only what you’re comfortable discussing"></label>
+                    <label class="fr-field"><span>Opening timeline <small>(optional)</small></span><select name="opening_timeline">
+                        <option value="">Select a timeframe</option>
+                        @foreach(['Exploring options','Within 6 months','6–12 months','More than 12 months'] as $timeline)
+                            <option value="{{ $timeline }}" @selected(old('opening_timeline')===$timeline)>{{ $timeline }}</option>
+                        @endforeach
+                    </select></label>
+                </div>
+                <label class="fr-field"><span>Retail or business experience and plans <b>*</b></span><textarea name="business_experience" maxlength="3000" required>{{ old('business_experience', old('message')) }}</textarea></label>
                 <label class="fr-consent"><input type="checkbox" name="consent" value="1" @checked(old('consent')) required><span>I agree to the <a href="/privacy-policy">Privacy Policy</a> and <a href="/terms-conditions">Terms &amp; Conditions</a>.</span></label>
-                <button type="submit">SUBMIT ENQUIRY</button>
+                <button type="submit">SEND FRANCHISE ENQUIRY <x-icon name="arrow-right" size="16" /></button>
             </form>
-            <div class="fr-secure"><x-icon name="check" size="18" /><span>Your information is 100% secure and confidential.</span></div>
+            <div class="fr-secure"><span>This is an initial enquiry, not a franchise commitment.</span></div>
         </aside>
     </section>
 
-    <section class="fr-advantage" data-public-data-state="{{ collect($franchiseMetrics)->contains(fn ($metric) => $metric['state'] === 'live') ? 'live' : 'awaiting-approved-records' }}">
-        <h2>THE EMERALD ROZALIA ADVANTAGE</h2>
-        <div class="fr-metrics">
-            @foreach($franchiseMetrics as $metric)
-                <article data-metric-state="{{ $metric['state'] }}"><x-icon name="{{ $metric['icon'] }}" size="34" /><strong>{{ $metric['value'] }}</strong><span>{!! $metric['label'] !!}</span></article>
-            @endforeach
+    <section class="fr-process" aria-labelledby="franchise-process-title">
+        <h2 id="franchise-process-title">WHAT HAPPENS NEXT</h2>
+        <p>Sending an enquiry starts a conversation. It does not make an offer or reserve a territory.</p>
+        <div class="fr-process-grid">
+            <article><span>01</span><h3>SHARE YOUR PLANS</h3><p>Tell us which Irish area you have in mind and what you hope to build.</p></article>
+            <article><span>02</span><h3>INITIAL REVIEW</h3><p>Your application is recorded for the franchise team to review.</p></article>
+            <article><span>03</span><h3>DISCUSS NEXT STEPS</h3><p>Talk through location, suitability and any questions before deciding how to proceed.</p></article>
         </div>
     </section>
 
     <section class="fr-lower-grid">
         <article class="fr-list-card">
-            <h2>WHAT WE PROVIDE</h2>
+            <h2>WHAT WE’LL DISCUSS</h2>
             <ul>
-                <li><x-icon name="check" size="15" />Exclusive territory opportunities</li>
-                <li><x-icon name="check" size="15" />Store design &amp; fit-out guidance</li>
-                <li><x-icon name="check" size="15" />Staff training &amp; product knowledge</li>
-                <li><x-icon name="check" size="15" />Retail operations manual</li>
-                <li><x-icon name="check" size="15" />Ongoing business development support</li>
-                <li><x-icon name="check" size="15" />Access to new collections &amp; innovations</li>
+                <li><x-icon name="check" size="15" />Availability in your preferred area</li>
+                <li><x-icon name="check" size="15" />Store location and format</li>
+                <li><x-icon name="check" size="15" />Product range and retail requirements</li>
+                <li><x-icon name="check" size="15" />Training and onboarding needs</li>
+                <li><x-icon name="check" size="15" />Brand and marketing resources</li>
+                <li><x-icon name="check" size="15" />Possible timeline and next steps</li>
             </ul>
         </article>
         <div class="fr-store-image fr-store-image--interior" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise store-interior media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
@@ -104,18 +110,6 @@
         <a href="#franchise-enquiry">APPLY NOW <x-icon name="arrow-right" size="20" /></a>
     </section>
 
-    <section class="fr-service-strip" aria-label="Service benefits">
-        <article><x-icon name="clover" size="28" /><div><strong>IRISH MADE</strong><span>Proudly made in Limerick</span></div></article>
-        <article><x-icon name="star" size="28" /><div><strong>PREMIUM QUALITY</strong><span>Finest materials, built to last</span></div></article>
-        <article><x-icon name="truck" size="28" /><div><strong>FAST DISPATCH</strong><span>Worldwide delivery</span></div></article>
-        <article><x-icon name="refresh" size="28" /><div><strong>EASY RETURNS</strong><span>30-day returns</span></div></article>
-        <article><x-icon name="credit-card" size="28" /><div><strong>SECURE PAYMENT</strong><span>100% secure checkout</span></div></article>
-    </section>
 
-    <footer class="fr-compact-footer">
-        <div class="fr-footer-brand">@if($franchiseLogo)<img src="{{ $franchiseLogo['url'] }}" @if($franchiseLogo['srcset']) srcset="{{ $franchiseLogo['srcset'] }}" sizes="{{ $franchiseLogo['sizes'] }}" @endif width="{{ $franchiseLogo['width'] ?: '' }}" height="{{ $franchiseLogo['height'] ?: '' }}" alt="{{ $franchiseLogo['alt'] }}">@else<span class="public-media-missing">Emerald Rozalia Limited</span>@endif<span>© {{ date('Y') }} All Rights Reserved.</span></div>
-        <nav aria-label="Franchise footer links"><a href="/factory">About Us</a><a href="/contact">Contact Us</a><a href="/factory">FAQs</a><a href="/factory">Shipping &amp; Returns</a><a href="/terms-conditions">Terms &amp; Conditions</a><a href="/privacy-policy">Privacy Policy</a></nav>
-        <div class="fr-social"><span>FOLLOW US</span><x-icon name="facebook" size="18" /><x-icon name="instagram" size="18" /><x-icon name="music" size="18" /><x-icon name="youtube" size="18" /></div>
-    </footer>
 </div>
 @endsection
