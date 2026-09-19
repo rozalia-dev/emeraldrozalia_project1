@@ -44,7 +44,7 @@
             <span><strong>MESSAGE US</strong><b>Send an enquiry</b><small>Use the form to contact our team</small></span>
         </a>
         <a class="contact-option contact-option-whatsapp" href="https://wa.me/{{ $whatsappNumber }}" target="_blank" rel="noopener noreferrer" aria-label="Start a WhatsApp chat with Emerald Rozalia">
-            <span class="contact-option-icon"><x-icon name="message" size="27" /></span>
+            <span class="contact-option-icon"><x-icon name="whatsapp" size="27$4
             <span><strong>WHATSAPP</strong><b>Send a WhatsApp message</b><small>Message our team directly</small></span>
         </a>
         <a class="contact-option" href="#contact-form" aria-label="Send an email enquiry to Emerald Rozalia">
