@@ -187,7 +187,7 @@
     <div class="footer-main">
         <section class="footer-brand" aria-label="Emerald Rozalia">
             @if($footerLogoUrl)
-                <img class="brand-logo-image{{ $footerLogoPath === 'assets/logo/logo_one_line.png' ? ' brand-logo-image--wide' : '' }}" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
+                <img class="brand-logo-image{{ $footerLogoPath === 'assets/logo/logo_two_line.png' ? ' brand-logo-image--wide' : '' }}" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
             @else
                 <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
             @endif
