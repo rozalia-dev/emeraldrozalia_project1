@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductCatalogue;
 use App\Services\PublicMediaResolver;
@@ -97,7 +98,59 @@ class ProductCatalogueController extends Controller
             })
             ->values();
 
-        $categories = $products->groupBy(fn (Product $product): string => $product->category?->name ?: 'Other Products');
+        $visibleCategories = Category::query()
+            ->forCompany($companyId)
+            ->websiteVisible()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name', 'slug']);
+
+        $categoriesById = $visibleCategories->keyBy('id');
+        $rootCategories = $visibleCategories
+            ->filter(fn (Category $category): bool => $category->parent_id === null)
+            ->values();
+        $rootCategoryIds = [];
+
+        foreach ($visibleCategories as $category) {
+            $cursor = $category;
+            $visited = [];
+
+            while ($cursor && $cursor->parent_id !== null) {
+                $cursorId = (int) $cursor->id;
+                if (isset($visited[$cursorId])) {
+                    $cursor = null;
+                    break;
+                }
+
+                $visited[$cursorId] = true;
+                $cursor = $categoriesById->get((int) $cursor->parent_id);
+            }
+
+            if ($cursor && $cursor->parent_id === null) {
+                $rootCategoryIds[(int) $category->id] = (int) $cursor->id;
+            }
+        }
+
+        $productsByRootCategory = $products->groupBy(
+            fn (Product $product): int => $rootCategoryIds[(int) $product->category_id] ?? 0
+        );
+
+        $categories = $rootCategories->mapWithKeys(fn (Category $category): array => [
+            (int) $category->id => [
+                'name' => $category->name,
+                'slug' => $category->slug ?: Str::slug($category->name),
+                'products' => $productsByRootCategory->get((int) $category->id, collect()),
+            ],
+        ]);
+
+        $uncategorizedProducts = $productsByRootCategory->get(0, collect());
+        if ($uncategorizedProducts->isNotEmpty()) {
+            $categories->put(0, [
+                'name' => 'Other Products',
+                'slug' => 'other-products',
+                'products' => $uncategorizedProducts,
+            ]);
+        }
 
         return [$catalogue, $products, $categories];
     }
