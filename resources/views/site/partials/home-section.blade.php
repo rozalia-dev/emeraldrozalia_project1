@@ -171,12 +171,25 @@
         <section {!! $sectionAttributes !!} class="home-section home-collections home-collections--managed">
             <div class="home-section-heading"><span></span><h2>{{ $copy('title', $section->label ?: 'SHOP BY COLLECTIONS') }}</h2><span></span></div>
             <div class="home-collection-grid">
+                <?php
+                    $collectionTypeBySlug = [
+                        'baseball-caps' => 'caps',
+                        'bucket-hats' => 'hats',
+                        'snapbacks' => 'caps',
+                        'irish-traditional-flat-caps' => 'caps',
+                        'irish-heritage-hats' => 'hats',
+                        'beanies-more' => 'beanies',
+                    ];
+                ?>
                 <?php foreach ($collectionItems as $collectionIndex => $item) { ?>
                     <?php if (is_array($item) && filled($item['title'] ?? null)) { ?>
                                 @php
                                     $slug = trim((string) ($item['slug'] ?? ''));
                                     $category = isset($categories) && $categories instanceof \Illuminate\Support\Collection ? $categories->firstWhere('slug', $slug) : null;
-                                    $collectionUrl = $category ? route('category', $category) : $safeUrl('/shop?category='.rawurlencode($slug));
+                                    $productType = $collectionTypeBySlug[$slug] ?? null;
+                                    $collectionUrl = $category
+                                        ? route('category', $category)
+                                        : ($productType ? route('shop', ['subcategory' => 'type:'.$productType]) : route('shop'));
                                     $collectionMedia = is_array($homeMedia ?? null) && filled($item['media_uuid'] ?? null) ? ($homeMedia[$item['media_uuid']] ?? null) : null;
                                 @endphp
                         <?php if ($collectionUrl) { ?>
