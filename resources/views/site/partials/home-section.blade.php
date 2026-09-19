@@ -172,13 +172,13 @@
             <div class="home-section-heading"><span></span><h2>{{ $copy('title', $section->label ?: 'SHOP BY COLLECTIONS') }}</h2><span></span></div>
             <div class="home-collection-grid">
                 <?php
-                    $collectionTypeBySlug = [
-                        'baseball-caps' => 'caps',
-                        'bucket-hats' => 'hats',
-                        'snapbacks' => 'caps',
-                        'irish-traditional-flat-caps' => 'caps',
-                        'irish-heritage-hats' => 'hats',
-                        'beanies-more' => 'beanies',
+                    $collectionCategoryAliasesBySlug = [
+                        'baseball-caps' => ['caps', 'outdoor', 'sports'],
+                        'bucket-hats' => ['hats', 'outdoor'],
+                        'snapbacks' => ['winter', 'winder-cold'],
+                        'irish-traditional-flat-caps' => ['traditional'],
+                        'irish-heritage-hats' => ['heritage'],
+                        'beanies-more' => ['beanies', 'heritage', 'irish-heritage-hats'],
                     ];
                 ?>
                 <?php foreach ($collectionItems as $collectionIndex => $item) { ?>
@@ -186,10 +186,16 @@
                                 @php
                                     $slug = trim((string) ($item['slug'] ?? ''));
                                     $category = isset($categories) && $categories instanceof \Illuminate\Support\Collection ? $categories->firstWhere('slug', $slug) : null;
-                                    $productType = $collectionTypeBySlug[$slug] ?? null;
-                                    $collectionUrl = $category
-                                        ? route('category', $category)
-                                        : ($productType ? route('shop', ['subcategory' => 'type:'.$productType]) : route('shop'));
+                                    if (! $category && isset($categories) && $categories instanceof \Illuminate\Support\Collection) {
+                                        foreach ($collectionCategoryAliasesBySlug[$slug] ?? [] as $categoryAlias) {
+                                            $candidate = $categories->firstWhere('slug', $categoryAlias);
+                                            if ($candidate && (int) ($candidate->products_count ?? 0) > 0) {
+                                                $category = $candidate;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    $collectionUrl = $category ? route('category', $category) : route('shop');
                                     $collectionMedia = is_array($homeMedia ?? null) && filled($item['media_uuid'] ?? null) ? ($homeMedia[$item['media_uuid']] ?? null) : null;
                                 @endphp
                         <?php if ($collectionUrl) { ?>
