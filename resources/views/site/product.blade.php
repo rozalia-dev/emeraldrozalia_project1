@@ -16,14 +16,25 @@
     $thumbnailImages = collect($galleryImages ?: $spinImages)->values()->all();
     $firstImage = $galleryImages[0] ?? $spinImages[0] ?? null;
     $activeVariants = $product->variants->where('is_active', true)->values();
-    $variantPayload = $activeVariants->map(fn ($variant) => [
-        'id' => $variant->id,
-        'colour' => $variant->colour,
-        'size' => $variant->size,
-        'price' => (float) ($variant->price ?? $product->price),
-        'stock' => (int) $variant->stock,
-        'image' => ($variantMedia = $variant->approvedMedia->firstWhere('type', 'image')) ? ($publicMedia->forVariantMedia($variantMedia, $product->name)['url'] ?? null) : null,
-    ])->values()->all();
+    $variantPayload = $activeVariants->map(function ($variant) use ($publicMedia, $product) {
+        $variantImages = $variant->approvedMedia
+            ->where('type', 'image')
+            ->map(fn ($variantMedia) => $publicMedia->forVariantMedia($variantMedia, $product->name)['url'] ?? null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'id' => $variant->id,
+            'colour' => $variant->colour,
+            'size' => $variant->size,
+            'price' => (float) ($variant->price ?? $product->price),
+            'stock' => (int) $variant->stock,
+            'image' => $variantImages[0] ?? null,
+            'images' => $variantImages,
+        ];
+    })->values()->all();
     $colours = $activeVariants->pluck('colour')->filter()->unique()->values()->all() ?: collect($product->colours ?? [])->filter()->values()->all();
     $sizes = $activeVariants->pluck('size')->filter()->unique()->values()->all() ?: collect($product->sizes ?? [])->filter()->values()->all();
     $reviewCount = $product->reviews->count();
@@ -232,7 +243,9 @@
     const parse = (selector, fallback) => { try { return JSON.parse(viewer?.getAttribute(selector) || '[]') || fallback; } catch (error) { return fallback; } };
     const normalize = (value) => { if (typeof value === 'object' && value) value = value.url || ''; if (!value) return ''; return /^(https?:)?\//.test(String(value)) ? String(value) : ''; };
     const spinFrames = parse('data-spin-frames', []).map(normalize).filter(Boolean);
-    const galleryFrames = parse('data-gallery-frames', []).map(normalize).filter(Boolean);
+    const baseGalleryFrames = parse('data-gallery-frames', []).map(normalize).filter(Boolean);
+    let galleryFrames = baseGalleryFrames;
+    const thumbnailRail = page.querySelector('[data-product-thumbnails]');
     let mode = spinFrames.length >= 2 ? 'spin' : 'gallery';
     let index = 0;
     let zoomed = false;
@@ -264,10 +277,51 @@
     };
     const step = (amount) => { const list = frames(); if (!list.length) return; index = (index + amount + list.length) % list.length; render(); };
     const setMode = (nextMode) => { mode = nextMode === 'spin' && spinFrames.length >= 2 ? 'spin' : 'gallery'; index = Math.min(index, Math.max(frames().length - 1, 0)); page.querySelectorAll('[data-product-mode]').forEach((button) => { const active = button.dataset.productMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-selected', active ? 'true' : 'false'); }); render(); };
+    const syncColourGallery = (images, preferPhotos = false) => {
+        const colourFrames = [...new Set((Array.isArray(images) ? images : []).map(normalize).filter(Boolean))];
+        const nextFrames = colourFrames.length ? colourFrames : baseGalleryFrames;
+        const changed = JSON.stringify(nextFrames) !== JSON.stringify(galleryFrames);
+        if (changed) {
+            galleryFrames = nextFrames;
+            viewer?.setAttribute('data-gallery-frames', JSON.stringify(galleryFrames));
+            if (viewer && galleryFrames[0]) viewer.dataset.initialImage = galleryFrames[0];
+            index = 0;
+            thumbnailRail?.replaceChildren();
+            galleryFrames.forEach((url, thumbnailIndex) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'product-thumb';
+                button.dataset.productThumb = '';
+                button.dataset.index = String(thumbnailIndex);
+                button.setAttribute('aria-label', 'View selected colour image ' + (thumbnailIndex + 1));
+                const image = document.createElement('img');
+                image.src = url;
+                image.alt = (selected.colour || 'Product') + ' image ' + (thumbnailIndex + 1);
+                image.loading = thumbnailIndex === 0 ? 'eager' : 'lazy';
+                button.append(image);
+                thumbnailRail?.append(button);
+            });
+            if (thumbnailRail && !galleryFrames.length) {
+                const fallbackThumb = document.createElement('div');
+                fallbackThumb.className = 'product-thumb';
+                const fallbackText = document.createElement('span');
+                fallbackText.className = 'product-thumb-fallback';
+                fallbackText.textContent = 'Media pending';
+                fallbackThumb.append(fallbackText);
+                thumbnailRail.append(fallbackThumb);
+            }
+        }
+        if (preferPhotos) {
+            index = 0;
+            setMode('gallery');
+        } else if (changed && mode === 'gallery') {
+            render(false);
+        }
+    };
     page.querySelectorAll('[data-product-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.productMode)));
     page.querySelectorAll('[data-rotate-prev]').forEach((button) => button.addEventListener('click', () => step(-1)));
     page.querySelectorAll('[data-rotate-next]').forEach((button) => button.addEventListener('click', () => step(1)));
-    page.querySelectorAll('[data-product-thumb]').forEach((button) => button.addEventListener('click', () => { index = Number(button.dataset.index) || 0; if (mode === 'spin' && spinFrames.length < 2) mode = 'gallery'; render(); }));
+    thumbnailRail?.addEventListener('click', (event) => { const button = event.target.closest?.('[data-product-thumb]'); if (!button || !thumbnailRail.contains(button)) return; index = Number(button.dataset.index) || 0; setMode('gallery'); });
     slider?.addEventListener('input', (event) => { const list = frames(); if (!list.length) return; index = Math.round((Number(event.target.value) / 360) * list.length) % list.length; render(false); });
     stage?.addEventListener('pointerdown', (event) => { dragStart = event.clientX; dragMoved = false; stage.classList.add('is-dragging'); stage.setPointerCapture?.(event.pointerId); });
     stage?.addEventListener('pointermove', (event) => { if (dragStart === null || mode !== 'spin' || spinFrames.length < 2) return; const delta = event.clientX - dragStart; if (Math.abs(delta) > 8) { dragMoved = true; step(delta > 0 ? -1 : 1); dragStart = event.clientX; } });
@@ -282,8 +336,14 @@
     try { variants = JSON.parse(page.dataset.variantPayload || '[]') || []; } catch (error) { variants = []; }
     const selected = { colour: page.querySelector('[data-colour-value]')?.value || '', size: page.querySelector('[data-size-value]')?.value || '' };
     const variantMatches = () => variants.filter((variant) => (!selected.colour || variant.colour === selected.colour) && (!selected.size || variant.size === selected.size));
-    const applyVariant = () => {
+    const applyVariant = (preferColourPhotos = false) => {
         const match = variantMatches()[0];
+        const galleryVariants = selected.colour
+            ? variants.filter((variant) => variant.colour === selected.colour)
+            : (match ? [match] : []);
+        const colourImages = galleryVariants.flatMap((variant) => Array.isArray(variant.images) ? variant.images : (variant.image ? [variant.image] : []));
+        syncColourGallery(colourImages, preferColourPhotos);
+
         const price = match ? Number(match.price) : Number(page.dataset.productPrice || 0);
         const available = match ? Number(match.stock) : Number(page.dataset.productStock || 0);
         const priceDisplay = page.querySelector('[data-product-price-display]');
@@ -292,7 +352,6 @@
         const quantity = page.querySelector('[data-quantity]');
         if (priceDisplay) priceDisplay.textContent = '€' + price.toFixed(2);
         if (page.querySelector('[data-variant-id]')) page.querySelector('[data-variant-id]').value = match?.id || '';
-        if (match?.image && stageImage) { stageImage.src = normalize(match.image); stageImage.hidden = false; placeholder?.setAttribute('hidden', 'hidden'); }
         if (quantity) { quantity.max = String(Math.max(1, available)); if (Number(quantity.value) > available) quantity.value = Math.max(1, available); }
         if (stockNote) stockNote.textContent = available > 0 ? available + ' available · Ships from Limerick, Ireland' : 'This combination is currently unavailable';
         if (add) { add.disabled = available < 1 || (variants.length > 0 && !match); add.textContent = available > 0 ? 'ADD TO CART' : 'OUT OF STOCK'; }
@@ -300,9 +359,9 @@
         if (page.querySelector('[data-selected-colour]')) page.querySelector('[data-selected-colour]').textContent = selected.colour || 'Select';
         if (page.querySelector('[data-selected-size]')) page.querySelector('[data-selected-size]').textContent = selected.size || 'Select';
     };
-    page.querySelectorAll('input[name="colour-choice"]').forEach((input) => input.addEventListener('change', () => { selected.colour = input.value; page.querySelector('[data-colour-value]').value = input.value; applyVariant(); }));
+    page.querySelectorAll('input[name="colour-choice"]').forEach((input) => input.addEventListener('change', () => { selected.colour = input.value; page.querySelector('[data-colour-value]').value = input.value; applyVariant(true); }));
     page.querySelectorAll('input[name="size-choice"]').forEach((input) => input.addEventListener('change', () => { selected.size = input.value; page.querySelector('[data-size-value]').value = input.value; applyVariant(); }));
-    page.querySelector('[data-variant-select]')?.addEventListener('change', (event) => { const match = variants.find((variant) => String(variant.id) === event.target.value); if (match) { selected.colour = match.colour || ''; selected.size = match.size || ''; page.querySelector('[data-colour-value]').value = selected.colour; page.querySelector('[data-size-value]').value = selected.size; } applyVariant(); });
+    page.querySelector('[data-variant-select]')?.addEventListener('change', (event) => { const match = variants.find((variant) => String(variant.id) === event.target.value); if (match) { selected.colour = match.colour || ''; selected.size = match.size || ''; page.querySelector('[data-colour-value]').value = selected.colour; page.querySelector('[data-size-value]').value = selected.size; } applyVariant(true); });
     page.querySelector('[data-quantity-minus]')?.addEventListener('click', () => { const input = page.querySelector('[data-quantity]'); input.value = Math.max(1, Number(input.value || 1) - 1); });
     page.querySelector('[data-quantity-plus]')?.addEventListener('click', () => { const input = page.querySelector('[data-quantity]'); input.value = Math.min(Number(input.max || 50), Number(input.value || 1) + 1); });
     page.querySelector('[data-quantity]')?.addEventListener('change', (event) => { event.target.value = Math.max(1, Math.min(Number(event.target.max || 50), Number(event.target.value || 1))); });
