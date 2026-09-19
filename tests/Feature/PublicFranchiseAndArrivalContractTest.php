@@ -10,32 +10,15 @@ class PublicFranchiseAndArrivalContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_franchise_metrics_are_live_and_unconfigured_values_are_not_fabricated(): void
+    public function test_franchise_page_omits_unconfigured_public_metrics(): void
     {
-        Product::create([
-            'name' => 'Live Catalogue Cap',
-            'slug' => 'live-catalogue-cap',
-            'sku' => 'LIVE-CATALOGUE-001',
-            'price' => 39.00,
-            'stock' => 5,
-            'is_active' => true,
-        ]);
-        FranchiseStore::create([
-            'code' => 'LIM-001',
-            'name' => 'Limerick Partner Store',
-            'territory' => 'Limerick',
-            'status' => 'active',
-            'address' => ['country' => 'IE'],
-        ]);
-
-        $response = $this->get('/franchise');
-
-        $response->assertOk()
-            ->assertSee('data-public-data-state="live"', false)
-            ->assertSee('Active retail partner', false)
-            ->assertSee('Country', false)
-            ->assertSee('Active product', false)
-            ->assertSee('Heritage year<br>not configured', false)
+        $this->get('/franchise')
+            ->assertOk()
+            ->assertDontSee('data-public-data-state="live"', false)
+            ->assertDontSee('fr-metrics', false)
+            ->assertDontSee('Active retail partner', false)
+            ->assertDontSee('Active product', false)
+            ->assertDontSee('Heritage year<br>not configured', false)
             ->assertDontSee('35+', false)
             ->assertDontSee('100+', false)
             ->assertDontSee('Years of Heritage', false);
