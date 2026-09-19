@@ -56,7 +56,7 @@ html body.site-body.site-body[class] *:focus-visible {
     height: 84px;
     min-height: 84px;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     padding: 0 24px;
     background: var(--layout-header-bg, #010705);
     border-bottom: 1px solid rgba(96, 137, 73, .18);
@@ -68,14 +68,20 @@ html body.site-body.site-body[class] *:focus-visible {
     height: 100%;
     flex: 0 0 232px;
     align-items: center;
+    justify-content: flex-start;
 }
 
 .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
     display: block;
-    width: 232px;
-    height: 58px;
+    width: 100%;
+    height: 68px;
     object-fit: contain;
-    object-position: center;
+    object-position: left center;
+}
+
+.site-body .site-header[data-public-shell-region="header"] .brand-logo-image--wide {
+    object-fit: cover;
+    object-position: left 34%;
 }
 
 .site-body .site-header[data-public-shell-region="header"] nav {
@@ -83,8 +89,8 @@ html body.site-body.site-body[class] *:focus-visible {
     min-width: 0;
     height: 100%;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
+    justify-content: flex-start;
+    gap: 14px;
     flex: 1 1 auto;
     font-size: 13px;
     font-weight: 400;
@@ -165,7 +171,7 @@ html body.site-body.site-body[class] *:focus-visible {
 
 @media (max-width: 1500px) and (min-width: 1101px) {
     .site-body .site-header[data-public-shell-region="header"] {
-        gap: 14px;
+        gap: 12px;
         padding-right: 18px;
         padding-left: 18px;
     }
@@ -177,11 +183,11 @@ html body.site-body.site-body[class] *:focus-visible {
     }
 
     .site-body .site-header[data-public-shell-region="header"] .brand-logo-image {
-        height: 54px;
+        height: 60px;
     }
 
     .site-body .site-header[data-public-shell-region="header"] nav {
-        gap: 13px;
+        gap: 9px;
         font-size: 11.5px;
     }
 
