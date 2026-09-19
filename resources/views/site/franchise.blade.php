@@ -16,7 +16,7 @@
                 <article><x-icon name="clover" size="32" /><strong>Authentic<br>Irish Brand</strong></article>
                 <article><x-icon name="star" size="32" /><strong>Premium<br>Quality</strong></article>
                 <article><x-icon name="home" size="32" /><strong>Limerick<br>Headquarters</strong></article>
-                <article><x-icon name="map-pin" size="32" /><strong>Ireland-first<br>Enquiries</strong></article>
+                <article><x-icon name="globe" size="32" /><strong>Ireland-first<br>Enquiries</strong></article>
             </div>
         </div>
         <div class="fr-store-image fr-store-image--hero" data-public-media-state="awaiting-approved-media" role="img" aria-label="Approved franchise retail-store media is not configured"><span class="fr-media-empty">Approved franchise media is not configured.</span></div>
@@ -28,7 +28,7 @@
             <p class="fr-section-intro">A first conversation to explore whether Emerald Rozalia could be the right fit for your plans.</p>
             <div class="fr-partner-grid">
                 <article><x-icon name="star" size="42" /><h3>IRISH BRAND HERITAGE</h3><p>Our hat and cap business is rooted in Limerick and Irish craftsmanship.</p></article>
-                <article><x-icon name="map-pin" size="42" /><h3>IRELAND-FIRST ENQUIRIES</h3><p>We are currently hearing from people interested in locations across Ireland.</p></article>
+                <article><x-icon name="globe" size="42" /><h3>IRELAND-FIRST ENQUIRIES</h3><p>We are currently hearing from people interested in locations across Ireland.</p></article>
                 <article><x-icon name="users" size="42" /><h3>FRANCHISE GUIDANCE</h3><p>Discuss territory availability, store planning and next steps with our team.</p></article>
                 <article><x-icon name="package" size="42" /><h3>PREMIUM PRODUCTS</h3><p>Explore the Emerald Rozalia range of Irish-made hats and caps.</p></article>
                 <article><x-icon name="message" size="42" /><h3>BRAND RESOURCES</h3><p>Ask about brand assets and marketing resources during your enquiry.</p></article>
