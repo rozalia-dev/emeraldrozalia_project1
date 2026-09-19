@@ -2,7 +2,7 @@
 @section('body-class','new-arrivals-reference-page')
 @section('title','New Arrivals — Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/new-arrivals.css?v=20260919-arrival-card-parity">
+<link rel="stylesheet" href="/css/new-arrivals.css?v=20260908-approved&refresh=20260919-arrival-card-parity">
 <link rel="stylesheet" href="/css/shop.css?v=20260919-catalog-type-scale">
 @endpush
 @section('content')
