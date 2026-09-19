@@ -328,6 +328,65 @@ html body.site-body.site-body[class] *:focus-visible {
     }
 }
 
+.site-body .site-footer .footer-bottom-details {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+    min-width: 0;
+}
+
+.site-body .site-footer .footer-bottom-branding,
+.site-body .site-footer .footer-bottom-contact,
+.site-body .site-footer .footer-bottom-social {
+    min-width: 0;
+}
+
+.site-body .site-footer .footer-bottom-branding {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.site-body .site-footer .footer-bottom-logo {
+    width: auto;
+    height: 20px;
+    flex: none;
+    object-fit: contain;
+}
+
+.site-body .site-footer .footer-bottom-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.site-body .site-footer .footer-bottom-contact span,
+.site-body .site-footer .footer-bottom-social a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f5f2ea;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.site-body .site-footer .footer-bottom-contact .ui-icon,
+.site-body .site-footer .footer-bottom-social .ui-icon {
+    flex: none;
+    color: #9bc63e;
+}
+
+.site-body .site-footer .footer-bottom-social {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
+}
+
+.site-body .site-footer .footer-bottom-social a {
+    text-decoration: none;
+}
+
 /* Keep the shared footer within narrow public viewports. */
 @media (max-width: 700px) {
     .site-body .site-footer {
@@ -345,6 +404,28 @@ html body.site-body.site-body[class] *:focus-visible {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
+    }
+
+    .site-body .site-footer .footer-bottom-details {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .site-body .site-footer .footer-bottom-branding,
+    .site-body .site-footer .footer-bottom-contact,
+    .site-body .site-footer .footer-bottom-social {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .site-body .site-footer .footer-bottom-branding > div,
+    .site-body .site-footer .footer-bottom-contact span,
+    .site-body .site-footer .footer-bottom-social a {
+        min-width: 0;
+        max-width: 100%;
     }
 
     .site-body .site-footer .payments {
