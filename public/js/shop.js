@@ -77,16 +77,12 @@
     if (form && country) {
         country.addEventListener('change', () => {
             if (county) county.value = '';
-            if (subcategory) subcategory.value = '';
             submitFilters();
         });
     }
 
     if (form && county) {
-        county.addEventListener('change', () => {
-            if (subcategory) subcategory.value = '';
-            submitFilters();
-        });
+        county.addEventListener('change', submitFilters);
     }
 
     if (form && subcategory) {

@@ -77,6 +77,19 @@ class StorefrontLocalizationTest extends TestCase
             ->assertSessionHas('currency','CAD');
     }
 
+    public function test_header_language_and_currency_controls_use_icon_only_dropdown_triggers(): void
+    {
+        $company = $this->configure();
+
+        $this->withSession(['company_id'=>$company->id])->get('/shop')
+            ->assertOk()
+            ->assertSee('data-header-language-menu', false)
+            ->assertSee('data-header-currency-menu', false)
+            ->assertSee('<summary aria-label="Change language" title="Language">', false)
+            ->assertSee('<summary aria-label="Change currency" title="Currency">', false)
+            ->assertSee('class="header-context-popover"', false);
+    }
+
     public function test_company_controls_which_languages_and_currencies_are_public(): void
     {
         $company = $this->configure();

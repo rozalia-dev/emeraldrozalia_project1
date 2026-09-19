@@ -35,6 +35,17 @@ class ShopReferencePageTest extends TestCase
             ], false);
     }
 
+    public function test_empty_shop_results_offer_contact_us_as_the_primary_action(): void
+    {
+        $this->get('/shop?q=definitely-no-matching-product')
+            ->assertOk()
+            ->assertSeeText('No products match those filters')
+            ->assertSee('class="shop-empty-contact"', false)
+            ->assertSee('href="'.route('contact').'"', false)
+            ->assertSeeText('CONTACT US')
+            ->assertSeeText('RESET FILTERS');
+    }
+
     public function test_shop_filters_sort_product_links_and_cart_are_functional(): void
     {
         $flatCaps = Category::create([
