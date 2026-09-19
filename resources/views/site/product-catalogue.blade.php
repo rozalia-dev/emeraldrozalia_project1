@@ -51,6 +51,18 @@
 .product-catalogue-card-foot small{color:var(--site-text-muted);font-size:.82rem}
 .product-catalogue-card-foot strong{font-size:1.06rem}
 .product-catalogue-empty{padding:42px;border:1px dashed var(--site-border);border-radius:var(--site-radius);background:var(--site-surface-muted);text-align:center;color:var(--site-text-muted)}
+.product-catalogue-card--coming-soon{display:flex;flex-direction:column;cursor:default;border-style:dashed;border-color:rgba(128,214,94,.55);background:linear-gradient(155deg,#09251a,#061810)}
+.product-catalogue-card--coming-soon:hover{transform:none;box-shadow:none}
+.product-catalogue-coming-soon-media{flex:0 0 auto;background:radial-gradient(ellipse at center,rgba(46,133,74,.24),transparent 68%),linear-gradient(145deg,#0b2a1d,#071a13)}
+.product-catalogue-coming-soon-content{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:18px;text-align:center;color:#e8f1e9}
+.product-catalogue-coming-soon-content>span{display:grid;width:44px;height:44px;place-items:center;border:1px solid rgba(128,214,94,.65);border-radius:50%;color:#9cde43;font-size:1.8rem;line-height:1}
+.product-catalogue-coming-soon-content strong{font-family:var(--site-heading-family);font-size:1.05rem}
+.product-catalogue-coming-soon-content small{color:#c7d5cb;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase}
+.product-catalogue-card--coming-soon .product-catalogue-info{flex:1}
+.product-catalogue-card--coming-soon .product-catalogue-info .category{color:#9cde43}
+.product-catalogue-card--coming-soon .product-catalogue-info h4{color:#f4f7f3}
+.product-catalogue-card--coming-soon .product-catalogue-info p,.product-catalogue-card--coming-soon .product-catalogue-card-foot small{color:#c7d5cb}
+.product-catalogue-card--coming-soon .product-catalogue-card-foot{border-color:rgba(196,218,202,.22)}
 @media(max-width:1120px){.product-catalogue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:820px){.product-catalogue-hero{grid-template-columns:minmax(0,1fr);gap:24px}.product-catalogue-cover,.product-catalogue-cover img{min-height:320px}.product-catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.product-catalogue-section-head{align-items:flex-start;flex-direction:column;gap:10px}}
 @media(max-width:560px){.product-catalogue-shell{padding:32px 16px 64px}.product-catalogue-hero{padding:18px}.product-catalogue-cover,.product-catalogue-cover img{min-height:280px}.product-catalogue-copy h1{font-size:clamp(2rem,8vw,2.8rem)}.product-catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.product-catalogue-actions{flex-direction:column}.product-catalogue-action{width:100%;box-sizing:border-box}.product-catalogue-info{padding:13px}.product-catalogue-info h4{font-size:1rem}.product-catalogue-info p{font-size:.86rem}.product-catalogue-card-foot{align-items:flex-start;flex-direction:column;gap:4px}}
@@ -96,7 +108,7 @@
     <section class="product-catalogue-section" aria-labelledby="catalogue-products-title">
         <div class="product-catalogue-section-head">
             <div><div class="eyebrow">LIVE PRODUCT RANGE</div><h2 id="catalogue-products-title">Browse the current catalogue</h2></div>
-            <p>Only products currently published on the website are included.</p>
+            <p>Published products appear first; open spaces are marked for future styles.</p>
         </div>
 
         @if($categories->isNotEmpty())
@@ -130,6 +142,23 @@
                                 </a>
                             </article>
                         @endforeach
+                    @for($slot = $categoryProducts->count(); $slot < 4; $slot++)
+                        <article class="product-catalogue-card product-catalogue-card--coming-soon" aria-label="Upcoming product slot in {{ $categoryName }} category">
+                            <div class="product-catalogue-media product-catalogue-coming-soon-media" aria-hidden="true">
+                                <div class="product-catalogue-coming-soon-content">
+                                    <span>+</span>
+                                    <strong>More styles</strong>
+                                    <small>Coming soon</small>
+                                </div>
+                            </div>
+                            <div class="product-catalogue-info">
+                                <span class="category">{{ $categoryName }}</span>
+                                <h4>More styles coming soon</h4>
+                                <p>New products will appear here when available.</p>
+                                <div class="product-catalogue-card-foot"><small>COMING SOON</small></div>
+                            </div>
+                        </article>
+                    @endfor
                     </div>
                 </section>
             @endforeach
