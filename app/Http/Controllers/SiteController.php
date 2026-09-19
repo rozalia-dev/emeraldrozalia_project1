@@ -60,7 +60,10 @@ class SiteController extends Controller
             ->get();
 
         return [
-            'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+            'categories' => Category::where('is_active', true)
+                ->withCount(['products' => fn ($query) => $query->published()])
+                ->orderBy('sort_order')
+                ->get(),
             'homeProducts' => $homeProducts,
             'homeLatestProducts' => $homeLatestProducts,
             'newProducts' => $homeProducts,
