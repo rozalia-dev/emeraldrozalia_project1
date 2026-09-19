@@ -190,44 +190,7 @@ class SiteController extends Controller
     public function bulkOrders() { return view('site.bulk-order'); }
     public function franchise()
     {
-        $stores = FranchiseStore::query()
-            ->whereIn('status', ['active', 'open'])
-            ->get(['territory', 'address']);
-        $activeProducts = Product::published()->count();
-        $countries = $stores
-            ->map(fn (FranchiseStore $store): ?string => strtoupper(trim((string) data_get($store->address, 'country'))))
-            ->filter()
-            ->unique()
-            ->count();
-
-        return view('site.franchise', [
-            'franchiseMetrics' => [
-                [
-                    'icon' => 'home',
-                    'value' => $stores->count() ?: '—',
-                    'label' => "Active retail partner".($stores->count() === 1 ? '' : 's').'<br>recorded',
-                    'state' => $stores->isNotEmpty() ? 'live' : 'not-configured',
-                ],
-                [
-                    'icon' => 'globe',
-                    'value' => $countries ?: '—',
-                    'label' => ($countries === 1 ? 'Country' : 'Countries').'<br>recorded',
-                    'state' => $countries ? 'live' : 'not-configured',
-                ],
-                [
-                    'icon' => 'tag',
-                    'value' => $activeProducts ?: '—',
-                    'label' => 'Active product'.($activeProducts === 1 ? '' : 's').'<br>in catalog',
-                    'state' => $activeProducts ? 'live' : 'not-configured',
-                ],
-                [
-                    'icon' => 'calendar',
-                    'value' => '—',
-                    'label' => 'Heritage year<br>not configured',
-                    'state' => 'not-configured',
-                ],
-            ],
-        ]);
+        return view('site.franchise');
     }
     public function quality() { return view('site.quality'); }
     public function careers() { return view('site.careers'); }
@@ -599,7 +562,17 @@ class SiteController extends Controller
             if ($slot->isWeekend()) throw ValidationException::withMessages(['meeting_date' => 'Meetings are available Monday to Friday only.']);
             if ($slot->lessThanOrEqualTo(now(config('app.timezone')))) throw ValidationException::withMessages(['meeting_time' => 'Please choose a future meeting time.']);
         }
-        $country = $d['country'] ?? null;
+        $country = $d['type'] === 'franchise' ? 'Ireland' : ($d['country'] ?? null);
+        $franchiseData = [];
+        if ($d['type'] === 'franchise') {
+            $franchiseData = [
+                'preferred_location' => $d['preferred_location'] ?? $d['company'] ?? null,
+                'investment_range' => $d['investment_range'] ?? null,
+                'business_experience' => $d['business_experience'] ?? $d['message'] ?? null,
+                'opening_timeline' => $d['opening_timeline'] ?? null,
+            ];
+            unset($d['preferred_location'], $d['investment_range'], $d['business_experience'], $d['opening_timeline'], $d['company']);
+        }
         unset($d['meeting_date'], $d['meeting_time'], $d['consent'], $d['country']);
         $d['meta'] = ['source' => 'public_'.$d['type'].'_form', 'meeting' => $meeting ?: null, 'country' => $country];
 
@@ -614,6 +587,7 @@ class SiteController extends Controller
         $consentCapturedAt = $requiresConsent ? now() : null;
         $requestHash = hash('sha256', (string) json_encode([
             'payload' => $d,
+            'franchise_application' => $franchiseData,
             'meeting' => $meeting,
         ], JSON_UNESCAPED_SLASHES));
 
@@ -629,7 +603,7 @@ class SiteController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($d, $meeting, $correlationId, $idempotencyKey, $requestHash, $customerId, $messageIdempotencyKey, $consentCapturedAt): void {
+            DB::transaction(function () use ($d, $franchiseData, $country, $meeting, $correlationId, $idempotencyKey, $requestHash, $customerId, $messageIdempotencyKey, $consentCapturedAt): void {
                 $inquiry = Inquiry::create(array_merge($d, [
                     'correlation_id' => $correlationId,
                     'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
@@ -639,14 +613,19 @@ class SiteController extends Controller
                 $application = null;
                 if ($d['type'] === 'franchise') {
                     $application = FranchiseApplication::create([
-                'applicant_name' => $d['name'],
-                'email' => $d['email'],
-                'phone' => $d['phone'] ?? null,
-                'territory' => 'Ireland',
-                'preferred_location' => $d['company'] ?? null,
-                'business_experience' => $d['message'] ?? null,
-                'status' => 'new',
-                'data' => ['source' => 'public_franchise_form'],
+                        'applicant_name' => $d['name'],
+                        'email' => $d['email'],
+                        'phone' => $d['phone'] ?? null,
+                        'territory' => 'Ireland',
+                        'preferred_location' => $franchiseData['preferred_location'] ?? null,
+                        'investment_range' => $franchiseData['investment_range'] ?? null,
+                        'business_experience' => $franchiseData['business_experience'] ?? null,
+                        'status' => 'new',
+                        'data' => array_filter([
+                            'source' => 'public_franchise_form',
+                            'country' => $country,
+                            'opening_timeline' => $franchiseData['opening_timeline'] ?? null,
+                        ], fn ($value) => $value !== null && $value !== ''),
                         'correlation_id' => $correlationId,
                         'inquiry_id' => $inquiry->id,
                     ]);
@@ -676,7 +655,7 @@ class SiteController extends Controller
                     'meeting' => $meeting ?: null,
                 ],
                 ]);
-                $body = $d['message'] ?? 'Public form submission';
+                $body = $d['message'] ?? $franchiseData['business_experience'] ?? 'Public form submission';
                 if ($meeting) $body .= "\n\nMeeting requested: {$meeting['date']} at {$meeting['time']} (Europe/Dublin).";
                 $message = $conversation->messages()->create([
                     'direction' => 'inbound',
