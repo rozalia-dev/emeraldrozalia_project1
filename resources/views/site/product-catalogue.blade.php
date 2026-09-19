@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-.product-catalogue-shell{width:100%;max-width:1320px;min-width:0;margin:0 auto;padding:clamp(32px,5vw,60px) clamp(16px,2.5vw,32px) 88px}
+.product-catalogue-shell{width:100%;max-width:none;min-width:0;margin:0 auto;padding:clamp(32px,5vw,60px) clamp(16px,2.5vw,32px) 88px}
 .product-catalogue-hero{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(24px,3.5vw,46px);align-items:center;min-width:0;padding:clamp(22px,3vw,38px);border:1px solid var(--site-border);border-radius:calc(var(--site-radius) + 4px);background:linear-gradient(135deg,var(--site-surface),var(--site-surface-muted));box-shadow:0 18px 48px rgba(6,48,32,.07)}
 .product-catalogue-hero>*{min-width:0}
 .product-catalogue-cover{width:100%;min-width:0;min-height:380px;border-radius:var(--site-radius);overflow:hidden;background:linear-gradient(150deg,var(--site-brand-primary),var(--site-brand-secondary));display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 16px 38px rgba(0,0,0,.13)}
