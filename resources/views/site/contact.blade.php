@@ -179,12 +179,12 @@
         <p class="contact-section-kicker">NEED TO KNOW</p>
         <h2 id="contact-faq-title">FREQUENTLY ASKED QUESTIONS</h2>
         <div class="contact-faq-grid">
-            <details><summary>How long does delivery take?</summary><p>Delivery timing depends on the product and destination. We’ll confirm the expected delivery date with your order.</p></details>
-            <details><summary>Can I return or exchange an item?</summary><p>Yes. Contact our team with your order details and we’ll guide you through the available return or exchange options.</p></details>
-            <details><summary>Do you offer bulk or corporate orders?</summary><p>Yes. Visit our Corporate Order or Bulk Order page and send us your requirements for a tailored response.</p></details>
-            <details><summary>Do you ship internationally?</summary><p>We deliver worldwide. Delivery options and costs are shown for your destination during the order process.</p></details>
-            <details><summary>How do I track my order?</summary><p>Once your order has been dispatched, our team will share the available delivery tracking details.</p></details>
-            <details><summary>Do you have a physical store?</summary><p>Our team is proudly based in Limerick. Contact us to arrange a factory visit or discuss a retail partnership.</p></details>
+            <details name="contact-faq" open><summary>How long does delivery take?</summary><p>Delivery timing depends on the product and destination. We’ll confirm the expected delivery date with your order.</p></details>
+            <details name="contact-faq"><summary>Can I return or exchange an item?</summary><p>Yes. Contact our team with your order details and we’ll guide you through the available return or exchange options.</p></details>
+            <details name="contact-faq"><summary>Do you offer bulk or corporate orders?</summary><p>Yes. Visit our Corporate Order or Bulk Order page and send us your requirements for a tailored response.</p></details>
+            <details name="contact-faq"><summary>Do you ship internationally?</summary><p>We deliver worldwide. Delivery options and costs are shown for your destination during the order process.</p></details>
+            <details name="contact-faq"><summary>How do I track my order?</summary><p>Once your order has been dispatched, our team will share the available delivery tracking details.</p></details>
+            <details name="contact-faq"><summary>Do you have a physical store?</summary><p>Our team is proudly based in Limerick. Contact us to arrange a factory visit or discuss a retail partnership.</p></details>
         </div>
     </section>
 
