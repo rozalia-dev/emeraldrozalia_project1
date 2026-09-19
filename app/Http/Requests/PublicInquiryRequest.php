@@ -49,7 +49,7 @@ class PublicInquiryRequest extends FormRequest
             'type' => ['required', 'string', Rule::in(self::TYPES)],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255'],
-            'phone' => [Rule::requiredIf($type === 'franchise'), 'nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:50'],
             'company' => ['nullable', 'string', 'max:120'],
             'country' => ['nullable', 'string', 'max:120'],
             'subject' => ['required_if:type,contact', 'nullable', 'string', 'max:150'],
