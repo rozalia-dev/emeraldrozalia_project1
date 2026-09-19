@@ -175,94 +175,81 @@
     @php($footerLogoPath = ltrim((string) data_get($siteLayoutRegions, 'footer.logo.path', '/assets/logo/logo_two_line.png'), '/'))
     @php($footerLogo = $publicMedia->forLegacyPath($footerLogoPath, $footerLogoAlt))
     @php($footerLogoUrl = data_get($footerLogo, 'url'))
-    <div class="footer-brand">
-        @if($footerLogoUrl)
-            <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
-        @else
-            <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
-        @endif
-        <p>{{ $footerBrandDescription }}</p>
-        <div class="footer-contact" aria-label="Emerald Rozalia contact details">
-            @if(filled($footerPhone))<a href="tel:{{ preg_replace('/\D+/', '', (string) $footerPhone) }}"><x-icon name="phone" size="14" /> {{ $footerPhone }}</a>@endif
-            @if(filled($footerEmail))<a href="mailto:{{ $footerEmail }}"><x-icon name="mail" size="14" /> {{ $footerEmail }}</a>@endif
-            @if(filled($footerWebsite))<a href="{{ $footerWebsiteUrl }}" target="_blank" rel="noopener"><x-icon name="globe" size="14" /> {{ $footerWebsite }}</a>@endif
-            @if(filled($footerLocation))<span><x-icon name="globe" size="14" /> {{ $footerLocation }}</span>@endif
-        </div>
-        <div class="socials">
-            @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
-                @php($socialHref = $layoutUrl($social))
-                @if($socialHref)
-                    <a href="{{ $socialHref }}" aria-label="{{ data_get($social, 'label', 'Social profile') }}" rel="me noopener" target="_blank">
-                        <x-icon name="{{ data_get($social, 'icon', 'link') }}" label="{{ data_get($social, 'label', 'Social profile') }}" />
-                    </a>
-                @endif
-            @endforeach
-        </div>
-    </div>
-    @foreach((array) data_get($siteLayoutRegions, 'footer.columns', []) as $footerColumn)
-        <div>
-            <h4>{{ data_get($footerColumn, 'title') }}</h4>
-            @foreach((array) data_get($footerColumn, 'links', []) as $footerLink)
-                @php($footerHref = $layoutUrl($footerLink))
-                @if($footerHref)
-                    <a href="{{ $footerHref }}">{{ data_get($footerLink, 'label') }}</a>
-                @endif
-            @endforeach
-            @if(data_get($footerColumn, 'title') === 'COMPANY')
-                @foreach($footerPages ?? [] as $footerPage)
-                    <a href="{{ route('content.page', ['page' => $footerPage->slug]) }}">{{ $footerPage->title }}</a>
-                @endforeach
-            @endif
-        </div>
-    @endforeach
-    @php($newsletter = data_get($siteLayoutRegions, 'footer.newsletter', []))
+    @php($footerColumns = array_values((array) data_get($siteLayoutRegions, 'footer.columns', [])))
+    @php($newsletter = (array) data_get($siteLayoutRegions, 'footer.newsletter', []))
     @php($newsletterHref = $layoutUrl($newsletter))
-    <div class="newsletter">
-        <h4>{{ data_get($newsletter, 'title', 'NEWSLETTER') }}</h4>
-        <p>{{ data_get($newsletter, 'description', 'Stay updated with new arrivals and offers.') }}</p>
-        @if($newsletterHref)
-            <a class="btn" href="{{ $newsletterHref }}">{{ data_get($newsletter, 'cta_label', 'Contact our team') }} <x-icon name="arrow-right" /></a>
-        @endif
-        <p class="payments">VISA &nbsp; Mastercard &nbsp; PayPal &nbsp; Apple Pay &nbsp; Google Pay</p>
-    </div>
-    <div class="footer-bottom">
-        <div class="footer-bottom-details">
-            <div class="footer-bottom-branding">
-                @if(isset($footerLogoUrl) && $footerLogoUrl)
-                    <img src="{{ $footerLogoUrl }}" alt="Logo" class="footer-bottom-logo">
+    @php($newsletterEnabled = ! array_key_exists('enabled', $newsletter) || filter_var(data_get($newsletter, 'enabled', true), FILTER_VALIDATE_BOOLEAN))
+    @php($footerCopyright = data_get($siteLayoutRegions, 'footer.copyright_text')
+        ?: data_get($siteBranding, 'footer_text')
+        ?: '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.')
+    @php($footerManufacturing = data_get($siteLayoutRegions, 'footer.manufacturing_text')
+        ?: 'Designed & Manufactured in '.data_get($siteBranding, 'city', 'Limerick').', '.data_get($siteBranding, 'country', 'Ireland'))
+
+    <div class="footer-main">
+        <section class="footer-brand" aria-label="Emerald Rozalia">
+            @if($footerLogoUrl)
+                <img class="brand-logo-image" src="{{ $footerLogoUrl }}" @if(data_get($footerLogo, 'srcset')) srcset="{{ data_get($footerLogo, 'srcset') }}" sizes="{{ data_get($footerLogo, 'sizes') }}" @endif width="{{ data_get($footerLogo, 'width') ?: '' }}" height="{{ data_get($footerLogo, 'height') ?: '' }}" alt="{{ $footerLogoAlt }}">
+            @else
+                <span class="brand-logo-missing">{{ data_get($siteBranding, 'legal_name', 'Emerald Rozalia Limited') }}</span>
+            @endif
+            <p class="footer-brand-description">{{ $footerBrandDescription }}</p>
+            <div class="socials" aria-label="Social profiles">
+                @foreach((array) data_get($siteLayoutRegions, 'footer.social_links', []) as $social)
+                    @php($socialHref = $layoutUrl($social))
+                    @if($socialHref)
+                        <a href="{{ $socialHref }}" aria-label="{{ data_get($social, 'label', 'Social profile') }}" rel="me noopener" target="_blank">
+                            <x-icon name="{{ data_get($social, 'icon', 'link') }}" size="15" />
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </section>
+
+        @foreach($footerColumns as $footerColumn)
+            <nav class="footer-column" aria-label="{{ data_get($footerColumn, 'title', 'Footer links') }}">
+                <h4>{{ data_get($footerColumn, 'title') }}</h4>
+                @foreach((array) data_get($footerColumn, 'links', []) as $footerLink)
+                    @php($footerHref = $layoutUrl($footerLink))
+                    @if($footerHref)
+                        <a href="{{ $footerHref }}">{{ data_get($footerLink, 'label') }}</a>
+                    @endif
+                @endforeach
+            </nav>
+        @endforeach
+
+        @if($newsletterEnabled)
+            <section class="newsletter" aria-label="{{ data_get($newsletter, 'title', 'Newsletter') }}">
+                <h4>{{ data_get($newsletter, 'title', 'NEWSLETTER') }}</h4>
+                <p>{{ data_get($newsletter, 'description', 'Stay updated with new arrivals and offers.') }}</p>
+                @if($newsletterHref)
+                    <form class="footer-newsletter-form" method="get" action="{{ $newsletterHref }}">
+                        <label class="sr-only" for="footer-newsletter-email">{{ data_get($newsletter, 'placeholder', 'Your email address') }}</label>
+                        <input id="footer-newsletter-email" type="email" name="email" autocomplete="email" placeholder="{{ data_get($newsletter, 'placeholder', 'Your email address') }}" aria-label="{{ data_get($newsletter, 'placeholder', 'Your email address') }}">
+                        <button type="submit" aria-label="{{ data_get($newsletter, 'cta_label', 'Submit email') }}" title="{{ data_get($newsletter, 'cta_label', 'Submit email') }}"><x-icon name="arrow-right" size="16" /></button>
+                    </form>
                 @endif
-                <div>
-                    <div>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Emerald Rozalia Limited. All rights reserved.') }}</div>
-                    <div>{{ data_get($siteBranding, 'footer_text', '© '.now()->year.' Designed & Manufactured in Limerick, Ireland') }}</div>
+                <div class="payments" aria-label="Accepted payment methods">
+                    <span class="payment-badge payment-badge--visa" aria-label="Visa">VISA</span>
+                    <span class="payment-badge payment-badge--mastercard" aria-label="Mastercard"><i></i><i></i></span>
+                    <span class="payment-word payment-word--paypal">PayPal</span>
+                    <span class="payment-word payment-word--apple">Apple Pay</span>
+                    <span class="payment-word payment-word--gpay"><b>G</b> Pay</span>
                 </div>
-            </div>
-            <div class="footer-bottom-contact">
-                <span><x-icon name="phone" size="14" /> +353 (89) 978 8187</span>
-                <span><x-icon name="mail" size="14" /> urmos@rozalia.ie</span>
-                <span><x-icon name="globe" size="14" /> https://emeraldrozalia.ie</span>
-                <span><x-icon name="globe" size="14" /> Unit 7, Limerick Business Park, Limerick, Ireland.</span>
-            </div>
-            <div class="footer-bottom-social">
-                <a href="https://www.facebook.com/emeraldrozalia/" target="_blank" rel="noopener"><x-icon name="facebook" size="14" /> Facebook</a>
-                <a href="https://www.instagram.com/emeraldrozalia2020/" target="_blank" rel="noopener"><x-icon name="instagram" size="14" /> Instagram</a>
-                <a href="https://x.com/EmeraldRozalia" target="_blank" rel="noopener"><x-icon name="x" size="14" /> Twitter</a>
-                <a href="https://www.tiktok.com/@emeraldrozalia1?lang=en" target="_blank" rel="noopener"><x-icon name="tiktok" size="14" /> TikTok</a>
-                <a href="https://www.youtube.com/@EmeraldRozalia-w4p" target="_blank" rel="noopener"><x-icon name="youtube" size="14" /> YouTube</a>
-                <a href="https://www.linkedin.com/in/emerald-rozalia-24921b410/" target="_blank" rel="noopener"><x-icon name="linkedin" size="14" /> LinkedIn</a>
-            </div>
-        </div>
-        <span><x-icon name="clover" size="14" /> Designed &amp; Manufactured in {{ data_get($siteBranding, 'city', 'Limerick') }}, {{ data_get($siteBranding, 'country', 'Ireland') }}</span>
-        <span>
+            </section>
+        @endif
+    </div>
+
+    <div class="footer-bottom">
+        <span class="footer-copyright">{{ $footerCopyright }}</span>
+        <span class="footer-manufacturing"><x-icon name="clover" size="16" /> {{ $footerManufacturing }}</span>
+        <nav class="footer-legal" aria-label="Legal">
             @foreach((array) data_get($siteLayoutRegions, 'footer.legal_links', []) as $legalLink)
                 @php($legalHref = $layoutUrl($legalLink))
                 @if($legalHref)
                     <a href="{{ $legalHref }}">{{ data_get($legalLink, 'label') }}</a>
-                    @if(!$loop->last)
-                        &nbsp;
-                    @endif
                 @endif
             @endforeach
-        </span>
+        </nav>
     </div>
 </footer>
 @stack('scripts')
