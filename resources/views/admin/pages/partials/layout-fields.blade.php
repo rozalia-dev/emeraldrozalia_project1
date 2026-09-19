@@ -13,9 +13,6 @@
         ['label' => 'LinkedIn', 'icon' => 'linkedin', 'href' => 'https://www.linkedin.com/in/emerald-rozalia-24921b410/'],
     ];
     $socialLinks = $regionList('footer.social_links', $officialSocialLinks);
-    if ($socialLinks === []) {
-        $socialLinks = $officialSocialLinks;
-    }
     $legalLinks = $regionList('footer.legal_links', $defaults['footer']['legal_links'] ?? []);
 @endphp
 
