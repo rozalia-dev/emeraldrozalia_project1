@@ -8,6 +8,40 @@
 @section('content')
     @php
         $homepageSections = $homepage?->sections ?? collect();
+        $hasCollectionsSection = $homepageSections->contains(
+            fn ($section) => strtolower(trim((string) $section->type)) === 'collections'
+        );
+        $homepageSectionsForRender = $homepageSections->values();
+        if (! $hasCollectionsSection) {
+            $collectionFallback = (object) [
+                'id' => 'collections-fallback',
+                'uuid' => 'collections-fallback',
+                'type' => 'collections',
+                'label' => 'Shop by collections',
+                'media_uuid' => null,
+                'devices' => ['desktop', 'tablet', 'mobile'],
+                'animation' => 'none',
+                'visible' => true,
+                'settings' => [
+                    'title' => 'SHOP BY COLLECTIONS',
+                    'items' => [
+                        ['slug' => 'baseball-caps', 'title' => 'BASEBALL CAPS', 'copy' => 'Classic. Everyday. Made to perform.'],
+                        ['slug' => 'bucket-hats', 'title' => 'BUCKET HATS', 'copy' => 'Comfortable. Versatile. Timeless.'],
+                        ['slug' => 'snapbacks', 'title' => 'SNAPBACKS', 'copy' => 'Modern fit. Stand out.'],
+                        ['slug' => 'irish-traditional-flat-caps', 'title' => 'IRISH TRADITIONAL FLAT CAPS', 'copy' => 'Authentic style. Irish tradition.', 'new' => true],
+                        ['slug' => 'irish-heritage-hats', 'title' => 'IRISH HERITAGE HATS', 'copy' => 'Heritage designs. Timeless elegance.'],
+                        ['slug' => 'beanies-more', 'title' => 'BEANIES & MORE', 'copy' => 'Warm. Stylish. Essential.'],
+                    ],
+                ],
+            ];
+            $benefitsIndex = $homepageSectionsForRender->search(
+                fn ($section) => strtolower(trim((string) $section->type)) === 'benefits'
+            );
+            $insertAt = $benefitsIndex === false
+                ? min(3, $homepageSectionsForRender->count())
+                : $benefitsIndex + 1;
+            $homepageSectionsForRender->splice($insertAt, 0, [$collectionFallback]);
+        }
         $heroSection = $homepageSections->first(fn ($section) => $section->visible && strtolower(trim((string) $section->type)) === 'hero');
         $heroSettings = $heroSection && is_array($heroSection->settings) ? $heroSection->settings : [];
         $heroCopy = static function (string $key, string $fallback = '') use ($heroSettings): string {
@@ -103,7 +137,7 @@
             </section>
         @endif
 
-        @foreach($homepageSections as $section)
+        @foreach($homepageSectionsForRender as $section)
             @if($section->visible && (! $heroSection || $section->id !== $heroSection->id))
                 @include('site.partials.home-section', [
                     'section' => $section,
@@ -117,7 +151,7 @@
             @endif
         @endforeach
 
-        @if($homepageSections->isEmpty())
+        @if($homepageSectionsForRender->isEmpty())
             <section class="home-managed-empty-state" data-home-section="empty" aria-labelledby="homepage-empty-title">
                 <p class="eyebrow">EMERALD ROZALIA</p>
                 <h1 id="homepage-empty-title">Homepage content is not configured.</h1>
