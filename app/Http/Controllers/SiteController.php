@@ -122,7 +122,7 @@ class SiteController extends Controller
                 ->orderBy('collection_product.sort_order')
                 ->limit(6)
                 ->get()
-            : collect();
+            : Product::published()->with('media')->latest()->limit(6)->get();
 
         return view('site.collections', [
             'categories' => Category::withCount(['products' => fn ($q) => $q->published()])->where('is_active', true)->orderBy('sort_order')->get(),
