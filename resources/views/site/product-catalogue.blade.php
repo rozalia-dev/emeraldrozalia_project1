@@ -44,8 +44,8 @@
 .product-catalogue-card{height:100%;min-width:0;border:1px solid var(--site-border);border-radius:var(--site-radius);overflow:hidden;background:var(--site-surface);color:var(--site-text);transition:transform var(--site-motion-duration) var(--site-motion-easing),box-shadow var(--site-motion-duration) var(--site-motion-easing)}
 .product-catalogue-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(6,48,32,.16)}
 .product-catalogue-card>a{display:flex;height:100%;flex-direction:column;color:var(--site-text);text-decoration:none}
-.product-catalogue-media{width:100%;aspect-ratio:1/1;background:var(--site-surface-muted);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.product-catalogue-media img{display:block;width:100%;height:100%;object-fit:cover}
+.product-catalogue-media{position:relative;width:100%;aspect-ratio:1/1;background:var(--site-surface-muted);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.product-catalogue-media img{display:block;width:100%;height:100%;object-fit:contain}
 .product-catalogue-media-empty{padding:18px;text-align:center;color:var(--site-text-muted);font-size:.9rem;line-height:1.45}
 .product-catalogue-info{display:flex;flex:1;min-width:0;flex-direction:column;padding:clamp(14px,1.6vw,19px)}
 .product-catalogue-info .category{display:block;margin-bottom:8px;color:var(--site-brand-primary);font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;font-weight:850}
@@ -138,7 +138,7 @@
                                         @if($image)
                                             <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="(max-width:560px) 100vw,(max-width:1020px) 50vw,25vw" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
                                         @else
-                                            <div class="product-catalogue-media-empty">Approved product image not configured.</div>
+                                            @include('site.partials.public-media-placeholder', ['label' => 'Product image coming soon'])
                                         @endif
                                     </div>
                                     <div class="product-catalogue-info">

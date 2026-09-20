@@ -2,7 +2,7 @@
 @section('body-class', 'home-body')
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
-    <link rel="stylesheet" href="/css/home-collections.css?v=20260914-side-overlay-gradient">
+    <link rel="stylesheet" href="/css/home-collections.css?v=20260920-product-media-cards">
     <link rel="stylesheet" href="/css/home-hero-layout.css?v=20260914-side-overlay-gradient">
 @endpush
 @section('content')
@@ -20,9 +20,8 @@
         };
         $fallbackProductSource = $homeLatestProducts ?? $homeProducts ?? collect();
         $fallbackProduct = $fallbackProductSource instanceof \Illuminate\Support\Collection ? $fallbackProductSource->first() : null;
-        $fallbackProductMedia = $fallbackProduct?->media?->firstWhere('type', 'image');
-        $fallbackProductDescriptor = $fallbackProductMedia
-            ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($fallbackProductMedia, $fallbackProduct->name)
+        $fallbackProductDescriptor = $fallbackProduct
+            ? app(\App\Services\PublicMediaResolver::class)->forProduct($fallbackProduct)
             : null;
         $heroMedia = $heroSection && is_array($homeMedia ?? null) && filled($heroSection->media_uuid)
             ? ($homeMedia[$heroSection->media_uuid] ?? null)
@@ -113,6 +112,7 @@
                     'homeLatestProducts' => $homeLatestProducts ?? $homeProducts ?? $newProducts ?? collect(),
                     'banners' => $banners ?? collect(),
                     'homeMedia' => $homeMedia ?? [],
+                    'homeCollectionCategoryMedia' => $homeCollectionCategoryMedia ?? [],
                 ])
             @endif
         @endforeach

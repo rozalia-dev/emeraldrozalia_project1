@@ -185,7 +185,9 @@
                     <?php if (is_array($item) && filled($item['title'] ?? null)) { ?>
                                 @php
                                     $slug = trim((string) ($item['slug'] ?? ''));
-                                    $category = isset($categories) && $categories instanceof \Illuminate\Support\Collection ? $categories->firstWhere('slug', $slug) : null;
+                                    $category = isset($categories) && $categories instanceof \Illuminate\Support\Collection
+                                        ? $categories->first(fn ($candidate) => $candidate->slug === $slug && (int) ($candidate->products_count ?? 0) > 0)
+                                        : null;
                                     if (! $category && isset($categories) && $categories instanceof \Illuminate\Support\Collection) {
                                         foreach ($collectionCategoryAliasesBySlug[$slug] ?? [] as $categoryAlias) {
                                             $candidate = $categories->firstWhere('slug', $categoryAlias);
@@ -197,6 +199,7 @@
                                     }
                                     $collectionUrl = $category ? route('category', $category) : route('shop');
                                     $collectionMedia = is_array($homeMedia ?? null) && filled($item['media_uuid'] ?? null) ? ($homeMedia[$item['media_uuid']] ?? null) : null;
+                                    $collectionMedia = $collectionMedia ?: ($category ? ($homeCollectionCategoryMedia[$category->slug] ?? null) : null);
                                 @endphp
                         <?php if ($collectionUrl) { ?>
                             <a class="home-collection-card" href="{{ $collectionUrl }}">
@@ -207,6 +210,8 @@
                                         @else
                                             <img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif alt="{{ $collectionMedia['alt'] }}" loading="lazy">
                                         @endif
+                                    <?php } else { ?>
+                                        @include('site.partials.public-media-placeholder', ['label' => 'Collection image coming soon'])
                                     <?php } ?>
                                     <?php if (!empty($item['new'])) { ?>
                                         <span class="home-collection-new">NEW</span>
@@ -282,8 +287,7 @@
                     <div class="home-product-grid" data-home-carousel-track>
                         <?php foreach ($homeProductItems as $productIndex => $product) { ?>
                             <?php
-                                $productMedia = $product->media->firstWhere('type', 'image');
-                                $productMediaDescriptor = $productMedia ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($productMedia, $product->name) : null;
+                                $productMediaDescriptor = app(\App\Services\PublicMediaResolver::class)->forProduct($product);
                             ?>
                             <article class="home-product-card">
                                 <a class="home-product-link" href="{{ route('product', $product) }}">
@@ -291,7 +295,7 @@
                                         <?php if ($productMediaDescriptor) { ?>
                                             <img src="{{ $productMediaDescriptor['url'] }}" @if($productMediaDescriptor['srcset']) srcset="{{ $productMediaDescriptor['srcset'] }}" sizes="{{ $productMediaDescriptor['sizes'] }}" @endif width="{{ $productMediaDescriptor['width'] ?: '' }}" height="{{ $productMediaDescriptor['height'] ?: '' }}" alt="{{ $productMediaDescriptor['alt'] }}" loading="lazy">
                                         <?php } else { ?>
-                                            <span class="sr-only">Approved product media is not configured.</span>
+                                            @include('site.partials.public-media-placeholder', ['label' => 'Product image coming soon'])
                                         <?php } ?>
                                     </div>
                                     <span>{{ $product->name }}</span><strong>€{{ number_format((float) $product->price, 2) }}</strong>

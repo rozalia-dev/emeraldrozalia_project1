@@ -19,10 +19,10 @@ final class PublicCollectionController extends Controller
 
         $isNewArrivals = $collection->slug === 'new-arrivals';
         $query = ($isNewArrivals
-                ? Product::query()->where('products.is_new', true)
+            ? Product::query()->where('products.is_new', true)
                 : $collection->products())
             ->published()
-            ->with(['category', 'media'])
+            ->with(['category', 'media', 'variants.approvedMedia'])
             ->withCount('reviews')
             ->withAvg('reviews', 'rating');
 

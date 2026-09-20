@@ -2,3 +2,60 @@
 @media(max-width:1200px){.collections-benefits{grid-template-columns:repeat(3,1fr)}.collections-benefits>div:nth-child(3){border-right:0}.collections-benefits>div:nth-child(-n+3){border-bottom:1px solid #40502b}.collections-reference-grid{grid-template-columns:repeat(3,1fr)}.collections-reference-photo{min-height:210px}.collections-product-grid{grid-template-columns:repeat(3,1fr)}.collections-heritage{grid-template-columns:1fr}.collections-heritage-visual{min-height:320px}}
 @media(max-width:700px){.collections-reference-shell{padding:8px 8px 14px}.collections-benefits{grid-template-columns:1fr}.collections-benefits>div{border-right:0;border-bottom:1px solid #40502b;grid-template-columns:56px 1fr;padding:14px 16px;min-height:92px}.collections-benefits>div:last-child{border-bottom:0}.collections-benefits b{font-size:13px}.collections-benefits span:not(.home-benefit-icon){font-size:11px}.collections-reference-grid-section{padding:0 10px 10px}.collections-heading{margin-top:-11px}.collections-heading h1{font-size:15px;letter-spacing:.12em;padding:0 10px}.collections-reference-grid{grid-template-columns:1fr 1fr}.collections-reference-photo{min-height:140px}.collections-reference-card>div:last-child{padding:10px}.collections-reference-card h2{font-size:13px}.collections-reference-card p{font-size:10px;min-height:42px}.collections-reference-card span{font-size:10px}.collections-heritage .home-heritage-copy{padding:24px 20px}.collections-heritage .eyebrow{font-size:22px}.collections-heritage-visual{min-height:300px}.collections-heritage-points{width:145px;padding:12px;gap:15px}.collections-heritage-points span{grid-template-columns:27px 1fr;font-size:8px}.collections-product-grid{grid-template-columns:1fr 1fr;gap:10px;padding:0 10px 10px}.collections-product-card .home-product-media{min-height:118px}.collections-bestseller-heading{margin-left:10px;margin-right:10px}.collections-bestseller-heading h2{font-size:12px}.collections-bestseller-heading a{font-size:11px}}
 .collections-media-empty{position:absolute;inset:0;display:grid;place-items:center;padding:18px;text-align:center;color:#b7c6ba;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,#0d2016,#07120d)}
+
+/* Product cards use one image frame and a readable four-column desktop grid. */
+.collections-reference-photo {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+}
+
+.collections-reference-photo img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.collections-product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.collections-product-card .home-product-media {
+    position: relative;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+}
+
+.collections-product-card .home-product-media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.collections-product-card .collections-product-link > span {
+    font-size: .95rem;
+    line-height: 1.35;
+}
+
+.collections-product-card .collections-product-link > strong {
+    font-size: 1.05rem;
+}
+
+@media (min-width: 701px) and (max-width: 1200px) {
+    .collections-product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .collections-product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

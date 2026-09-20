@@ -185,8 +185,7 @@
             <div class="related-grid">
                 @foreach($related as $item)
                     @php
-                        $relatedMedia = $item->media->firstWhere('type', 'image');
-                        $relatedImage = $relatedMedia ? $publicMedia->forProductMedia($relatedMedia, $item->name) : null;
+                        $relatedImage = $publicMedia->forProduct($item);
                     @endphp
                     <article class="related-card">
                         <a href="{{ route('product', $item) }}">

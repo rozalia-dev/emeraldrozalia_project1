@@ -2,7 +2,7 @@
 @section('body-class','collections-reference-page')
 @section('title','Collections — Emerald Rozalia')
 @push('styles')
-<link rel="stylesheet" href="/css/collections.css?v=20260915-live-collections">
+<link rel="stylesheet" href="/css/collections.css?v=20260920-product-media-cards">
 @endpush
 @section('content')
 @php($publicMedia = app(\App\Services\PublicMediaResolver::class))
@@ -23,12 +23,13 @@
             <div class="home-collection-grid collections-reference-grid">
                 @foreach($collections as $collection)
                     @php($collectionMedia = $collection->media && $collection->media->isApprovedPublic() ? $publicMedia->describe($collection->media, $collection->name) : null)
+                    @php($collectionMedia = $collectionMedia ?: ($collectionProductMedia[$collection->id] ?? null))
                     <a class="home-collection-card collections-reference-card" href="{{ route('collection.show', ['collection' => $collection->slug]) }}">
                         <div class="collections-reference-photo" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($collection->name.' collection image') }}">
                             @if($collectionMedia)
                                 <img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif width="{{ $collectionMedia['width'] ?: '' }}" height="{{ $collectionMedia['height'] ?: '' }}" alt="{{ $collectionMedia['alt'] }}" loading="lazy">
                             @else
-                                <span class="collections-media-empty">Approved collection media is not configured.</span>
+                                @include('site.partials.public-media-placeholder', ['label' => 'Collection image coming soon'])
                             @endif
                             @if($collection->is_featured)<b class="collections-new-badge">FEATURED</b>@endif
                         </div>
@@ -75,13 +76,12 @@
                 @foreach($bestsellers as $product)
                     <article class="home-product-card collections-product-card">
                         <a class="collections-product-link" href="{{ route('product',['product'=>$product->slug]) }}">
-                            @php($imageMedia = $product->media->firstWhere('type','image'))
-                            @php($image = $imageMedia ? $publicMedia->forProductMedia($imageMedia, $product->name) : null)
+                            @php($image = $publicMedia->forProduct($product))
                             <div class="home-product-media collections-product-media" data-public-media-state="{{ $image ? 'approved' : 'awaiting-approved-media' }}">
                                 @if($image)
                                     <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="{{ $image['sizes'] }}" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
                                 @else
-                                    <span class="collections-media-empty">Approved product media is not configured.</span>
+                                    @include('site.partials.public-media-placeholder', ['label' => 'Product image coming soon'])
                                 @endif
                             </div>
                             <span>{{ $product->name }}</span>
