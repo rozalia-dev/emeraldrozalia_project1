@@ -255,7 +255,16 @@
 
         @php
             $productLimit = max(1, min(12, (int) ($settings['limit'] ?? 6)));
-            $productPool = ($settings['source'] ?? 'new_products') === 'latest' ? ($homeLatestProducts ?? $homeProducts ?? collect()) : ($homeProducts ?? collect());
+            $productSource = $settings['source'] ?? 'new_products';
+            $sectionTitle = strtolower((string) ($settings['title'] ?? $section->label ?? ''));
+            if ($productSource === 'new_products' && str_contains($sectionTitle, 'bestsell')) {
+                $productSource = 'bestsellers';
+            }
+            $productPool = match ($productSource) {
+                'bestsellers' => $homeBestsellers ?? $homeProducts ?? collect(),
+                'latest' => $homeLatestProducts ?? $homeProducts ?? collect(),
+                default => $homeProducts ?? collect(),
+            };
             $homeProductItems = $productPool instanceof \Illuminate\Support\Collection ? $productPool->take($productLimit) : collect();
             $viewAllUrl = $safeUrl($settings['view_all_href'] ?? '/shop');
         @endphp

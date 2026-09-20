@@ -14,7 +14,11 @@
     $taxClass = old('tax_class', $productMeta['tax_class'] ?? 'standard');
     $publishedWebsite = filter_var(old('published_website', $productMeta['published_website'] ?? false), FILTER_VALIDATE_BOOLEAN);
     $availableForSale = filter_var(old('available_for_sale', $productMeta['available_for_sale'] ?? false), FILTER_VALIDATE_BOOLEAN);
-    $featured = filter_var(old('featured', $product?->is_new ?? false), FILTER_VALIDATE_BOOLEAN);
+    $newArrival = filter_var(old('is_new_arrival', $product?->is_new ?? old('featured', false)), FILTER_VALIDATE_BOOLEAN);
+    $selectedCollectionIds = collect(old('collection_ids', $product?->collections?->pluck('id')->all() ?? []))
+        ->map(static fn ($id): string => (string) $id)
+        ->all();
+    $placementCollections = $collections->reject(static fn ($collection): bool => $collection->slug === 'new-arrivals')->values();
 @endphp
 
 @section('content')
@@ -100,23 +104,17 @@
                                 @error('sku')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
-                            <div class="ap-field-row">
-                                <label class="ap-field">
-                                    <span>Category <em>*</em></span>
-                                    <select name="category_id" required>
-                                        <option value="">Select category</option>
-                                        @foreach($categories as $category)
-                                            <option value="{{ $category->id }}" @selected((string) old('category_id', $product?->category_id) === (string) $category->id)>{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
-                                </label>
-                                <label class="ap-field">
-                                    <span>Collection</span>
-                                    <select disabled aria-describedby="collection-help"><option>No collection assigned</option></select>
-                                    <small id="collection-help" class="ap-field-help">Manage collections after saving.</small>
-                                </label>
-                            </div>
+                            <label class="ap-field ap-field-wide">
+                                <span>Shop by Collections category <em>*</em></span>
+                                <select name="category_id" required>
+                                    <option value="">Select the public category</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}" @selected((string) old('category_id', $product?->category_id) === (string) $category->id)>{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="ap-field-help">This controls the product category page and the matching Shop by Collections tile. Choose Irish Heritage Hats for the Irish Heritage category page, then use Public Placement to add it to the curated Heritage Collection too.</small>
+                                @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                            </label>
 
                             <label class="ap-field ap-field-wide">
                                 <span>Brand / Line</span>
@@ -240,7 +238,55 @@
                     <div class="ap-info-note"><x-icon name="help" size="15" /><span>This product will be available in the selected order masters.</span></div>
                 </section>
 
-                <label class="ap-featured-check"><input type="hidden" name="featured" value="0"><input type="checkbox" name="featured" value="1" @checked((bool) $featured)><span><x-icon name="star" size="15" /> Mark as featured product</span></label>
+                <section class="ap-rail-card ap-public-placement">
+                    <div class="ap-rail-heading"><h2>Public Placement</h2><x-icon name="globe" size="16" /></div>
+                    <p class="ap-rail-help">Choose the public areas where this product should appear.</p>
+                    <label class="ap-featured-check">
+                        <input type="hidden" name="is_new_arrival" value="0">
+                        <input type="checkbox" name="is_new_arrival" value="1" @checked((bool) $newArrival)>
+                        <span><x-icon name="star" size="15" /> Show in New Arrivals</span>
+                    </label>
+                    <small class="ap-field-help ap-placement-help">Also controls the New Arrivals page and homepage New Arrivals products section.</small>
+
+                    <fieldset class="ap-placement-collections">
+                        <legend>Shop by Collection</legend>
+                        <small class="ap-field-help">Select a collection to add this product to its public collection page. Best Sellers also feeds the homepage Bestsellers section.</small>
+                        <input type="hidden" name="collection_ids_present" value="1">
+                        <div class="ap-checklist">
+                            @forelse($placementCollections as $collection)
+                                <label>
+                                    <input type="checkbox" name="collection_ids[]" value="{{ $collection->id }}" @checked(in_array((string) $collection->id, $selectedCollectionIds, true))>
+                                    <span>
+                                        <x-icon name="check" size="13" />
+                                        <span>
+                                            <strong>{{ $collection->name }}</strong>
+                                            @if($collection->slug === 'best-sellers')
+                                                <small>Also appears in the homepage Bestsellers section.</small>
+                                            @elseif($collection->slug === 'irish-heritage')
+                                                <small>Appears in the Irish Heritage Collection.</small>
+                                            @else
+                                                <small>Appears on the {{ $collection->name }} collection page.</small>
+                                            @endif
+                                            @if($collection->status !== 'active' || $collection->visibility !== 'visible')
+                                                <small>Currently {{ $collection->status }} / {{ $collection->visibility }}.</small>
+                                            @endif
+                                        </span>
+                                    </span>
+                                </label>
+                            @empty
+                                <p class="ap-field-help">No collections are available yet.</p>
+                            @endforelse
+                        </div>
+                        @error('collection_ids')<small class="ap-field-error">{{ $message }}</small>@enderror
+                        @foreach($errors->getMessages() as $field => $messages)
+                            @if(str_starts_with($field, 'collection_ids.'))
+                                <small class="ap-field-error">{{ $messages[0] }}</small>
+                            @endif
+                        @endforeach
+                        <a class="ap-field-help" href="{{ route('admin.collections.index') }}">Create or manage collections</a>
+                    </fieldset>
+                    <div class="ap-info-note"><x-icon name="help" size="15" /><span>Public display also requires the product to be active and published on the website. Only approved, active media is shown.</span></div>
+                </section>
             </aside>
         </div>
 

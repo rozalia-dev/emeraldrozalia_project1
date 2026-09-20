@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CollectionFilterRequest;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\ProductCollection;
 use App\Services\PublicMediaResolver;
 use Illuminate\View\View;
@@ -16,7 +17,10 @@ final class PublicCollectionController extends Controller
 
         $collection->load('media');
 
-        $query = $collection->products()
+        $isNewArrivals = $collection->slug === 'new-arrivals';
+        $query = ($isNewArrivals
+                ? Product::query()->where('products.is_new', true)
+                : $collection->products())
             ->published()
             ->with(['category', 'media'])
             ->withCount('reviews')
@@ -52,20 +56,30 @@ final class PublicCollectionController extends Controller
             'price_low' => $query->orderBy('products.price')->orderBy('products.name'),
             'price_high' => $query->orderByDesc('products.price')->orderBy('products.name'),
             'name' => $query->orderBy('products.name'),
-            default => $query->orderBy('collection_product.sort_order')->orderBy('products.name'),
+            default => $isNewArrivals
+                ? $query->latest('products.created_at')
+                : $query->orderBy('collection_product.sort_order')->orderBy('products.name'),
         };
 
         $products = $query->paginate(12)->withQueryString();
 
         $categories = Category::query()
             ->websiteVisible()
-            ->whereHas('products', function ($productQuery) use ($collection): void {
-                $productQuery->published()
-                    ->whereHas('collections', fn ($collectionQuery) => $collectionQuery->whereKey($collection->getKey()));
+            ->whereHas('products', function ($productQuery) use ($collection, $isNewArrivals): void {
+                $productQuery->published();
+                if ($isNewArrivals) {
+                    $productQuery->where('products.is_new', true);
+                } else {
+                    $productQuery->whereHas('collections', fn ($collectionQuery) => $collectionQuery->whereKey($collection->getKey()));
+                }
             })
-            ->withCount(['products' => function ($productQuery) use ($collection): void {
-                $productQuery->published()
-                    ->whereHas('collections', fn ($collectionQuery) => $collectionQuery->whereKey($collection->getKey()));
+            ->withCount(['products' => function ($productQuery) use ($collection, $isNewArrivals): void {
+                $productQuery->published();
+                if ($isNewArrivals) {
+                    $productQuery->where('products.is_new', true);
+                } else {
+                    $productQuery->whereHas('collections', fn ($collectionQuery) => $collectionQuery->whereKey($collection->getKey()));
+                }
             }])
             ->orderBy('sort_order')
             ->orderBy('name')

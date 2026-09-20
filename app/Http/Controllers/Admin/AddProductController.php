@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AddProductController extends Controller
@@ -21,13 +24,23 @@ class AddProductController extends Controller
     public function create(): View
     {
         Gate::authorize('create', Product::class);
-        return view('admin.add-product', ['categories' => $this->categories(), 'product' => null]);
+        return view('admin.add-product', [
+            'categories' => $this->categories(),
+            'collections' => $this->collections(),
+            'product' => null,
+        ]);
     }
 
     public function edit(Product $product): View
     {
         Gate::authorize('update', $product);
-        return view('admin.add-product', ['categories' => $this->categories(), 'product' => $product]);
+        $product->load('collections');
+
+        return view('admin.add-product', [
+            'categories' => $this->categories(),
+            'collections' => $this->collections(),
+            'product' => $product,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -51,6 +64,15 @@ class AddProductController extends Controller
     private function categories()
     {
         return Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+    }
+
+    private function collections()
+    {
+        return ProductCollection::query()
+            ->orderByRaw("CASE WHEN slug = 'best-sellers' THEN 0 WHEN slug = 'irish-heritage' THEN 1 ELSE 2 END")
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'status', 'visibility']);
     }
 
     private function validated(Request $request, ?Product $product = null): array
@@ -87,6 +109,10 @@ class AddProductController extends Controller
             'published_website' => ['nullable', 'boolean'],
             'available_for_sale' => ['nullable', 'boolean'],
             'featured' => ['nullable', 'boolean'],
+            'is_new_arrival' => ['nullable', 'boolean'],
+            'collection_ids_present' => ['nullable', 'boolean'],
+            'collection_ids' => ['nullable', 'array'],
+            'collection_ids.*' => ['integer', 'distinct'],
             'channels' => ['nullable', 'array'],
             'channels.*' => [Rule::in(self::CHANNELS)],
             'order_categories' => ['nullable', 'array'],
@@ -101,45 +127,71 @@ class AddProductController extends Controller
         }
         validator(['slug' => $slug], ['slug' => ['required', 'string', 'max:180', $slugRule]])->validate();
         $data['slug'] = $slug;
+        $data['collection_ids'] = array_values(array_map('intval', $data['collection_ids'] ?? []));
+
+        if ($data['collection_ids'] !== []) {
+            $availableCollectionIds = $this->collections()
+                ->whereIn('id', $data['collection_ids'])
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            if (array_diff($data['collection_ids'], $availableCollectionIds) !== []) {
+                throw ValidationException::withMessages([
+                    'collection_ids' => 'Select only collections available to your company.',
+                ]);
+            }
+        }
 
         return $data;
     }
 
     private function saveProduct(Request $request, array $data, ?Product $product = null): Product
     {
-        $action = $data['save_action'];
-        $status = $action === 'draft' ? 'draft' : $data['status'];
-        $publishedWebsite = $status !== 'draft' && $request->boolean('published_website');
-        $metadata = [
-            'short_description' => $data['short_description'],
-            'tags' => $this->tags($data['tags'] ?? null),
-            'product_type' => $data['product_type'],
-            'tax_class' => $data['tax_class'],
-            'cost_price' => $data['cost_price'] ?? null,
-            'vat_rate' => $data['vat_rate'],
-            'currency' => $data['currency'],
-            'minimum_order_quantity' => $data['minimum_order_quantity'] ?? null,
-            'dimensions' => ['length' => $data['length'] ?? null, 'width' => $data['width'] ?? null, 'height' => $data['height'] ?? null],
-            'channels' => array_values($data['channels'] ?? []),
-            'order_categories' => array_values($data['order_categories'] ?? []),
-            'published_website' => $publishedWebsite,
-            'available_for_sale' => $request->boolean('available_for_sale'),
-        ];
-        $attributes = [
-            'category_id' => $data['category_id'], 'name' => $data['name'], 'slug' => $data['slug'], 'sku' => $data['sku'],
-            'description' => $data['description'], 'price' => $data['price'], 'compare_price' => $data['compare_price'] ?? null,
-            'stock' => $data['stock'], 'material' => $data['material'] ?? null, 'brand' => $data['brand'] ?? null, 'care' => $data['care'] ?? null,
-            'meta_title' => $data['meta_title'] ?? null, 'meta_description' => $data['meta_description'] ?? null, 'weight' => $data['weight'] ?? null,
-            'hs_code' => $data['hs_code'] ?? null, 'is_new' => $request->boolean('featured'), 'is_active' => $publishedWebsite && $request->boolean('available_for_sale'),
-            'status' => $status, 'product_metadata' => $metadata,
-            'published_at' => $publishedWebsite && filled($data['publish_date'] ?? null) ? Carbon::parse($data['publish_date']) : null,
-        ];
-        if ($product) {
-            $product->update($attributes);
-            return $product->fresh();
-        }
+        return DB::transaction(function () use ($request, $data, $product): Product {
+            $action = $data['save_action'];
+            $status = $action === 'draft' ? 'draft' : $data['status'];
+            $publishedWebsite = $status !== 'draft' && $request->boolean('published_website');
+            $metadata = [
+                'short_description' => $data['short_description'],
+                'tags' => $this->tags($data['tags'] ?? null),
+                'product_type' => $data['product_type'],
+                'tax_class' => $data['tax_class'],
+                'cost_price' => $data['cost_price'] ?? null,
+                'vat_rate' => $data['vat_rate'],
+                'currency' => $data['currency'],
+                'minimum_order_quantity' => $data['minimum_order_quantity'] ?? null,
+                'dimensions' => ['length' => $data['length'] ?? null, 'width' => $data['width'] ?? null, 'height' => $data['height'] ?? null],
+                'channels' => array_values($data['channels'] ?? []),
+                'order_categories' => array_values($data['order_categories'] ?? []),
+                'published_website' => $publishedWebsite,
+                'available_for_sale' => $request->boolean('available_for_sale'),
+            ];
+            $attributes = [
+                'category_id' => $data['category_id'], 'name' => $data['name'], 'slug' => $data['slug'], 'sku' => $data['sku'],
+                'description' => $data['description'], 'price' => $data['price'], 'compare_price' => $data['compare_price'] ?? null,
+                'stock' => $data['stock'], 'material' => $data['material'] ?? null, 'brand' => $data['brand'] ?? null, 'care' => $data['care'] ?? null,
+                'meta_title' => $data['meta_title'] ?? null, 'meta_description' => $data['meta_description'] ?? null, 'weight' => $data['weight'] ?? null,
+                'hs_code' => $data['hs_code'] ?? null,
+                'is_new' => $request->boolean('is_new_arrival', $request->boolean('featured')),
+                'is_active' => $publishedWebsite && $request->boolean('available_for_sale'),
+                'status' => $status, 'product_metadata' => $metadata,
+                'published_at' => $publishedWebsite && filled($data['publish_date'] ?? null) ? Carbon::parse($data['publish_date']) : null,
+            ];
 
-        return Product::create($attributes);
+            if ($product) {
+                $product->update($attributes);
+                $product = $product->fresh();
+            } else {
+                $product = Product::create($attributes);
+            }
+
+            if ($request->boolean('collection_ids_present')) {
+                $product->collections()->sync($data['collection_ids'] ?? []);
+            }
+
+            return $product;
+        });
     }
 
     private function afterSave(Request $request, Product $product, string $message): RedirectResponse
