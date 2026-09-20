@@ -46,6 +46,21 @@ class SiteController extends Controller
             ->latest()
             ->limit(8)
             ->get();
+        $bestSellerCollection = ProductCollection::query()
+            ->where('slug', 'best-sellers')
+            ->where('status', 'active')
+            ->where('visibility', 'visible')
+            ->first();
+        $homeBestsellers = $bestSellerCollection
+            ? $bestSellerCollection->products()
+                ->published()
+                ->with('media')
+                ->orderBy('collection_product.sort_order')
+                ->orderBy('products.name')
+                ->limit(8)
+                ->get()
+            : $homeProducts;
+
         $homeLatestProducts = Product::with('media')
             ->published()
             ->latest()
@@ -65,6 +80,7 @@ class SiteController extends Controller
                 ->orderBy('sort_order')
                 ->get(),
             'homeProducts' => $homeProducts,
+            'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
             'newProducts' => $homeProducts,
             'banners' => $banners,
@@ -94,9 +110,23 @@ class SiteController extends Controller
 
     public function collections()
     {
+        $bestSellerCollection = ProductCollection::query()
+            ->where('slug', 'best-sellers')
+            ->where('status', 'active')
+            ->where('visibility', 'visible')
+            ->first();
+        $bestsellers = $bestSellerCollection
+            ? $bestSellerCollection->products()
+                ->published()
+                ->with('media')
+                ->orderBy('collection_product.sort_order')
+                ->limit(6)
+                ->get()
+            : Product::published()->with('media')->latest()->limit(6)->get();
+
         return view('site.collections', [
             'categories' => Category::withCount(['products' => fn ($q) => $q->published()])->where('is_active', true)->orderBy('sort_order')->get(),
-            'bestsellers' => Product::published()->with('media')->latest()->limit(6)->get(),
+            'bestsellers' => $bestsellers,
             'collections' => ProductCollection::with('media')->where('status', 'active')->where('visibility', 'visible')->orderBy('sort_order')->get(),
         ]);
     }
