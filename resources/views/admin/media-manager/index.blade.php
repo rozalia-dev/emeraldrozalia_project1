@@ -118,6 +118,26 @@
                             <button type="button" data-mm-tab="{{ $type }}" role="tab" aria-selected="false">{{ $definition['label'] }} <b>({{ $countFor($type) }})</b></button>
                         @endforeach
                     </div>
+                    @if($mediaTotal > 0)
+                        <form id="mm-bulk-actions-form" class="mm-bulk-toolbar" method="post" action="{{ route('admin.media.bulk') }}">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $selected->id }}">
+                            <label class="mm-bulk-toolbar__select-all" for="mm-select-all">
+                                <input id="mm-select-all" type="checkbox" data-mm-select-all>
+                                <span>Select all</span>
+                            </label>
+                            <label class="mm-bulk-toolbar__action">Bulk action
+                                <select name="action" required>
+                                    <option value="activate">Activate selected</option>
+                                    <option value="deactivate">Deactivate selected</option>
+                                    <option value="approve">Approve selected for public</option>
+                                    <option value="reject">Reject public use</option>
+                                </select>
+                            </label>
+                            <button type="submit">Apply</button>
+                            <span class="mm-bulk-toolbar__count" data-mm-selected-count>0 selected</span>
+                        </form>
+                    @endif
                     <div class="mm-media-grid" data-mm-grid>
                         @forelse($media as $item)
                             @php
@@ -142,6 +162,10 @@
                             @endphp
                             <article class="mm-media-card" data-mm-card data-mm-type="{{ $item->type }}" data-mm-status="{{ $item->active ? 'active' : 'inactive' }}" data-mm-search="{{ $mediaSearch }}">
                                 <div class="mm-card-preview">
+                                    <label class="mm-card-select">
+                                        <input type="checkbox" name="ids[]" value="{{ $item->id }}" form="mm-bulk-actions-form" aria-label="Select {{ basename($item->path) }}" data-mm-bulk-checkbox>
+                                        <span class="sr-only">Select media item</span>
+                                    </label>
                                     @if($isImage)
                                         <img src="{{ $mediaUrl }}" alt="{{ $item->alt_text ?: $item->path }}" loading="lazy">
                                     @elseif($isVideo)
@@ -172,7 +196,11 @@
                                         <button type="button" class="mm-edit-link" data-mm-select-media data-media-id="{{ $item->id }}" data-media-update-url="{{ route('admin.media.update', $item) }}" data-media-type="{{ $item->type }}" data-media-order="{{ $item->sort_order }}" data-media-active="{{ $item->active ? 1 : 0 }}" data-media-alt="{{ $item->alt_text }}">Edit</button>
                                     </div>
                                     <div class="mm-card-approval-actions">
-                                        @if($approvalStatus !== 'approved')<form method="post" action="{{ route('admin.media.approve', $item) }}">@csrf<button type="submit">Approve for public</button></form>@endif
+                                        @if($approvalStatus !== 'approved')
+                                            <form method="post" action="{{ route('admin.media.approve', $item) }}">@csrf<button type="submit">Approve for public</button></form>
+                                        @else
+                                            <span class="mm-approved-public">Approved for public</span>
+                                        @endif
                                         @if($approvalStatus !== 'rejected')<form method="post" action="{{ route('admin.media.reject', $item) }}">@csrf<button type="submit">Reject public use</button></form>@endif
                                     </div>
                                 </div>
@@ -297,5 +325,56 @@
     @else
         <section class="mm-panel mm-empty-products"><x-icon name="package" size="32" /><h2>No active products</h2><p>Create or publish a product before adding media.</p><a class="mm-primary-button" href="{{ route('admin.add-product') }}">Add Product <x-icon name="arrow-right" size="13" /></a></section>
     @endif
+<style>
+.mm-bulk-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:9px 13px;margin:10px 13px;border:1px solid #d9e3db;border-radius:6px;background:#f7faf7;color:#405448;font-size:10px}
+.mm-bulk-toolbar__select-all,.mm-bulk-toolbar__action{display:flex;align-items:center;gap:7px;font-weight:700}
+.mm-bulk-toolbar__select-all input,.mm-card-select input{width:15px;height:15px;accent-color:#0b7139;cursor:pointer}
+.mm-bulk-toolbar__action select{min-width:175px;min-height:32px;padding:0 8px;border:1px solid #cfdbd1;border-radius:4px;background:#fff;color:#294132}
+.mm-bulk-toolbar>button,.mm-card-approval-actions button{min-height:30px;padding:0 12px;border:1px solid #0c733d;border-radius:4px;background:#0c733d;color:#fff;font-weight:700;cursor:pointer}
+.mm-bulk-toolbar>button:hover,.mm-card-approval-actions button:hover{background:#075f31}
+.mm-bulk-toolbar__count{margin-left:auto;color:#64766a}
+.mm-card-select{position:absolute;top:30px;left:7px;z-index:4;display:grid;place-items:center;width:24px;height:24px;border:1px solid #d6e2d8;border-radius:4px;background:rgba(255,255,255,.96);box-shadow:0 2px 5px rgba(20,50,30,.16);cursor:pointer}
+.mm-card-approval-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.mm-card-approval-actions form{margin:0}
+.mm-card-approval-actions button{min-height:26px;padding:0 8px;font-size:9px}
+.mm-card-approval-actions form+form button{border-color:#b65044;background:#fff;color:#963e34}
+.mm-card-approval-actions form+form button:hover{background:#fff3f1}
+.mm-approved-public{display:inline-flex;align-items:center;min-height:24px;padding:0 7px;border:1px solid #c6e6ce;border-radius:4px;background:#edf8ef;color:#14723b;font-size:9px;font-weight:700}
+@media(max-width:600px){.mm-bulk-toolbar{align-items:stretch}.mm-bulk-toolbar__action{flex-wrap:wrap}.mm-bulk-toolbar__action select{width:100%;min-width:0}.mm-bulk-toolbar__count{margin-left:0}}
+</style>
+<script>
+(() => {
+    const page = document.querySelector('[data-media-manager]');
+    if (!page) return;
+    const selectAll = page.querySelector('[data-mm-select-all]');
+    const boxes = Array.from(page.querySelectorAll('[data-mm-bulk-checkbox]'));
+    const count = page.querySelector('[data-mm-selected-count]');
+    const refreshCount = () => {
+        const selected = boxes.filter((box) => box.checked).length;
+        if (count) count.textContent = selected + ' selected';
+        if (selectAll) {
+            selectAll.checked = boxes.length > 0 && selected === boxes.length;
+            selectAll.indeterminate = selected > 0 && selected < boxes.length;
+        }
+    };
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            boxes.forEach((box) => { box.checked = selectAll.checked; });
+            refreshCount();
+        });
+    }
+    boxes.forEach((box) => box.addEventListener('change', refreshCount));
+    const form = page.querySelector('#mm-bulk-actions-form');
+    if (form) {
+        form.addEventListener('submit', (event) => {
+            if (!boxes.some((box) => box.checked)) {
+                event.preventDefault();
+                window.alert('Select at least one media item first.');
+            }
+        });
+    }
+})();
+</script>
+
 </div>
 @endsection

@@ -1,7 +1,7 @@
 <?php
 use App\Http\Controllers\{CartController,CheckoutController,ContextController,ReviewController,SiteController,WishlistController};
 use App\Http\Controllers\Account\AccountController;
-use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaAssetController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SalesQuoteController,SeoController,SiteLayoutController};
+use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaAssetController,MediaBulkActionController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SalesQuoteController,SeoController,SiteLayoutController};
 use App\Http\Controllers\Admin\CollectionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\VideoController;
@@ -81,6 +81,7 @@ Route::post('/resource/reviews-ratings/import',[ResourceController::class,'impor
 Route::post('/resource/reviews-ratings/bulk-status',[ResourceController::class,'bulkReviewStatus'])->name('reviews.bulk-status');
 Route::get('/resource/{module}/{record}/details',[ResourceController::class,'show'])->whereNumber('record')->name('resource.show');Route::post('/resource/{module}/{record}/duplicate',[ResourceController::class,'duplicate'])->whereNumber('record')->name('resource.duplicate');Route::post('/resource/{module}/{record}/archive',[ResourceController::class,'archive'])->whereNumber('record')->name('resource.archive');Route::post('/resource/{module}/{record}/trash',[ResourceController::class,'trash'])->whereNumber('record')->name('resource.trash');Route::post('/resource/{module}/{record}/restore',[ResourceController::class,'restore'])->whereNumber('record')->name('resource.restore');Route::delete('/resource/{module}/{record}/permanent',[ResourceController::class,'permanentDestroy'])->whereNumber('record')->name('resource.permanent-destroy');Route::get('/resource/{module}',[ResourceController::class,'index'])->name('resource');Route::post('/resource/{module}',[ResourceController::class,'store'])->name('resource.store');Route::patch('/resource/{module}/{record}',[ResourceController::class,'update'])->name('resource.update');Route::delete('/resource/{module}/{record}',[ResourceController::class,'destroy'])->name('resource.destroy');Route::get('/module/{module}',[AdminController::class,'module'])->name('module');Route::get('/integration-status',\App\Http\Controllers\Admin\IntegrationStatusController::class)->name('integration-status');});
 Route::middleware(['auth','admin'])->prefix('admin/resource/media-manager')->name('admin.media.')->group(function(){
+    Route::post('/bulk',[MediaBulkActionController::class,'productMedia'])->name('bulk');
     Route::post('/{media}/approve',[MediaManagerController::class,'approve'])->name('approve');
     Route::post('/{media}/reject',[MediaManagerController::class,'reject'])->name('reject');
 });
