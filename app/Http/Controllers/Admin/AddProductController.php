@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogClub;
+use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductCollection;
+use App\Support\CatalogCounties;
+use App\Support\CatalogStyles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,7 +29,7 @@ class AddProductController extends Controller
     {
         Gate::authorize('create', Product::class);
         return view('admin.add-product', [
-            'categories' => $this->categories(),
+            ...$this->classificationData(),
             'collections' => $this->collections(),
             'product' => null,
         ]);
@@ -37,7 +41,7 @@ class AddProductController extends Controller
         $product->load('collections');
 
         return view('admin.add-product', [
-            'categories' => $this->categories(),
+            ...$this->classificationData(),
             'collections' => $this->collections(),
             'product' => $product,
         ]);
@@ -61,9 +65,52 @@ class AddProductController extends Controller
         return $this->afterSave($request, $product, 'Product updated successfully.');
     }
 
-    private function categories()
+    private function classificationData(): array
     {
-        return Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+        $categories = Category::query()
+            ->where('is_active', true)
+            ->with(['children' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
+            ->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name', 'slug', 'taxonomy_type', 'product_type']);
+
+        $byId = $categories->keyBy('id');
+        $subcategoryOptionsByRoot = [];
+        foreach ($categories as $category) {
+            $cursor = $category;
+            $segments = [$category->name];
+
+            while ($cursor->parent_id && $byId->has($cursor->parent_id)) {
+                $cursor = $byId->get($cursor->parent_id);
+                array_unshift($segments, $cursor->name);
+            }
+
+            if (! $cursor || $cursor->parent_id !== null) {
+                continue;
+            }
+
+            $rootId = (int) $cursor->id;
+            $label = (int) $category->id === $rootId
+                ? 'Main category only'
+                : implode(' › ', array_slice($segments, 1));
+
+            $subcategoryOptionsByRoot[$rootId][] = [
+                'id' => (int) $category->id,
+                'label' => $label,
+                'product_type' => $category->product_type,
+            ];
+        }
+
+        return [
+            'categories' => $categories,
+            'categoryRoots' => $categories->whereNull('parent_id')->values(),
+            'subcategoryOptionsByRoot' => $subcategoryOptionsByRoot,
+            'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
+            'catalogCountyOptionsByCountry' => CatalogCounties::all(),
+            'catalogClubs' => CatalogClub::query()->active()->with('country:id,code,name')->orderBy('catalog_country_id')->orderBy('name')->get(),
+            'catalogStyles' => CatalogStyles::all(),
+        ];
     }
 
     private function collections()
@@ -82,7 +129,12 @@ class AddProductController extends Controller
             'short_description' => ['required', 'string', 'max:1500'],
             'slug' => ['nullable', 'string', 'max:180'],
             'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product?->id)],
+            'category_root_id' => ['nullable', 'integer', 'exists:categories,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'catalog_country_id' => ['nullable', 'integer', 'exists:catalog_countries,id'],
+            'catalog_county_code' => ['nullable', 'string', 'max:16'],
+            'catalog_club_id' => ['nullable', 'integer', 'exists:catalog_clubs,id'],
+            'catalog_style' => ['nullable', Rule::in(array_keys(CatalogStyles::all()))],
             'brand' => ['nullable', 'string', 'max:120'],
             'tags' => ['nullable', 'string', 'max:500'],
             'product_type' => ['required', Rule::in(['simple', 'variable', 'bundle'])],
@@ -129,6 +181,39 @@ class AddProductController extends Controller
         $data['slug'] = $slug;
         $data['collection_ids'] = array_values(array_map('intval', $data['collection_ids'] ?? []));
 
+        if (! empty($data['category_root_id'])) {
+            $selectedCategory = Category::query()->findOrFail((int) $data['category_id']);
+            $cursor = $selectedCategory;
+            while ($cursor->parent_id) {
+                $cursor = Category::query()->findOrFail((int) $cursor->parent_id);
+            }
+            if ((int) $cursor->id !== (int) $data['category_root_id']) {
+                throw ValidationException::withMessages([
+                    'category_id' => 'The selected subcategory does not belong to the selected category.',
+                ]);
+            }
+        }
+
+        if (! empty($data['catalog_county_code'])) {
+            $country = ! empty($data['catalog_country_id'])
+                ? CatalogCountry::query()->find((int) $data['catalog_country_id'])
+                : null;
+            if (! $country || ! CatalogCounties::isValid($country->code, $data['catalog_county_code'])) {
+                throw ValidationException::withMessages([
+                    'catalog_county_code' => 'Select a county that belongs to the selected country.',
+                ]);
+            }
+        }
+
+        if (! empty($data['catalog_club_id'])) {
+            $club = CatalogClub::query()->find((int) $data['catalog_club_id']);
+            if (! $club || (! empty($data['catalog_country_id']) && (int) $club->catalog_country_id !== (int) $data['catalog_country_id'])) {
+                throw ValidationException::withMessages([
+                    'catalog_club_id' => 'Select a club / city / town that belongs to the selected country.',
+                ]);
+            }
+        }
+
         if ($data['collection_ids'] !== []) {
             $availableCollectionIds = $this->collections()
                 ->whereIn('id', $data['collection_ids'])
@@ -161,6 +246,13 @@ class AddProductController extends Controller
                 'vat_rate' => $data['vat_rate'],
                 'currency' => $data['currency'],
                 'minimum_order_quantity' => $data['minimum_order_quantity'] ?? null,
+                'catalog_classification' => [
+                    'category_root_id' => isset($data['category_root_id']) ? (int) $data['category_root_id'] : null,
+                    'catalog_country_id' => isset($data['catalog_country_id']) ? (int) $data['catalog_country_id'] : null,
+                    'catalog_county_code' => $data['catalog_county_code'] ?? null,
+                    'catalog_club_id' => isset($data['catalog_club_id']) ? (int) $data['catalog_club_id'] : null,
+                    'style' => $data['catalog_style'] ?? null,
+                ],
                 'dimensions' => ['length' => $data['length'] ?? null, 'width' => $data['width'] ?? null, 'height' => $data['height'] ?? null],
                 'channels' => array_values($data['channels'] ?? []),
                 'order_categories' => array_values($data['order_categories'] ?? []),
