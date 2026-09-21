@@ -134,8 +134,7 @@
         <a class="{{ !$activeCategory && !$selectedCategories ? 'is-active' : '' }}" href="{{ route('shop') }}"><span class="shop-category-icon" data-category-icon="grid"><x-icon name="grid" size="19" /></span>All Products</a>
         @foreach($mainCategories as $category)
             <a class="{{ in_array($category->slug, $selectedCategories, true) ? 'is-active' : '' }}" href="{{ route('category', $category) }}">
-                @php($resolvedCategoryIcon = \App\Support\CategoryIcons::resolve($category->icon, $category->slug, $category->name))
-                <span class="shop-category-icon" data-category-icon="{{ $resolvedCategoryIcon }}"><x-icon name="{{ $resolvedCategoryIcon }}" size="19" /></span>{{ $category->name }}
+                <span class="shop-category-icon" data-category-icon="{{ \App\Support\CategoryIcons::resolve($category->icon, $category->slug, $category->name) }}"><x-icon name="{{ \App\Support\CategoryIcons::resolve($category->icon, $category->slug, $category->name) }}" size="19" /></span>{{ $category->name }}
             </a>
         @endforeach
     </section>
