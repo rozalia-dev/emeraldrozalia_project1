@@ -25,14 +25,42 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Country Taxonomy Builder')
             ->assertSee('All Countries')
-            ->assertSee('GAA, English, UEFA and FIFA require a matching Club / City / Town')
+            ->assertSee('Category → Country → County → Club Name → Subcategory')
             ->assertSee('data-club-label', false);
         $this->actingAs($admin)->get(route('admin.categories.countries'))
             ->assertOk()
             ->assertSee('Country Master');
         $this->actingAs($admin)->get(route('admin.categories.clubs'))
             ->assertOk()
-            ->assertSee('Club Master');
+            ->assertSee('Club Master')
+            ->assertSee('Category → Country → County → Club Name')
+            ->assertSee('data-club-country', false)
+            ->assertSee('data-club-county', false);
+    }
+
+    public function test_club_master_requires_country_and_county_for_club_name(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.clubs.store'), [
+                'governing_body' => 'gaa',
+                'catalog_country_id' => $ireland->id,
+                'catalog_county_code' => 'IE-LK',
+                'name' => 'Limerick Test GAA',
+                'slug' => 'limerick-test-gaa',
+                'is_active' => 1,
+                'sort_order' => 10,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('catalog_clubs', [
+            'governing_body' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LK',
+            'slug' => 'limerick-test-gaa',
+        ]);
     }
 
     public function test_uefa_country_club_product_type_hierarchy_can_be_built(): void
