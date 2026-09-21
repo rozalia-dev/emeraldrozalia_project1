@@ -1,0 +1,388 @@
+country_code,region_name,club_name
+JM,=================,Arnett Gardens
+JM,=================,Cavalier
+JM,=================,Harbour View
+JM,=================,Molynes United
+JM,=================,Tivoli Gardens
+JM,=================,Waterhouse
+JM,=================,Dunbeholden
+JM,=================,Portmore United
+JM,=================,Treasure Beach
+JM,=================,Mount Pleasant Football Academy
+JM,=================,Montego Bay United
+JM,=================,Humble Lion
+JM,=================,Vere United
+JM,=================,Lime Hall Academy
+PR,========================,Puerto Rico Islanders
+TT,===============================,Caledonia AIA
+TT,===============================,W Connection
+CR,=======================,Sporting San José
+CR,=======================,Puntarenas FC
+CR,Alajuela,LD Alajuelense
+CR,Heredia,Carmelita
+CR,Cartago,CS Cartaginés
+CR,Alajuela,Municipal Grecia
+CR,San José,Guadalupe FC
+CR,Heredia,CS Herediano
+CR,Guanacaste,AD Municipal Liberia
+CR,Limón,Limón FC
+CR,San José,Municipal Pérez Zeledón
+CR,Limón,Santos de Guápiles
+CR,San José,Deportivo Saprissa
+CR,San José,Universidad de Costa Rica
+CR,San Carlos,AD San Carlos
+CR,=======================,ADR Jicaral
+CR,=======================,AD Guanacasteca
+SV,==========================,I. Metapán
+SV,==========================,Club Deportivo Águila
+SV,==========================,Club Deportivo FAS
+SV,==========================,Alianza FC
+SV,==========================,Luis Ángel Firpo
+GT,====================,CSD Municipal
+GT,====================,Comunicaciones FC
+GT,====================,Deportivo Mixco
+GT,====================,Club Xelajú MC
+GT,====================,Heredia Jaguares de Peten
+GT,====================,Antigua GFC
+GT,====================,Cobán Imperial
+GT,====================,CD Guastatoya
+GT,====================,Deportivo Iztapa
+GT,====================,CD Malacateco
+GT,====================,Deportivo Sanarate
+GT,====================,Santa Lucía Cotzumalguapa
+GT,====================,Deportivo Siquinalá
+HN,=====================,CD Olimpia
+HN,=====================,FC Motagua
+HN,=====================,CD Marathón
+HN,=====================,Real CD España
+HN,=====================,CD Victoria
+NI,=====================,Real Estelí
+PA,========================,Chorrillo FC
+PA,========================,Tauro FC
+PA,========================,Club Deportivo Árabe Unido
+PA,========================,San Francisco FC
+PA,========================,CA Independiente de La Chorrera
+PA,========================,Sporting San Miguelito
+AL,===============================,KF Tirana
+AL,===============================,FC Dinamo City
+AL,===============================,FK Partizani Tirana
+AL,===============================,KS Skënderbeu
+AL,===============================,KS Flamurtari
+AL,===============================,KF Vllaznia
+AL,===============================,KS Besa
+AL,===============================,KS Teuta
+AL,===============================,KF Laçi
+AL,===============================,FK Kukësi
+AL,===============================,KS Luftëtari
+AL,===============================,FC Kamza
+AL,===============================,KS Kastrioti
+AL,===============================,FK Bylis
+AL,===============================,KF Elbasani
+AL,===============================,AF Elbasani
+AL,===============================,KF Tomori
+AL,===============================,KF Apolonia
+AL,===============================,KF Egnatia
+AD,==========================,FC Lusitans
+AD,==========================,Penya Encarnada
+AD,==========================,FC Rànger's
+AD,==========================,CF Esperança d'Andorra
+AD,==========================,UE Sant Julià
+AD,==========================,FC Santa Coloma
+AD,==========================,UE Santa Coloma
+AD,==========================,UE Engordany
+AD,==========================,Atlètic Club d'Escaldes
+AD,==========================,Inter Club d'Escaldes
+AD,==========================,CE Carroi
+AD,==========================,FC Ordino
+AD,==========================,FC Encamp
+AD,==========================,FS La Massana
+AD,==========================,FC Pas de la Casa
+AD,==========================,Constellació Esportiva (1998-2000)
+AD,==========================,CE Principat (1989-2015)
+AD,==========================,FC Andorra
+AM,==========================,FC Yerevan
+AM,==========================,FC Ararat Yerevan
+AM,==========================,Ararat-Armenia FC
+AM,==========================,FC BKMA Yerevan
+AM,==========================,Alashkert FC
+AM,==========================,Kilikia FC (1992-2011)
+AM,==========================,Zvartnots-AAL FC (1997-2003)
+AM,==========================,FC Pyunik
+AM,==========================,Ulisses FC
+AM,==========================,FC Mika
+AM,==========================,FC Gandzasar
+AM,==========================,FC Urartu
+AM,==========================,FC Shirak
+AM,==========================,Araks Ararat (-2005)
+AM,==========================,FSC Lori
+AM,==========================,FC Noah
+AM,==========================,FC Gandzasar Kapan
+AM,==========================,FC Van
+AT,Wien,SK Rapid Wien
+AT,Wien,Keisslergasse 3 // 1140 Wien
+AT,Wien,ii) SK Rapid Wien II
+AT,Wien,FK Austria Wien
+AT,Wien,Fischhofgasse 12 // 1100 Wien
+AT,Wien,ii) Young Violets Austria Wien
+AT,Wien,TWL Elektra
+AT,Wien,ASK Elektra Wien (-2021)
+AT,Wien,Favoritner AC
+AT,Wien,SV Wienerberg
+AT,Wien,Wiener Sport-Club
+AT,Wien,First Vienna FC
+AT,Wien,Floridsdorfer AC
+AT,Wien,Wiener Viktoria
+AT,Wien,FC Mauerwerk
+AT,Wien,SC Ostbahn XI
+AT,Wien,Admira Landhaus
+AT,Wien,Sportunion Mauer
+AT,Wien,SR Donaufeld
+AT,Wien,SV Donau Wien
+AT,Wien,FC Stadlau
+AT,Wien,SC Red Star Penzing
+AT,Wien,FV Austria XIII
+AT,Wien,Post SV Wien
+AT,Wien,FC Hellas Kagran
+AT,Burgenland,SV Mattersburg
+AT,Burgenland,Michael Koch Straße 50 // 7210 Mattersburg
+AT,Burgenland,ii) SV Mattersburg II
+AT,Burgenland,SC Neusiedl am See
+AT,Burgenland,ASV Draßburg
+AT,Burgenland,SC-ESV Parndorf
+AT,Burgenland,SV Stegersbach
+AT,Burgenland,SV Oberwart
+AT,Burgenland,SV Heiligenkreuz
+AT,Burgenland,SC Pinkafeld
+AT,Burgenland,SV Wimpassing
+AT,Burgenland,SC Ritzing
+AT,Burgenland,SC Trausdorf
+AT,Burgenland,ASV Siegendorf
+AT,Burgenland,SV Neuberg
+AT,Burgenland,SV St. Margarethen
+AT,Burgenland,ASK Baumgarten
+AT,Burgenland,ASKÖ Stinatz
+AT,Burgenland,USV Rudersdorf
+AT,Burgenland,SC Bad Sauerbrunn
+AT,Burgenland,FC Deutschkreutz
+AT,Niederösterreich,FC Admira Wacker Mödling
+AT,Niederösterreich,Johann Steinböck Strasse 5b // 2344 Maria Enzersdorf
+AT,Niederösterreich,ii) FC Admira Wacker Mödling II
+AT,Niederösterreich,VfB Mödling (1911-1977)
+AT,Niederösterreich,SC Wiener Neustadt
+AT,Niederösterreich,Giltschwertgasse 81 // 2700 Wr. Neustadt
+AT,Niederösterreich,1. Wiener Neustädter SC
+AT,Niederösterreich,SKN St. Pölten
+AT,Niederösterreich,ii) SKN St. Pölten Juniors
+AT,Niederösterreich,VSE St. Pölten (1920-1998)
+AT,Niederösterreich,SV Horn
+AT,Niederösterreich,ii) Horn Amateure
+AT,Niederösterreich,SKU Amstetten
+AT,Niederösterreich,ASK Ebreichsdorf
+AT,Niederösterreich,FC Marchfeld
+AT,Niederösterreich,SV Leobendorf
+AT,Niederösterreich,SV Stripfing
+AT,Niederösterreich,FCM Traiskirchen
+AT,Niederösterreich,ASK-BSC Bruck/Leitha
+AT,Niederösterreich,1. SC Sollenau
+AT,Niederösterreich,SV Schwechat
+AT,Niederösterreich,ASK Bad Vöslau
+AT,Niederösterreich,SC Retz
+AT,Niederösterreich,SCU Ardagger
+AT,Niederösterreich,SV Gaflenz
+AT,Niederösterreich,FC Rohrendorf/Gedersdorf
+AT,Niederösterreich,SC Leopoldsdorf
+AT,Niederösterreich,ATSV Ober-Grafendorf
+AT,Niederösterreich,ASK Kottingbrunn
+AT,Niederösterreich,ASV Spratzern
+AT,Niederösterreich,ASV Schrems
+AT,Niederösterreich,ASKÖ Gmünd
+AT,Niederösterreich,SC Krems
+AT,Niederösterreich,SC Guntersdorf
+AT,Niederösterreich,SC Echsenbach
+AT,Niederösterreich,SC St. Martin
+AT,Niederösterreich,SC Weißenkirchen
+AT,Niederösterreich,SV Rehberg
+AT,Niederösterreich,SV Sieghartskirchen
+AT,Niederösterreich,SV Zwentendorf
+AT,Niederösterreich,USC Altenwörth
+AT,Niederösterreich,USC Grafenwörth
+AT,Niederösterreich,USC Kirchberg/W.
+AT,Niederösterreich,USC Schweiggers
+AT,Niederösterreich,USV Groß Gerungs
+AT,Niederösterreich,USV Langenlois
+AT,Niederösterreich,SV Haitzendorf
+AT,Niederösterreich,SC Admira Gföhl
+AT,Niederösterreich,USV Raabs/Thaya
+AT,Niederösterreich,SV Gloggnitz
+AT,Niederösterreich,USV Scheiblingkirchen-Warth
+AT,Niederösterreich,ASC Götzendorf
+AT,Niederösterreich,SC Brunn am Gebirge
+AT,Niederösterreich,SVg Purgstall
+AT,Niederösterreich,SC Korneuburg
+AT,Oberösterreich,LASK Linz
+AT,Oberösterreich,ii) LASK Amateure OÖ
+AT,Oberösterreich,FC Juniors OÖ
+AT,Oberösterreich,FC Pasching
+AT,Oberösterreich,ASKÖ Pasching (1946-2007)
+AT,Oberösterreich,FC Blau-Weiß Linz
+AT,Oberösterreich,FC Stahl Linz
+AT,Oberösterreich,Union Edelweiß Linz
+AT,Oberösterreich,ASKÖ Donau Linz
+AT,Oberösterreich,SV Ried
+AT,Oberösterreich,Volksfestplatz 2 // 4910 Ried i. Innkreis
+AT,Oberösterreich,ii) SV Ried II
+AT,Oberösterreich,SK Vorwärts Steyr
+AT,Oberösterreich,FC Wels
+AT,Oberösterreich,WSC Hertha Wels
+AT,Oberösterreich,FC Hertha Wels
+AT,Oberösterreich,Union Vöcklamarkt
+AT,Oberösterreich,ATSV Stadl-Paura
+AT,Oberösterreich,Union Gurten
+AT,Oberösterreich,Union St. Florian
+AT,Oberösterreich,SV Wallern
+AT,Oberösterreich,SV Grün-Weiß Micheldorf
+AT,Oberösterreich,ASKÖ Oedt
+AT,Oberösterreich,SV Grieskirchen
+AT,Oberösterreich,SK Bad Wimsbach
+AT,Oberösterreich,Union Dietach
+AT,Oberösterreich,Union Weißkirchen
+AT,Oberösterreich,Union St. Martin/M.
+AT,Oberösterreich,SV Bad Schallerbach
+AT,Oberösterreich,Union Mondsee
+AT,Oberösterreich,Union Ostermiething
+AT,Oberösterreich,SPG Friedburg/Pöndorf
+AT,Oberösterreich,SV Bad Ischl
+AT,Oberösterreich,SU Bad Leonfelden
+AT,Oberösterreich,Union Perg
+AT,Oberösterreich,SPG Pregarten
+AT,Oberösterreich,ASK St. Valentin
+AT,Oberösterreich,SV Gmunden
+AT,Oberösterreich,Union Rohrbach/Berg
+AT,Oberösterreich,SC Marchtrenk
+AT,Steiermark,SK Sturm Graz
+AT,Steiermark,Sternäckerweg 118 // 8042 Graz
+AT,Steiermark,ii) SK Sturm Graz II
+AT,Steiermark,Grazer AK
+AT,Steiermark,TSV Hartberg
+AT,Steiermark,Kapfenberger SV
+AT,Steiermark,ii) Kapfenberger SV II
+AT,Steiermark,SV Lafnitz
+AT,Steiermark,SV Frauental
+AT,Steiermark,USV Allerheiligen
+AT,Steiermark,SV Wildon
+AT,Steiermark,TuS Bad Gleichenberg
+AT,Steiermark,Deutschlandsberger SC
+AT,Steiermark,FC Gleisdorf 09
+AT,Steiermark,SC Kalsdorf
+AT,Steiermark,USV St. Anna
+AT,Steiermark,SC Weiz
+AT,Steiermark,DSV Leoben
+AT,Steiermark,FC Gratkorn
+AT,Steiermark,FC Lankowitz
+AT,Steiermark,USV Mettersdorf
+AT,Steiermark,ASK Voitsberg
+AT,Kärnten,Wolfsberger AC
+AT,Kärnten,Don Bosco Weg 1 // 9400 Wolfsberg
+AT,Kärnten,ii) Wolfsberger AC II
+AT,Kärnten,ATSV Wolfsberg
+AT,Kärnten,Austria Klagenfurt
+AT,Kärnten,Austria Kärnten (2007-2010)
+AT,Kärnten,SAK Klagenfurt
+AT,Kärnten,ASV Annabichler SV 1923
+AT,Kärnten,ASK Klagenfurt
+AT,Kärnten,ATUS Velden
+AT,Kärnten,Villacher SV
+AT,Kärnten,SV Spittal/Drau
+AT,Kärnten,FC St. Veit
+AT,Kärnten,FC Lendorf
+AT,Kärnten,ASKÖ Köttmannsdorf
+AT,Kärnten,VST Völkermarkt
+AT,Kärnten,SK Treibach
+AT,Kärnten,SK Maria Saal
+AT,Kärnten,ATUS Ferlach
+AT,Kärnten,SV St. Jakob/Rosental
+AT,Kärnten,SV Dellach/Gail
+AT,Salzburg,FC RB Salzburg
+AT,Salzburg,Stadionstraße 2/3 // 5071 Wals-Siezenheim
+AT,Salzburg,ii) FC RB Salzburg II
+AT,Salzburg,Austria Salzburg
+AT,Salzburg,FC Liefering
+AT,Salzburg,USK Anif
+AT,Salzburg,SAK 1914
+AT,Salzburg,SV Grödig
+AT,Salzburg,Prötschhofstrasse 26 // 5082 Grödig
+AT,Salzburg,ii) SV Grödig II
+AT,Salzburg,SV Seekirchen
+AT,Salzburg,FC Pinzgau Saalfelden
+AT,Salzburg,TSV St. Johann
+AT,Salzburg,SV Wals-Grünau
+AT,Salzburg,SV Kuchl
+AT,Salzburg,Bischofshofen Sportklub 1933
+AT,Salzburg,TSV Neumarkt
+AT,Salzburg,USC Eugendorf
+AT,Salzburg,SC Golling
+AT,Salzburg,FC Zell am See
+AT,Salzburg,SV Straßwalchen
+AT,Salzburg,FC Bergheim
+AT,Tirol,FC Wacker Innsbruck
+AT,Tirol,Stadionstraße 1b // 6020 Innsbruck
+AT,Tirol,ii) FC Wacker Innsbruck II
+AT,Tirol,SV Innsbruck
+AT,Tirol,Union Innsbruck
+AT,Tirol,WSG Tirol
+AT,Tirol,ii) WSG Tirol Amateure
+AT,Tirol,SC Schwaz
+AT,Tirol,FC Kitzbühel
+AT,Tirol,FC Kufstein
+AT,Tirol,SV Telfs
+AT,Tirol,SV Wörgl
+AT,Tirol,SC Imst
+AT,Tirol,SV Hall
+AT,Tirol,SVG Reichenau
+AT,Tirol,FC Zirl
+AT,Tirol,SV Reutte
+AT,Tirol,SC Kundl
+AT,Tirol,SV Fügen
+AT,Tirol,SPG Silz/Mötz
+AT,Vorarlberg,SCR Altach
+AT,Vorarlberg,Schnabelholz 1 // 6844 Altach
+AT,Vorarlberg,ii) SCR Altach Juniors
+AT,Vorarlberg,Austria Lustenau
+AT,Vorarlberg,ii) Austria Lustenau Amateure
+AT,Vorarlberg,FC Lustenau 07
+AT,Vorarlberg,FC Dornbirn 1913
+AT,Vorarlberg,Dornbirner SV
+AT,Vorarlberg,SC Admira Dornbirn
+AT,Vorarlberg,FC Höchst
+AT,Vorarlberg,VfB Hohenems
+AT,Vorarlberg,FC Wolfurt
+AT,Vorarlberg,SW Bregenz
+AT,Vorarlberg,FC Hard
+AT,Vorarlberg,FC Langenegg
+AT,Vorarlberg,FC Lauterach
+AT,Vorarlberg,RW Rankweil
+AT,Vorarlberg,SC Röthis
+AT,Vorarlberg,FC Alberschwende
+AT,Vorarlberg,FC Schwarzach
+AZ,==================================,Bakı FK
+AZ,==================================,İnter Bakı PİK
+AZ,==================================,FK Shafa Baku (1997-2005)
+AZ,==================================,Neftçi PFK
+AZ,==================================,Zirä FK
+AZ,==================================,FK Şämkir (1954-2017)
+AZ,==================================,FK Şamaxı
+AZ,==================================,Qarabağ FK
+AZ,==================================,Xäzär Länkäran FK
+AZ,==================================,Olimpik-Şüvälan PFK
+AZ,==================================,Simurq PFK (2005-2015)
+AZ,==================================,Gabala SC
+AZ,==================================,Keşla FK
+AZ,==================================,Käpäz PFK
+AZ,==================================,Sabail
+AZ,==================================,Sumqayıt FK
+AZ,==================================,Sabah FC
+AZ,==================================,PFK Turan Tovuz
+AZ,==================================,FK MKT Araz
+AZ,==================================,Araz FK Naxçıvan
+AZ,==================================,Karvan FK (2004-2014)
+AZ,==================================,Khazri Buzovna (1994-1998)
