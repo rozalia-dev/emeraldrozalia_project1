@@ -82,8 +82,11 @@
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
                     </form>
                     @if($tab !== 'trash')
+                        <button class="pm-bulk-edit-button" type="button" data-edit-selected disabled>
+                            <x-icon name="pencil" size="14" /> Edit
+                        </button>
                         <button class="pm-bulk-delete-button" type="button" data-delete-selected disabled>
-                            <x-icon name="trash" size="14" /> Delete Selected <span data-selected-count>(0)</span>
+                            <x-icon name="trash" size="14" /> Delete <span data-selected-count>(0)</span>
                         </button>
                         <button class="pm-bulk-delete-button pm-delete-all" type="button" data-delete-all data-total-products="{{ $stats['total'] }}">
                             <x-icon name="trash" size="14" /> Delete All
