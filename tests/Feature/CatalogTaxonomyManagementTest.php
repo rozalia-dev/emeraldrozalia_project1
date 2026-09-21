@@ -41,6 +41,7 @@ class CatalogTaxonomyManagementTest extends TestCase
         $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
         $club = CatalogClub::create([
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-D',
             'governing_body' => 'uefa',
             'name' => 'Test Dublin FC',
             'slug' => 'test-dublin-fc',
@@ -51,29 +52,35 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->actingAs($admin)->post(route('admin.categories.taxonomy.build'), [
             'taxonomy_type' => 'uefa',
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-D',
             'catalog_club_id' => $club->id,
             'product_types' => ['beanies', 'caps', 'hats'],
         ])->assertRedirect(route('admin.categories.taxonomy', [
             'taxonomy_type' => 'uefa',
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-D',
             'catalog_club_id' => $club->id,
         ]));
 
         $uefa = Category::query()->where('slug', 'uefa')->firstOrFail();
         $country = Category::query()->where('slug', 'uefa-ie')->firstOrFail();
-        $clubCategory = Category::query()->where('slug', 'uefa-ie-test-dublin-fc')->firstOrFail();
+        $county = Category::query()->where('slug', 'uefa-ie-ie-d')->firstOrFail();
+        $clubCategory = Category::query()->where('slug', 'uefa-ie-ie-d-test-dublin-fc')->firstOrFail();
 
         $this->assertNull($uefa->parent_id);
         $this->assertSame($uefa->id, $country->parent_id);
         $this->assertSame($ireland->id, $country->catalog_country_id);
-        $this->assertSame($country->id, $clubCategory->parent_id);
+        $this->assertSame($country->id, $county->parent_id);
+        $this->assertSame('IE-D', $county->catalog_county_code);
+        $this->assertSame($county->id, $clubCategory->parent_id);
         $this->assertSame($club->id, $clubCategory->catalog_club_id);
 
         foreach (['beanies', 'caps', 'hats'] as $type) {
-            $leaf = Category::query()->where('slug', 'uefa-ie-test-dublin-fc-'.$type)->firstOrFail();
+            $leaf = Category::query()->where('slug', 'uefa-ie-ie-d-test-dublin-fc-'.$type)->firstOrFail();
             $this->assertSame($clubCategory->id, $leaf->parent_id);
             $this->assertSame('uefa', $leaf->taxonomy_type);
             $this->assertSame($ireland->id, $leaf->catalog_country_id);
+            $this->assertSame('IE-D', $leaf->catalog_county_code);
             $this->assertSame($club->id, $leaf->catalog_club_id);
             $this->assertSame($type, $leaf->product_type);
             $this->assertTrue($leaf->is_visible);
