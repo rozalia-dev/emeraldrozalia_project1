@@ -66,7 +66,7 @@
                     <button class="cat-btn" type="button" data-expand-all><span>↕</span> Expand All</button>
                     <button class="cat-btn" type="button" data-collapse-all><span>↕</span> Collapse All</button>
                     <button class="cat-btn cat-btn--edit" type="button" data-edit-selected disabled><x-icon name="pencil" size="14" /> Edit</button>
-                    <button class="cat-btn cat-btn--danger-outline" type="button" data-delete-selected disabled><x-icon name="trash" size="14" /> Delete</button>
+                    <button class="cat-btn cat-btn--danger-outline" type="button" data-delete-selected disabled><x-icon name="trash" size="14" /> Delete Selected <span data-delete-selected-count>(0)</span></button>
                     <button class="cat-btn cat-btn--danger" type="button" data-delete-all @disabled(($stats['total'] ?? 0) < 1)><x-icon name="trash" size="14" /> Delete All</button>
                     <button class="cat-btn cat-btn--outline js-add-subcategory" type="button" @disabled(!$selected) data-parent-id="{{ $selected?->id }}" data-parent-name="{{ $selected?->name }}"><x-icon name="plus" size="15" /> Add Sub-Category</button>
                     <button class="cat-btn cat-btn--primary js-add-category" type="button"><x-icon name="plus" size="15" /> Add Category</button>
@@ -233,5 +233,5 @@
     </dialog>
 </div>
 
-<script src="{{ asset('js/admin-categories.js') }}?v=20260921-2" defer></script>
+<script src="{{ asset('js/admin-categories.js') }}?v=20260921-3" defer></script>
 @endsection
