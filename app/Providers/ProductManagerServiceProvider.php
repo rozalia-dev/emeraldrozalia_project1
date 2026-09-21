@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Http\Controllers\Admin\ProductManagerController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class ProductManagerServiceProvider extends ServiceProvider
@@ -23,12 +22,5 @@ class ProductManagerServiceProvider extends ServiceProvider
                 });
         }
 
-        View::composer('layouts.admin', function (): void {
-            if (! request()->is('admin/resource/product-manager*')) {
-                return;
-            }
-
-            View::startPush('scripts', view('admin.partials.product-manager-delete-actions')->render());
-        });
     }
 }
