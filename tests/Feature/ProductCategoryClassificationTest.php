@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\CatalogClub;
+use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
