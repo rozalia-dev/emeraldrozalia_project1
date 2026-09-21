@@ -115,7 +115,18 @@ class CatalogTaxonomyManagementTest extends TestCase
             ]))
             ->assertOk()
             ->assertJsonPath('clubs.0.id', $exact->id)
+            ->assertJsonMissing(['id' => $fallback->id])
+            ->assertJsonMissing(['name' => 'Osaka Other Club']);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'fifa',
+                'catalog_country_id' => $japan->id,
+                'catalog_county_code' => 'JP-01',
+            ]))
+            ->assertOk()
             ->assertJsonFragment(['id' => $fallback->id, 'scope' => 'country'])
+            ->assertJsonMissing(['name' => 'Tokyo Exact Club'])
             ->assertJsonMissing(['name' => 'Osaka Other Club']);
 
         $this->actingAs($admin)
