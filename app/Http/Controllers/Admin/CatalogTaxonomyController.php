@@ -437,11 +437,14 @@ class CatalogTaxonomyController extends Controller
             return;
         }
 
+        $clubCounty = strtoupper((string) $club->catalog_county_code);
+        $countryWideFifaClub = $taxonomy === 'fifa' && $clubCounty === '';
+
         if (
             ! $country
             || $club->governing_body !== $taxonomy
             || (int) $club->catalog_country_id !== (int) $country->id
-            || strtoupper((string) $club->catalog_county_code) !== strtoupper((string) $countyCode)
+            || (! $countryWideFifaClub && $clubCounty !== strtoupper((string) $countyCode))
         ) {
             throw ValidationException::withMessages(['catalog_club_id' => 'The selected club does not belong to this category, country and county.']);
         }
