@@ -23,6 +23,7 @@ final class PublicCatalogNavigationServiceProvider extends ServiceProvider
         View::composer('layouts.site', function ($view): void {
             $catalogNavCategories = Category::query()
                 ->websiteVisible()
+                ->whereNull('parent_id')
                 ->withCount(['products' => fn ($query) => $query->published()])
                 ->orderBy('sort_order')
                 ->orderBy('name')

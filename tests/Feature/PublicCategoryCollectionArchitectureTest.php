@@ -23,6 +23,16 @@ class PublicCategoryCollectionArchitectureTest extends TestCase
             'sort_order' => 1,
         ]);
 
+        $childCategory = Category::create([
+            'parent_id' => $category->id,
+            'name' => 'Caps',
+            'slug' => 'baseball-caps-caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
         $product = Product::create([
             'category_id' => $category->id,
             'name' => 'Classic Emerald Cap',
@@ -47,7 +57,9 @@ class PublicCategoryCollectionArchitectureTest extends TestCase
         $this->get(route('shop'))
             ->assertOk()
             ->assertSee('data-catalog-nav="categories"', false)
-            ->assertSee('Baseball Caps')
+            ->assertSee('<a href="'.route('category', ['category' => $category->slug]).'"><span>Baseball Caps</span></a>', false)
+            ->assertDontSee('<a href="'.route('shop').'">SHOP ALL</a>', false)
+            ->assertDontSee(route('category', ['category' => $childCategory->slug]), false)
             ->assertSee('data-catalog-nav="collections"', false)
             ->assertSee('Irish Heritage Edit');
     }
