@@ -548,8 +548,14 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
 
     public function test_every_catalog_country_has_a_fifa_region_path(): void
     {
+        $all = CatalogCounties::all();
+
         foreach (CatalogCountries::all() as $country) {
             $code = (string) $country['code'];
+            $this->assertNotEmpty(
+                $all[$code] ?? [],
+                'Expected the admin dropdown dataset to contain a FIFA subdivision/fallback for '.$code.' ('.$country['name'].').'
+            );
             $this->assertNotEmpty(
                 CatalogCounties::forCountry($code),
                 'Expected at least one FIFA subdivision/fallback for '.$code.' ('.$country['name'].').'
