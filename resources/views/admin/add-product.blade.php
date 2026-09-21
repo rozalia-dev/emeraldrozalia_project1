@@ -5,6 +5,21 @@
 @php
     $isEditing = isset($product) && $product;
     $productMeta = $product?->product_metadata ?? [];
+    $classification = is_array($productMeta['catalog_classification'] ?? null) ? $productMeta['catalog_classification'] : [];
+    $selectedCategoryId = old('category_id', $product?->category_id);
+    $categoryById = $categories->keyBy('id');
+    $selectedRootId = old('category_root_id', $classification['category_root_id'] ?? null);
+    if (! $selectedRootId && $selectedCategoryId && $categoryById->has((int) $selectedCategoryId)) {
+        $cursor = $categoryById->get((int) $selectedCategoryId);
+        while ($cursor?->parent_id && $categoryById->has((int) $cursor->parent_id)) {
+            $cursor = $categoryById->get((int) $cursor->parent_id);
+        }
+        $selectedRootId = $cursor?->id;
+    }
+    $selectedCountryId = old('catalog_country_id', $classification['catalog_country_id'] ?? '');
+    $selectedCountyCode = old('catalog_county_code', $classification['catalog_county_code'] ?? '');
+    $selectedClubId = old('catalog_club_id', $classification['catalog_club_id'] ?? '');
+    $selectedStyle = old('catalog_style', $classification['style'] ?? '');
     $selectedChannels = old('channels', $productMeta['channels'] ?? ['website', 'franchise', 'franchise_retail', 'corporate_bulk']);
     $selectedOrderCategories = old('order_categories', $productMeta['order_categories'] ?? ['online', 'bulk', 'franchise', 'franchise_retail']);
     $selectedChannels = is_array($selectedChannels) ? $selectedChannels : [];
@@ -104,17 +119,91 @@
                                 @error('sku')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
-                            <label class="ap-field ap-field-wide">
-                                <span>Shop by Collections category <em>*</em></span>
-                                <select name="category_id" required>
-                                    <option value="">Select the public category</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" @selected((string) old('category_id', $product?->category_id) === (string) $category->id)>{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
-                                <small class="ap-field-help">This controls the product category page and the matching Shop by Collections tile. Choose Irish Heritage Hats for the Irish Heritage category page, then use Public Placement to add it to the curated Heritage Collection too.</small>
-                                @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
-                            </label>
+                            <section class="ap-inline-section ap-field-wide" data-product-classification>
+                                <div class="ap-inline-heading">
+                                    <h3>Category &amp; Subcategory</h3>
+                                    <span>Choose the main category, product family and optional catalogue filters.</span>
+                                </div>
+
+                                <div class="ap-field-row">
+                                    <label class="ap-field">
+                                        <span>Category <em>*</em></span>
+                                        <select name="category_root_id" data-category-root required>
+                                            <option value="">Select category</option>
+                                            @foreach($categoryRoots as $root)
+                                                <option value="{{ $root->id }}" @selected((string) $selectedRootId === (string) $root->id)>{{ $root->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('category_root_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                    </label>
+
+                                    <label class="ap-field">
+                                        <span>Subcategory <em>*</em></span>
+                                        <select name="category_id" data-subcategory required>
+                                            <option value="">Select category first</option>
+                                            @foreach($subcategoryOptionsByRoot as $rootId => $options)
+                                                @foreach($options as $option)
+                                                    <option value="{{ $option['id'] }}"
+                                                        data-root="{{ $rootId }}"
+                                                        @selected((string) $selectedCategoryId === (string) $option['id'])>
+                                                        {{ $option['label'] }}
+                                                    </option>
+                                                @endforeach
+                                            @endforeach
+                                        </select>
+                                        <small class="ap-field-help">Canonical subcategories are Caps, Hats and Beanie. Nested taxonomy paths also appear here when available.</small>
+                                        @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                    </label>
+                                </div>
+
+                                <div class="ap-field-row ap-field-row-three">
+                                    <label class="ap-field">
+                                        <span>Style / Range</span>
+                                        <select name="catalog_style">
+                                            <option value="">Select style</option>
+                                            @foreach($catalogStyles as $styleValue => $styleLabel)
+                                                <option value="{{ $styleValue }}" @selected((string) $selectedStyle === (string) $styleValue)>{{ $styleLabel }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('catalog_style')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                    </label>
+
+                                    <label class="ap-field">
+                                        <span>Country</span>
+                                        <select name="catalog_country_id" data-catalog-country>
+                                            <option value="">All / not applicable</option>
+                                            @foreach($catalogCountries as $country)
+                                                <option value="{{ $country->id }}" data-code="{{ $country->code }}" @selected((string) $selectedCountryId === (string) $country->id)>{{ $country->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('catalog_country_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                    </label>
+
+                                    <label class="ap-field">
+                                        <span>County</span>
+                                        <select name="catalog_county_code" data-catalog-county>
+                                            <option value="">Select country first</option>
+                                        </select>
+                                        @error('catalog_county_code')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                    </label>
+                                </div>
+
+                                <label class="ap-field ap-field-wide">
+                                    <span>Club / City / Town</span>
+                                    <select name="catalog_club_id" data-catalog-club>
+                                        <option value="">All / not applicable</option>
+                                        @foreach($catalogClubs as $club)
+                                            <option value="{{ $club->id }}"
+                                                data-country="{{ $club->catalog_country_id }}"
+                                                @selected((string) $selectedClubId === (string) $club->id)>
+                                                {{ $club->name }}@if($club->country) — {{ $club->country->name }}@endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="ap-field-help">Use Club Master to maintain selectable club / locality entries for GAA, English, UEFA, FIFA and other geographic ranges.</small>
+                                    @error('catalog_club_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                </label>
+                            </section>
 
                             <label class="ap-field ap-field-wide">
                                 <span>Brand / Line</span>
@@ -299,5 +388,81 @@
             </div>
         </div>
     </form>
+<script>
+(() => {
+    const root = document.querySelector('[data-product-classification]');
+    if (!root) return;
+
+    const category = root.querySelector('[data-category-root]');
+    const subcategory = root.querySelector('[data-subcategory]');
+    const country = root.querySelector('[data-catalog-country]');
+    const county = root.querySelector('[data-catalog-county]');
+    const club = root.querySelector('[data-catalog-club]');
+    const counties = @json($catalogCountyOptionsByCountry);
+    const initialCounty = @json((string) $selectedCountyCode);
+    const initialSubcategory = @json((string) $selectedCategoryId);
+
+    const syncSubcategories = () => {
+        const selectedRoot = category?.value || '';
+        let firstVisible = '';
+        let selectedStillVisible = false;
+
+        [...(subcategory?.options || [])].forEach((option, index) => {
+            if (index === 0) return;
+            const visible = selectedRoot !== '' && option.dataset.root === selectedRoot;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (visible && !firstVisible) firstVisible = option.value;
+            if (visible && option.value === subcategory.value) selectedStillVisible = true;
+        });
+
+        if (!selectedStillVisible) {
+            subcategory.value = '';
+        }
+        if (!subcategory.value && selectedRoot && firstVisible && initialSubcategory === '') {
+            subcategory.value = firstVisible;
+        }
+        if (subcategory?.options[0]) {
+            subcategory.options[0].textContent = selectedRoot ? 'Select subcategory' : 'Select category first';
+        }
+    };
+
+    const syncCounties = (preserve = false) => {
+        if (!country || !county) return;
+        const countryCode = country.selectedOptions[0]?.dataset.code || '';
+        const selected = preserve ? (county.value || initialCounty) : '';
+        county.replaceChildren(new Option(countryCode ? 'All counties / not applicable' : 'Select country first', ''));
+
+        for (const row of (counties[countryCode] || [])) {
+            county.add(new Option(row.name, row.code, false, row.code === selected));
+        }
+        if (selected && [...county.options].some(option => option.value === selected)) {
+            county.value = selected;
+        }
+    };
+
+    const syncClubs = () => {
+        if (!country || !club) return;
+        const selectedCountry = country.value;
+        [...club.options].forEach((option, index) => {
+            if (index === 0) return;
+            const visible = selectedCountry === '' || option.dataset.country === selectedCountry;
+            option.hidden = !visible;
+            option.disabled = !visible;
+        });
+        if (club.selectedOptions[0]?.disabled) club.value = '';
+    };
+
+    category?.addEventListener('change', syncSubcategories);
+    country?.addEventListener('change', () => {
+        syncCounties(false);
+        syncClubs();
+    });
+
+    syncSubcategories();
+    syncCounties(true);
+    syncClubs();
+})();
+</script>
 </div>
 @endsection
