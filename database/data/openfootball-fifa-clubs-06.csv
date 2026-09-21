@@ -1,0 +1,601 @@
+country_code,region_name,club_name
+SI,===============================,NK Olimpija Ljubljana
+SI,===============================,NK IB Ljubljana
+SI,===============================,NK Bravo
+SI,===============================,NK Maribor
+SI,===============================,NŠ Mura
+SI,===============================,ND Mura 05 (2005-2013)
+SI,===============================,NK Mura (1924-2005)
+SI,===============================,FC Koper
+SI,===============================,ND Gorica
+SI,===============================,NK Domžale
+SI,===============================,NK Rudar Velenje
+SI,===============================,NK Celje
+SI,===============================,NK Aluminij
+SI,===============================,ASK Bravo Publikum
+SI,===============================,NK Tabor Sezana
+SI,===============================,NK Triglav
+SI,===============================,NK Radomlje
+SI,===============================,NK Nafta 1903
+SI,===============================,NK Krško
+SI,===============================,NK Primorje (1924-2011)
+SI,===============================,ND Primorje
+SI,===============================,MNK Izola
+SI,===============================,NK Izola (1923-1996)
+SI,===============================,NK Rogaška
+SI,===============================,NK Bistrica
+SI,===============================,ND Beltinci
+ES,Comunidad de Madrid,Atlético Madrid
+ES,Comunidad de Madrid,ii) Atlético Madrid B
+ES,Comunidad de Madrid,Real Madrid
+ES,Comunidad de Madrid,ii) Real Madrid B
+ES,Comunidad de Madrid,Getafe CF
+ES,Comunidad de Madrid,Rayo Vallecano
+ES,Comunidad de Madrid,AD Alcorcón
+ES,Comunidad de Madrid,CF Fuenlabrada
+ES,Comunidad de Madrid,CF Rayo Majadahonda
+ES,Andalucía,Málaga CF
+ES,Andalucía,ii) Málaga CF B
+ES,Andalucía,Sevilla FC
+ES,Andalucía,ii) Sevilla FC B
+ES,Andalucía,Real Betis
+ES,Andalucía,Algeciras CF
+ES,Andalucía,UD Almería
+ES,Andalucía,Cádiz CF
+ES,Andalucía,Córdoba CF
+ES,Andalucía,Écija Balompié
+ES,Andalucía,Real Jaén CF
+ES,Andalucía,Granada CF
+ES,Andalucía,Granada 74
+ES,Cataluña,FC Barcelona
+ES,Cataluña,ii) FC Barcelona B
+ES,Cataluña,RCD Espanyol
+ES,Cataluña,UE Sant Andreu
+ES,Cataluña,Gimnàstic Tarragona
+ES,Cataluña,Girona FC
+ES,Cataluña,CF Reus
+ES,Cataluña,Lleida Esportiu
+ES,Cataluña,UE Lleida (1939-2011)
+ES,Galicia,RCD La Coruña
+ES,Galicia,RC Celta Vigo
+ES,Galicia,SD Compostela
+ES,Galicia,Racing Ferrol
+ES,Comunidad Valenciana,Valencia CF
+ES,Comunidad Valenciana,Levante UD
+ES,Comunidad Valenciana,Alicante CF
+ES,Comunidad Valenciana,Hércules CF
+ES,Comunidad Valenciana,CD Alcoyano
+ES,Comunidad Valenciana,Elche CF
+ES,Comunidad Valenciana,CD Castellón
+ES,Comunidad Valenciana,Villarreal CF
+ES,Comunidad Valenciana,ii) Villarreal CF B
+ES,Comunidad Valenciana,CD Eldense
+ES,País Vasco,Real Sociedad
+ES,País Vasco,ii) Real Sociedad B
+ES,País Vasco,Deportivo Alavés
+ES,País Vasco,SD Eibar
+ES,País Vasco,Athletic Club Bilbao
+ES,País Vasco,ii) Athletic Club Bilbao B
+ES,Asturias,Sporting Gijón
+ES,Castilla-La Mancha,Albacete Balompié
+ES,Castilla-La Mancha,CD Guadalajara
+ES,Extremadura,CD Badajoz
+ES,Extremadura,CF Extremadura (-2010)
+ES,Extremadura,Extremadura UD
+ES,Extremadura,CP Mérida
+ES,Extremadura,Mérida AD
+ES,Castilla y León,Burgos CF
+ES,Castilla y León,CD Mirandés
+ES,Región de Murcia,Real Murcia CF
+ES,Región de Murcia,UCAM Murcia
+ES,Región de Murcia,CF Ciudad de Murcia
+ES,Región de Murcia,FC Cartagena
+ES,Aragón,Real Zaragoza
+ES,Aragón,SD Huesca
+ES,Islas Canarias,UD Las Palmas
+ES,Islas Canarias,Universidad Las Palmas
+ES,Islas Baleares,RCD Mallorca
+ES,Islas Baleares,ii) RCD Mallorca B
+ES,Islas Baleares,CD Atlético Baleares
+ES,Canarias,CD Tenerife
+ES,???,CA Osasuna
+ES,???,CD Leganés
+ES,???,Cultural Leonesa
+ES,???,UE Llagostera
+ES,???,CD Logroñés
+ES,???,UD Logroñés
+ES,???,SD Logroñés
+ES,???,Lorca FC
+ES,???,CD Lugo
+ES,???,CD Numancia
+ES,???,CD Ourense
+ES,???,Real Oviedo
+ES,???,Polideportivo Ejido
+ES,???,SD Ponferradina
+ES,???,Pontevedra CF
+ES,???,Real Unión
+ES,???,Recreativo Huelva
+ES,???,CE Sabadell
+ES,???,UD Salamanca
+ES,???,Real Racing Santander
+ES,???,Terrassa FC
+ES,???,CD Toledo
+ES,???,Real Valladolid CF
+ES,???,UD Vecindario
+ES,???,Xerez CD
+ES,???,Real Madrid Castilla
+ES,???,Club Marino Luanco
+ES,???,CF Illueca
+ES,???,UD Socuéllamos
+ES,???,UM Escobedo
+ES,???,Gimnástica Segoviana
+ES,???,Zamora CF
+ES,???,Comillas CF
+ES,???,CD El Álamo
+ES,???,El Palmar CF
+ES,???,Bergantiños FC
+ES,???,Tolosa CF
+ES,???,CF Badalona
+ES,???,CA Antoniano
+ES,???,CD Peña Azagresa
+ES,???,CD Becerril
+ES,???,UD Melilla
+ES,???,SD Amorebieta
+ES,???,UD Ibiza
+ES,???,CD Ebro
+ES,???,CF Villanovense
+ES,???,Union Mutilvera
+ES,???,CD Calahorra
+ES,???,Lorca FC (2003-2022)
+ES,???,CF Lorca Deportiva
+ES,???,Ontinyent CF (1947-2019)
+ES,???,Ontinyent 1931 CF
+SE,=================================,AIK
+SE,=================================,IF Brommapojkarna
+SE,=================================,Djurgårdens IF
+SE,=================================,FC Stockholm Inter
+SE,=================================,Hammarby IF
+SE,=================================,Hammarby Talang FF
+SE,=================================,Vasalunds IF
+SE,=================================,IFK Stocksund
+SE,=================================,IFK Göteborg
+SE,=================================,GAIS
+SE,=================================,BK Häcken
+SE,=================================,Qviding FIF
+SE,=================================,Örgryte Göteborg
+SE,=================================,Utsiktens BK
+SE,=================================,Torslanda IK
+SE,=================================,Malmö FF
+SE,=================================,IFK Malmö
+SE,=================================,BK Olympic
+SE,=================================,Ariana FC
+SE,=================================,IF Elfsborg
+SE,=================================,Norrby IF
+SE,=================================,Helsingborgs IF
+SE,=================================,Kalmar FF
+SE,=================================,Örebro SK
+SE,=================================,Örebro Syrianska IF
+SE,=================================,Gefle IF
+SE,=================================,AFC Eskilstuna
+SE,=================================,Mjällby AIF
+SE,=================================,Åtvidabergs FF
+SE,=================================,Dalkurd FF
+SE,=================================,IK Sirius
+SE,=================================,Falkenbergs FF
+SE,=================================,Halmstads BK
+SE,=================================,Jönköpings Södra IF
+SE,=================================,Ljungskile SK
+SE,=================================,IFK Norrköping
+SE,=================================,Östers IF
+SE,=================================,Östersunds FK
+SE,=================================,GIF Sundsvall
+SE,=================================,Syrianska FC
+SE,=================================,Trelleborgs FF
+SE,=================================,FC Trollhättan
+SE,=================================,Husqvarna FF
+SE,=================================,Nyköping BIS
+SE,=================================,Västerås SK
+SE,=================================,Degerfors IF
+SE,=================================,Varbergs BoIS
+SE,=================================,IK Brage
+SE,=================================,Landskrona BoIS
+SE,=================================,Akropolis IF
+SE,=================================,IK Frej
+SE,=================================,Umeå FC
+SE,=================================,IFK Värnamo
+SE,=================================,Skövde AIK
+SE,=================================,Sandvikens IF
+SE,=================================,IK Oddevold
+SE,=================================,Ängelholms FF
+SE,=================================,Lunds BK
+SE,=================================,Oskarshamns AIK
+SE,=================================,Sollentuna FK
+SE,=================================,Onsala BK
+SE,=================================,FBK Karlstad
+SE,=================================,IF Karlstad Fotbol
+SE,=================================,Nordic United FC
+SE,=================================,Tvååkers IF
+SE,=================================,Eskilsminne IF
+SE,=================================,Täby FK
+SE,=================================,Piteå IF
+CH,Zürich,Grasshoppers Zürich
+CH,Zürich,FC Zürich
+CH,Zürich,ii) FC Zürich II
+CH,Zürich,FC Red Star Zürich
+CH,Zürich,Zürich City
+CH,Zürich,YF Juventus Zürich
+CH,Zürich,FC Winterthur
+CH,Basel-Stadt,FC Basel
+CH,Basel-Stadt,ii) FC Basel II
+CH,Basel-Stadt,FC Black Stars Basel
+CH,Basel-Stadt,Concordia Basel
+CH,Bern,BSC Young Boys
+CH,Bern,ii) BSC Young Boys II
+CH,Bern,FC Breitenrain Bern
+CH,Bern,FC Prishtina Bern
+CH,Bern,FC Biel-Bienne
+CH,Bern,FC Besa Biel/Bienne
+CH,Bern,FC Thun
+CH,Luzern,FC Luzern
+CH,Luzern,ii) FC Luzern II
+CH,Luzern,FC Kickers Luzern
+CH,Luzern,SC Kriens
+CH,St. Gallen,FC St. Gallen
+CH,St. Gallen,ii) St. Gallen A.
+CH,St. Gallen,FC Winkeln St. Gallen
+CH,St. Gallen,Besa St. Gallen
+CH,St. Gallen,Dardania St. Gallen
+CH,St. Gallen,FC Wil
+CH,Schaffhausen,FC Schaffhausen
+CH,Schaffhausen,SV Schaffhausen
+CH,Aargau,FC Aarau
+CH,Aargau,FC Wohlen
+CH,Aargau,FC Wettingen
+CH,Aargau,FC Baden
+CH,Schwyz,SC Schwyz
+CH,Zug,Zug 94
+CH,Graubünden,Chur 97
+CH,Graubünden,FC Sion
+CH,Neuchâtel,Xamax Neuchâtel
+CH,Neuchâtel,FC La Chaux-de-Fonds
+CH,Genève,Servette FC
+CH,Genève,FC Lausanne
+CH,Genève,Stade Lausanne-Ouchy
+CH,Genève,FC Dardania Lausanne
+CH,Genève,FC Le Mont
+CH,Genève,Yverdon-Sport FC
+CH,Genève,FC Stade Nyonnais
+CH,Genève,Vevey-Sports
+CH,Genève,FC Lugano
+CH,Genève,FC Chiasso
+CH,Genève,FC Locarno
+CH,Genève,AC Bellinzona
+CH,Jura,SR Delémont
+CH,??,FC Affoltern
+CH,??,FC Ajoie-Monterri
+CH,??,FC Altstätten
+CH,??,FC Aemme
+CH,??,FC Allschwil
+CH,??,US Arbedo
+CH,??,ASI Audax Friul
+CH,??,FC Bosporus
+CH,??,FC Buchs AG
+CH,??,FC Bulle
+CH,??,SC Brühl
+CH,??,FC Bavois
+CH,??,FC Bischofszell 1913
+CH,??,FC Breitenrain
+CH,??,SC Balerna
+CH,??,FC Begnins
+CH,??,SC Binningen
+CH,??,FC Bubendorf
+CH,??,SC Buochs
+CH,??,Etoile Carouge FC
+CH,??,SC Cham
+CH,??,FC Collina d'Oro
+CH,??,FC Courtételle
+CH,??,FC CSL
+CH,??,FC Champel
+CH,??,Compesieres FC
+CH,??,FC Chatel St. Denis
+CH,??,CS Chenois
+CH,??,FC Coffrane
+CH,??,FC Dietikon
+CH,??,FC Dübendorf
+CH,??,FC Dürrenast
+CH,??,FC Echallens
+CH,??,SC Emmen
+CH,??,FC Echichens
+CH,??,FC Escholzmatt-Marbach
+CH,??,FC Frutigen
+CH,??,FC Gambarogno-Contone | FC Gambarogno
+CH,??,FC Genolier-Begnins
+CH,??,FC Grand-Saconnex
+CH,??,FC Greifensee
+CH,??,FC Gunzwil
+CH,??,FC Gland
+CH,??,FC Goldstern
+CH,??,FC Haute-Gruyère
+CH,??,FC Haute-Ajoie
+CH,??,SV Höngg
+CH,??,FC Hausen am Albis
+CH,??,AS Haute-Broye
+CH,??,FC Ibach
+CH,??,FC Kreuzlingen
+CH,??,FC Köniz
+CH,??,VfR Kleinhüningen
+CH,??,FC Lancy
+CH,??,FC Langenthal
+CH,??,Le Locle Sports
+CH,??,FC Linth 04
+CH,??,FC Laufen
+CH,??,FC Lachen/Altendorf
+CH,??,FC Littau
+CH,??,AC Malcantone
+CH,??,FC Mendrisio
+CH,??,FC Meyrin
+CH,??,FC Monthey
+CH,??,FC Muri
+CH,??,FC Münsingen
+CH,??,FC Onex
+CH,??,FC Porrentruy
+CH,??,FC Paradiso
+CH,??,FC Printse-Nendaz
+CH,??,Italien Pertandingan
+CH,??,FC Portalban/Gletterens
+CH,??,FC Rorschach
+CH,??,FC Rotkreuz
+CH,??,FC Rapperswil-Jona
+CH,??,FC Regensdorf
+CH,??,FC Saint-Blaise
+CH,??,FC Savièse
+CH,??,FC Schönenwerd-Niedergösgen
+CH,??,FC Solothurn
+CH,??,Iliria Solothurn
+CH,??,FC Subingen
+CH,??,FC Suhr
+CH,??,FC Schattdorf
+CH,??,Signal FC
+CH,??,Sarmenstorf FC
+CH,??,FC Saxon Sports
+CH,??,FC Schoenberg
+CH,??,FC Sternenberg
+CH,??,FC Saint-Prex
+CH,??,FC Seuzach
+CH,??,FC Someo
+CH,??,FC St.-Leonard
+CH,??,SC Schöftland
+CH,??,FC Schötz
+CH,??,FC Sierre
+CH,??,AC Taverne
+CH,??,FC Tuggen
+CH,??,FC Unterstrass
+CH,??,FC Ursy
+CH,??,FC Wallbach
+CH,??,FC Wettswil-Bonstetten
+CH,??,FC Widnau
+CH,??,FC Winkeln SG
+CH,??,FC Wiedikon ZH
+CH,??,FC Wittenbach
+CH,??,FC Zollbrück
+TR,===============================,Fenerbahçe İstanbul
+TR,===============================,Galatasaray İstanbul
+TR,===============================,Beşiktaş İstanbul
+TR,===============================,Kasımpaşa İstanbul
+TR,===============================,İstanbul Başakşehir
+TR,===============================,İstanbulspor
+TR,===============================,Sarıyer SK
+TR,===============================,Zeytinburnuspor
+TR,===============================,Fatih Karagümrük
+TR,===============================,Tuzlaspor
+TR,===============================,Ümraniyespor
+TR,===============================,Pendikspor
+TR,===============================,Karagümrük
+TR,===============================,Eyüpspor
+TR,===============================,Gençlerbirliği Ankara SK
+TR,===============================,Osmanlıspor Ankara
+TR,===============================,MKE Ankaragücü
+TR,===============================,Hacettepespor
+TR,===============================,Turanspor
+TR,===============================,Petrol Ofisi SK (1954-2010)
+TR,===============================,Keçiörengücü
+TR,===============================,Ankara Keçiörengücü
+TR,===============================,Kardemir Karabükspor
+TR,===============================,Elazığspor
+TR,===============================,Eskişehirspor
+TR,===============================,Akhisarspor
+TR,===============================,Alanyaspor
+TR,===============================,Antalyaspor
+TR,===============================,Bursaspor
+TR,===============================,Göztepe İzmir
+TR,===============================,Bucaspor
+TR,===============================,Altay SK
+TR,===============================,Karşıyaka SK
+TR,===============================,Altınordu
+TR,===============================,Menemenspor
+TR,===============================,Kayserispor
+TR,===============================,Kayseri Erciyesspor
+TR,===============================,Konyaspor
+TR,===============================,Sivasspor
+TR,===============================,Trabzonspor
+TR,===============================,Yeni Malatyaspor
+TR,===============================,Malatyaspor
+TR,===============================,Adanaspor
+TR,===============================,Adana Demirspor
+TR,===============================,Gaziantepspor
+TR,===============================,Gazişehir Gaziantep FK
+TR,===============================,Çaykur Rizespor
+TR,===============================,Balıkesirspor
+TR,===============================,Mersin İdmanyurdu
+TR,===============================,Denizlispor
+TR,===============================,Orduspor
+TR,===============================,Manisaspor
+TR,===============================,Samsunspor
+TR,===============================,Diyarbakırspor
+TR,===============================,Kocaelispor
+TR,===============================,Sakaryaspor
+TR,===============================,Akçaabat Sebatspor
+TR,===============================,Yozgatspor
+TR,===============================,Erzurumspor
+TR,===============================,Siirtspor
+TR,===============================,Vanspor FK
+TR,===============================,Çanakkale Dardanelspor
+TR,===============================,Boluspor
+TR,===============================,Giresunspor
+TR,===============================,Erzincanspor
+TR,===============================,Hatayspor
+TR,===============================,Bandırmaspor
+TR,===============================,Çorum
+TR,===============================,Manisa
+TR,===============================,Bodrum
+TR,===============================,Şanlıurfaspor
+UA,=============================,FC Dynamo Kyiv
+UA,=============================,FC Arsenal Kyiv
+UA,=============================,FC Obolon Kyiv
+UA,=============================,FK Livyi Bereh
+UA,=============================,FC Shakhtar Donetsk
+UA,=============================,FC Metalurh Donetsk
+UA,=============================,FC Olimpik Donetsk
+UA,=============================,FC Metalist Kharkiv
+UA,=============================,FC Dnipro
+UA,=============================,SC Dnipro-1
+UA,=============================,FC Vorskla Poltava
+UA,=============================,FC Karpaty Lviv
+UA,=============================,FC Lviv
+UA,=============================,FC Rukh Lviv
+UA,=============================,SC Tavriya Simferopol
+UA,=============================,FC Zorya Luhansk
+UA,=============================,FC Mariupol
+UA,=============================,FC Olexandriya
+UA,=============================,FC Chornomorets Odesa
+UA,=============================,Desna Chernihiv
+UA,=============================,Kolos Kovalivka
+UA,=============================,FC Volyn Lutsk
+UA,=============================,FC Metalurh Zaporizhya
+UA,=============================,FC Kryvbas Kryvyi Rih
+UA,=============================,NK Veres Rivne
+UA,=============================,LNZ Cherkasy
+UA,=============================,FC Mynai
+UA,=============================,Polissya Zhytomyr
+UA,=============================,Inhulets Petrove
+UA,=============================,FC Zirka Kropyvnytskyi
+UA,=============================,FC Hirnyk-Sport
+UA,=============================,FC Stal Kamianske (1926-2018)
+UA,=============================,FC Hoverla Uzhhorod (1946-2016)
+UA,=============================,FC Sevastopol (2002-2014)
+WAL,============================,The New Saints FC
+WAL,============================,Bangor City FC
+WAL,============================,Llanelli AFC
+WAL,============================,Cefn Druids AFC
+WAL,============================,Neath FC
+WAL,============================,Port Talbot Town FC
+WAL,============================,Connah's Quay Nomads FC
+WAL,============================,Bala Town FC
+WAL,============================,Llandudno FC
+WAL,============================,Newtown AFC
+WAL,============================,AUK Broughton FC
+WAL,============================,Aberystwyth Town FC
+WAL,============================,Barry Town AFC
+WAL,============================,Cardiff Metropolitan University FC
+WAL,============================,Caernarfon Town FC
+WAL,============================,Carmarthen Town AFC
+WAL,============================,Penybont FC
+WAL,============================,Swansea City AFC
+WAL,============================,Cardiff City FC
+WAL,============================,Newport County AFC
+WAL,============================,Wrexham AFC
+WAL,============================,Merthyr Town FC
+WAL,============================,Aberdare Athletic FC (1893-1928)
+WAL,============================,Rhyl FC
+WAL,============================,Cwmbrân Town AFC
+WAL,============================,Prestatyn Town FC
+WAL,============================,Afan Lido FC
+WAL,============================,Haverfordwest County AFC
+WAL,============================,Porthmadog FC
+WAL,============================,Welshpool Town FC
+WAL,============================,Caersws FC
+WAL,============================,Flint Town United FC
+WAL,============================,Briton Ferry Llansawel AFC
+IR,,Pars Jonoubi Jam
+IR,,Peykan
+IR,,Persepolis FC
+IL,=============================,Hapoel Tel-Aviv FC
+IL,=============================,Maccabi Tel-Aviv FC
+IL,=============================,Bnei Yehuda Tel-Aviv FC
+IL,=============================,Beitar Tel Aviv Bat Yam FC
+IL,=============================,Maccabi Jaffa
+IL,=============================,Maccabi Kabilio Jaffa
+IL,=============================,Maccabi Haifa FC
+IL,=============================,Hapoel Haifa FC
+IL,=============================,Hapoel Kiryat Shmona FC
+IL,=============================,Maccabi Netanya FC
+IL,=============================,Beitar Jerusalem FC
+IL,=============================,Hapoel Jerusalem
+IL,=============================,Hapoel Beer-Sheva FC
+IL,=============================,FC Ashdod
+IL,=============================,Maccabi Ironi Ashdod
+IL,=============================,Hapoel Hadera FC
+IL,=============================,Hapoel Ra'anana AFC
+IL,=============================,Maccabi Petah Tikva FC
+IL,=============================,Hapoel Petah Tikva FC
+IL,=============================,Hapoel Kfar-Saba FC
+IL,=============================,Sektzia Nes Tziona FC
+IL,=============================,Bnei Sakhnin FC
+IL,=============================,FC Kafr Qasim
+IL,=============================,Hapoel Acre FC
+IL,=============================,Hapoel Afula FC
+IL,=============================,Hapoel Ashkelon FC
+IL,=============================,Hapoel Bnei Lod FC
+IL,=============================,Hapoel Nof HaGalil FC
+IL,=============================,Hapoel Ramat Gan Giv'atayim FC
+IL,=============================,Hapoel Ramat HaSharon FC
+IL,=============================,Hapoel Rishon LeZion FC
+IL,=============================,Hapoel Umm al-Fahm FC
+IL,=============================,Maccabi Ahi Nazareth FC
+IL,=============================,Maccabi Bnei
+IL,=============================,Maccabi Herzliya
+IL,=============================,Hapoel Herzliya
+IL,=============================,Ihud Bnei Shefa-'Amr
+IL,=============================,Ihud Shefa-AMR
+IL,=============================,Ironi Tiberias
+IL,=============================,Maccabi Ironi Kiryat Ata
+IL,=============================,Maccabi Yavne
+IL,=============================,MS Dimona
+IL,=============================,MS Kafr Qasim
+IL,=============================,Tzeirei Kafr Kanna
+IL,=============================,Hapoel Marmorek
+IL,=============================,Hapoel Iksal
+IL,=============================,Hapoel Kfar Shalem
+JO,,Al Wehdat
+LB,,Al Ahed
+QA,=========,Al-Sadd SC
+QA,=========,Al Shahaniya
+QA,=========,Al Khoor
+QA,=========,Al Gharafa SC
+QA,=========,Al Ahli Doha SC
+QA,=========,Al-Duhail SC
+QA,=========,Muaither SC
+SA,=============================,Al-Hilal
+SA,=============================,Al-Nassr
+SA,=============================,Al-Riyadh
+SA,=============================,Al-Shabab
+SA,=============================,Damac
+SA,=============================,Al-Khaleej
+SA,=============================,Al-Okhdood
+SA,=============================,Al-Wehda
+SA,=============================,Al-Ahli
+SA,=============================,Al-Ittihad
+SA,=============================,Al-Tai
+SA,=============================,Al-Ettifaq
+SA,=============================,Al-Raed
+SA,=============================,Al-Taawoun
+SA,=============================,Al-Hazem
+SA,=============================,Al-Fateh
+SA,=============================,Al-Fayha
+SA,=============================,Abha
+SA,=============================,Al-Jandal
+SA,=============================,Al Qadsiah FC
+SA,=============================,Al Batin FC
+AE,=============================,Hatta Club
+AE,=============================,Baniyas Club
+AE,=============================,Al Ain FC
