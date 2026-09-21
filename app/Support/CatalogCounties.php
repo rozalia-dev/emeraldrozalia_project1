@@ -11,7 +11,8 @@ final class CatalogCounties
      * ISO 3166-2 subdivision snapshot for every EU country in
      * CatalogCountries::EU_CODES, plus business taxonomy supplements for
      * football-association countries that are represented separately in the
-     * catalogue (for example England = ENG rather than United Kingdom = GB).
+     * catalogue (for example England = ENG rather than United Kingdom = GB), plus
+     * FIFA country subdivision supplements such as Brazil's states.
      *
      * Source snapshot for the base payload: pycountry 24.6.1 / ISO 3166-2.
      */
@@ -42,6 +43,7 @@ final class CatalogCounties
         }
 
         $decoded['ENG'] = CatalogEngland::COUNTIES;
+        $decoded['BR'] = CatalogBrazil::STATES;
 
         return self::$decoded = $decoded;
     }
