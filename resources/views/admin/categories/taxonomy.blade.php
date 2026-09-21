@@ -19,13 +19,13 @@
     @if($errors->any())<div class="tax-alert error"><strong>Please check the form:</strong> {{ $errors->first() }}</div>@endif
 
     <section class="tax-card">
-        <div class="tax-section-title"><div><h2>Create / synchronize a menu path</h2><p class="tax-help">GAA, English, UEFA and FIFA require a matching Club / City / Town after you choose the category and country. Traditional and Heritage require a county / official administrative subdivision.</p></div></div>
+        <div class="tax-section-title"><div><h2>Create / synchronize a menu path</h2><p class="tax-help">For GAA, English, UEFA and FIFA use the fixed order: Category → Country → County → Club Name → Subcategory (Caps / Hats / Beanie).</p></div></div>
         <form method="post" action="{{ route('admin.categories.taxonomy.build') }}" class="tax-grid" data-taxonomy-builder>
             @csrf
             <label><span>Category / Organization *</span><select name="taxonomy_type" required data-taxonomy-select><option value="">Select category</option>@foreach($taxonomyTypes as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
             <label data-country-field><span>Country</span><select name="catalog_country_id" data-country-select><option value="">Select country</option>@foreach($countries as $country)<option value="{{ $country->id }}" data-code="{{ $country->code }}" data-eu="{{ $country->is_eu ? '1':'0' }}" data-uefa="{{ $country->is_uefa ? '1':'0' }}">{{ $country->name }} ({{ $country->code }})</option>@endforeach</select></label>
             <label data-county-field hidden><span>County / Subdivision</span><select name="catalog_county_code" data-county-select disabled><option value="">Select county</option></select></label>
-            <label data-club-field hidden><span data-club-label>Club / City / Town</span><select name="catalog_club_id" data-club-select disabled><option value="">Select category and country first</option>@foreach($clubs as $club)<option value="{{ $club->id }}" data-body="{{ $club->governing_body }}" data-country="{{ $club->catalog_country_id }}">{{ $club->name }} · {{ $club->country?->name }}</option>@endforeach</select></label>
+            <label data-club-field hidden><span data-club-label>Club / City / Town</span><select name="catalog_club_id" data-club-select disabled><option value="">Select category and country first</option>@foreach($clubs as $club)<option value="{{ $club->id }}" data-body="{{ $club->governing_body }}" data-country="{{ $club->catalog_country_id }}" data-county="{{ strtoupper((string) $club->catalog_county_code) }}">{{ $club->name }} · {{ $club->country?->name }}</option>@endforeach</select></label>
             <div class="tax-field"><span>Product Type *</span><div class="tax-checks">@foreach($productTypes as $value=>$label)<label><input type="checkbox" name="product_types[]" value="{{ $value }}" checked> {{ $label }}</label>@endforeach</div></div>
             <label><span>Style / Range</span><select name="style"><option value="">No style level</option>@foreach($styles as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
             <div class="tax-span-2"><button class="tax-btn primary" type="submit">Create Menu Hierarchy</button></div>
@@ -104,7 +104,7 @@
 
         [...club.options].forEach((o,i)=>{
             if(i===0)return;
-            const allowed=enabled&&country.value!==''&&o.dataset.body===value&&o.dataset.country===country.value;
+            const allowed=enabled&&country.value!==''&&county.value!==''&&o.dataset.body===value&&o.dataset.country===country.value&&o.dataset.county===county.value;
             o.hidden=!allowed;
             o.disabled=!allowed;
             if(allowed)visibleCount++;
@@ -115,7 +115,9 @@
                 ? 'Not required for this category'
                 : !country.value
                     ? `Select country before ${organization} club`
-                    : visibleCount===0
+                    : !county.value
+                        ? `Select county before ${organization} club`
+                        : visibleCount===0
                         ? `No ${organization} clubs found — add in Club Master`
                         : `Select ${organization} club / city / town`;
         }
@@ -142,6 +144,7 @@
 
     type.addEventListener('change',refreshCountries);
     country.addEventListener('change',()=>{county.value='';club.value='';refreshCounty();refreshClubs();});
+    county.addEventListener('change',()=>{club.value='';refreshClubs();});
     refreshCountries();
 })();
 </script>
