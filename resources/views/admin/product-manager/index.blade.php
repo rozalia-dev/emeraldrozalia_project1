@@ -81,6 +81,15 @@
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
                     </form>
+                    @if($tab !== 'trash' && auth()->user()?->hasPermission('products.delete'))
+                        <details class="pm-delete-menu" data-product-bulk-delete>
+                            <summary>Delete <span aria-hidden="true">▾</span></summary>
+                            <div>
+                                <button type="button" data-delete-selected disabled>Delete Selected <span data-selected-count>(0)</span></button>
+                                <button type="button" class="pm-delete-all" data-delete-all data-total-products="{{ $stats['total'] }}">Delete All Products</button>
+                            </div>
+                        </details>
+                    @endif
                     <a class="pm-filter-jump" href="#product-filters"><x-icon name="filter" size="15" /> <span>Filters</span></a>
                     <details class="pm-add-menu">
                         <summary><x-icon name="plus" size="15" /> Add Product <x-icon name="chevron-right" size="12" /></summary>
