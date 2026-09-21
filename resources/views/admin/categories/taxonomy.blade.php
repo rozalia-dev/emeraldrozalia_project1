@@ -23,10 +23,11 @@
         <form method="post" action="{{ route('admin.categories.taxonomy.build') }}" class="tax-grid" data-taxonomy-builder>
             @csrf
             <label><span>Category / Organization *</span><select name="taxonomy_type" required data-taxonomy-select><option value="">Select category</option>@foreach($taxonomyTypes as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
-            <label><span>Country *</span><select name="catalog_country_id" required data-country-select><option value="">Select country</option>@foreach($countries as $country)<option value="{{ $country->id }}" data-code="{{ $country->code }}" data-eu="{{ $country->is_eu ? '1':'0' }}" data-uefa="{{ $country->is_uefa ? '1':'0' }}">{{ $country->name }} ({{ $country->code }})</option>@endforeach</select></label>
-            <label data-county-field hidden><span>County / Subdivision *</span><select name="catalog_county_code" data-county-select disabled><option value="">Select county</option></select></label>
-            <label data-club-field><span>Club *</span><select name="catalog_club_id" data-club-select><option value="">Select club</option>@foreach($clubs as $club)<option value="{{ $club->id }}" data-body="{{ $club->governing_body }}" data-country="{{ $club->catalog_country_id }}">{{ $club->name }} · {{ $club->country?->name }}</option>@endforeach</select></label>
+            <label data-country-field><span>Country</span><select name="catalog_country_id" data-country-select><option value="">Select country</option>@foreach($countries as $country)<option value="{{ $country->id }}" data-code="{{ $country->code }}" data-eu="{{ $country->is_eu ? '1':'0' }}" data-uefa="{{ $country->is_uefa ? '1':'0' }}">{{ $country->name }} ({{ $country->code }})</option>@endforeach</select></label>
+            <label data-county-field hidden><span>County / Subdivision</span><select name="catalog_county_code" data-county-select disabled><option value="">Select county</option></select></label>
+            <label data-club-field hidden><span>Club / City / Town</span><select name="catalog_club_id" data-club-select disabled><option value="">Select club / city / town</option>@foreach($clubs as $club)<option value="{{ $club->id }}" data-body="{{ $club->governing_body }}" data-country="{{ $club->catalog_country_id }}">{{ $club->name }} · {{ $club->country?->name }}</option>@endforeach</select></label>
             <div class="tax-field"><span>Product Type *</span><div class="tax-checks">@foreach($productTypes as $value=>$label)<label><input type="checkbox" name="product_types[]" value="{{ $value }}" checked> {{ $label }}</label>@endforeach</div></div>
+            <label><span>Style / Range</span><select name="style"><option value="">No style level</option>@foreach($styles as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
             <div class="tax-span-2"><button class="tax-btn primary" type="submit">Create Menu Hierarchy</button></div>
         </form>
     </section>
@@ -55,43 +56,68 @@
     const root=document.querySelector('[data-taxonomy-page]'); if(!root)return;
     const form=root.querySelector('[data-taxonomy-builder]'); if(!form)return;
     const counties=@json($countyOptionsByCountry);
+    const geo=@json(array_values($geoTaxonomies));
+    const countyTypes=@json(array_values($countyTaxonomies));
+    const requiredCounty=@json(array_values($requiredCountyTaxonomies));
+    const clubTypes=@json(array_values($clubTaxonomies));
+    const requiredClub=@json(array_values($requiredClubTaxonomies));
+
     const type=form.querySelector('[data-taxonomy-select]');
     const country=form.querySelector('[data-country-select]');
+    const countryField=form.querySelector('[data-country-field]');
     const county=form.querySelector('[data-county-select]');
     const countyField=form.querySelector('[data-county-field]');
     const club=form.querySelector('[data-club-select]');
     const clubField=form.querySelector('[data-club-field]');
 
     const refreshCounty=()=>{
-        const needs=['traditional','heritage'].includes(type.value);
-        countyField.hidden=!needs;
-        county.required=needs;
-        county.disabled=!needs;
+        const value=type.value;
+        const enabled=countyTypes.includes(value);
+        countyField.hidden=!enabled;
+        county.required=requiredCounty.includes(value);
+        county.disabled=!enabled;
         const selected=county.value;
-        county.replaceChildren(new Option(needs&&country.value?'Select county':'Select country first',''));
-        if(needs&&country.value){
+        county.replaceChildren(new Option(enabled&&country.value?'Select county / subdivision':'Select country first',''));
+        if(enabled&&country.value){
             const code=country.selectedOptions[0]?.dataset.code||'';
             for(const row of (counties[code]||[])) county.add(new Option(`${row.name} (${row.type})`,row.code,false,row.code===selected));
         }
     };
+
     const refreshClubs=()=>{
         const value=type.value;
-        const needs=['uefa','fifa','gaa'].includes(value);
-        clubField.hidden=!needs;
-        club.required=needs;
-        club.disabled=!needs;
-        [...club.options].forEach((o,i)=>{if(i===0)return; const allowed=needs&&o.dataset.body===value&&o.dataset.country===country.value; o.hidden=!allowed;o.disabled=!allowed;});
+        const enabled=clubTypes.includes(value);
+        clubField.hidden=!enabled;
+        club.required=requiredClub.includes(value);
+        club.disabled=!enabled;
+        [...club.options].forEach((o,i)=>{
+            if(i===0)return;
+            const allowed=enabled&&o.dataset.body===value&&o.dataset.country===country.value;
+            o.hidden=!allowed;
+            o.disabled=!allowed;
+        });
         if(club.selectedOptions[0]?.disabled)club.value='';
     };
+
     const refreshCountries=()=>{
         const value=type.value;
-        [...country.options].forEach((o,i)=>{if(i===0)return; const allowed=value==='uefa'?o.dataset.uefa==='1':(['traditional','heritage'].includes(value)?o.dataset.eu==='1':true); o.hidden=!allowed; o.disabled=!allowed;});
+        const enabled=geo.includes(value);
+        countryField.hidden=!enabled;
+        country.required=enabled;
+        country.disabled=!enabled;
+        [...country.options].forEach((o,i)=>{
+            if(i===0)return;
+            const allowed=!enabled ? false : value==='uefa' ? o.dataset.uefa==='1' : (['traditional','heritage'].includes(value) ? o.dataset.eu==='1' : true);
+            o.hidden=!allowed;
+            o.disabled=!allowed;
+        });
         if(country.selectedOptions[0]?.disabled)country.value='';
         refreshCounty();
         refreshClubs();
     };
+
     type.addEventListener('change',refreshCountries);
-    country.addEventListener('change',()=>{county.value='';refreshCounty();refreshClubs();});
+    country.addEventListener('change',()=>{county.value='';club.value='';refreshCounty();refreshClubs();});
     refreshCountries();
 })();
 </script>
