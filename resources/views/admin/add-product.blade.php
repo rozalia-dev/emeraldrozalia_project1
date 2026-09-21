@@ -503,11 +503,13 @@
 
         [...club.options].forEach((option, index) => {
             if (index === 0) return;
+            const countyMatch = option.dataset.county === county.value
+                || (taxonomy === 'fifa' && option.dataset.county === '');
             const visible = requiresClub
                 && selectedCountry !== ''
                 && county.value !== ''
                 && option.dataset.country === selectedCountry
-                && option.dataset.county === county.value
+                && countyMatch
                 && option.dataset.body === taxonomy;
             option.hidden = !visible;
             option.disabled = !visible;
