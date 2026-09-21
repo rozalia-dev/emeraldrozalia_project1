@@ -74,6 +74,7 @@ return new class extends Migration
         $now = now();
         $batch = [];
         $sortByCountry = [];
+        $seen = [];
 
         while (($row = fgetcsv($handle)) !== false) {
             $record = array_combine($header, array_pad($row, count($header), ''));
@@ -96,10 +97,17 @@ return new class extends Migration
                 continue;
             }
 
-            $slug = Str::slug($clubName);
+            $clubName = Str::limit($clubName, 180, '');
+            $slug = Str::limit(Str::slug($clubName), 220, '');
             if ($slug === '') {
                 continue;
             }
+
+            $dedupeKey = $country->id.'|'.$slug;
+            if (isset($seen[$dedupeKey])) {
+                continue;
+            }
+            $seen[$dedupeKey] = true;
 
             $countryCode = strtoupper($country->code);
             $sortByCountry[$countryCode] = ($sortByCountry[$countryCode] ?? 0) + 10;
