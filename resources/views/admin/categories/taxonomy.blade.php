@@ -20,7 +20,9 @@
 
     <section class="tax-card">
         <div class="tax-section-title"><div><h2>Create / synchronize a menu path</h2><p class="tax-help">For GAA, English, UEFA and FIFA use the fixed order: Category → Country → County → Club Name → Subcategory (Caps / Hats / Beanie).</p></div></div>
-        <form method="post" action="{{ route('admin.categories.taxonomy.build') }}" class="tax-grid" data-taxonomy-builder>
+        <form method="post" action="{{ route('admin.categories.taxonomy.build') }}" class="tax-grid"
+            data-taxonomy-builder
+            data-club-options-url="{{ route('admin.categories.clubs.options') }}">
             @csrf
             <label><span>Category / Organization *</span><select name="taxonomy_type" required data-taxonomy-select><option value="">Select category</option>@foreach($taxonomyTypes as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
             <label data-country-field><span>Country</span><select name="catalog_country_id" data-country-select><option value="">Select country</option>@foreach($countries as $country)<option value="{{ $country->id }}" data-code="{{ $country->code }}" data-eu="{{ $country->is_eu ? '1':'0' }}" data-uefa="{{ $country->is_uefa ? '1':'0' }}">{{ $country->name }} ({{ $country->code }})</option>@endforeach</select></label>
@@ -61,6 +63,8 @@
     const requiredCounty=@json(array_values($requiredCountyTaxonomies));
     const clubTypes=@json(array_values($clubTaxonomies));
     const requiredClub=@json(array_values($requiredClubTaxonomies));
+    const clubOptionsUrl=form.dataset.clubOptionsUrl||'';
+    let clubRequestSerial=0;
 
     const type=form.querySelector('[data-taxonomy-select]');
     const country=form.querySelector('[data-country-select]');
@@ -85,16 +89,15 @@
         }
     };
 
-    const refreshClubs=()=>{
+    const refreshClubs=async()=>{
         const value=type.value;
         const enabled=clubTypes.includes(value);
         const required=requiredClub.includes(value);
         const organization=value ? value.toUpperCase() : '';
-        let visibleCount=0;
+        const requestSerial=++clubRequestSerial;
 
         clubField.hidden=!enabled;
         club.required=required;
-        club.disabled=!enabled;
 
         if(clubLabel){
             clubLabel.innerHTML=required
@@ -102,28 +105,49 @@
                 : 'Club / City / Town';
         }
 
-        [...club.options].forEach((o,i)=>{
-            if(i===0)return;
-            const countyMatch=o.dataset.county===county.value||(value==='fifa'&&o.dataset.county==='');
-            const allowed=enabled&&country.value!==''&&county.value!==''&&o.dataset.body===value&&o.dataset.country===country.value&&countyMatch;
-            o.hidden=!allowed;
-            o.disabled=!allowed;
-            if(allowed)visibleCount++;
-        });
+        const placeholder=!enabled
+            ? 'Not required for this category'
+            : !country.value
+                ? `Select country before ${organization} club`
+                : !county.value
+                    ? `Select county before ${organization} club`
+                    : `Loading ${organization} clubs...`;
 
-        if(club.options[0]){
-            club.options[0].textContent=!enabled
-                ? 'Not required for this category'
-                : !country.value
-                    ? `Select country before ${organization} club`
-                    : !county.value
-                        ? `Select county before ${organization} club`
-                        : visibleCount===0
-                        ? `No ${organization} clubs found — add in Club Master`
-                        : `Select ${organization} club / city / town`;
+        club.replaceChildren(new Option(placeholder,''));
+        club.disabled=!enabled||!country.value||!county.value;
+
+        if(!enabled||!country.value||!county.value||!clubOptionsUrl)return;
+
+        try{
+            const params=new URLSearchParams({
+                governing_body:value,
+                catalog_country_id:country.value,
+                catalog_county_code:county.value,
+            });
+            const response=await fetch(`${clubOptionsUrl}?${params.toString()}`,{
+                headers:{Accept:'application/json'},
+                credentials:'same-origin',
+            });
+            if(!response.ok)throw new Error('Unable to load club options.');
+            const payload=await response.json();
+            if(requestSerial!==clubRequestSerial)return;
+
+            const rows=Array.isArray(payload.clubs)?payload.clubs:[];
+            club.replaceChildren(new Option(
+                rows.length
+                    ? `Select ${organization} club / city / town`
+                    : `No ${organization} clubs found — add in Club Master`,
+                ''
+            ));
+            for(const row of rows){
+                club.add(new Option(row.name,String(row.id)));
+            }
+            club.disabled=false;
+        }catch(error){
+            if(requestSerial!==clubRequestSerial)return;
+            club.replaceChildren(new Option(`Unable to load ${organization} clubs`,''));
+            club.disabled=false;
         }
-
-        if(club.selectedOptions[0]?.disabled)club.value='';
     };
 
     const refreshCountries=()=>{
@@ -140,12 +164,12 @@
         });
         if(country.selectedOptions[0]?.disabled)country.value='';
         refreshCounty();
-        refreshClubs();
+        void refreshClubs();
     };
 
     type.addEventListener('change',refreshCountries);
-    country.addEventListener('change',()=>{county.value='';club.value='';refreshCounty();refreshClubs();});
-    county.addEventListener('change',()=>{club.value='';refreshClubs();});
+    country.addEventListener('change',()=>{county.value='';club.value='';refreshCounty();void refreshClubs();});
+    county.addEventListener('change',()=>{club.value='';void refreshClubs();});
     refreshCountries();
 })();
 </script>
