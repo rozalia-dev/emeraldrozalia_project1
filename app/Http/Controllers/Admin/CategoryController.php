@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\AuditTrail;
+use App\Support\CategoryIcons;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -97,6 +98,8 @@ class CategoryController extends Controller
 
         $total = Category::query()->count();
         $visible = Category::query()->where('is_visible', true)->where('status', 'active')->count();
+        $categoryIconOptions = CategoryIcons::options();
+
         $stats = [
             'total' => $total,
             'level_one' => Category::query()->whereNull('parent_id')->count(),
@@ -120,7 +123,8 @@ class CategoryController extends Controller
             'showAll',
             'tree',
             'expandAll',
-            'collapseAll'
+            'collapseAll',
+            'categoryIconOptions'
         ));
     }
 
@@ -370,6 +374,10 @@ class CategoryController extends Controller
                     $status = 'active';
                 }
                 $isVisible = ! in_array(strtolower(trim((string) ($record['visibility'] ?? 'visible'))), ['hidden', '0', 'false', 'no'], true);
+                $icon = trim((string) ($record['icon'] ?? ''));
+                if ($icon !== '' && ! in_array($icon, CategoryIcons::names(), true)) {
+                    throw ValidationException::withMessages(['file' => "CSV row {$rowNumber} contains an unsupported category icon."]);
+                }
 
                 $category = Category::query()->where('slug', $slug)->first();
                 $before = $category?->toArray();
@@ -381,6 +389,7 @@ class CategoryController extends Controller
                     'is_active' => $status === 'active',
                     'is_visible' => $isVisible,
                     'sort_order' => max(0, (int) ($record['sort_order'] ?? 0)),
+                    'icon' => $icon !== '' ? $icon : null,
                     'description' => filled($record['description'] ?? null) ? trim((string) $record['description']) : null,
                     'meta_title' => filled($record['meta_title'] ?? null) ? trim((string) $record['meta_title']) : null,
                     'meta_description' => filled($record['meta_description'] ?? null) ? trim((string) $record['meta_description']) : null,
@@ -416,7 +425,7 @@ class CategoryController extends Controller
 
         return response()->streamDownload(function (): void {
             $output = fopen('php://output', 'wb');
-            fputcsv($output, ['name', 'slug', 'parent_slug', 'status', 'visibility', 'sort_order', 'description', 'meta_title', 'meta_description', 'uuid']);
+            fputcsv($output, ['name', 'slug', 'parent_slug', 'status', 'visibility', 'sort_order', 'icon', 'description', 'meta_title', 'meta_description', 'uuid']);
 
             Category::query()
                 ->with('parent')
@@ -433,6 +442,7 @@ class CategoryController extends Controller
                             $category->status,
                             $category->is_visible ? 'visible' : 'hidden',
                             $category->sort_order,
+                            $category->icon,
                             $category->description,
                             $category->meta_title,
                             $category->meta_description,
@@ -491,6 +501,7 @@ class CategoryController extends Controller
             'status' => ['required', Rule::in(self::STATUSES)],
             'is_visible' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+            'icon' => ['nullable', 'string', Rule::in(CategoryIcons::names())],
             'description' => ['nullable', 'string', 'max:5000'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:1000'],
