@@ -2,6 +2,7 @@
     $destroyTemplate = route('admin.product-manager.destroy', ['product' => '__PRODUCT__']);
     $restoreTemplate = route('admin.product-manager.restore', ['product' => '__PRODUCT__']);
     $permanentTemplate = route('admin.product-manager.permanent-destroy', ['product' => '__PRODUCT__']);
+    $bulkDestroyRoute = route('admin.product-manager.bulk-destroy');
     $canDeleteProducts = (bool) (auth()->user()?->hasPermission('products.delete'));
 @endphp
 
@@ -58,6 +59,58 @@
         background:#eef8f1;
         color:#087a48;
     }
+    .pm-delete-menu{position:relative}
+    .pm-delete-menu>summary{
+        display:flex;
+        align-items:center;
+        gap:6px;
+        min-height:38px;
+        padding:0 12px;
+        border:1px solid #efb7b2;
+        border-radius:7px;
+        background:#fff;
+        color:#b42318;
+        font-size:13px;
+        font-weight:700;
+        cursor:pointer;
+        list-style:none;
+        white-space:nowrap;
+    }
+    .pm-delete-menu>summary::-webkit-details-marker{display:none}
+    .pm-delete-menu[open]>summary{background:#fff5f4;border-color:#d92d20}
+    .pm-delete-menu>div{
+        position:absolute;
+        z-index:30;
+        top:calc(100% + 6px);
+        right:0;
+        min-width:190px;
+        padding:6px;
+        border:1px solid #ead6d3;
+        border-radius:8px;
+        background:#fff;
+        box-shadow:0 12px 30px rgba(45,16,12,.14);
+    }
+    .pm-delete-menu button{
+        width:100%;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        padding:9px 10px;
+        border:0;
+        border-radius:6px;
+        background:transparent;
+        color:#8a241b;
+        font:inherit;
+        font-size:13px;
+        text-align:left;
+        cursor:pointer;
+        white-space:nowrap;
+    }
+    .pm-delete-menu button:hover,
+    .pm-delete-menu button:focus-visible{background:#fff2f0;outline:none}
+    .pm-delete-menu button:disabled{color:#9aa5a0;background:transparent;cursor:not-allowed}
+    .pm-delete-menu .pm-delete-all{font-weight:700;color:#b42318}
 </style>
 
 <script data-product-delete-actions>
@@ -73,6 +126,7 @@
     const destroyTemplate = @json($destroyTemplate);
     const restoreTemplate = @json($restoreTemplate);
     const permanentTemplate = @json($permanentTemplate);
+    const bulkDestroyRoute = @json($bulkDestroyRoute);
     const urlFor = (template, id) => template.replace('__PRODUCT__', encodeURIComponent(id));
 
     const icon = name => {
@@ -127,7 +181,7 @@
         menu.style.visibility = 'visible';
     };
 
-    const submitAction = ({ action, method = 'POST', confirmText }) => {
+    const submitAction = ({ action, method = 'POST', confirmText, fields = {} }) => {
         if (! window.confirm(confirmText)) return;
 
         const form = document.createElement('form');
@@ -135,23 +189,82 @@
         form.action = action;
         form.hidden = true;
 
-        const token = document.createElement('input');
-        token.type = 'hidden';
-        token.name = '_token';
-        token.value = csrf;
-        form.appendChild(token);
+        const addHidden = (name, value) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        };
+
+        addHidden('_token', csrf);
 
         if (method !== 'POST') {
-            const methodInput = document.createElement('input');
-            methodInput.type = 'hidden';
-            methodInput.name = '_method';
-            methodInput.value = method;
-            form.appendChild(methodInput);
+            addHidden('_method', method);
         }
+
+        Object.entries(fields).forEach(([name, value]) => {
+            const values = Array.isArray(value) ? value : [value];
+            values.forEach(item => addHidden(name, item));
+        });
 
         document.body.appendChild(form);
         form.submit();
     };
+
+    const selectAll = document.getElementById('select-all-products');
+    const productCheckboxes = Array.from(document.querySelectorAll('tbody input[name="products[]"]'));
+    const deleteSelected = document.querySelector('[data-delete-selected]');
+    const deleteAll = document.querySelector('[data-delete-all]');
+    const selectedCount = document.querySelector('[data-selected-count]');
+
+    const syncBulkSelection = () => {
+        const selected = productCheckboxes.filter(checkbox => checkbox.checked);
+        if (selectedCount) selectedCount.textContent = `(${selected.length})`;
+        if (deleteSelected) deleteSelected.disabled = selected.length === 0;
+
+        if (selectAll) {
+            selectAll.checked = productCheckboxes.length > 0 && selected.length === productCheckboxes.length;
+            selectAll.indeterminate = selected.length > 0 && selected.length < productCheckboxes.length;
+        }
+    };
+
+    selectAll?.addEventListener('change', () => {
+        productCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+        syncBulkSelection();
+    });
+
+    productCheckboxes.forEach(checkbox => checkbox.addEventListener('change', syncBulkSelection));
+    syncBulkSelection();
+
+    deleteSelected?.addEventListener('click', () => {
+        const ids = productCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
+        if (ids.length === 0) return;
+
+        submitAction({
+            action: bulkDestroyRoute,
+            method: 'DELETE',
+            confirmText: `Move ${ids.length} selected product${ids.length === 1 ? '' : 's'} to Trash? You can restore them later.`,
+            fields: {
+                mode: 'selected',
+                'products[]': ids,
+            },
+        });
+    });
+
+    deleteAll?.addEventListener('click', () => {
+        const total = Number.parseInt(deleteAll.dataset.totalProducts || '0', 10);
+        if (total < 1) return;
+
+        submitAction({
+            action: bulkDestroyRoute,
+            method: 'DELETE',
+            confirmText: `Move ALL ${total} products to Trash? This affects the entire active catalogue. You can restore them later.`,
+            fields: { mode: 'all' },
+        });
+    });
 
     const addLink = ({ href, label, iconName }) => {
         const link = document.createElement('a');
