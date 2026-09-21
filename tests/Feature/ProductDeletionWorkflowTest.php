@@ -32,6 +32,8 @@ class ProductDeletionWorkflowTest extends TestCase
             ->assertSee('data-product-delete-actions', false)
             ->assertSee('pm-action-menu-portal', false)
             ->assertSee('Delete product')
+            ->assertSee('Delete Selected')
+            ->assertSee('Delete All Products')
             ->assertSee('Delete Workflow Cap')
             ->assertDontSee('pm-delete-product', false);
 
@@ -76,6 +78,70 @@ class ProductDeletionWorkflowTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'product.permanently_deleted',
             'subject_id' => $product->id,
+        ]);
+    }
+
+    public function test_product_manager_can_bulk_delete_selected_products_and_then_delete_all_remaining_products(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $first = Product::create([
+            'name' => 'Bulk Delete Cap One',
+            'slug' => 'bulk-delete-cap-one',
+            'sku' => 'ER-BULK-DELETE-001',
+            'price' => 25.00,
+            'stock' => 5,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+        $second = Product::create([
+            'name' => 'Bulk Delete Cap Two',
+            'slug' => 'bulk-delete-cap-two',
+            'sku' => 'ER-BULK-DELETE-002',
+            'price' => 30.00,
+            'stock' => 7,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+        $third = Product::create([
+            'name' => 'Bulk Delete Cap Three',
+            'slug' => 'bulk-delete-cap-three',
+            'sku' => 'ER-BULK-DELETE-003',
+            'price' => 35.00,
+            'stock' => 9,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.product-manager.bulk-destroy'), [
+                'mode' => 'selected',
+                'products' => [$first->id, $second->id],
+            ])
+            ->assertRedirect(route('admin.resource', ['module' => 'product-manager']));
+
+        $this->assertSoftDeleted('products', ['id' => $first->id]);
+        $this->assertSoftDeleted('products', ['id' => $second->id]);
+        $this->assertDatabaseHas('products', ['id' => $third->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'product.trashed',
+            'subject_id' => $first->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'product.trashed',
+            'subject_id' => $second->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.product-manager.bulk-destroy'), [
+                'mode' => 'all',
+            ])
+            ->assertRedirect(route('admin.resource', ['module' => 'product-manager']));
+
+        $this->assertSoftDeleted('products', ['id' => $third->id]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'product.trashed',
+            'subject_id' => $third->id,
         ]);
     }
 }
