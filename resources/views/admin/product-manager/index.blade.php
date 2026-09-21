@@ -81,15 +81,17 @@
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
                     </form>
-                    @if($tab !== 'trash' && auth()->user()?->hasPermission('products.delete'))
-                        <details class="pm-delete-menu" data-product-bulk-delete>
-                            <summary>Delete <span aria-hidden="true">▾</span></summary>
-                            <div>
-                                <button type="button" data-delete-selected disabled>Delete Selected <span data-selected-count>(0)</span></button>
-                                <button type="button" class="pm-delete-all" data-delete-all data-total-products="{{ $stats['total'] }}">Delete All Products</button>
-                            </div>
-                        </details>
+                    @if($tab !== 'trash')
+                        <button class="pm-bulk-delete-button" type="button" data-delete-selected disabled>
+                            <x-icon name="trash" size="14" /> Delete Selected <span data-selected-count>(0)</span>
+                        </button>
+                        <button class="pm-bulk-delete-button pm-delete-all" type="button" data-delete-all data-total-products="{{ $stats['total'] }}">
+                            <x-icon name="trash" size="14" /> Delete All
+                        </button>
                     @endif
+                    <a class="pm-trash-link" href="{{ request()->fullUrlWithQuery(['tab'=>'trash','page'=>null]) }}">
+                        Trash@if(($stats['trash'] ?? 0) > 0) ({{ $stats['trash'] }})@endif
+                    </a>
                     <a class="pm-filter-jump" href="#product-filters"><x-icon name="filter" size="15" /> <span>Filters</span></a>
                     <details class="pm-add-menu">
                         <summary><x-icon name="plus" size="15" /> Add Product <x-icon name="chevron-right" size="12" /></summary>
