@@ -175,8 +175,8 @@
         if (!selected.length) return;
 
         const message = selected.length === 1
-            ? 'Delete the selected category? Products assigned to it will become uncategorised and any child categories will move to top level.'
-            : `Delete ${selected.length} selected categories? Products assigned to them will become uncategorised and any child categories not selected will move to top level.`;
+            ? 'Delete the selected category? Products assigned to it will become uncategorised and any child categories will move to top level. This cannot be undone.'
+            : `Delete ${selected.length} selected categories? Products assigned to them will become uncategorised and any child categories not selected will move to top level. This cannot be undone.`;
 
         if (!window.confirm(message)) return;
         submitCategoryDelete('selected', selected.map(input => input.value));
