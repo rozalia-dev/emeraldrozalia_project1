@@ -162,6 +162,54 @@ class ProductManagerController extends Controller
         ));
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $this->authorizeDeletion($request);
+
+        $mode = (string) $request->input('mode', 'selected');
+        abort_unless(in_array($mode, ['selected', 'all'], true), 422, 'Invalid bulk delete mode.');
+
+        $ids = [];
+        if ($mode === 'selected') {
+            $validated = $request->validate([
+                'products' => ['required', 'array', 'min:1', 'max:500'],
+                'products.*' => ['required', 'integer', 'distinct'],
+            ]);
+            $ids = array_values(array_unique(array_map('intval', $validated['products'])));
+        }
+
+        $query = Product::query()->orderBy('id');
+        if ($mode === 'selected') {
+            $query->whereKey($ids);
+        }
+
+        $records = $query->get();
+        if ($mode === 'selected') {
+            abort_unless($records->count() === count($ids), 404);
+        }
+
+        $deleted = 0;
+        foreach ($records as $record) {
+            $before = $record->toArray();
+            $record->delete();
+
+            $after = $record->toArray();
+            $after['deleted_at'] = $record->deleted_at?->toISOString();
+            AuditTrail::record('product.trashed', $record, $before, $after);
+            $deleted++;
+        }
+
+        if ($deleted === 0) {
+            return redirect()
+                ->route('admin.resource', ['module' => 'product-manager'])
+                ->with('warning', 'No products were available to delete.');
+        }
+
+        return redirect()
+            ->route('admin.resource', ['module' => 'product-manager'])
+            ->with('success', $deleted.' product'.($deleted === 1 ? '' : 's').' moved to Trash.');
+    }
+
     public function destroy(Request $request, int $product): RedirectResponse
     {
         $this->authorizeDeletion($request);
