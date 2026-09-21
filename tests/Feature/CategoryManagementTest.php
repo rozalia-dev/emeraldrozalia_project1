@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,7 +19,10 @@ class CategoryManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.categories.index'))
             ->assertOk()
-            ->assertSee(['Categories', 'Category Tree', 'UUID Traceability']);
+            ->assertSee(['Categories', 'Category Tree', 'UUID Traceability', 'Edit', 'Delete', 'Delete All'])
+            ->assertSee('data-edit-selected', false)
+            ->assertSee('data-delete-selected', false)
+            ->assertSee('data-delete-all', false);
 
         $this->actingAs($admin)
             ->post(route('admin.categories.store'), [
@@ -90,6 +94,103 @@ class CategoryManagementTest extends TestCase
         $this->assertSame('draft', $category->status);
         $this->assertFalse($category->is_active);
         $this->get('/category/irish-hats')->assertNotFound();
+    }
+
+    public function test_admin_can_delete_selected_categories_and_delete_all_categories(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $parent = Category::create([
+            'name' => 'Parent Category',
+            'slug' => 'parent-category',
+            'status' => 'active',
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+        $child = Category::create([
+            'name' => 'Child Category',
+            'slug' => 'child-category',
+            'parent_id' => $parent->id,
+            'status' => 'active',
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+        $keep = Category::create([
+            'name' => 'Keep Category',
+            'slug' => 'keep-category',
+            'status' => 'active',
+            'is_visible' => true,
+            'sort_order' => 2,
+        ]);
+        $product = Product::create([
+            'category_id' => $parent->id,
+            'name' => 'Mapped Category Cap',
+            'slug' => 'mapped-category-cap',
+            'sku' => 'ER-CATEGORY-DELETE-001',
+            'price' => 39.00,
+            'stock' => 5,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.categories.bulk-destroy'), [
+                'mode' => 'selected',
+                'categories' => [$parent->public_uuid],
+            ])
+            ->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseMissing('categories', ['id' => $parent->id]);
+        $this->assertDatabaseHas('categories', ['id' => $child->id, 'parent_id' => null]);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'category_id' => null]);
+        $this->assertDatabaseHas('categories', ['id' => $keep->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'category.deleted', 'subject_id' => $parent->id]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.categories.bulk-destroy'), ['mode' => 'all'])
+            ->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseCount('categories', 0);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'category_id' => null]);
+    }
+
+    public function test_single_category_delete_unmaps_products_and_promotes_children(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $parent = Category::create([
+            'name' => 'Delete Parent',
+            'slug' => 'delete-parent',
+            'status' => 'active',
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+        $child = Category::create([
+            'name' => 'Promoted Child',
+            'slug' => 'promoted-child',
+            'parent_id' => $parent->id,
+            'status' => 'active',
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+        $product = Product::create([
+            'category_id' => $parent->id,
+            'name' => 'Delete Parent Product',
+            'slug' => 'delete-parent-product',
+            'sku' => 'ER-CATEGORY-DELETE-002',
+            'price' => 29.00,
+            'stock' => 3,
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.categories.destroy', $parent))
+            ->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseMissing('categories', ['id' => $parent->id]);
+        $this->assertDatabaseHas('categories', ['id' => $child->id, 'parent_id' => null]);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'category_id' => null]);
     }
 
     public function test_admin_can_bulk_update_reorder_export_and_delete_empty_categories(): void

@@ -205,6 +205,71 @@ class CategoryController extends Controller
         return back()->with('success', $categories->count().' categories updated.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $mode = (string) $request->input('mode', 'selected');
+        if (! in_array($mode, ['selected', 'all'], true)) {
+            throw ValidationException::withMessages(['bulk_delete' => 'Choose a valid category delete mode.']);
+        }
+
+        $uuids = [];
+        if ($mode === 'selected') {
+            $data = $request->validate([
+                'categories' => ['required', 'array', 'min:1', 'max:500'],
+                'categories.*' => ['required', 'uuid', 'distinct'],
+            ]);
+            $uuids = array_values(array_unique($data['categories']));
+        }
+
+        $query = Category::query()->orderBy('id');
+        if ($mode === 'selected') {
+            $query->whereIn('public_uuid', $uuids);
+        }
+
+        $categories = $query->get();
+        if ($mode === 'selected' && $categories->count() !== count($uuids)) {
+            throw ValidationException::withMessages(['categories' => 'One or more selected categories are unavailable.']);
+        }
+
+        if ($categories->isEmpty()) {
+            return redirect()->route('admin.categories.index')
+                ->with('success', 'No categories were available to delete.');
+        }
+
+        $deleted = 0;
+        $unmappedProducts = 0;
+        $promotedChildren = 0;
+
+        DB::transaction(function () use ($categories, &$deleted, &$unmappedProducts, &$promotedChildren): void {
+            foreach ($categories as $category) {
+                $productCount = $category->products()->count();
+                $childCount = $category->children()->count();
+                $before = $category->toArray();
+                $before['_delete_effects'] = [
+                    'products_unmapped' => $productCount,
+                    'children_promoted_to_top_level' => $childCount,
+                ];
+
+                AuditTrail::record('category.deleted', $category, $before, null);
+                $category->delete();
+
+                $deleted++;
+                $unmappedProducts += $productCount;
+                $promotedChildren += $childCount;
+            }
+        });
+
+        $message = $deleted.' categor'.($deleted === 1 ? 'y' : 'ies').' deleted.';
+        if ($unmappedProducts > 0) {
+            $message .= ' '.$unmappedProducts.' product'.($unmappedProducts === 1 ? ' is' : 's are').' now uncategorised.';
+        }
+        if ($promotedChildren > 0 && $mode === 'selected') {
+            $message .= ' '.$promotedChildren.' child categor'.($promotedChildren === 1 ? 'y was' : 'ies were').' moved to top level.';
+        }
+
+        return redirect()->route('admin.categories.index')->with('success', $message);
+    }
+
     public function reorder(Request $request): Response
     {
         $data = $request->validate([
@@ -381,18 +446,28 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        if ($category->children()->exists()) {
-            return back()->withErrors(['category' => 'Move or delete the sub-categories before deleting this category.']);
-        }
-        if ($category->products()->exists()) {
-            return back()->withErrors(['category' => 'Reassign the products before deleting this category.']);
-        }
-
+        $productCount = $category->products()->count();
+        $childCount = $category->children()->count();
         $before = $category->toArray();
-        AuditTrail::record('category.deleted', $category, $before, null);
-        $category->delete();
+        $before['_delete_effects'] = [
+            'products_unmapped' => $productCount,
+            'children_promoted_to_top_level' => $childCount,
+        ];
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category deleted.');
+        DB::transaction(function () use ($category, $before): void {
+            AuditTrail::record('category.deleted', $category, $before, null);
+            $category->delete();
+        });
+
+        $message = 'Category deleted.';
+        if ($productCount > 0) {
+            $message .= ' '.$productCount.' product'.($productCount === 1 ? ' is' : 's are').' now uncategorised.';
+        }
+        if ($childCount > 0) {
+            $message .= ' '.$childCount.' child categor'.($childCount === 1 ? 'y was' : 'ies were').' moved to top level.';
+        }
+
+        return redirect()->route('admin.categories.index')->with('success', $message);
     }
 
     private function validatedData(Request $request, ?Category $category = null): array

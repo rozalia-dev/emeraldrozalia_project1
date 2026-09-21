@@ -3,7 +3,7 @@
 @section('title', 'Categories')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/admin-categories.css') }}?v=20260910-1">
+<link rel="stylesheet" href="{{ asset('css/admin-categories.css') }}?v=20260921-2">
 @endpush
 
 @section('content')
@@ -20,7 +20,7 @@
     }
 @endphp
 
-<div class="cat-page" data-category-page data-reorder-url="{{ route('admin.categories.reorder') }}" data-csrf="{{ csrf_token() }}">
+<div class="cat-page" data-category-page data-reorder-url="{{ route('admin.categories.reorder') }}" data-bulk-delete-url="{{ route('admin.categories.bulk-destroy') }}" data-total-categories="{{ $stats['total'] }}" data-csrf="{{ csrf_token() }}">
     <div class="cat-page-heading">
         <div>
             <nav class="cat-breadcrumb" aria-label="Breadcrumb">
@@ -65,6 +65,9 @@
                 <div class="cat-toolbar-actions">
                     <button class="cat-btn" type="button" data-expand-all><span>↕</span> Expand All</button>
                     <button class="cat-btn" type="button" data-collapse-all><span>↕</span> Collapse All</button>
+                    <button class="cat-btn cat-btn--edit" type="button" data-edit-selected disabled><x-icon name="pencil" size="14" /> Edit</button>
+                    <button class="cat-btn cat-btn--danger-outline" type="button" data-delete-selected disabled><x-icon name="trash" size="14" /> Delete</button>
+                    <button class="cat-btn cat-btn--danger" type="button" data-delete-all @disabled(($stats['total'] ?? 0) < 1)><x-icon name="trash" size="14" /> Delete All</button>
                     <button class="cat-btn cat-btn--outline js-add-subcategory" type="button" @disabled(!$selected) data-parent-id="{{ $selected?->id }}" data-parent-name="{{ $selected?->name }}"><x-icon name="plus" size="15" /> Add Sub-Category</button>
                     <button class="cat-btn cat-btn--primary js-add-category" type="button"><x-icon name="plus" size="15" /> Add Category</button>
                 </div>
@@ -132,7 +135,7 @@
                         <button type="button" class="cat-btn js-edit-category"
                             data-id="{{ $selected->id }}" data-name="{{ $selected->name }}" data-slug="{{ $selected->slug }}" data-parent-id="{{ $selected->parent_id }}" data-status="{{ $selected->status }}" data-visible="{{ $selected->is_visible ? '1' : '0' }}" data-sort-order="{{ $selected->sort_order }}" data-description="{{ $selected->description }}" data-meta-title="{{ $selected->meta_title }}" data-meta-description="{{ $selected->meta_description }}" data-action="{{ route('admin.categories.update', $selected) }}"><x-icon name="pencil" size="14" /> Edit Category</button>
                         <button type="button" class="cat-btn cat-btn--outline js-add-subcategory" data-parent-id="{{ $selected->id }}" data-parent-name="{{ $selected->name }}"><x-icon name="plus" size="14" /> Add Sub-Category</button>
-                        <form method="POST" action="{{ route('admin.categories.destroy', $selected) }}" style="grid-column:1/-1" onsubmit="return confirm('Delete {{ addslashes($selected->name) }}? Categories with products or sub-categories must be cleared first.')">
+                        <form method="POST" action="{{ route('admin.categories.destroy', $selected) }}" style="grid-column:1/-1" onsubmit="return confirm('Delete {{ addslashes($selected->name) }}? Products assigned to it will become uncategorised and child categories will move to top level. This cannot be undone.')">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="cat-btn" style="width:100%;border-color:#e3a3a3;color:#a82424;background:#fff7f7"><x-icon name="trash" size="14" /> Delete Category</button>
@@ -230,5 +233,5 @@
     </dialog>
 </div>
 
-<script src="{{ asset('js/admin-categories.js') }}?v=20260910-1" defer></script>
+<script src="{{ asset('js/admin-categories.js') }}?v=20260921-2" defer></script>
 @endsection
