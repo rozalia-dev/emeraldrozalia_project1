@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Services\AuditTrail;
 use App\Support\CatalogCounties;
 use App\Support\CatalogProductTypes;
+use App\Support\CatalogStyles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,15 +21,23 @@ use Illuminate\View\View;
 class CatalogTaxonomyController extends Controller
 {
     private const TAXONOMIES = [
-        'uefa' => 'UEFA',
-        'fifa' => 'FIFA',
-        'gaa' => 'GAA',
         'traditional' => 'Traditional',
         'heritage' => 'Heritage',
+        'gaa' => 'GAA',
+        'english' => 'English',
+        'uefa' => 'UEFA',
+        'fifa' => 'FIFA',
+        'gift' => 'Gift',
+        'accessory' => 'Accessory',
+        'customised' => 'Customised',
+        'corporate' => 'Corporate',
     ];
 
-    private const CLUB_TAXONOMIES = ['uefa', 'fifa', 'gaa'];
-    private const COUNTY_TAXONOMIES = ['traditional', 'heritage'];
+    private const GEO_TAXONOMIES = ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'];
+    private const CLUB_TAXONOMIES = ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'];
+    private const REQUIRED_CLUB_TAXONOMIES = ['gaa', 'english', 'uefa', 'fifa'];
+    private const COUNTY_TAXONOMIES = ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'];
+    private const REQUIRED_COUNTY_TAXONOMIES = ['traditional', 'heritage'];
 
     public function index(Request $request): View
     {
@@ -38,6 +47,7 @@ class CatalogTaxonomyController extends Controller
         $clubId = (int) $request->query('catalog_club_id', 0);
         $productType = strtolower((string) $request->query('product_type', ''));
         $productTypes = CatalogProductTypes::all();
+        $styles = CatalogStyles::all();
 
         $categories = Category::query()
             ->whereNotNull('taxonomy_type')
@@ -70,6 +80,12 @@ class CatalogTaxonomyController extends Controller
             'countyNames' => $countyNames,
             'taxonomyTypes' => self::TAXONOMIES,
             'productTypes' => $productTypes,
+            'styles' => $styles,
+            'geoTaxonomies' => self::GEO_TAXONOMIES,
+            'clubTaxonomies' => self::CLUB_TAXONOMIES,
+            'requiredClubTaxonomies' => self::REQUIRED_CLUB_TAXONOMIES,
+            'countyTaxonomies' => self::COUNTY_TAXONOMIES,
+            'requiredCountyTaxonomies' => self::REQUIRED_COUNTY_TAXONOMIES,
             'filters' => compact('taxonomy', 'countryId', 'countyCode', 'clubId', 'productType'),
         ]);
     }
@@ -77,17 +93,29 @@ class CatalogTaxonomyController extends Controller
     public function build(Request $request): RedirectResponse
     {
         $productTypes = CatalogProductTypes::all();
+        $styles = CatalogStyles::all();
         $data = $request->validate([
             'taxonomy_type' => ['required', Rule::in(array_keys(self::TAXONOMIES))],
-            'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
+            'catalog_country_id' => ['nullable', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
             'catalog_county_code' => ['nullable', 'string', 'max:16'],
             'catalog_club_id' => ['nullable', 'integer', Rule::exists('catalog_clubs', 'id')->where('is_active', true)],
             'product_types' => ['required', 'array', 'min:1'],
             'product_types.*' => ['required', Rule::in(array_keys($productTypes))],
+            'style' => ['nullable', Rule::in(array_keys($styles))],
         ]);
 
         $taxonomy = $data['taxonomy_type'];
-        $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
+        $requiresGeo = in_array($taxonomy, self::GEO_TAXONOMIES, true);
+
+        if ($requiresGeo && ! filled($data['catalog_country_id'] ?? null)) {
+            throw ValidationException::withMessages([
+                'catalog_country_id' => 'Select a country for this category.',
+            ]);
+        }
+
+        $country = filled($data['catalog_country_id'] ?? null)
+            ? CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id'])
+            : null;
         $club = filled($data['catalog_club_id'] ?? null)
             ? CatalogClub::query()->active()->with('country')->findOrFail((int) $data['catalog_club_id'])
             : null;
@@ -97,11 +125,12 @@ class CatalogTaxonomyController extends Controller
         $this->guardClubScope($taxonomy, $country, $club);
         $county = $this->resolveCounty($taxonomy, $country, $countyCode);
         $countyCode = $county['code'] ?? null;
+        $style = filled($data['style'] ?? null) ? (string) $data['style'] : null;
 
         $created = 0;
         $lastCategory = null;
 
-        DB::transaction(function () use ($taxonomy, $country, $county, $countyCode, $club, $data, $productTypes, &$created, &$lastCategory): void {
+        DB::transaction(function () use ($taxonomy, $country, $county, $countyCode, $club, $data, $productTypes, $styles, $style, &$created, &$lastCategory): void {
             $top = $this->ensureCategory(
                 parent: null,
                 name: self::TAXONOMIES[$taxonomy],
@@ -115,25 +144,28 @@ class CatalogTaxonomyController extends Controller
                 created: $created,
             );
 
-            $countryCategory = $this->ensureCategory(
-                parent: $top,
-                name: $country->name,
-                slug: $taxonomy.'-'.strtolower($country->code),
-                taxonomy: $taxonomy,
-                country: $country,
-                countyCode: null,
-                club: null,
-                productType: null,
-                sortOrder: max(1, (int) $country->sort_order),
-                created: $created,
-            );
+            $parent = $top;
 
-            $parent = $countryCategory;
-            if ($county) {
+            if ($country) {
                 $parent = $this->ensureCategory(
-                    parent: $countryCategory,
+                    parent: $top,
+                    name: $country->name,
+                    slug: $taxonomy.'-'.strtolower($country->code),
+                    taxonomy: $taxonomy,
+                    country: $country,
+                    countyCode: null,
+                    club: null,
+                    productType: null,
+                    sortOrder: max(1, (int) $country->sort_order),
+                    created: $created,
+                );
+            }
+
+            if ($county && $country) {
+                $parent = $this->ensureCategory(
+                    parent: $parent,
                     name: $county['name'],
-                    slug: $countryCategory->slug.'-'.Str::slug(strtolower((string) $countyCode)),
+                    slug: $parent->slug.'-'.Str::slug(strtolower((string) $countyCode)),
                     taxonomy: $taxonomy,
                     country: $country,
                     countyCode: $countyCode,
@@ -142,14 +174,16 @@ class CatalogTaxonomyController extends Controller
                     sortOrder: 10,
                     created: $created,
                 );
-            } elseif (in_array($taxonomy, self::CLUB_TAXONOMIES, true) && $club) {
+            }
+
+            if ($club && $country) {
                 $parent = $this->ensureCategory(
-                    parent: $countryCategory,
+                    parent: $parent,
                     name: $club->name,
-                    slug: $taxonomy.'-'.strtolower($country->code).'-'.$club->slug,
+                    slug: $parent->slug.'-'.$club->slug,
                     taxonomy: $taxonomy,
                     country: $country,
-                    countyCode: null,
+                    countyCode: $countyCode,
                     club: $club,
                     productType: null,
                     sortOrder: max(1, (int) $club->sort_order),
@@ -158,7 +192,7 @@ class CatalogTaxonomyController extends Controller
             }
 
             foreach (array_values(array_unique($data['product_types'])) as $index => $productType) {
-                $lastCategory = $this->ensureCategory(
+                $productCategory = $this->ensureCategory(
                     parent: $parent,
                     name: $productTypes[$productType],
                     slug: $parent->slug.'-'.$productType,
@@ -170,15 +204,40 @@ class CatalogTaxonomyController extends Controller
                     sortOrder: ($index + 1) * 10,
                     created: $created,
                 );
+
+                $lastCategory = $productCategory;
+
+                if ($style) {
+                    $lastCategory = $this->ensureCategory(
+                        parent: $productCategory,
+                        name: $styles[$style],
+                        slug: $productCategory->slug.'-'.$style,
+                        taxonomy: $taxonomy,
+                        country: $country,
+                        countyCode: $countyCode,
+                        club: $club,
+                        productType: $productType,
+                        sortOrder: 10,
+                        created: $created,
+                    );
+                }
             }
         });
 
-        return redirect()->route('admin.categories.taxonomy', [
-            'taxonomy_type' => $taxonomy,
-            'catalog_country_id' => $country->id,
-            'catalog_county_code' => $countyCode,
-            'catalog_club_id' => $club?->id,
-        ])->with('success', ($created > 0 ? $created.' menu item(s) created.' : 'The menu hierarchy already existed and was synchronized.').($lastCategory ? ' Product types are ready under '.$lastCategory->parent?->name.'.' : ''));
+        $redirect = ['taxonomy_type' => $taxonomy];
+        if ($country) {
+            $redirect['catalog_country_id'] = $country->id;
+        }
+        if ($countyCode) {
+            $redirect['catalog_county_code'] = $countyCode;
+        }
+        if ($club) {
+            $redirect['catalog_club_id'] = $club->id;
+        }
+
+        return redirect()->route('admin.categories.taxonomy', $redirect)
+            ->with('success', ($created > 0 ? $created.' menu item(s) created.' : 'The menu hierarchy already existed and was synchronized.')
+                .($lastCategory ? ' The selected subcategory path is ready under '.$lastCategory->parent?->name.'.' : ''));
     }
 
     public function countries(Request $request): View
@@ -329,41 +388,61 @@ class CatalogTaxonomyController extends Controller
         return $data;
     }
 
-    private function guardCountryScope(string $taxonomy, CatalogCountry $country): void
+    private function guardCountryScope(string $taxonomy, ?CatalogCountry $country): void
     {
+        if (! in_array($taxonomy, self::GEO_TAXONOMIES, true)) {
+            return;
+        }
+
+        if (! $country) {
+            throw ValidationException::withMessages(['catalog_country_id' => 'Select a country for this category.']);
+        }
+
         if ($taxonomy === 'uefa' && ! $country->is_uefa) {
             throw ValidationException::withMessages(['catalog_country_id' => 'UEFA menus can only use countries/associations enabled for UEFA.']);
         }
-        if (in_array($taxonomy, self::COUNTY_TAXONOMIES, true) && ! $country->is_eu) {
+        if (in_array($taxonomy, ['traditional', 'heritage'], true) && ! $country->is_eu) {
             throw ValidationException::withMessages(['catalog_country_id' => 'Traditional and Heritage menus are restricted to EU countries.']);
         }
     }
 
-    private function guardClubScope(string $taxonomy, CatalogCountry $country, ?CatalogClub $club): void
+    private function guardClubScope(string $taxonomy, ?CatalogCountry $country, ?CatalogClub $club): void
     {
         if (! in_array($taxonomy, self::CLUB_TAXONOMIES, true)) {
             if ($club) {
-                throw ValidationException::withMessages(['catalog_club_id' => 'Traditional and Heritage menus do not use a club level.']);
+                throw ValidationException::withMessages(['catalog_club_id' => 'This category does not use a club / city / town level.']);
             }
             return;
         }
 
-        if (! $club) {
-            throw ValidationException::withMessages(['catalog_club_id' => 'Select a club for UEFA, FIFA or GAA. Add it in Club Master first if necessary.']);
+        if (in_array($taxonomy, self::REQUIRED_CLUB_TAXONOMIES, true) && ! $club) {
+            throw ValidationException::withMessages(['catalog_club_id' => 'Select a club / city / town for this category. Add it in Club Master first if necessary.']);
         }
-        if ($club->governing_body !== $taxonomy || (int) $club->catalog_country_id !== (int) $country->id) {
-            throw ValidationException::withMessages(['catalog_club_id' => 'The selected club does not belong to this organization and country.']);
+
+        if (! $club) {
+            return;
+        }
+
+        if (! $country || $club->governing_body !== $taxonomy || (int) $club->catalog_country_id !== (int) $country->id) {
+            throw ValidationException::withMessages(['catalog_club_id' => 'The selected club / city / town does not belong to this category and country.']);
         }
     }
 
-    private function resolveCounty(string $taxonomy, CatalogCountry $country, string $countyCode): ?array
+    private function resolveCounty(string $taxonomy, ?CatalogCountry $country, string $countyCode): ?array
     {
         if (! in_array($taxonomy, self::COUNTY_TAXONOMIES, true)) {
             return null;
         }
 
         if ($countyCode === '') {
-            throw ValidationException::withMessages(['catalog_county_code' => 'Select a county or administrative subdivision for Traditional and Heritage.']);
+            if (in_array($taxonomy, self::REQUIRED_COUNTY_TAXONOMIES, true)) {
+                throw ValidationException::withMessages(['catalog_county_code' => 'Select a county or administrative subdivision for Traditional and Heritage.']);
+            }
+            return null;
+        }
+
+        if (! $country) {
+            throw ValidationException::withMessages(['catalog_county_code' => 'Select a country before selecting a county.']);
         }
 
         $county = CatalogCounties::find($country->code, $countyCode);

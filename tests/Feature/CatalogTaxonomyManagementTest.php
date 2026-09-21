@@ -78,6 +78,27 @@ class CatalogTaxonomyManagementTest extends TestCase
         }
     }
 
+    public function test_requested_non_geographic_category_can_build_product_type_and_style_without_country(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->post(route('admin.categories.taxonomy.build'), [
+            'taxonomy_type' => 'gift',
+            'product_types' => ['caps', 'hats', 'beanies'],
+            'style' => 'gift-for-her',
+        ])->assertSessionHasNoErrors();
+
+        $gift = Category::query()->where('slug', 'gift')->firstOrFail();
+        $caps = Category::query()->where('slug', 'gift-caps')->firstOrFail();
+        $style = Category::query()->where('slug', 'gift-caps-gift-for-her')->firstOrFail();
+
+        $this->assertNull($gift->parent_id);
+        $this->assertSame($gift->id, $caps->parent_id);
+        $this->assertSame($caps->id, $style->parent_id);
+        $this->assertSame('caps', $style->product_type);
+        $this->assertNull($style->catalog_country_id);
+    }
+
     public function test_traditional_and_heritage_are_restricted_to_eu_countries_and_skip_clubs(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
