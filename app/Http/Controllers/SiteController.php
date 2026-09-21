@@ -341,7 +341,7 @@ class SiteController extends Controller
             $query->where(function ($countryQuery) use ($selectedCountryModel) {
                 $countryQuery
                     ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_country_id', $selectedCountryModel->id))
-                    ->orWhere('product_metadata->catalog_classification->catalog_country_id', $selectedCountryModel->id);
+                    ->orWhere('product_metadata->catalog_classification->catalog_country_id', (string) $selectedCountryModel->id);
             });
         }
         if ($selectedCounty !== '') {
