@@ -19,7 +19,7 @@ class CategoryManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.categories.index'))
             ->assertOk()
-            ->assertSee(['Categories', 'Category Tree', 'UUID Traceability', 'Edit', 'Delete Selected', 'Delete All'])
+            ->assertSee(['Categories', 'All Categories', 'Category Tree', 'UUID Traceability', 'Edit', 'Delete Selected', 'Delete All'])
             ->assertSee('data-edit-selected', false)
             ->assertSee('data-delete-selected', false)
             ->assertSee('data-delete-selected-count', false)
@@ -57,6 +57,41 @@ class CategoryManagementTest extends TestCase
         $child = Category::query()->where('slug', 'baseball-caps')->firstOrFail();
         $this->assertSame($parent->id, $child->parent_id);
         $this->assertDatabaseHas('audit_logs', ['action' => 'category.created', 'subject_id' => $child->id]);
+    }
+
+    public function test_all_categories_and_expand_all_show_the_complete_tree(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $parents = collect();
+        foreach (range(1, 12) as $index) {
+            $parents->push(Category::create([
+                'name' => 'Root '.$index,
+                'slug' => 'root-'.$index,
+                'status' => 'active',
+                'is_visible' => true,
+                'sort_order' => $index,
+            ]));
+        }
+
+        Category::create([
+            'name' => 'Nested Child',
+            'slug' => 'nested-child',
+            'parent_id' => $parents->last()->id,
+            'status' => 'active',
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.index', ['all' => 1, 'tree' => 'expanded']))
+            ->assertOk()
+            ->assertSee('All Categories (13)')
+            ->assertSee('Root 1')
+            ->assertSee('Root 12')
+            ->assertSee('Nested Child')
+            ->assertSee('Showing all 13 categories in the expanded tree')
+            ->assertSee('tree=expanded', false);
     }
 
     public function test_visibility_and_status_control_public_category_access(): void
