@@ -108,6 +108,7 @@ class ProductCategoryClassificationTest extends TestCase
 
             CatalogClub::create([
                 'catalog_country_id' => $ireland->id,
+                'catalog_county_code' => 'IE-LK',
                 'governing_body' => $taxonomy,
                 'name' => strtoupper($taxonomy).' Test Club',
                 'slug' => $taxonomy.'-test-club',
@@ -127,6 +128,8 @@ class ProductCategoryClassificationTest extends TestCase
             ->assertSee('data-body="english"', false)
             ->assertSee('data-body="uefa"', false)
             ->assertSee('data-body="fifa"', false)
+            ->assertSee('data-county="IE-LK"', false)
+            ->assertSee('Country → County → Club Name → Subcategory')
             ->assertSee('Manage Club Master');
 
         $gaaCaps = Category::query()->where('slug', 'gaa-caps')->firstOrFail();
@@ -141,6 +144,7 @@ class ProductCategoryClassificationTest extends TestCase
                 'category_root_id' => $roots['gaa']->id,
                 'category_id' => $gaaCaps->id,
                 'catalog_country_id' => $ireland->id,
+                'catalog_county_code' => 'IE-LK',
                 'product_type' => 'simple',
                 'tax_class' => 'standard',
                 'description' => 'GAA product requiring a matching club.',
