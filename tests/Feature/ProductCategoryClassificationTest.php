@@ -126,11 +126,11 @@ class ProductCategoryClassificationTest extends TestCase
             ->assertSee('data-taxonomy="english"', false)
             ->assertSee('data-taxonomy="uefa"', false)
             ->assertSee('data-taxonomy="fifa"', false)
-            ->assertSee('data-body="gaa"', false)
-            ->assertSee('data-body="english"', false)
-            ->assertSee('data-body="uefa"', false)
-            ->assertSee('data-body="fifa"', false)
-            ->assertSee('data-county="IE-LK"', false)
+            ->assertSee('data-club-options-url', false)
+            ->assertDontSee('GAA Test Club', false)
+            ->assertDontSee('ENGLISH Test Club', false)
+            ->assertDontSee('UEFA Test Club', false)
+            ->assertDontSee('FIFA Test Club', false)
             ->assertSee('Country → County → Club Name → Subcategory')
             ->assertSee('Manage Club Master');
 
