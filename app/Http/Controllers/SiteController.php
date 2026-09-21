@@ -338,10 +338,18 @@ class SiteController extends Controller
         }
 
         if ($selectedCountryModel) {
-            $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_country_id', $selectedCountryModel->id));
+            $query->where(function ($countryQuery) use ($selectedCountryModel) {
+                $countryQuery
+                    ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_country_id', $selectedCountryModel->id))
+                    ->orWhere('product_metadata->catalog_classification->catalog_country_id', $selectedCountryModel->id);
+            });
         }
         if ($selectedCounty !== '') {
-            $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_county_code', $selectedCounty));
+            $query->where(function ($countyQuery) use ($selectedCounty) {
+                $countyQuery
+                    ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_county_code', $selectedCounty))
+                    ->orWhere('product_metadata->catalog_classification->catalog_county_code', $selectedCounty);
+            });
         }
         if ($selectedSubcategory !== '') {
             [$kind, $value] = explode(':', $selectedSubcategory, 2);
