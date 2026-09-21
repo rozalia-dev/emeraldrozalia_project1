@@ -55,19 +55,20 @@
         <main class="cat-main">
             <section class="cat-toolbar-card">
                 <form method="GET" action="{{ route('admin.categories.index') }}" class="cat-filter-form">
-                    <a class="cat-btn {{ ! $search && ! $status && ! $visibility ? 'cat-btn--primary' : '' }}" href="{{ route('admin.categories.index') }}" aria-current="{{ ! $search && ! $status && ! $visibility ? 'page' : 'false' }}">
+                    <a class="cat-btn {{ $showAll ? 'cat-btn--primary' : '' }}" href="{{ route('admin.categories.index', ['all' => 1, 'tree' => 'expanded']) }}" aria-current="{{ $showAll ? 'page' : 'false' }}">
                         All Categories ({{ number_format($stats['total']) }})
                     </a>
                     <label class="cat-search"><x-icon name="search" size="15" /><input type="search" name="q" value="{{ $search }}" placeholder="Search categories..."></label>
                     <select name="status" aria-label="Filter by status"><option value="">All statuses</option><option value="active" @selected($status==='active')>Active</option><option value="draft" @selected($status==='draft')>Draft</option><option value="inactive" @selected($status==='inactive')>Inactive</option></select>
                     <select name="visibility" aria-label="Filter by visibility"><option value="">All visibility</option><option value="visible" @selected($visibility==='visible')>Visible</option><option value="hidden" @selected($visibility==='hidden')>Hidden</option></select>
                     <input type="hidden" name="per_page" value="{{ $perPage }}">
+                    @if($tree)<input type="hidden" name="tree" value="{{ $tree }}">@endif
                     <button type="submit" class="cat-btn"><x-icon name="filter" size="14" /> Filters</button>
                     @if($search || $status || $visibility)<a class="cat-btn cat-btn--ghost" href="{{ route('admin.categories.index') }}">Clear</a>@endif
                 </form>
                 <div class="cat-toolbar-actions">
-                    <button class="cat-btn" type="button" data-expand-all><span>↕</span> Expand All</button>
-                    <button class="cat-btn" type="button" data-collapse-all><span>↕</span> Collapse All</button>
+                    <a class="cat-btn {{ $expandAll ? 'cat-btn--primary' : '' }}" href="{{ request()->fullUrlWithQuery(['tree' => 'expanded']) }}" data-expand-all><span>↕</span> Expand All</a>
+                    <a class="cat-btn {{ $collapseAll ? 'cat-btn--primary' : '' }}" href="{{ request()->fullUrlWithQuery(['tree' => 'collapsed']) }}" data-collapse-all><span>↕</span> Collapse All</a>
                     <button class="cat-btn cat-btn--edit" type="button" data-edit-selected disabled><x-icon name="pencil" size="14" /> Edit</button>
                     <button class="cat-btn cat-btn--danger-outline" type="button" data-delete-selected disabled><x-icon name="trash" size="14" /> Delete Selected <span data-delete-selected-count>(0)</span></button>
                     <button class="cat-btn cat-btn--danger" type="button" data-delete-all @disabled(($stats['total'] ?? 0) < 1)><x-icon name="trash" size="14" /> Delete All</button>
@@ -94,7 +95,7 @@
                             @include('admin.categories._row', [
                                 'category' => $category,
                                 'level' => 0,
-                                'expanded' => $loop->first,
+                                'expanded' => $expandAll || (! $collapseAll && $loop->first),
                                 'selected' => $selected,
                                 'parentUuid' => '',
                                 'loopIndex' => $loop->iteration + (($roots->currentPage() - 1) * $roots->perPage()),
@@ -106,9 +107,15 @@
                     </table>
                 </div>
                 <div class="cat-pagination-row">
-                    <span>Showing {{ number_format($roots->firstItem() ?? 0) }} to {{ number_format($roots->lastItem() ?? 0) }} of {{ number_format($roots->total()) }} top-level categories</span>
-                    <div class="cat-pagination">{{ $roots->onEachSide(1)->links() }}</div>
-                    <form method="GET" action="{{ route('admin.categories.index') }}"><input type="hidden" name="q" value="{{ $search }}"><input type="hidden" name="status" value="{{ $status }}"><input type="hidden" name="visibility" value="{{ $visibility }}"><select name="per_page" onchange="this.form.submit()"><option value="10" @selected($perPage===10)>10 / page</option><option value="25" @selected($perPage===25)>25 / page</option><option value="50" @selected($perPage===50)>50 / page</option></select></form>
+                    <span>
+                        @if($showAll)
+                            Showing all {{ number_format($stats['total']) }} categories in the expanded tree
+                        @else
+                            Showing {{ number_format($roots->firstItem() ?? 0) }} to {{ number_format($roots->lastItem() ?? 0) }} of {{ number_format($roots->total()) }} top-level categories
+                        @endif
+                    </span>
+                    <div class="cat-pagination">@unless($showAll){{ $roots->onEachSide(1)->links() }}@endunless</div>
+                    <form method="GET" action="{{ route('admin.categories.index') }}"><input type="hidden" name="q" value="{{ $search }}"><input type="hidden" name="status" value="{{ $status }}"><input type="hidden" name="visibility" value="{{ $visibility }}">@if($tree)<input type="hidden" name="tree" value="{{ $tree }}">@endif<select name="per_page" onchange="this.form.submit()"><option value="10" @selected($perPage===10)>10 / page</option><option value="25" @selected($perPage===25)>25 / page</option><option value="50" @selected($perPage===50)>50 / page</option></select></form>
                 </div>
             </section>
         </main>
@@ -236,5 +243,5 @@
     </dialog>
 </div>
 
-<script src="{{ asset('js/admin-categories.js') }}?v=20260921-3" defer></script>
+<script src="{{ asset('js/admin-categories.js') }}?v=20260921-4" defer></script>
 @endsection
