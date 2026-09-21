@@ -6,6 +6,7 @@ use App\Models\CatalogClub;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\CatalogBrazil;
 use App\Support\CatalogCounties;
 use App\Support\CatalogEngland;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -439,6 +440,109 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
         $this->get(route('category', $root).'?country=ENG&county=ENG-GTM&club=manchester-united&subcategory=type:caps')
             ->assertOk()
             ->assertSee('Manchester United Cap', false);
+    }
+
+    public function test_fifa_brazil_public_catalogue_has_states_and_clubs(): void
+    {
+        $brazil = CatalogCountry::query()->where('code', 'BR')->firstOrFail();
+
+        $this->assertTrue(collect(CatalogCounties::forCountry('BR'))->contains(
+            fn (array $state): bool => $state['code'] === 'BR-SP' && $state['name'] === 'São Paulo'
+        ));
+        $this->assertTrue(collect(CatalogBrazil::CLUBS)->contains(
+            fn (array $club): bool => $club['county_code'] === 'BR-SP' && $club['name'] === 'Corinthians'
+        ));
+
+        $root = Category::create([
+            'name' => 'FIFA',
+            'slug' => 'fifa-public-filter-root',
+            'taxonomy_type' => 'fifa',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $country = Category::create([
+            'parent_id' => $root->id,
+            'name' => 'Brazil',
+            'slug' => 'fifa-public-br',
+            'taxonomy_type' => 'fifa',
+            'catalog_country_id' => $brazil->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $state = Category::create([
+            'parent_id' => $country->id,
+            'name' => 'São Paulo',
+            'slug' => 'fifa-public-br-sp',
+            'taxonomy_type' => 'fifa',
+            'catalog_country_id' => $brazil->id,
+            'catalog_county_code' => 'BR-SP',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $corinthians = CatalogClub::create([
+            'catalog_country_id' => $brazil->id,
+            'catalog_county_code' => 'BR-SP',
+            'governing_body' => 'fifa',
+            'name' => 'Corinthians',
+            'slug' => 'corinthians',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $clubCategory = Category::create([
+            'parent_id' => $state->id,
+            'name' => 'Corinthians',
+            'slug' => 'fifa-public-br-sp-corinthians',
+            'taxonomy_type' => 'fifa',
+            'catalog_country_id' => $brazil->id,
+            'catalog_county_code' => 'BR-SP',
+            'catalog_club_id' => $corinthians->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $caps = Category::create([
+            'parent_id' => $clubCategory->id,
+            'name' => 'Caps',
+            'slug' => 'fifa-public-br-sp-corinthians-caps',
+            'taxonomy_type' => 'fifa',
+            'catalog_country_id' => $brazil->id,
+            'catalog_county_code' => 'BR-SP',
+            'catalog_club_id' => $corinthians->id,
+            'product_type' => 'caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->product($caps, 'Corinthians Cap', 'FIFA-BR-SP-COR');
+
+        $this->get(route('category', $root).'?country=BR')
+            ->assertOk()
+            ->assertSee('São Paulo', false)
+            ->assertSee('Rio de Janeiro', false)
+            ->assertSee('Select County First', false);
+
+        $this->get(route('category', $root).'?country=BR&county=BR-SP')
+            ->assertOk()
+            ->assertSee('Corinthians', false)
+            ->assertSee('Select Club', false);
+
+        $this->get(route('category', $root).'?country=BR&county=BR-SP&club=corinthians&subcategory=type:caps')
+            ->assertOk()
+            ->assertSee('Corinthians Cap', false);
     }
 
     public function test_county_control_is_not_rendered_for_non_traditional_or_heritage_category(): void
