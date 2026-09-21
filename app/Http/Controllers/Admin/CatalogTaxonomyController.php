@@ -394,17 +394,21 @@ class CatalogTaxonomyController extends Controller
 
     private function clubOptionQuery(string $taxonomy, int $countryId, string $countyCode)
     {
-        return CatalogClub::query()
+        $base = CatalogClub::query()
             ->active()
             ->where('governing_body', $taxonomy)
-            ->where('catalog_country_id', $countryId)
-            ->where(function ($query) use ($taxonomy, $countyCode): void {
-                $query->where('catalog_county_code', $countyCode);
-                if ($taxonomy === 'fifa') {
-                    $query->orWhereNull('catalog_county_code');
-                }
-            })
-            ->orderByRaw('CASE WHEN catalog_county_code IS NULL THEN 1 ELSE 0 END')
+            ->where('catalog_country_id', $countryId);
+
+        $hasExactCountyClubs = (clone $base)
+            ->where('catalog_county_code', $countyCode)
+            ->exists();
+
+        return $base
+            ->when(
+                $taxonomy === 'fifa' && ! $hasExactCountyClubs,
+                fn ($query) => $query->whereNull('catalog_county_code'),
+                fn ($query) => $query->where('catalog_county_code', $countyCode),
+            )
             ->orderBy('sort_order')
             ->orderBy('name');
     }
