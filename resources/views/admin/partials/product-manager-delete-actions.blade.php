@@ -59,6 +59,7 @@
         background:#eef8f1;
         color:#087a48;
     }
+    .pm-bulk-edit-button,
     .pm-bulk-delete-button,
     .pm-trash-link{
         display:inline-flex;
@@ -79,6 +80,8 @@
         white-space:nowrap;
         cursor:pointer;
     }
+    .pm-bulk-edit-button:hover,
+    .pm-bulk-edit-button:focus-visible,
     .pm-bulk-delete-button:hover,
     .pm-bulk-delete-button:focus-visible,
     .pm-trash-link:hover,
@@ -88,6 +91,18 @@
         border-color:#b42318;
         color:#8f1f15;
     }
+    .pm-bulk-edit-button{
+        border-color:#8ab49a;
+        color:#0c7139;
+        background:#fff;
+    }
+    .pm-bulk-edit-button:hover,
+    .pm-bulk-edit-button:focus-visible{
+        border-color:#0c7139;
+        background:#eef8f1;
+        color:#075c2e;
+    }
+    .pm-bulk-edit-button:disabled,
     .pm-bulk-delete-button:disabled{
         border-color:#d8dfda;
         background:#f8faf8;
@@ -201,6 +216,7 @@
 
     const selectAll = document.getElementById('select-all-products');
     const productCheckboxes = Array.from(document.querySelectorAll('tbody input[name="products[]"]'));
+    const editSelected = document.querySelector('[data-edit-selected]');
     const deleteSelected = document.querySelector('[data-delete-selected]');
     const deleteAll = document.querySelector('[data-delete-all]');
     const selectedCount = document.querySelector('[data-selected-count]');
@@ -208,6 +224,7 @@
     const syncBulkSelection = () => {
         const selected = productCheckboxes.filter(checkbox => checkbox.checked);
         if (selectedCount) selectedCount.textContent = `(${selected.length})`;
+        if (editSelected) editSelected.disabled = selected.length !== 1;
         if (deleteSelected) deleteSelected.disabled = selected.length === 0;
 
         if (selectAll) {
@@ -225,6 +242,15 @@
 
     productCheckboxes.forEach(checkbox => checkbox.addEventListener('change', syncBulkSelection));
     syncBulkSelection();
+
+    editSelected?.addEventListener('click', () => {
+        const selected = productCheckboxes.filter(checkbox => checkbox.checked);
+        if (selected.length !== 1) return;
+
+        const row = selected[0].closest('tr');
+        const editLink = row?.querySelector('.pm-row-actions a[aria-label^="Edit "]');
+        if (editLink?.href) window.location.assign(editLink.href);
+    });
 
     deleteSelected?.addEventListener('click', () => {
         const ids = productCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
