@@ -28,7 +28,7 @@ final class CatalogCounties
 
         $world = self::worldData();
         if ($world !== null) {
-            return self::$decoded = $world;
+            return self::$decoded = self::withNationalFallbacks($world);
         }
 
         $compressed = base64_decode(self::DATA, true);
@@ -49,7 +49,25 @@ final class CatalogCounties
 
         $decoded['ENG'] = CatalogEngland::COUNTIES;
 
-        return self::$decoded = $decoded;
+        return self::$decoded = self::withNationalFallbacks($decoded);
+    }
+
+    private static function withNationalFallbacks(array $grouped): array
+    {
+        foreach (CatalogCountries::all() as $country) {
+            $code = strtoupper((string) ($country['code'] ?? ''));
+            if ($code === '' || ! empty($grouped[$code])) {
+                continue;
+            }
+
+            $grouped[$code] = [[
+                'code' => $code.'-ALL',
+                'name' => 'National / All Regions',
+                'type' => 'national',
+            ]];
+        }
+
+        return $grouped;
     }
 
     private static function worldData(): ?array
