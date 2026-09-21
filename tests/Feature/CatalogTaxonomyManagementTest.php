@@ -6,6 +6,7 @@ use App\Models\CatalogClub;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\User;
+use App\Support\CatalogGaaCountyClubs;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -36,6 +37,16 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->assertSee('Category → Country → County → Club Name')
             ->assertSee('data-club-country', false)
             ->assertSee('data-club-county', false);
+    }
+
+    public function test_default_irish_gaa_county_clubs_include_laois(): void
+    {
+        $rows = collect(CatalogGaaCountyClubs::ireland());
+
+        $this->assertGreaterThanOrEqual(26, $rows->count());
+        $this->assertTrue($rows->contains(
+            fn (array $row): bool => $row['name'] === 'Laois GAA' && $row['county_code'] !== ''
+        ));
     }
 
     public function test_club_master_requires_country_and_county_for_club_name(): void
