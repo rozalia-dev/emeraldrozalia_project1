@@ -10,6 +10,7 @@ use App\Services\AuditTrail;
 use App\Support\CatalogCounties;
 use App\Support\CatalogProductTypes;
 use App\Support\CatalogStyles;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +65,12 @@ class CatalogTaxonomyController extends Controller
             ->withQueryString();
 
         $countries = CatalogCountry::query()->active()->orderBy('name')->get();
-        $clubs = CatalogClub::query()->active()->with('country')->orderBy('governing_body')->orderBy('name')->get();
+        $clubs = collect();
+        if ($clubId > 0) {
+            $clubs = CatalogClub::query()->active()->with('country')->whereKey($clubId)->get();
+        } elseif ($countryId > 0 && $countyCode !== '' && in_array($taxonomy, self::CLUB_TAXONOMIES, true)) {
+            $clubs = $this->clubOptionQuery($taxonomy, $countryId, $countyCode)->with('country')->get();
+        }
         $countyOptionsByCountry = CatalogCounties::all();
         $countyNames = collect($countyOptionsByCountry)
             ->flatten(1)
@@ -321,6 +327,40 @@ class CatalogTaxonomyController extends Controller
         ]);
     }
 
+    public function clubOptions(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'governing_body' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
+            'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
+            'catalog_county_code' => ['required', 'string', 'max:16'],
+        ]);
+
+        $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
+        $countyCode = strtoupper(trim((string) $data['catalog_county_code']));
+
+        if (! CatalogCounties::isValid($country->code, $countyCode)) {
+            throw ValidationException::withMessages([
+                'catalog_county_code' => 'The selected county / subdivision does not belong to the selected country.',
+            ]);
+        }
+
+        $clubs = $this->clubOptionQuery(
+            strtolower((string) $data['governing_body']),
+            (int) $country->id,
+            $countyCode,
+        )->get(['id', 'name', 'slug', 'catalog_county_code']);
+
+        return response()->json([
+            'clubs' => $clubs->map(fn (CatalogClub $club): array => [
+                'id' => $club->id,
+                'name' => $club->name,
+                'slug' => $club->slug,
+                'county_code' => $club->catalog_county_code,
+                'scope' => filled($club->catalog_county_code) ? 'county' : 'country',
+            ])->values(),
+        ]);
+    }
+
     public function storeClub(Request $request): RedirectResponse
     {
         $data = $this->clubData($request);
@@ -350,6 +390,23 @@ class CatalogTaxonomyController extends Controller
         $club->delete();
 
         return back()->with('success', 'Club removed from Club Master.');
+    }
+
+    private function clubOptionQuery(string $taxonomy, int $countryId, string $countyCode)
+    {
+        return CatalogClub::query()
+            ->active()
+            ->where('governing_body', $taxonomy)
+            ->where('catalog_country_id', $countryId)
+            ->where(function ($query) use ($taxonomy, $countyCode): void {
+                $query->where('catalog_county_code', $countyCode);
+                if ($taxonomy === 'fifa') {
+                    $query->orWhereNull('catalog_county_code');
+                }
+            })
+            ->orderByRaw('CASE WHEN catalog_county_code IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('sort_order')
+            ->orderBy('name');
     }
 
     private function countryData(Request $request, ?CatalogCountry $country = null): array
