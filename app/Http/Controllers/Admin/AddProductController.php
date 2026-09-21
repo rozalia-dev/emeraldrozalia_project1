@@ -75,9 +75,37 @@ class AddProductController extends Controller
             ->orderBy('name')
             ->get(['id', 'parent_id', 'name', 'slug', 'taxonomy_type', 'product_type']);
 
+        $byId = $categories->keyBy('id');
+        $subcategoryOptionsByRoot = [];
+        foreach ($categories as $category) {
+            $cursor = $category;
+            $segments = [$category->name];
+
+            while ($cursor->parent_id && $byId->has($cursor->parent_id)) {
+                $cursor = $byId->get($cursor->parent_id);
+                array_unshift($segments, $cursor->name);
+            }
+
+            if (! $cursor || $cursor->parent_id !== null) {
+                continue;
+            }
+
+            $rootId = (int) $cursor->id;
+            $label = (int) $category->id === $rootId
+                ? 'Main category only'
+                : implode(' › ', array_slice($segments, 1));
+
+            $subcategoryOptionsByRoot[$rootId][] = [
+                'id' => (int) $category->id,
+                'label' => $label,
+                'product_type' => $category->product_type,
+            ];
+        }
+
         return [
             'categories' => $categories,
             'categoryRoots' => $categories->whereNull('parent_id')->values(),
+            'subcategoryOptionsByRoot' => $subcategoryOptionsByRoot,
             'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
             'catalogCountyOptionsByCountry' => CatalogCounties::all(),
             'catalogClubs' => CatalogClub::query()->active()->with('country:id,code,name')->orderBy('catalog_country_id')->orderBy('name')->get(),
