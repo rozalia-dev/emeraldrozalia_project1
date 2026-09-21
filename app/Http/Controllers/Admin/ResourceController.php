@@ -372,42 +372,11 @@ class ResourceController extends Controller {
     }
 
     private function communicationCenter(Request $request,string $module):View {$status=(string)$request->query('status','');$search=trim((string)$request->query('q',''));$kind=(string)$request->query('kind','');$query=Conversation::with(['messages'=>fn($messages)=>$messages->oldest(),'assignee'])->latest();if(in_array($status,['new','open','pending','closed'],true))$query->where('status',$status);if($kind==='questions')$query->where(fn($conversations)=>$conversations->where('subject','like','%?%')->orWhere('subject','like','%question%')->orWhereHas('messages',fn($messages)=>$messages->where('body','like','%?%')->orWhere('body','like','%question%')));if($search!=='')$query->where(fn($conversations)=>$conversations->where('contact','like','%'.$search.'%')->orWhere('subject','like','%'.$search.'%'));$conversations=$query->paginate(25)->withQueryString();$admins=User::query()->where('is_admin',true)->orderBy('name')->get(['id','name']);return view('admin.communication-center.index',compact('module','conversations','status','search','admins','kind'));}
-    private function productManager(Request $request){
-        $tabs=['all'=>'All Products','published'=>'Published','draft'=>'Draft','hidden'=>'Hidden','out_of_stock'=>'Out of Stock','low_stock'=>'Low Stock','featured'=>'Featured','top_rated'=>'Top Rated'];
-        $tab=(string)$request->query('tab','all');if(!array_key_exists($tab,$tabs))$tab='all';
-        $query=Product::query()->with('category')->withCount('reviews')->withAvg('reviews','rating');
-        switch($tab){
-            case 'published':$query->where('is_active',true)->whereIn('status',['active','published']);break;
-            case 'draft':$query->whereIn('status',['draft','planned']);break;
-            case 'hidden':$query->where('is_active',false)->whereNotIn('status',['draft','planned']);break;
-            case 'out_of_stock':$query->where('stock','<=',0);break;
-            case 'low_stock':$query->whereBetween('stock',[1,10]);break;
-            case 'featured':$query->where('is_new',true);break;
-            case 'top_rated':$query->whereHas('reviews',fn($reviews)=>$reviews->where('rating','>=',4));break;
-        }
-        $search=trim((string)$request->query('q',''));if($search!=='')$query->where(fn($products)=>$products->where('name','like','%'.$search.'%')->orWhere('sku','like','%'.$search.'%')->orWhere('brand','like','%'.$search.'%'));
-        $categoryId=(int)$request->query('category_id',0);if($categoryId>0)$query->where('category_id',$categoryId);
-        $minPrice=$request->query('min_price');if(is_numeric($minPrice))$query->where('price','>=',(float)$minPrice);
-        $maxPrice=$request->query('max_price');if(is_numeric($maxPrice))$query->where('price','<=',(float)$maxPrice);
-        switch((string)$request->query('stock_status','')){case 'in_stock':$query->where('stock','>',0);break;case 'low_stock':$query->whereBetween('stock',[1,10]);break;case 'out_of_stock':$query->where('stock','<=',0);break;}
-        switch((string)$request->query('product_status','')){case 'published':$query->where('is_active',true)->whereIn('status',['active','published']);break;case 'draft':$query->whereIn('status',['draft','planned']);break;case 'hidden':$query->where('is_active',false);break;case 'inactive':$query->where('is_active',false)->where('status','inactive');break;}
-        $rating=(string)$request->query('rating','');if(preg_match('/^[1-5]_plus$/',$rating))$query->whereHas('reviews',fn($reviews)=>$reviews->where('rating','>=',(int)$rating[0]));
-        $featured=$request->boolean('featured');if($featured)$query->where('is_new',true);
-        $products=$query->orderBy('name')->orderBy('id')->paginate(10)->withQueryString();
-        $totalProducts=(int)Product::query()->count();$draftCount=(int)Product::query()->whereIn('status',['draft','planned'])->count();$hiddenCount=(int)Product::query()->where('is_active',false)->whereNotIn('status',['draft','planned'])->count();
-        $stats=[
-            'total'=>$totalProducts,
-            'published'=>(int)Product::query()->where('is_active',true)->whereIn('status',['active','published'])->count(),
-            'hidden_draft'=>$draftCount+$hiddenCount,
-            'draft'=>$draftCount,
-            'hidden'=>$hiddenCount,
-            'out_of_stock'=>(int)Product::query()->where('stock','<=',0)->count(),
-            'total_value'=>(float)(Product::query()->selectRaw('COALESCE(SUM(price * stock), 0) AS aggregate')->value('aggregate')??0),
-            'average_rating'=>(float)(Review::query()->approved()->whereHas('product')->avg('rating')??0),
-        ];
-        $categories=Category::query()->where('is_active',true)->orderBy('sort_order')->orderBy('name')->get(['id','name']);
-        return view('admin.product-manager.index',compact('products','categories','stats','tabs','tab','search','categoryId','minPrice','maxPrice','rating','featured'));
+    private function productManager(Request $request): View
+    {
+        return app(ProductManagerController::class)->index($request);
     }
+
     public function updateConversation(CommunicationConversationUpdateRequest $request, Conversation $conversation)
     {
         $data = $request->validated();

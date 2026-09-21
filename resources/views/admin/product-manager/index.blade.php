@@ -233,4 +233,6 @@
         <span><x-icon name="globe" size="13" /> {{ config('app.brand_contact.location') }}</span>
     </footer>
 </div>
+
+@include('admin.partials.product-manager-delete-actions')
 @endsection
