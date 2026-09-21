@@ -10,7 +10,7 @@
 
 @section('content')
 <div class="club-page">
-    <header class="club-head"><div><span class="club-kicker">Website &amp; Products · Categories</span><h1>Club Master</h1><p>Add UEFA, FIFA or GAA clubs manually and assign each club to a country. The Taxonomy Builder will only show matching clubs after organization + country are selected.</p></div><nav class="club-nav"><a class="club-btn" href="{{ route('admin.categories.index') }}">Categories</a><a class="club-btn" href="{{ route('admin.categories.taxonomy') }}">Taxonomy Builder</a><a class="club-btn" href="{{ route('admin.categories.countries') }}">Country Master</a></nav></header>
+    <header class="club-head"><div><span class="club-kicker">Website &amp; Products · Categories</span><h1>Club Master</h1><p>Add GAA, English, UEFA or FIFA clubs / city / town entries and assign each one to a country. The Taxonomy Builder and Add Product form only show entries matching the selected category + country.</p></div><nav class="club-nav"><a class="club-btn" href="{{ route('admin.categories.index') }}">Categories</a><a class="club-btn" href="{{ route('admin.categories.taxonomy') }}">Taxonomy Builder</a><a class="club-btn" href="{{ route('admin.categories.countries') }}">Country Master</a></nav></header>
     @if(session('success'))<div class="club-alert">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="club-alert error">{{ $errors->first() }}</div>@endif
 
