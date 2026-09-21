@@ -125,6 +125,72 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
             ->assertDontSee('Limerick Heritage Cap', false);
     }
 
+    public function test_product_metadata_classification_supports_country_and_county_filters(): void
+    {
+        $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
+
+        $root = Category::create([
+            'name' => 'Heritage',
+            'slug' => 'heritage-metadata-root',
+            'taxonomy_type' => 'heritage',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $caps = Category::create([
+            'parent_id' => $root->id,
+            'name' => 'Caps',
+            'slug' => 'heritage-metadata-caps',
+            'taxonomy_type' => 'heritage',
+            'product_type' => 'caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        Product::create([
+            'category_id' => $caps->id,
+            'name' => 'Metadata Limerick Cap',
+            'slug' => 'metadata-limerick-cap',
+            'sku' => 'META-LK-CAP',
+            'price' => '39.00',
+            'stock' => 4,
+            'status' => 'active',
+            'is_active' => true,
+            'product_metadata' => [
+                'catalog_classification' => [
+                    'catalog_country_id' => $ireland->id,
+                    'catalog_county_code' => 'IE-LK',
+                ],
+            ],
+        ]);
+
+        Product::create([
+            'category_id' => $caps->id,
+            'name' => 'Metadata Dublin Cap',
+            'slug' => 'metadata-dublin-cap',
+            'sku' => 'META-D-CAP',
+            'price' => '39.00',
+            'stock' => 4,
+            'status' => 'active',
+            'is_active' => true,
+            'product_metadata' => [
+                'catalog_classification' => [
+                    'catalog_country_id' => $ireland->id,
+                    'catalog_county_code' => 'IE-D',
+                ],
+            ],
+        ]);
+
+        $this->get(route('category', $root).'?country=IE&county=IE-LK&subcategory=type:caps')
+            ->assertOk()
+            ->assertSee('Metadata Limerick Cap', false)
+            ->assertDontSee('Metadata Dublin Cap', false);
+    }
+
     public function test_county_control_is_not_rendered_for_non_traditional_or_heritage_category(): void
     {
         $category = Category::create([
