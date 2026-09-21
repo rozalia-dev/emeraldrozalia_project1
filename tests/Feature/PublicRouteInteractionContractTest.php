@@ -20,6 +20,20 @@ class PublicRouteInteractionContractTest extends TestCase
             ], false);
     }
 
+    public function test_public_header_desktop_dropdown_runtime_is_hover_only_and_mobile_safe(): void
+    {
+        $javascript = file_get_contents(public_path('js/app.js'));
+
+        $this->assertStringContainsString("(hover: hover) and (pointer: fine) and (min-width: 1321px)", $javascript);
+        $this->assertStringContainsString("dropdown.addEventListener('mouseenter'", $javascript);
+        $this->assertStringContainsString("dropdown.addEventListener('mouseleave'", $javascript);
+        $this->assertStringContainsString("if(!desktopHoverMode.matches)return;", $javascript);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('/js/app.js?v=20260922-public-header-hover', false);
+    }
+
     public function test_public_route_matrix_has_shared_or_structured_shell_without_placeholder_media_links(): void
     {
         $sharedRoutes = [
