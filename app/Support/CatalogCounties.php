@@ -114,8 +114,26 @@ final class CatalogCounties
     public static function forCountry(?string $countryCode): array
     {
         $countryCode = strtoupper(trim((string) $countryCode));
+        if ($countryCode === '') {
+            return [];
+        }
 
-        return self::all()[$countryCode] ?? [];
+        $rows = self::all()[$countryCode] ?? [];
+        if ($rows !== []) {
+            return $rows;
+        }
+
+        $known = collect(CatalogCountries::all())->contains(
+            fn (array $country): bool => strtoupper((string) ($country['code'] ?? '')) === $countryCode
+        );
+
+        return $known
+            ? [[
+                'code' => $countryCode.'-ALL',
+                'name' => 'National / All Regions',
+                'type' => 'national',
+            ]]
+            : [];
     }
 
     public static function countryCodes(): array
