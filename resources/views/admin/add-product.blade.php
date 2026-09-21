@@ -172,8 +172,8 @@
                                         @error('catalog_style')<small class="ap-field-error">{{ $message }}</small>@enderror
                                     </label>
 
-                                    <label class="ap-field">
-                                        <span>Country</span>
+                                    <label class="ap-field" data-catalog-country-field>
+                                        <span data-catalog-country-label>Country</span>
                                         <select name="catalog_country_id" data-catalog-country>
                                             <option value="">All / not applicable</option>
                                             @foreach($catalogCountries as $country)
@@ -404,6 +404,7 @@
     const category = root.querySelector('[data-category-root]');
     const subcategory = root.querySelector('[data-subcategory]');
     const country = root.querySelector('[data-catalog-country]');
+    const countryLabel = root.querySelector('[data-catalog-country-label]');
     const county = root.querySelector('[data-catalog-county]');
     const club = root.querySelector('[data-catalog-club]');
     const clubField = root.querySelector('[data-catalog-club-field]');
@@ -467,6 +468,11 @@
         if (clubField) clubField.hidden = !requiresClub;
         club.required = requiresClub;
         club.disabled = !requiresClub;
+        country.required = requiresClub;
+
+        if (countryLabel) {
+            countryLabel.innerHTML = requiresClub ? 'Country <em>*</em>' : 'Country';
+        }
 
         if (clubLabel) {
             clubLabel.innerHTML = requiresClub
