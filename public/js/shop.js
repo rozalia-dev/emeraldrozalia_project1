@@ -67,6 +67,7 @@
     const perPageHidden = page.querySelector('[data-shop-per-page-hidden]');
     const country = page.querySelector('[data-shop-country]');
     const county = page.querySelector('[data-shop-county]');
+    const club = page.querySelector('[data-shop-club]');
     const subcategory = page.querySelector('[data-shop-subcategory]');
     const submitFilters = () => {
         if (!form) return;
@@ -77,12 +78,25 @@
     if (form && country) {
         country.addEventListener('change', () => {
             if (county) county.value = '';
+            if (club) club.value = '';
+            if (subcategory && club) subcategory.value = '';
             submitFilters();
         });
     }
 
     if (form && county) {
-        county.addEventListener('change', submitFilters);
+        county.addEventListener('change', () => {
+            if (club) club.value = '';
+            if (subcategory && club) subcategory.value = '';
+            submitFilters();
+        });
+    }
+
+    if (form && club) {
+        club.addEventListener('change', () => {
+            if (subcategory) subcategory.value = '';
+            submitFilters();
+        });
     }
 
     if (form && subcategory) {
