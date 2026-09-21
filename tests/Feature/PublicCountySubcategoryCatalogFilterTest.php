@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Support\CatalogBrazil;
 use App\Support\CatalogCounties;
+use App\Support\CatalogCountries;
 use App\Support\CatalogEngland;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -543,6 +544,52 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
         $this->get(route('category', $root).'?country=BR&county=BR-SP&club=corinthians&subcategory=type:caps')
             ->assertOk()
             ->assertSee('Corinthians Cap', false);
+    }
+
+    public function test_every_catalog_country_has_a_fifa_region_path(): void
+    {
+        foreach (CatalogCountries::all() as $country) {
+            $code = (string) $country['code'];
+            $this->assertNotEmpty(
+                CatalogCounties::forCountry($code),
+                'Expected at least one FIFA subdivision/fallback for '.$code.' ('.$country['name'].').'
+            );
+        }
+    }
+
+    public function test_fifa_country_wide_club_fallback_remains_selectable_after_county(): void
+    {
+        $japan = CatalogCountry::query()->where('code', 'JP')->firstOrFail();
+
+        $root = Category::create([
+            'name' => 'FIFA',
+            'slug' => 'fifa-global-fallback-root',
+            'taxonomy_type' => 'fifa',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $tokyo = collect(CatalogCounties::forCountry('JP'))
+            ->first(fn (array $row): bool => str_contains(strtolower((string) $row['name']), 'tokyo'));
+
+        $this->assertNotNull($tokyo);
+
+        $club = CatalogClub::create([
+            'catalog_country_id' => $japan->id,
+            'catalog_county_code' => null,
+            'governing_body' => 'fifa',
+            'name' => 'Global Japan Test Club',
+            'slug' => 'global-japan-test-club',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->get(route('category', $root).'?country=JP&county='.$tokyo['code'])
+            ->assertOk()
+            ->assertSee('Global Japan Test Club', false)
+            ->assertSee('Select Club', false);
     }
 
     public function test_county_control_is_not_rendered_for_non_traditional_or_heritage_category(): void
