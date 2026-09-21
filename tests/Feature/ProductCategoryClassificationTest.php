@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\CatalogClub;
+use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
@@ -75,6 +77,88 @@ class ProductCategoryClassificationTest extends TestCase
         $this->assertSame($caps->id, $product->category_id);
         $this->assertSame($traditional->id, data_get($product->product_metadata, 'catalog_classification.category_root_id'));
         $this->assertSame('walking-cap', data_get($product->product_metadata, 'catalog_classification.style'));
+    }
+
+    public function test_gaa_english_uefa_and_fifa_club_dropdowns_are_category_and_country_scoped(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
+
+        $roots = [];
+        foreach (['gaa' => 'GAA', 'english' => 'English', 'uefa' => 'UEFA', 'fifa' => 'FIFA'] as $taxonomy => $label) {
+            $root = Category::create([
+                'name' => $label,
+                'slug' => $taxonomy,
+                'taxonomy_type' => $taxonomy,
+                'status' => 'active',
+                'is_active' => true,
+                'is_visible' => true,
+                'sort_order' => count($roots) + 1,
+            ]);
+            Category::create([
+                'parent_id' => $root->id,
+                'name' => 'Caps',
+                'slug' => $taxonomy.'-caps',
+                'taxonomy_type' => $taxonomy,
+                'product_type' => 'caps',
+                'status' => 'active',
+                'is_active' => true,
+                'is_visible' => true,
+                'sort_order' => 1,
+            ]);
+            $roots[$taxonomy] = $root;
+
+            CatalogClub::create([
+                'catalog_country_id' => $ireland->id,
+                'catalog_county_code' => 'IE-LK',
+                'governing_body' => $taxonomy,
+                'name' => strtoupper($taxonomy).' Test Club',
+                'slug' => $taxonomy.'-test-club',
+                'is_active' => true,
+                'sort_order' => 1,
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.add-product'))
+            ->assertOk()
+            ->assertSee('data-taxonomy="gaa"', false)
+            ->assertSee('data-taxonomy="english"', false)
+            ->assertSee('data-taxonomy="uefa"', false)
+            ->assertSee('data-taxonomy="fifa"', false)
+            ->assertSee('data-body="gaa"', false)
+            ->assertSee('data-body="english"', false)
+            ->assertSee('data-body="uefa"', false)
+            ->assertSee('data-body="fifa"', false)
+            ->assertSee('data-county="IE-LK"', false)
+            ->assertSee('Country → County → Club Name → Subcategory')
+            ->assertSee('Manage Club Master');
+
+        $gaaCaps = Category::query()->where('slug', 'gaa-caps')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->from(route('admin.add-product'))
+            ->post(route('admin.add-product.store'), [
+                'name' => 'GAA Club Required Cap',
+                'short_description' => 'GAA club validation.',
+                'slug' => 'gaa-club-required-cap',
+                'sku' => 'ER-GAA-CLUB-001',
+                'category_root_id' => $roots['gaa']->id,
+                'category_id' => $gaaCaps->id,
+                'catalog_country_id' => $ireland->id,
+                'catalog_county_code' => 'IE-LK',
+                'product_type' => 'simple',
+                'tax_class' => 'standard',
+                'description' => 'GAA product requiring a matching club.',
+                'price' => 39.00,
+                'vat_rate' => 23,
+                'currency' => 'EUR',
+                'stock' => 5,
+                'status' => 'active',
+                'save_action' => 'save',
+            ])
+            ->assertRedirect(route('admin.add-product'))
+            ->assertSessionHasErrors('catalog_club_id');
     }
 
     public function test_subcategory_must_belong_to_selected_category(): void

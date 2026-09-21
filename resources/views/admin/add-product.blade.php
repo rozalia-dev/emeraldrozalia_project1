@@ -126,50 +126,26 @@
                                 </div>
 
                                 <div class="ap-field-row">
-                                    <label class="ap-field">
+                                    <label class="ap-field ap-field-wide">
                                         <span>Category <em>*</em></span>
                                         <select name="category_root_id" data-category-root required>
                                             <option value="">Select category</option>
                                             @foreach($categoryRoots as $root)
-                                                <option value="{{ $root->id }}" @selected((string) $selectedRootId === (string) $root->id)>{{ $root->name }}</option>
+                                                <option value="{{ $root->id }}"
+                                                    data-taxonomy="{{ strtolower((string) ($root->taxonomy_type ?: $root->slug)) }}"
+                                                    @selected((string) $selectedRootId === (string) $root->id)>
+                                                    {{ $root->name }}
+                                                </option>
                                             @endforeach
                                         </select>
+                                        <small class="ap-field-help">For GAA / English / UEFA / FIFA the required order is Country → County → Club Name → Subcategory.</small>
                                         @error('category_root_id')<small class="ap-field-error">{{ $message }}</small>@enderror
-                                    </label>
-
-                                    <label class="ap-field">
-                                        <span>Subcategory <em>*</em></span>
-                                        <select name="category_id" data-subcategory required>
-                                            <option value="">Select category first</option>
-                                            @foreach($subcategoryOptionsByRoot as $rootId => $options)
-                                                @foreach($options as $option)
-                                                    <option value="{{ $option['id'] }}"
-                                                        data-root="{{ $rootId }}"
-                                                        @selected((string) $selectedCategoryId === (string) $option['id'])>
-                                                        {{ $option['label'] }}
-                                                    </option>
-                                                @endforeach
-                                            @endforeach
-                                        </select>
-                                        <small class="ap-field-help">Canonical subcategories are Caps, Hats and Beanie. Nested taxonomy paths also appear here when available.</small>
-                                        @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
                                     </label>
                                 </div>
 
                                 <div class="ap-field-row ap-field-row-three">
-                                    <label class="ap-field">
-                                        <span>Style / Range</span>
-                                        <select name="catalog_style">
-                                            <option value="">Select style</option>
-                                            @foreach($catalogStyles as $styleValue => $styleLabel)
-                                                <option value="{{ $styleValue }}" @selected((string) $selectedStyle === (string) $styleValue)>{{ $styleLabel }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('catalog_style')<small class="ap-field-error">{{ $message }}</small>@enderror
-                                    </label>
-
-                                    <label class="ap-field">
-                                        <span>Country</span>
+                                    <label class="ap-field" data-catalog-country-field>
+                                        <span data-catalog-country-label>Country</span>
                                         <select name="catalog_country_id" data-catalog-country>
                                             <option value="">All / not applicable</option>
                                             @foreach($catalogCountries as $country)
@@ -179,8 +155,8 @@
                                         @error('catalog_country_id')<small class="ap-field-error">{{ $message }}</small>@enderror
                                     </label>
 
-                                    <label class="ap-field">
-                                        <span>County</span>
+                                    <label class="ap-field" data-catalog-county-field>
+                                        <span data-catalog-county-label>County</span>
                                         <select name="catalog_county_code" data-catalog-county>
                                             <option value="">Select country first</option>
                                         </select>
@@ -188,20 +164,54 @@
                                     </label>
                                 </div>
 
-                                <label class="ap-field ap-field-wide">
-                                    <span>Club / City / Town</span>
+                                <label class="ap-field ap-field-wide" data-catalog-club-field>
+                                    <span data-catalog-club-label>Club / City / Town</span>
                                     <select name="catalog_club_id" data-catalog-club>
-                                        <option value="">All / not applicable</option>
+                                        <option value="">Select category and country first</option>
                                         @foreach($catalogClubs as $club)
                                             <option value="{{ $club->id }}"
                                                 data-country="{{ $club->catalog_country_id }}"
+                                                data-county="{{ strtoupper((string) $club->catalog_county_code) }}"
+                                                data-body="{{ strtolower((string) $club->governing_body) }}"
                                                 @selected((string) $selectedClubId === (string) $club->id)>
                                                 {{ $club->name }}@if($club->country) — {{ $club->country->name }}@endif
                                             </option>
                                         @endforeach
                                     </select>
-                                    <small class="ap-field-help">Use Club Master to maintain selectable club / locality entries for GAA, English, UEFA, FIFA and other geographic ranges.</small>
+                                    <small class="ap-field-help" data-catalog-club-help>
+                                        GAA, English, UEFA and FIFA products require a matching club / city / town. 
+                                        <a href="{{ route('admin.categories.clubs') }}" target="_blank" rel="noopener">Manage Club Master</a>
+                                    </small>
                                     @error('catalog_club_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                </label>
+
+                                <label class="ap-field ap-field-wide">
+                                    <span>Subcategory <em>*</em></span>
+                                    <select name="category_id" data-subcategory required>
+                                        <option value="">Select category first</option>
+                                        @foreach($subcategoryOptionsByRoot as $rootId => $options)
+                                            @foreach($options as $option)
+                                                <option value="{{ $option['id'] }}"
+                                                    data-root="{{ $rootId }}"
+                                                    @selected((string) $selectedCategoryId === (string) $option['id'])>
+                                                    {{ $option['label'] }}
+                                                </option>
+                                            @endforeach
+                                        @endforeach
+                                    </select>
+                                    <small class="ap-field-help">Subcategory is selected after the geographic/club path for GAA, English, UEFA and FIFA. Canonical product families are Caps, Hats and Beanie.</small>
+                                    @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                </label>
+
+                                <label class="ap-field ap-field-wide">
+                                    <span>Style / Range</span>
+                                    <select name="catalog_style">
+                                        <option value="">Select style</option>
+                                        @foreach($catalogStyles as $styleValue => $styleLabel)
+                                            <option value="{{ $styleValue }}" @selected((string) $selectedStyle === (string) $styleValue)>{{ $styleLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('catalog_style')<small class="ap-field-error">{{ $message }}</small>@enderror
                                 </label>
                             </section>
 
@@ -396,9 +406,17 @@
     const category = root.querySelector('[data-category-root]');
     const subcategory = root.querySelector('[data-subcategory]');
     const country = root.querySelector('[data-catalog-country]');
+    const countryLabel = root.querySelector('[data-catalog-country-label]');
     const county = root.querySelector('[data-catalog-county]');
+    const countyField = root.querySelector('[data-catalog-county-field]');
+    const countyLabel = root.querySelector('[data-catalog-county-label]');
     const club = root.querySelector('[data-catalog-club]');
+    const clubField = root.querySelector('[data-catalog-club-field]');
+    const clubLabel = root.querySelector('[data-catalog-club-label]');
+    const clubHelp = root.querySelector('[data-catalog-club-help]');
     const counties = @json($catalogCountyOptionsByCountry);
+    const clubRequired = @json(array_values($clubRequiredTaxonomies));
+    const countyRequired = @json(array_values($countyRequiredTaxonomies));
     const initialCounty = @json((string) $selectedCountyCode);
     const initialSubcategory = @json((string) $selectedCategoryId);
 
@@ -429,35 +447,109 @@
 
     const syncCounties = (preserve = false) => {
         if (!country || !county) return;
+        const taxonomy = selectedTaxonomy();
+        const requiresCounty = countyRequired.includes(taxonomy);
         const countryCode = country.selectedOptions[0]?.dataset.code || '';
         const selected = preserve ? (county.value || initialCounty) : '';
-        county.replaceChildren(new Option(countryCode ? 'All counties / not applicable' : 'Select country first', ''));
 
-        for (const row of (counties[countryCode] || [])) {
-            county.add(new Option(row.name, row.code, false, row.code === selected));
+        if (countyField) countyField.hidden = !requiresCounty;
+        county.required = requiresCounty;
+        county.disabled = !requiresCounty;
+
+        if (countyLabel) {
+            countyLabel.innerHTML = requiresCounty ? 'County <em>*</em>' : 'County';
+        }
+
+        county.replaceChildren(new Option(
+            !requiresCounty ? 'Not required for this category' : (countryCode ? 'Select county' : 'Select country first'),
+            ''
+        ));
+
+        if (requiresCounty && countryCode) {
+            for (const row of (counties[countryCode] || [])) {
+                county.add(new Option(row.name, row.code, false, row.code === selected));
+            }
         }
         if (selected && [...county.options].some(option => option.value === selected)) {
             county.value = selected;
         }
     };
 
+    const selectedTaxonomy = () => category?.selectedOptions[0]?.dataset.taxonomy || '';
+
     const syncClubs = () => {
         if (!country || !club) return;
+
+        const taxonomy = selectedTaxonomy();
+        const requiresClub = clubRequired.includes(taxonomy);
         const selectedCountry = country.value;
+        const organizationLabel = taxonomy ? taxonomy.toUpperCase() : '';
+        let visibleCount = 0;
+
+        if (clubField) clubField.hidden = !requiresClub;
+        club.required = requiresClub;
+        club.disabled = !requiresClub;
+        country.required = requiresClub;
+
+        if (countryLabel) {
+            countryLabel.innerHTML = requiresClub ? 'Country <em>*</em>' : 'Country';
+        }
+
+        if (clubLabel) {
+            clubLabel.innerHTML = requiresClub
+                ? `${organizationLabel} Club / City / Town <em>*</em>`
+                : 'Club / City / Town';
+        }
+
         [...club.options].forEach((option, index) => {
             if (index === 0) return;
-            const visible = selectedCountry === '' || option.dataset.country === selectedCountry;
+            const visible = requiresClub
+                && selectedCountry !== ''
+                && county.value !== ''
+                && option.dataset.country === selectedCountry
+                && option.dataset.county === county.value
+                && option.dataset.body === taxonomy;
             option.hidden = !visible;
             option.disabled = !visible;
+            if (visible) visibleCount += 1;
         });
-        if (club.selectedOptions[0]?.disabled) club.value = '';
+
+        const placeholder = club.options[0];
+        if (placeholder) {
+            if (!requiresClub) {
+                placeholder.textContent = 'Not required for this category';
+            } else if (!selectedCountry) {
+                placeholder.textContent = `Select country before ${organizationLabel} club`;
+            } else if (!county.value) {
+                placeholder.textContent = `Select county before ${organizationLabel} club`;
+            } else if (visibleCount === 0) {
+                placeholder.textContent = `No ${organizationLabel} clubs found — add in Club Master`;
+            } else {
+                placeholder.textContent = `Select ${organizationLabel} club / city / town`;
+            }
+        }
+
+        if (!requiresClub || club.selectedOptions[0]?.disabled) {
+            club.value = '';
+        }
+
+        if (clubHelp) {
+            clubHelp.firstChild.textContent = requiresClub
+                ? `Select a ${organizationLabel} club matching the chosen country and county. `
+                : 'GAA, English, UEFA and FIFA products require a matching club / city / town. ';
+        }
     };
 
-    category?.addEventListener('change', syncSubcategories);
+    category?.addEventListener('change', () => {
+        syncSubcategories();
+        syncCounties(false);
+        syncClubs();
+    });
     country?.addEventListener('change', () => {
         syncCounties(false);
         syncClubs();
     });
+    county?.addEventListener('change', syncClubs);
 
     syncSubcategories();
     syncCounties(true);

@@ -37,7 +37,7 @@ class CatalogTaxonomyController extends Controller
     private const CLUB_TAXONOMIES = ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'];
     private const REQUIRED_CLUB_TAXONOMIES = ['gaa', 'english', 'uefa', 'fifa'];
     private const COUNTY_TAXONOMIES = ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'];
-    private const REQUIRED_COUNTY_TAXONOMIES = ['traditional', 'heritage'];
+    private const REQUIRED_COUNTY_TAXONOMIES = ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'];
 
     public function index(Request $request): View
     {
@@ -122,9 +122,9 @@ class CatalogTaxonomyController extends Controller
         $countyCode = strtoupper(trim((string) ($data['catalog_county_code'] ?? '')));
 
         $this->guardCountryScope($taxonomy, $country);
-        $this->guardClubScope($taxonomy, $country, $club);
         $county = $this->resolveCounty($taxonomy, $country, $countyCode);
         $countyCode = $county['code'] ?? null;
+        $this->guardClubScope($taxonomy, $country, $countyCode, $club);
         $style = filled($data['style'] ?? null) ? (string) $data['style'] : null;
 
         $created = 0;
@@ -286,6 +286,7 @@ class CatalogTaxonomyController extends Controller
         $search = trim((string) $request->query('q', ''));
         $governingBody = strtolower((string) $request->query('governing_body', ''));
         $countryId = (int) $request->query('catalog_country_id', 0);
+        $countyCode = strtoupper(trim((string) $request->query('catalog_county_code', '')));
         $status = strtolower((string) $request->query('status', 'active'));
 
         $clubs = CatalogClub::query()
@@ -296,6 +297,7 @@ class CatalogTaxonomyController extends Controller
                 ->orWhere('slug', 'like', '%'.$search.'%')))
             ->when(in_array($governingBody, self::CLUB_TAXONOMIES, true), fn ($query) => $query->where('governing_body', $governingBody))
             ->when($countryId > 0, fn ($query) => $query->where('catalog_country_id', $countryId))
+            ->when($countyCode !== '', fn ($query) => $query->where('catalog_county_code', $countyCode))
             ->when($status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
             ->orderBy('governing_body')
@@ -308,10 +310,13 @@ class CatalogTaxonomyController extends Controller
         return view('admin.categories.clubs', [
             'clubs' => $clubs,
             'countries' => CatalogCountry::query()->active()->orderBy('name')->get(),
+            'countyOptionsByCountry' => CatalogCounties::all(),
+            'countyNames' => collect(CatalogCounties::all())->flatten(1)->mapWithKeys(fn ($row) => [(string) ($row['code'] ?? '') => (string) ($row['name'] ?? '')])->all(),
             'governingBodies' => array_intersect_key(self::TAXONOMIES, array_flip(self::CLUB_TAXONOMIES)),
             'search' => $search,
             'governingBody' => $governingBody,
             'countryId' => $countryId,
+            'countyCode' => $countyCode,
             'status' => $status,
         ]);
     }
@@ -366,12 +371,21 @@ class CatalogTaxonomyController extends Controller
     {
         $data = $request->validate([
             'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
+            'catalog_county_code' => ['required', 'string', 'max:16'],
             'governing_body' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
             'name' => ['required', 'string', 'max:180'],
             'slug' => ['nullable', 'string', 'max:220'],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
         ]);
+
+        $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
+        $data['catalog_county_code'] = strtoupper(trim((string) $data['catalog_county_code']));
+        if (! CatalogCounties::isValid($country->code, $data['catalog_county_code'])) {
+            throw ValidationException::withMessages([
+                'catalog_county_code' => 'Select a county that belongs to the selected country.',
+            ]);
+        }
 
         $data['slug'] = Str::slug(filled($data['slug'] ?? null) ? $data['slug'] : $data['name']);
         $duplicate = CatalogClub::query()
@@ -406,7 +420,7 @@ class CatalogTaxonomyController extends Controller
         }
     }
 
-    private function guardClubScope(string $taxonomy, ?CatalogCountry $country, ?CatalogClub $club): void
+    private function guardClubScope(string $taxonomy, ?CatalogCountry $country, ?string $countyCode, ?CatalogClub $club): void
     {
         if (! in_array($taxonomy, self::CLUB_TAXONOMIES, true)) {
             if ($club) {
@@ -423,8 +437,13 @@ class CatalogTaxonomyController extends Controller
             return;
         }
 
-        if (! $country || $club->governing_body !== $taxonomy || (int) $club->catalog_country_id !== (int) $country->id) {
-            throw ValidationException::withMessages(['catalog_club_id' => 'The selected club / city / town does not belong to this category and country.']);
+        if (
+            ! $country
+            || $club->governing_body !== $taxonomy
+            || (int) $club->catalog_country_id !== (int) $country->id
+            || strtoupper((string) $club->catalog_county_code) !== strtoupper((string) $countyCode)
+        ) {
+            throw ValidationException::withMessages(['catalog_club_id' => 'The selected club does not belong to this category, country and county.']);
         }
     }
 
@@ -436,7 +455,7 @@ class CatalogTaxonomyController extends Controller
 
         if ($countyCode === '') {
             if (in_array($taxonomy, self::REQUIRED_COUNTY_TAXONOMIES, true)) {
-                throw ValidationException::withMessages(['catalog_county_code' => 'Select a county or administrative subdivision for Traditional and Heritage.']);
+                throw ValidationException::withMessages(['catalog_county_code' => 'Select a county / subdivision for this category.']);
             }
             return null;
         }

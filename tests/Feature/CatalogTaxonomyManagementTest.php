@@ -24,13 +24,43 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->actingAs($admin)->get(route('admin.categories.taxonomy'))
             ->assertOk()
             ->assertSee('Country Taxonomy Builder')
-            ->assertSee('All Countries');
+            ->assertSee('All Countries')
+            ->assertSee('Category → Country → County → Club Name → Subcategory')
+            ->assertSee('data-club-label', false);
         $this->actingAs($admin)->get(route('admin.categories.countries'))
             ->assertOk()
             ->assertSee('Country Master');
         $this->actingAs($admin)->get(route('admin.categories.clubs'))
             ->assertOk()
-            ->assertSee('Club Master');
+            ->assertSee('Club Master')
+            ->assertSee('Category → Country → County → Club Name')
+            ->assertSee('data-club-country', false)
+            ->assertSee('data-club-county', false);
+    }
+
+    public function test_club_master_requires_country_and_county_for_club_name(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.clubs.store'), [
+                'governing_body' => 'gaa',
+                'catalog_country_id' => $ireland->id,
+                'catalog_county_code' => 'IE-LK',
+                'name' => 'Limerick Test GAA',
+                'slug' => 'limerick-test-gaa',
+                'is_active' => 1,
+                'sort_order' => 10,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('catalog_clubs', [
+            'governing_body' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LK',
+            'slug' => 'limerick-test-gaa',
+        ]);
     }
 
     public function test_uefa_country_club_product_type_hierarchy_can_be_built(): void
@@ -39,6 +69,7 @@ class CatalogTaxonomyManagementTest extends TestCase
         $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
         $club = CatalogClub::create([
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-D',
             'governing_body' => 'uefa',
             'name' => 'Test Dublin FC',
             'slug' => 'test-dublin-fc',
@@ -49,29 +80,35 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->actingAs($admin)->post(route('admin.categories.taxonomy.build'), [
             'taxonomy_type' => 'uefa',
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-D',
             'catalog_club_id' => $club->id,
             'product_types' => ['beanies', 'caps', 'hats'],
         ])->assertRedirect(route('admin.categories.taxonomy', [
             'taxonomy_type' => 'uefa',
             'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-D',
             'catalog_club_id' => $club->id,
         ]));
 
         $uefa = Category::query()->where('slug', 'uefa')->firstOrFail();
         $country = Category::query()->where('slug', 'uefa-ie')->firstOrFail();
-        $clubCategory = Category::query()->where('slug', 'uefa-ie-test-dublin-fc')->firstOrFail();
+        $county = Category::query()->where('slug', 'uefa-ie-ie-d')->firstOrFail();
+        $clubCategory = Category::query()->where('slug', 'uefa-ie-ie-d-test-dublin-fc')->firstOrFail();
 
         $this->assertNull($uefa->parent_id);
         $this->assertSame($uefa->id, $country->parent_id);
         $this->assertSame($ireland->id, $country->catalog_country_id);
-        $this->assertSame($country->id, $clubCategory->parent_id);
+        $this->assertSame($country->id, $county->parent_id);
+        $this->assertSame('IE-D', $county->catalog_county_code);
+        $this->assertSame($county->id, $clubCategory->parent_id);
         $this->assertSame($club->id, $clubCategory->catalog_club_id);
 
         foreach (['beanies', 'caps', 'hats'] as $type) {
-            $leaf = Category::query()->where('slug', 'uefa-ie-test-dublin-fc-'.$type)->firstOrFail();
+            $leaf = Category::query()->where('slug', 'uefa-ie-ie-d-test-dublin-fc-'.$type)->firstOrFail();
             $this->assertSame($clubCategory->id, $leaf->parent_id);
             $this->assertSame('uefa', $leaf->taxonomy_type);
             $this->assertSame($ireland->id, $leaf->catalog_country_id);
+            $this->assertSame('IE-D', $leaf->catalog_county_code);
             $this->assertSame($club->id, $leaf->catalog_club_id);
             $this->assertSame($type, $leaf->product_type);
             $this->assertTrue($leaf->is_visible);

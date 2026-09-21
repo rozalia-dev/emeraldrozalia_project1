@@ -13,6 +13,7 @@ class CatalogClub extends Model
     protected $fillable = [
         'public_uuid',
         'catalog_country_id',
+        'catalog_county_code',
         'governing_body',
         'name',
         'slug',

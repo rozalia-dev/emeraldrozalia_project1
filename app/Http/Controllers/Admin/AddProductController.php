@@ -24,6 +24,8 @@ class AddProductController extends Controller
 {
     private const CHANNELS = ['website', 'franchise', 'franchise_retail', 'corporate_bulk', 'buyer'];
     private const ORDER_CATEGORIES = ['online', 'corporate', 'bulk', 'franchise', 'franchise_retail', 'buyer'];
+    private const REQUIRED_CLUB_TAXONOMIES = ['gaa', 'english', 'uefa', 'fifa'];
+    private const REQUIRED_COUNTY_TAXONOMIES = ['gaa', 'english', 'uefa', 'fifa'];
 
     public function create(): View
     {
@@ -108,8 +110,10 @@ class AddProductController extends Controller
             'subcategoryOptionsByRoot' => $subcategoryOptionsByRoot,
             'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
             'catalogCountyOptionsByCountry' => CatalogCounties::all(),
-            'catalogClubs' => CatalogClub::query()->active()->with('country:id,code,name')->orderBy('catalog_country_id')->orderBy('name')->get(),
+            'catalogClubs' => CatalogClub::query()->active()->with('country:id,code,name')->orderBy('governing_body')->orderBy('catalog_country_id')->orderBy('name')->get(),
             'catalogStyles' => CatalogStyles::all(),
+            'clubRequiredTaxonomies' => self::REQUIRED_CLUB_TAXONOMIES,
+            'countyRequiredTaxonomies' => self::REQUIRED_COUNTY_TAXONOMIES,
         ];
     }
 
@@ -194,6 +198,23 @@ class AddProductController extends Controller
             }
         }
 
+        $rootCategory = ! empty($data['category_root_id'])
+            ? Category::query()->find((int) $data['category_root_id'])
+            : null;
+        $rootTaxonomy = strtolower((string) ($rootCategory?->taxonomy_type ?? $rootCategory?->slug ?? ''));
+
+        if (in_array($rootTaxonomy, self::REQUIRED_CLUB_TAXONOMIES, true) && empty($data['catalog_country_id'])) {
+            throw ValidationException::withMessages([
+                'catalog_country_id' => 'Select a country before selecting the '.strtoupper($rootTaxonomy).' club / city / town.',
+            ]);
+        }
+
+        if (in_array($rootTaxonomy, self::REQUIRED_COUNTY_TAXONOMIES, true) && empty($data['catalog_county_code'])) {
+            throw ValidationException::withMessages([
+                'catalog_county_code' => 'Select a county before selecting the '.strtoupper($rootTaxonomy).' club.',
+            ]);
+        }
+
         if (! empty($data['catalog_county_code'])) {
             $country = ! empty($data['catalog_country_id'])
                 ? CatalogCountry::query()->find((int) $data['catalog_country_id'])
@@ -205,11 +226,25 @@ class AddProductController extends Controller
             }
         }
 
+        if (in_array($rootTaxonomy, self::REQUIRED_CLUB_TAXONOMIES, true) && empty($data['catalog_club_id'])) {
+            throw ValidationException::withMessages([
+                'catalog_club_id' => 'Select a '.strtoupper($rootTaxonomy).' club / city / town.',
+            ]);
+        }
+
         if (! empty($data['catalog_club_id'])) {
             $club = CatalogClub::query()->find((int) $data['catalog_club_id']);
-            if (! $club || (! empty($data['catalog_country_id']) && (int) $club->catalog_country_id !== (int) $data['catalog_country_id'])) {
+            $wrongCountry = ! empty($data['catalog_country_id'])
+                && (int) $club?->catalog_country_id !== (int) $data['catalog_country_id'];
+            $wrongOrganization = $rootTaxonomy !== ''
+                && in_array($rootTaxonomy, self::REQUIRED_CLUB_TAXONOMIES, true)
+                && $club?->governing_body !== $rootTaxonomy;
+            $wrongCounty = ! empty($data['catalog_county_code'])
+                && strtoupper((string) $club?->catalog_county_code) !== strtoupper((string) $data['catalog_county_code']);
+
+            if (! $club || $wrongCountry || $wrongOrganization || $wrongCounty) {
                 throw ValidationException::withMessages([
-                    'catalog_club_id' => 'Select a club / city / town that belongs to the selected country.',
+                    'catalog_club_id' => 'Select a club that belongs to the selected category, country and county.',
                 ]);
             }
         }
