@@ -19,7 +19,7 @@ class CategoryManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.categories.index'))
             ->assertOk()
-            ->assertSee(['Categories', 'Category Tree', 'UUID Traceability', 'Edit', 'Delete Selected', 'Delete All'])
+            ->assertSee(['Categories', 'All Categories', 'Category Tree', 'UUID Traceability', 'Edit', 'Delete Selected', 'Delete All'])
             ->assertSee('data-edit-selected', false)
             ->assertSee('data-delete-selected', false)
             ->assertSee('data-delete-selected-count', false)
