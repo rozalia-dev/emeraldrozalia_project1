@@ -104,24 +104,102 @@
     const checkAll = page.querySelector('[data-check-all]');
     const rowChecks = [...page.querySelectorAll('input[name="categories[]"]')];
     const selectedCount = page.querySelector('[data-selected-count]');
+    const editSelectedButton = page.querySelector('[data-edit-selected]');
+    const deleteSelectedButton = page.querySelector('[data-delete-selected]');
+    const deleteAllButton = page.querySelector('[data-delete-all]');
+
+    const selectedChecks = () => rowChecks.filter(input => input.checked);
+
     function refreshBulk() {
-        const count = rowChecks.filter(input => input.checked).length;
-        selectedCount.textContent = count;
-        bulkForm.hidden = count === 0;
-        if (checkAll) checkAll.checked = count > 0 && count === rowChecks.length;
+        const selected = selectedChecks();
+        const count = selected.length;
+        if (selectedCount) selectedCount.textContent = count;
+        if (bulkForm) bulkForm.hidden = count === 0;
+        if (editSelectedButton) editSelectedButton.disabled = count !== 1;
+        if (deleteSelectedButton) deleteSelectedButton.disabled = count === 0;
+        if (checkAll) {
+            const visibleChecks = rowChecks.filter(input => !input.closest('[data-category-row]')?.classList.contains('cat-row-collapsed'));
+            const visibleSelected = visibleChecks.filter(input => input.checked).length;
+            checkAll.checked = visibleChecks.length > 0 && visibleSelected === visibleChecks.length;
+            checkAll.indeterminate = visibleSelected > 0 && visibleSelected < visibleChecks.length;
+        }
     }
+
+    const submitCategoryDelete = (mode, uuids = []) => {
+        const action = page.dataset.bulkDeleteUrl;
+        if (!action) return;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = action;
+        form.hidden = true;
+
+        const add = (name, value) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        };
+
+        add('_token', page.dataset.csrf || '');
+        add('_method', 'DELETE');
+        add('mode', mode);
+        uuids.forEach(uuid => add('categories[]', uuid));
+
+        document.body.appendChild(form);
+        form.submit();
+    };
+
     rowChecks.forEach(input => input.addEventListener('change', refreshBulk));
+
     checkAll?.addEventListener('change', () => {
         rowChecks.forEach(input => {
             const row = input.closest('[data-category-row]');
-            if (!row.classList.contains('cat-row-collapsed')) input.checked = checkAll.checked;
+            if (row && !row.classList.contains('cat-row-collapsed')) input.checked = checkAll.checked;
         });
         refreshBulk();
     });
+
+    editSelectedButton?.addEventListener('click', () => {
+        const selected = selectedChecks();
+        if (selected.length !== 1) return;
+
+        const row = selected[0].closest('[data-category-row]');
+        const editButton = row?.querySelector('.js-edit-category');
+        if (editButton) openEdit(editButton);
+    });
+
+    deleteSelectedButton?.addEventListener('click', () => {
+        const selected = selectedChecks();
+        if (!selected.length) return;
+
+        const message = selected.length === 1
+            ? 'Delete the selected category? Products assigned to it will become uncategorised and any child categories will move to top level.'
+            : `Delete ${selected.length} selected categories? Products assigned to them will become uncategorised and any child categories not selected will move to top level.`;
+
+        if (!window.confirm(message)) return;
+        submitCategoryDelete('selected', selected.map(input => input.value));
+    });
+
+    deleteAllButton?.addEventListener('click', () => {
+        const total = Number.parseInt(page.dataset.totalCategories || '0', 10);
+        if (total < 1) return;
+
+        if (!window.confirm(`Delete ALL ${total} categories? This removes every category and makes mapped products uncategorised. This cannot be undone.`)) return;
+        submitCategoryDelete('all');
+    });
+
     page.querySelector('[data-focus-bulk]')?.addEventListener('click', () => {
         const first = rowChecks.find(input => !input.closest('[data-category-row]').classList.contains('cat-row-collapsed'));
-        if (first) { first.checked = true; refreshBulk(); bulkForm.scrollIntoView({behavior:'smooth', block:'center'}); }
+        if (first) {
+            first.checked = true;
+            refreshBulk();
+            bulkForm?.scrollIntoView({behavior:'smooth', block:'center'});
+        }
     });
+
+    refreshBulk();
 
     const importInput = page.querySelector('[data-import-input]');
     const importForm = page.querySelector('[data-import-form]');
