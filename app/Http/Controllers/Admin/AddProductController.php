@@ -239,8 +239,12 @@ class AddProductController extends Controller
             $wrongOrganization = $rootTaxonomy !== ''
                 && in_array($rootTaxonomy, self::REQUIRED_CLUB_TAXONOMIES, true)
                 && $club?->governing_body !== $rootTaxonomy;
-            $wrongCounty = ! empty($data['catalog_county_code'])
-                && strtoupper((string) $club?->catalog_county_code) !== strtoupper((string) $data['catalog_county_code']);
+            $clubCounty = strtoupper((string) $club?->catalog_county_code);
+            $selectedCounty = strtoupper((string) ($data['catalog_county_code'] ?? ''));
+            $countryWideFifaClub = $rootTaxonomy === 'fifa' && $clubCounty === '';
+            $wrongCounty = $selectedCounty !== ''
+                && ! $countryWideFifaClub
+                && $clubCounty !== $selectedCounty;
 
             if (! $club || $wrongCountry || $wrongOrganization || $wrongCounty) {
                 throw ValidationException::withMessages([
