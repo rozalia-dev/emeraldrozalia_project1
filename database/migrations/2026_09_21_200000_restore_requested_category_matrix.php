@@ -9,6 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Production catalogue repair. Feature tests build isolated fixtures and
+        // should not inherit business catalogue data from this migration.
+        if (app()->environment('testing')) {
+            return;
+        }
+
         if (! Schema::hasTable('categories')) {
             return;
         }
