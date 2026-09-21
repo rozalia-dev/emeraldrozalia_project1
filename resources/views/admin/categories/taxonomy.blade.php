@@ -104,7 +104,8 @@
 
         [...club.options].forEach((o,i)=>{
             if(i===0)return;
-            const allowed=enabled&&country.value!==''&&county.value!==''&&o.dataset.body===value&&o.dataset.country===country.value&&o.dataset.county===county.value;
+            const countyMatch=o.dataset.county===county.value||(value==='fifa'&&o.dataset.county==='');
+            const allowed=enabled&&country.value!==''&&county.value!==''&&o.dataset.body===value&&o.dataset.country===country.value&&countyMatch;
             o.hidden=!allowed;
             o.disabled=!allowed;
             if(allowed)visibleCount++;
