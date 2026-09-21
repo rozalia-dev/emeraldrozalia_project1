@@ -48,7 +48,7 @@
                     data-action="{{ route('admin.categories.update', $category) }}"><x-icon name="pencil" size="14" /> Edit</button>
                 <button type="button" class="js-add-subcategory" data-parent-id="{{ $category->id }}" data-parent-name="{{ $category->name }}"><x-icon name="plus" size="14" /> Add Sub-Category</button>
                 <form method="POST" action="{{ route('admin.categories.visibility', $category) }}">@csrf<button type="submit"><x-icon name="eye" size="14" /> {{ $category->is_visible ? 'Hide from Website' : 'Show on Website' }}</button></form>
-                <form method="POST" action="{{ route('admin.categories.destroy', $category) }}" onsubmit="return confirm('Delete {{ addslashes($category->name) }}? This is only allowed when it has no products or sub-categories.')">@csrf @method('DELETE')<button type="submit" class="danger"><x-icon name="trash" size="14" /> Delete</button></form>
+                <form method="POST" action="{{ route('admin.categories.destroy', $category) }}" onsubmit="return confirm('Delete {{ addslashes($category->name) }}? Products assigned to it will become uncategorised and child categories will move to top level.')">@csrf @method('DELETE')<button type="submit" class="danger"><x-icon name="trash" size="14" /> Delete</button></form>
             </div>
         </details>
     </td>
