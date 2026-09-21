@@ -26,6 +26,12 @@ class CategoryController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', '');
         $visibility = (string) $request->query('visibility', '');
+        $showAll = $request->boolean('all');
+        $tree = in_array((string) $request->query('tree', ''), ['expanded', 'collapsed'], true)
+            ? (string) $request->query('tree')
+            : '';
+        $expandAll = $tree === 'expanded';
+        $collapseAll = $tree === 'collapsed';
         $perPage = in_array((int) $request->query('per_page', 10), [10, 25, 50], true)
             ? (int) $request->query('per_page', 10)
             : 10;
@@ -55,10 +61,12 @@ class CategoryController extends Controller
             $rootsQuery->where('is_visible', false);
         }
 
+        $pageSize = $showAll ? max(1, (clone $rootsQuery)->count()) : $perPage;
+
         $roots = $rootsQuery
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->paginate($perPage)
+            ->paginate($pageSize)
             ->withQueryString();
 
         $selected = null;
@@ -108,7 +116,11 @@ class CategoryController extends Controller
             'search',
             'status',
             'visibility',
-            'perPage'
+            'perPage',
+            'showAll',
+            'tree',
+            'expandAll',
+            'collapseAll'
         ));
     }
 
