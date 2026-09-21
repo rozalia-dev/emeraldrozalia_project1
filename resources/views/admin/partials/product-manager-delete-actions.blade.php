@@ -3,7 +3,7 @@
     $restoreTemplate = route('admin.product-manager.restore', ['product' => '__PRODUCT__']);
     $permanentTemplate = route('admin.product-manager.permanent-destroy', ['product' => '__PRODUCT__']);
     $bulkDestroyRoute = route('admin.product-manager.bulk-destroy');
-    $canDeleteProducts = (bool) (auth()->user()?->hasPermission('products.delete'));
+    $canDeleteProducts = (bool) (auth()->user()?->is_admin || auth()->user()?->hasPermission('website.products.delete') || auth()->user()?->hasPermission('products.delete'));
 @endphp
 
 <style>
@@ -59,58 +59,45 @@
         background:#eef8f1;
         color:#087a48;
     }
-    .pm-delete-menu{position:relative}
-    .pm-delete-menu>summary{
-        display:flex;
+    .pm-bulk-delete-button,
+    .pm-trash-link{
+        display:inline-flex;
         align-items:center;
-        gap:6px;
-        min-height:38px;
-        padding:0 12px;
-        border:1px solid #efb7b2;
-        border-radius:7px;
+        justify-content:center;
+        gap:5px;
+        min-height:33px;
+        padding:0 10px;
+        border:1px solid #d92d20;
+        border-radius:5px;
         background:#fff;
         color:#b42318;
-        font-size:13px;
-        font-weight:700;
-        cursor:pointer;
-        list-style:none;
-        white-space:nowrap;
-    }
-    .pm-delete-menu>summary::-webkit-details-marker{display:none}
-    .pm-delete-menu[open]>summary{background:#fff5f4;border-color:#d92d20}
-    .pm-delete-menu>div{
-        position:absolute;
-        z-index:30;
-        top:calc(100% + 6px);
-        right:0;
-        min-width:190px;
-        padding:6px;
-        border:1px solid #ead6d3;
-        border-radius:8px;
-        background:#fff;
-        box-shadow:0 12px 30px rgba(45,16,12,.14);
-    }
-    .pm-delete-menu button{
-        width:100%;
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:10px;
-        padding:9px 10px;
-        border:0;
-        border-radius:6px;
-        background:transparent;
-        color:#8a241b;
         font:inherit;
-        font-size:13px;
-        text-align:left;
-        cursor:pointer;
+        font-size:10px;
+        font-weight:700;
+        line-height:1;
+        text-decoration:none;
         white-space:nowrap;
+        cursor:pointer;
     }
-    .pm-delete-menu button:hover,
-    .pm-delete-menu button:focus-visible{background:#fff2f0;outline:none}
-    .pm-delete-menu button:disabled{color:#9aa5a0;background:transparent;cursor:not-allowed}
-    .pm-delete-menu .pm-delete-all{font-weight:700;color:#b42318}
+    .pm-bulk-delete-button:hover,
+    .pm-bulk-delete-button:focus-visible,
+    .pm-trash-link:hover,
+    .pm-trash-link:focus-visible{
+        outline:none;
+        background:#fff2f0;
+        border-color:#b42318;
+        color:#8f1f15;
+    }
+    .pm-bulk-delete-button:disabled{
+        border-color:#d8dfda;
+        background:#f8faf8;
+        color:#9aa5a0;
+        cursor:not-allowed;
+    }
+    .pm-delete-all{background:#b42318;color:#fff}
+    .pm-delete-all:hover,
+    .pm-delete-all:focus-visible{background:#941b12;color:#fff}
+    .pm-trash-link{border-color:#d8dfda;color:#4a5a50;font-weight:600}
 </style>
 
 <script data-product-delete-actions>
