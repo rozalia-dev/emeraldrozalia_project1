@@ -131,10 +131,11 @@
     </section>
 
     <section class="shop-category-strip" aria-label="Main product categories">
-        <a class="{{ !$activeCategory && !$selectedCategories ? 'is-active' : '' }}" href="{{ route('shop') }}"><span>ALL</span>All Products</a>
+        <a class="{{ !$activeCategory && !$selectedCategories ? 'is-active' : '' }}" href="{{ route('shop') }}"><span class="shop-category-icon" data-category-icon="grid"><x-icon name="grid" size="19" /></span>All Products</a>
         @foreach($mainCategories as $category)
             <a class="{{ in_array($category->slug, $selectedCategories, true) ? 'is-active' : '' }}" href="{{ route('category', $category) }}">
-                <span>{{ str($category->name)->substr(0,1)->upper() }}</span>{{ $category->name }}
+                @php($resolvedCategoryIcon = \App\Support\CategoryIcons::resolve($category->icon, $category->slug, $category->name))
+                <span class="shop-category-icon" data-category-icon="{{ $resolvedCategoryIcon }}"><x-icon name="{{ $resolvedCategoryIcon }}" size="19" /></span>{{ $category->name }}
             </a>
         @endforeach
     </section>
