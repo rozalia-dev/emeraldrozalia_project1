@@ -11,7 +11,7 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('categories', 'icon')) {
             Schema::table('categories', function (Blueprint $table): void {
-                $table->string('icon', 40)->nullable()->after('name');
+                $table->string('icon', 40)->nullable();
             });
         }
 
