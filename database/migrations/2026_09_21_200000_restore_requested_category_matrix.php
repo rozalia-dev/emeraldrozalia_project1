@@ -19,9 +19,11 @@ return new class extends Migration
             return;
         }
 
-        $companyId = Schema::hasTable('companies')
-            ? DB::table('companies')->where('code', 'ERL')->value('id')
-            : null;
+        $companyId = null;
+        if (Schema::hasTable('companies')) {
+            $companyId = DB::table('companies')->where('code', 'ERL')->value('id')
+                ?? DB::table('companies')->where('active', true)->orderBy('id')->value('id');
+        }
 
         $definitions = [
             'traditional' => 'Traditional',
