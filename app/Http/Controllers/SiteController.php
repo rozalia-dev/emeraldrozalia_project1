@@ -294,10 +294,16 @@ class SiteController extends Controller
                 ->active()
                 ->where('governing_body', $catalogCountryScope)
                 ->where('catalog_country_id', $selectedCountryModel->id)
-                ->where('catalog_county_code', $selectedCounty)
+                ->where(function ($clubQuery) use ($catalogCountryScope, $selectedCounty) {
+                    $clubQuery->where('catalog_county_code', $selectedCounty);
+                    if ($catalogCountryScope === 'fifa') {
+                        $clubQuery->orWhereNull('catalog_county_code');
+                    }
+                })
+                ->orderByRaw('CASE WHEN catalog_county_code IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('sort_order')
                 ->orderBy('name')
-                ->get(['id', 'name', 'slug']);
+                ->get(['id', 'name', 'slug', 'catalog_county_code']);
         }
 
         $selectedClub = trim((string) $request->input('club', ''));
