@@ -24,7 +24,9 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->actingAs($admin)->get(route('admin.categories.taxonomy'))
             ->assertOk()
             ->assertSee('Country Taxonomy Builder')
-            ->assertSee('All Countries');
+            ->assertSee('All Countries')
+            ->assertSee('GAA, English, UEFA and FIFA require a matching Club / City / Town')
+            ->assertSee('data-club-label', false);
         $this->actingAs($admin)->get(route('admin.categories.countries'))
             ->assertOk()
             ->assertSee('Country Master');
