@@ -119,7 +119,9 @@
                                 @error('sku')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
-                            <section class="ap-inline-section ap-field-wide" data-product-classification>
+                            <section class="ap-inline-section ap-field-wide"
+                                data-product-classification
+                                data-club-options-url="{{ route('admin.categories.clubs.options') }}">
                                 <div class="ap-inline-heading">
                                     <h3>Category &amp; Subcategory</h3>
                                     <span>Choose the main category, product family and optional catalogue filters.</span>
@@ -418,7 +420,10 @@
     const clubRequired = @json(array_values($clubRequiredTaxonomies));
     const countyRequired = @json(array_values($countyRequiredTaxonomies));
     const initialCounty = @json((string) $selectedCountyCode);
+    const initialClub = @json((string) $selectedClubId);
     const initialSubcategory = @json((string) $selectedCategoryId);
+    const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
+    let clubRequestSerial = 0;
 
     const syncSubcategories = () => {
         const selectedRoot = category?.value || '';
@@ -477,18 +482,19 @@
 
     const selectedTaxonomy = () => category?.selectedOptions[0]?.dataset.taxonomy || '';
 
-    const syncClubs = () => {
+    const syncClubs = async (preserve = false) => {
         if (!country || !club) return;
 
         const taxonomy = selectedTaxonomy();
         const requiresClub = clubRequired.includes(taxonomy);
         const selectedCountry = country.value;
+        const selectedCounty = county.value;
+        const selected = preserve ? (club.value || initialClub) : '';
         const organizationLabel = taxonomy ? taxonomy.toUpperCase() : '';
-        let visibleCount = 0;
+        const requestSerial = ++clubRequestSerial;
 
         if (clubField) clubField.hidden = !requiresClub;
         club.required = requiresClub;
-        club.disabled = !requiresClub;
         country.required = requiresClub;
 
         if (countryLabel) {
@@ -501,59 +507,78 @@
                 : 'Club / City / Town';
         }
 
-        [...club.options].forEach((option, index) => {
-            if (index === 0) return;
-            const visible = requiresClub
-                && selectedCountry !== ''
-                && county.value !== ''
-                && option.dataset.country === selectedCountry
-                && option.dataset.county === county.value
-                && option.dataset.body === taxonomy;
-            option.hidden = !visible;
-            option.disabled = !visible;
-            if (visible) visibleCount += 1;
-        });
+        const placeholderText = !requiresClub
+            ? 'Not required for this category'
+            : !selectedCountry
+                ? `Select country before ${organizationLabel} club`
+                : !selectedCounty
+                    ? `Select county before ${organizationLabel} club`
+                    : `Loading ${organizationLabel} clubs...`;
 
-        const placeholder = club.options[0];
-        if (placeholder) {
-            if (!requiresClub) {
-                placeholder.textContent = 'Not required for this category';
-            } else if (!selectedCountry) {
-                placeholder.textContent = `Select country before ${organizationLabel} club`;
-            } else if (!county.value) {
-                placeholder.textContent = `Select county before ${organizationLabel} club`;
-            } else if (visibleCount === 0) {
-                placeholder.textContent = `No ${organizationLabel} clubs found — add in Club Master`;
-            } else {
-                placeholder.textContent = `Select ${organizationLabel} club / city / town`;
-            }
-        }
-
-        if (!requiresClub || club.selectedOptions[0]?.disabled) {
-            club.value = '';
-        }
+        club.replaceChildren(new Option(placeholderText, ''));
+        club.disabled = !requiresClub || !selectedCountry || !selectedCounty;
 
         if (clubHelp) {
             clubHelp.firstChild.textContent = requiresClub
                 ? `Select a ${organizationLabel} club matching the chosen country and county. `
                 : 'GAA, English, UEFA and FIFA products require a matching club / city / town. ';
         }
+
+        if (!requiresClub || !selectedCountry || !selectedCounty || !clubOptionsUrl) {
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                governing_body: taxonomy,
+                catalog_country_id: selectedCountry,
+                catalog_county_code: selectedCounty,
+            });
+            const response = await fetch(`${clubOptionsUrl}?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error('Unable to load club options.');
+            const payload = await response.json();
+            if (requestSerial !== clubRequestSerial) return;
+
+            const rows = Array.isArray(payload.clubs) ? payload.clubs : [];
+            club.replaceChildren(new Option(
+                rows.length ? `Select ${organizationLabel} club / city / town` : `No ${organizationLabel} clubs found — add in Club Master`,
+                ''
+            ));
+
+            for (const row of rows) {
+                const option = new Option(row.name, String(row.id), false, String(row.id) === String(selected));
+                option.dataset.scope = row.scope || '';
+                club.add(option);
+            }
+
+            if (selected && [...club.options].some(option => option.value === String(selected))) {
+                club.value = String(selected);
+            }
+            club.disabled = false;
+        } catch (error) {
+            if (requestSerial !== clubRequestSerial) return;
+            club.replaceChildren(new Option(`Unable to load ${organizationLabel} clubs`, ''));
+            club.disabled = false;
+        }
     };
 
     category?.addEventListener('change', () => {
         syncSubcategories();
         syncCounties(false);
-        syncClubs();
+        void syncClubs(false);
     });
     country?.addEventListener('change', () => {
         syncCounties(false);
-        syncClubs();
+        void syncClubs(false);
     });
-    county?.addEventListener('change', syncClubs);
+    county?.addEventListener('change', () => void syncClubs(false));
 
     syncSubcategories();
     syncCounties(true);
-    syncClubs();
+    void syncClubs(true);
 })();
 </script>
 </div>

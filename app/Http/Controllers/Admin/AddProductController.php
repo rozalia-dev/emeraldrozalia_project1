@@ -43,7 +43,7 @@ class AddProductController extends Controller
         $product->load('collections');
 
         return view('admin.add-product', [
-            ...$this->classificationData(),
+            ...$this->classificationData($product),
             'collections' => $this->collections(),
             'product' => $product,
         ]);
@@ -67,7 +67,7 @@ class AddProductController extends Controller
         return $this->afterSave($request, $product, 'Product updated successfully.');
     }
 
-    private function classificationData(): array
+    private function classificationData(?Product $product = null): array
     {
         $categories = Category::query()
             ->where('is_active', true)
@@ -110,11 +110,30 @@ class AddProductController extends Controller
             'subcategoryOptionsByRoot' => $subcategoryOptionsByRoot,
             'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
             'catalogCountyOptionsByCountry' => CatalogCounties::all(),
-            'catalogClubs' => CatalogClub::query()->active()->with('country:id,code,name')->orderBy('governing_body')->orderBy('catalog_country_id')->orderBy('name')->get(),
+            'catalogClubs' => $this->selectedCatalogClubs($product),
             'catalogStyles' => CatalogStyles::all(),
             'clubRequiredTaxonomies' => self::REQUIRED_CLUB_TAXONOMIES,
             'countyRequiredTaxonomies' => self::REQUIRED_COUNTY_TAXONOMIES,
         ];
+    }
+
+    private function selectedCatalogClubs(?Product $product = null)
+    {
+        $selectedClubId = (int) (
+            session()->getOldInput('catalog_club_id')
+            ?: data_get($product?->product_metadata, 'catalog_classification.catalog_club_id')
+            ?: 0
+        );
+
+        if ($selectedClubId <= 0) {
+            return collect();
+        }
+
+        return CatalogClub::query()
+            ->active()
+            ->with('country:id,code,name')
+            ->whereKey($selectedClubId)
+            ->get();
     }
 
     private function collections()
@@ -239,8 +258,12 @@ class AddProductController extends Controller
             $wrongOrganization = $rootTaxonomy !== ''
                 && in_array($rootTaxonomy, self::REQUIRED_CLUB_TAXONOMIES, true)
                 && $club?->governing_body !== $rootTaxonomy;
-            $wrongCounty = ! empty($data['catalog_county_code'])
-                && strtoupper((string) $club?->catalog_county_code) !== strtoupper((string) $data['catalog_county_code']);
+            $clubCounty = strtoupper((string) $club?->catalog_county_code);
+            $selectedCounty = strtoupper((string) ($data['catalog_county_code'] ?? ''));
+            $countryWideFifaClub = $rootTaxonomy === 'fifa' && $clubCounty === '';
+            $wrongCounty = $selectedCounty !== ''
+                && ! $countryWideFifaClub
+                && $clubCounty !== $selectedCounty;
 
             if (! $club || $wrongCountry || $wrongOrganization || $wrongCounty) {
                 throw ValidationException::withMessages([

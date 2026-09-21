@@ -11,7 +11,8 @@ final class CatalogCounties
      * ISO 3166-2 subdivision snapshot for every EU country in
      * CatalogCountries::EU_CODES, plus business taxonomy supplements for
      * football-association countries that are represented separately in the
-     * catalogue (for example England = ENG rather than United Kingdom = GB).
+     * catalogue (for example England = ENG rather than United Kingdom = GB), plus
+     * FIFA country subdivision supplements such as Brazil's states.
      *
      * Source snapshot for the base payload: pycountry 24.6.1 / ISO 3166-2.
      */
@@ -23,6 +24,11 @@ final class CatalogCounties
     {
         if (self::$decoded !== null) {
             return self::$decoded;
+        }
+
+        $world = self::worldData();
+        if ($world !== null) {
+            return self::$decoded = self::withNationalFallbacks($world);
         }
 
         $compressed = base64_decode(self::DATA, true);
@@ -43,14 +49,109 @@ final class CatalogCounties
 
         $decoded['ENG'] = CatalogEngland::COUNTIES;
 
-        return self::$decoded = $decoded;
+        return self::$decoded = self::withNationalFallbacks($decoded);
+    }
+
+    private static function withNationalFallbacks(array $grouped): array
+    {
+        foreach (CatalogCountries::all() as $country) {
+            $code = strtoupper((string) ($country['code'] ?? ''));
+            if ($code === '' || ! empty($grouped[$code])) {
+                continue;
+            }
+
+            $grouped[$code] = [[
+                'code' => $code.'-ALL',
+                'name' => 'National / All Regions',
+                'type' => 'national',
+            ]];
+        }
+
+        return $grouped;
+    }
+
+    private static function worldData(): ?array
+    {
+        $path = database_path('data/iso3166-2-world.json');
+        if (! is_file($path)) {
+            return null;
+        }
+
+        try {
+            $payload = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('The global county/subdivision dataset is invalid.', previous: $exception);
+        }
+
+        $rows = $payload['3166-2'] ?? null;
+        if (! is_array($rows)) {
+            throw new RuntimeException('The global county/subdivision dataset is invalid.');
+        }
+
+        $grouped = [];
+        $ukAssociations = [
+            'SCO' => 'GB-SCT',
+            'WAL' => 'GB-WLS',
+            'NIR' => 'GB-NIR',
+        ];
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! filled($row['code'] ?? null) || ! filled($row['name'] ?? null)) {
+                continue;
+            }
+
+            $code = strtoupper((string) $row['code']);
+            $countryCode = substr($code, 0, 2);
+            $entry = [
+                'code' => $code,
+                'name' => (string) $row['name'],
+                'type' => (string) ($row['type'] ?? 'subdivision'),
+            ];
+            $grouped[$countryCode][] = $entry;
+
+            $parent = strtoupper((string) ($row['parent'] ?? ''));
+            foreach ($ukAssociations as $association => $parentCode) {
+                if ($parent === $parentCode) {
+                    $grouped[$association][] = $entry;
+                }
+            }
+        }
+
+        foreach ($grouped as &$countryRows) {
+            usort($countryRows, static fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+        }
+        unset($countryRows);
+
+        // England is deliberately presented as familiar ceremonial counties
+        // rather than the much longer UK local-authority hierarchy.
+        $grouped['ENG'] = CatalogEngland::COUNTIES;
+
+        return $grouped;
     }
 
     public static function forCountry(?string $countryCode): array
     {
         $countryCode = strtoupper(trim((string) $countryCode));
+        if ($countryCode === '') {
+            return [];
+        }
 
-        return self::all()[$countryCode] ?? [];
+        $rows = self::all()[$countryCode] ?? [];
+        if ($rows !== []) {
+            return $rows;
+        }
+
+        $known = collect(CatalogCountries::all())->contains(
+            fn (array $country): bool => strtoupper((string) ($country['code'] ?? '')) === $countryCode
+        );
+
+        return $known
+            ? [[
+                'code' => $countryCode.'-ALL',
+                'name' => 'National / All Regions',
+                'type' => 'national',
+            ]]
+            : [];
     }
 
     public static function countryCodes(): array

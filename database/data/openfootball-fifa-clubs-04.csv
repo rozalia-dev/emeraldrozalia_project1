@@ -1,0 +1,651 @@
+country_code,region_name,club_name
+DE,Bayern,Bayern München
+DE,Bayern,Säbener Straße 51-57 // 81547 München
+DE,Bayern,ii) Bayern München II
+DE,Bayern,TSV 1860 München
+DE,Bayern,Grünwalder Straße 114 // 81547 München
+DE,Bayern,Türkgücü München
+DE,Bayern,1. FC Nürnberg
+DE,Bayern,Valznerweiherstraße 200 // 90480 Nürnberg
+DE,Bayern,ii) 1. FC Nürnberg II
+DE,Bayern,SpVgg Greuther Fürth
+DE,Bayern,Laubenweg 60 // 90765 Fürth
+DE,Bayern,ii) SpVgg Greuther Fürth II
+DE,Bayern,FC Augsburg
+DE,Bayern,Donauwörther Str. 170 // 86154 Augsburg
+DE,Bayern,ii) FC Augsburg II
+DE,Bayern,TSV Schwaben Augsburg
+DE,Bayern,SpVgg Unterhaching
+DE,Bayern,FC Ingolstadt 04
+DE,Bayern,Am Sportpark 1 // 85053 Ingolstadt
+DE,Bayern,SSV Jahn Regensburg
+DE,Bayern,1. FC Schweinfurt 05
+DE,Bayern,Würzburger Kickers
+DE,Bayern,Wacker Burghausen
+DE,Bayern,Viktoria Aschaffenburg
+DE,Bayern,TSV 1860 Rosenheim
+DE,Bayern,FV Illertissen
+DE,Bayern,SpVgg Bayreuth
+DE,Bayern,TSV Aubstadt
+DE,Bayern,TSV Buchbach
+DE,Bayern,VfB Eichstätt
+DE,Bayern,SV Heimstetten
+DE,Bayern,SV Schalding-Heining
+DE,Bayern,FC Memmingen
+DE,Bayern,VfR Garching
+DE,Bayern,TSV 1896 Rain
+DE,Bayern,DJK Vilzing
+DE,Bayern,SpVgg Ansbach
+DE,Bayern,SpVgg Hankofen-Hailing
+DE,Bayern,FC Eintracht Bamberg
+DE,Bayern,FC Pipinsried
+DE,Bayern,SC Eltersdorf
+DE,Nordrhein-Westfalen,1. FC Köln
+DE,Nordrhein-Westfalen,Franz-Kremer-Allee 1 // 50937 Köln
+DE,Nordrhein-Westfalen,Fortuna Köln
+DE,Nordrhein-Westfalen,FC Viktoria Köln
+DE,Nordrhein-Westfalen,Fortuna Düsseldorf
+DE,Nordrhein-Westfalen,Arena Straße 1 // 40474 Düsseldorf
+DE,Nordrhein-Westfalen,Borussia Dortmund
+DE,Nordrhein-Westfalen,Rheinlanddamm 207-209 // 44137 Dortmund
+DE,Nordrhein-Westfalen,ii) Borussia Dortmund II
+DE,Nordrhein-Westfalen,FC Schalke 04
+DE,Nordrhein-Westfalen,Ernst-Kuzorra-Weg 1 // 45891 Gelsenkirchen
+DE,Nordrhein-Westfalen,Bayer 04 Leverkusen
+DE,Nordrhein-Westfalen,Bismarckstr. 122 - 124 // 51373 Leverkusen
+DE,Nordrhein-Westfalen,MSV Duisburg
+DE,Nordrhein-Westfalen,Bor. Mönchengladbach
+DE,Nordrhein-Westfalen,Hennes-Weisweiler-Allee 1 // 41179 Mönchengladbach
+DE,Nordrhein-Westfalen,VfL Bochum
+DE,Nordrhein-Westfalen,Castroper Straße 145 // 44791 Bochum
+DE,Nordrhein-Westfalen,SG Wattenscheid 09
+DE,Nordrhein-Westfalen,Arminia Bielefeld
+DE,Nordrhein-Westfalen,Melanchthonstraße 31a // 33615 Bielefeld
+DE,Nordrhein-Westfalen,Preußen Münster
+DE,Nordrhein-Westfalen,Gütersloh
+DE,Nordrhein-Westfalen,KFC Uerdingen
+DE,Nordrhein-Westfalen,Alemannia Aachen
+DE,Nordrhein-Westfalen,SC Paderborn 07
+DE,Nordrhein-Westfalen,Paderborner Str. 89 // 33104 Paderborn
+DE,Nordrhein-Westfalen,Rot Weiss Ahlen
+DE,Nordrhein-Westfalen,Rot-Weiß Oberhausen
+DE,Nordrhein-Westfalen,SF Siegen
+DE,Nordrhein-Westfalen,Wuppertaler SV
+DE,Nordrhein-Westfalen,Rot-Weiss Essen
+DE,Nordrhein-Westfalen,SF Baumberg
+DE,Nordrhein-Westfalen,SF Lotte
+DE,Nordrhein-Westfalen,SV Lippstadt 08
+DE,Nordrhein-Westfalen,SC Wiedenbrück
+DE,Nordrhein-Westfalen,FC Hennef 05
+DE,Nordrhein-Westfalen,TuS Erndtebrück
+DE,Nordrhein-Westfalen,SC Verl
+DE,Nordrhein-Westfalen,SV Rödinghausen
+DE,Nordrhein-Westfalen,RSV Meinerzhagen
+DE,Nordrhein-Westfalen,1. FC Düren
+DE,Nordrhein-Westfalen,Bonner SC
+DE,Nordrhein-Westfalen,1. FC Kaan-Marienborn
+DE,Nordrhein-Westfalen,SV Straelen
+DE,Nordrhein-Westfalen,FC Gütersloh
+DE,Saarland,1. FC Saarbrücken
+DE,Saarland,FC 08 Homburg
+DE,Saarland,VfB Borussia Neunkirchen
+DE,Saarland,SV Elversberg
+DE,Niedersachsen,VfL Osnabrück
+DE,Niedersachsen,VfL Wolfsburg
+DE,Niedersachsen,In den Allerwiesen 1 // 38446 Wolfsburg
+DE,Niedersachsen,Hannover 96
+DE,Niedersachsen,Robert-Enke-Straße 1 // 30169 Hannover
+DE,Niedersachsen,ii) Hannover 96 II
+DE,Niedersachsen,Eintracht Braunschweig
+DE,Niedersachsen,Hamburger Straße 210 // 38112 Braunschweig
+DE,Niedersachsen,FT Braunschweig
+DE,Niedersachsen,SV Meppen
+DE,Niedersachsen,VfB Oldenburg
+DE,Niedersachsen,VfL Oldenburg
+DE,Niedersachsen,SV Wilhelmshaven
+DE,Niedersachsen,BSV Schwarz-Weiß Rehden
+DE,Niedersachsen,TSV Havelse
+DE,Niedersachsen,SV Drochtersen/Assel
+DE,Niedersachsen,SV Atlas Delmenhorst
+DE,Niedersachsen,Lüneburger SK Hansa
+DE,Niedersachsen,SSV Jeddeloh
+DE,Niedersachsen,Germania Egestorf/Langreder
+DE,Niedersachsen,MTV Eintracht Celle
+DE,Niedersachsen,VfV Hildesheim
+DE,Niedersachsen,VfV 06 Hildesheim
+DE,Niedersachsen,VfV Borussia 06 Hildesheim
+DE,Niedersachsen,VfV Borussia 06
+DE,Niedersachsen,VfV 06
+DE,Niedersachsen,BW Lohne
+DE,Niedersachsen,BSV SW Rehden
+DE,Niedersachsen,TuS Bersenbrück
+DE,Brandenburg,Energie Cottbus
+DE,Brandenburg,Am Eliaspark 1 // 03042 Cottbus
+DE,Brandenburg,SV Babelsberg 03
+DE,Brandenburg,FSV Optik Rathenow
+DE,Brandenburg,SV Falkensee-Finkenkrug
+DE,Brandenburg,FFC Victoria 91
+DE,Brandenburg,FC Stahl Brandenburg
+DE,Brandenburg,Union Fürstenwalde
+DE,Berlin,Hertha BSC
+DE,Berlin,Hanns-Braun-Straße / Friesenhaus 2 // 14053 Berlin
+DE,Berlin,1. FC Union Berlin
+DE,Berlin,An der Wuhlheide 263 // 12555 Berlin
+DE,Berlin,Tennis Borussia Berlin
+DE,Berlin,Blau-Weiß 90 Berlin (-1992)
+DE,Berlin,SC Tasmania 1900 Berlin (-1973)
+DE,Berlin,BFC Dynamo Berlin
+DE,Berlin,Berliner AK 07
+DE,Berlin,FC Viktoria 1889 Berlin
+DE,Berlin,ASK Vorwärts Berlin
+DE,Berlin,BFC Preussen
+DE,Berlin,VSG Altglienicke
+DE,Berlin,TuS Makkabi Berlin
+DE,Hamburg,Hamburger SV
+DE,Hamburg,Sylvesterallee 7 // 22525 Hamburg
+DE,Hamburg,FC St. Pauli
+DE,Hamburg,Heiligengeistfeld 1 // 20359 Hamburg
+DE,Hamburg,SC Victoria Hamburg
+DE,Hamburg,USC Paloma Hamburg
+DE,Hamburg,HSV Barmbek-Uhlenhorst
+DE,Hamburg,FC Teutonia 05
+DE,Bremen,Werder Bremen
+DE,Bremen,Franz-Böhmert-Straße 1c // 28205 Bremen
+DE,Bremen,ii) Werder Bremen II
+DE,Bremen,SG Aumund-Vegesack
+DE,Bremen,FC Oberneuland
+DE,Bremen,Bremer SV
+DE,Bremen,BSC Hastedt
+DE,Bremen,LTS Bremerhaven
+DE,Baden-Württemberg,VfB Stuttgart
+DE,Baden-Württemberg,Mercedesstraße 109 // 70372 Stuttgart
+DE,Baden-Württemberg,ii) VfB Stuttgart II
+DE,Baden-Württemberg,Stuttgarter Kickers
+DE,Baden-Württemberg,SC Freiburg
+DE,Baden-Württemberg,Schwarzwaldstr. 193 // 79117 Freiburg
+DE,Baden-Württemberg,ii) SC Freiburg II
+DE,Baden-Württemberg,TSG 1899 Hoffenheim
+DE,Baden-Württemberg,Horrenberger Straße 58 // 74939 Zuzenhausen
+DE,Baden-Württemberg,Karlsruher SC
+DE,Baden-Württemberg,Adenauerring 17 // 76131 Karlsruhe
+DE,Baden-Württemberg,SSV Ulm 1846
+DE,Baden-Württemberg,VfR Aalen
+DE,Baden-Württemberg,Stadionweg 5/1 // 73430 Aalen
+DE,Baden-Württemberg,1. FC Heidenheim
+DE,Baden-Württemberg,SSV Reutlingen 05
+DE,Baden-Württemberg,SV Sandhausen
+DE,Baden-Württemberg,Jahnstraße 1 // 69207 Sandhausen
+DE,Baden-Württemberg,VfR Mannheim
+DE,Baden-Württemberg,SV Waldhof Mannheim
+DE,Baden-Württemberg,SG Großaspach
+DE,Baden-Württemberg,FC Nöttingen
+DE,Baden-Württemberg,Bahlinger SC
+DE,Baden-Württemberg,Neckarsulmer Sport-Union
+DE,Baden-Württemberg,Offenburger FV
+DE,Baden-Württemberg,FC-Astoria Walldorf
+DE,Baden-Württemberg,SV Waldkirch
+DE,Baden-Württemberg,1. FC Rielasingen-Arlen
+DE,Baden-Württemberg,Sportfreunde Dorfmerkingen
+DE,Baden-Württemberg,1. CfR Pforzheim
+DE,Baden-Württemberg,FC 08 Villingen
+DE,Baden-Württemberg,SV Linx
+DE,Baden-Württemberg,FV Ravensburg
+DE,Baden-Württemberg,SV Oberachern
+DE,Baden-Württemberg,TSG Balingen
+DE,Hessen,Eintracht Frankfurt
+DE,Hessen,Mörfelder Landstraße 362 // 60528 Frankfurt am Main
+DE,Hessen,FSV Frankfurt
+DE,Hessen,Richard-Herrmann-Platz 1 // 60386 Frankfurt am Main
+DE,Hessen,SV Darmstadt 98
+DE,Hessen,SV Wehen Wiesbaden
+DE,Hessen,Kickers Offenbach
+DE,Hessen,KSV Hessen Kassel
+DE,Hessen,KSV Baunatal
+DE,Hessen,TSV Steinbach Haiger
+DE,Rheinland-Pfalz,1. FC Kaiserslautern
+DE,Rheinland-Pfalz,Fritz-Walter-Str. 1 // 67663 Kaiserslautern
+DE,Rheinland-Pfalz,1. FSV Mainz 05
+DE,Rheinland-Pfalz,Isaac-Fulda-Allee 5 // 55124 Mainz
+DE,Rheinland-Pfalz,ii) 1. FSV Mainz 05 II
+DE,Rheinland-Pfalz,TSV Schott Mainz
+DE,Rheinland-Pfalz,Eintracht Trier
+DE,Rheinland-Pfalz,TuS Koblenz
+DE,Rheinland-Pfalz,Rot-Weiß Koblenz
+DE,Rheinland-Pfalz,SV Roßbach/Verscheid
+DE,Rheinland-Pfalz,Wormatia Worms
+DE,Rheinland-Pfalz,TSG Pfeddersheim
+DE,Rheinland-Pfalz,SV Alemannia Waldalgesheim
+DE,Rheinland-Pfalz,FSV Salmrohr
+DE,Rheinland-Pfalz,FK Pirmasens
+DE,Rheinland-Pfalz,SC Hauenstein
+DE,Rheinland-Pfalz,SV Morlautern
+DE,Rheinland-Pfalz,FV Engers 07
+DE,Schleswig-Holstein,VfB Lübeck
+DE,Schleswig-Holstein,1. FC Phönix Lübeck
+DE,Schleswig-Holstein,Holstein Kiel
+DE,Schleswig-Holstein,VfR Neumünster
+DE,Schleswig-Holstein,SC Weiche Flensburg 08
+DE,Schleswig-Holstein,TuS Dassendorf
+DE,Schleswig-Holstein,Eintracht Norderstedt
+DE,Schleswig-Holstein,SV Eichede
+DE,Schleswig-Holstein,SV Todesfelde
+DE,Mecklenburg-Vorpommern,Hansa Rostock
+DE,Mecklenburg-Vorpommern,Rostocker FC
+DE,Mecklenburg-Vorpommern,TSG Neustrelitz
+DE,Mecklenburg-Vorpommern,FC Schönberg 95
+DE,Mecklenburg-Vorpommern,1. FC Neubrandenburg 04
+DE,Mecklenburg-Vorpommern,FC Mecklenburg Schwerin
+DE,Mecklenburg-Vorpommern,Greifswalder FC
+DE,Sachsen,Dynamo Dresden
+DE,Sachsen,Lennéstraße 12 // 01069 Dresden
+DE,Sachsen,RB Leipzig
+DE,Sachsen,VfB Leipzig (-2004)
+DE,Sachsen,1. FC Lokomotive Leipzig (1966-1991)
+DE,Sachsen,BSG Chemie Leipzig
+DE,Sachsen,FC Sachsen Leipzig (1990-2011)
+DE,Sachsen,SG Sachsen Leipzig (2011-2014)
+DE,Sachsen,Chemnitzer FC
+DE,Sachsen,FC Erzgebirge Aue
+DE,Sachsen,Lößnitzer Straße 95 // 08280 Aue
+DE,Sachsen,FSV Zwickau
+DE,Sachsen-Anhalt,Hallescher FC
+DE,Sachsen-Anhalt,1. FC Magdeburg
+DE,Sachsen-Anhalt,1. FC Lok Stendal
+DE,Sachsen-Anhalt,VfB Germania Halberstadt
+DE,Sachsen-Anhalt,FC Einheit Wernigerode
+DE,Thüringen,FC Carl Zeiss Jena
+DE,Thüringen,SV Schott Jena
+DE,Thüringen,FC Rot-Weiß Erfurt
+DE,Thüringen,Wacker Nordhausen
+GI,===========================,Lincoln FC
+GI,===========================,Manchester 62 FC
+GI,===========================,Lynx FC
+GI,===========================,College Europa FC
+GI,===========================,Europa Point FC
+GI,===========================,College 1975 FC
+GI,===========================,Glacis United FC
+GI,===========================,Lions Gibraltar FC
+GI,===========================,St Joseph's FRAC
+GI,===========================,Gibraltar Phoenix FC
+GI,===========================,FC Magpies
+GI,===========================,Mons Calpe SC
+GI,===========================,Boca Juniors Gibraltar FC
+GI,===========================,FC Olympique
+GR,============================,AEK Athens FC
+GR,============================,Panathinaikos FC
+GR,============================,Apollon Smyrnis FC
+GR,============================,Atromitos FC
+GR,============================,Panionios GSS
+GR,============================,APO Akratitos
+GR,============================,Athinaikos AS FC
+GR,============================,Chalkidona FC
+GR,============================,Egaleo FC
+GR,============================,Ethnikos Asteras FC
+GR,============================,AE Kifisia FC
+GR,============================,Kallithea FC
+GR,============================,Thrasyvoulos FC
+GR,Attica,Panelefsiniakos FC
+GR,Attica,Proodeftiki FC
+GR,Attica,Ionikos FC
+GR,Attica,Olympiacos Piraeus FC
+GR,Attica,Ethnikos Piraeus FC
+GR,Central Macedonia,PAOK FC
+GR,Central Macedonia,Aris Thessaloniki FC
+GR,Central Macedonia,Iraklis 1908 Thessaloniki FC
+GR,Central Macedonia,Apollon Pontou FC
+GR,Peloponnese,Asteras Tripolis FC
+GR,Thrace,Xanthi FC
+GR,West Greece,Panetolikos GFS
+GR,Epirus,PAS Giannina FC
+GR,Central Greece,Levadiakos FC
+GR,Thessaly,AE Larissa FC
+GR,Central Greece,PAS Lamia 1964
+GR,Ionian Islands,Kerkyra FC
+GR,Macedonia,Doxa Dramas FC
+GR,Macedonia,Edessaikos FC
+GR,Crete,Platanias FC
+GR,Crete,PAE Chania
+GR,Crete,Ergotelis FC
+GR,Crete,OFI Crete FC
+GR,Peloponnese,Kalamata FC
+GR,Aegean Islands,AEL Kalloni FC
+GR,Macedonia,Kastoria FC
+GR,Macedonia,Kavala FC
+GR,Thessaly,Volos FC
+GR,Thessaly,Niki Volou FC
+GR,Thessaly,Olympiacos Volou 1937 FC
+GR,Peloponnese,Panachaiki FC
+GR,Peloponnese,Paniliakos FC
+GR,Macedonia,Panserraikos FC
+GR,Thrace,Panthrakikos FC
+GR,Thessaly,Trikala FC
+GR,Thessaly,AO Trikala 1963
+GR,Macedonia,Veria FC
+HU,============================,Ferencvárosi TC
+HU,============================,Budapest Honvéd FC
+HU,============================,Vasas FC
+HU,============================,MTK Budapest
+HU,============================,Újpest FC
+HU,============================,Csepel SC
+HU,============================,Budapesti VSC
+HU,============================,Budafoki MTE
+HU,============================,Vasas SC
+HU,============================,Soroksár SC
+HU,============================,Vác FC
+HU,============================,Dunaújváros FC (1952-2009)
+HU,============================,Videoton FC
+HU,============================,Debreceni VSC
+HU,============================,Győri ETO FC
+HU,============================,Gyirmót FC Győr
+HU,============================,Paksi SE
+HU,============================,Kecskeméti TE
+HU,============================,Szombathelyi Haladás
+HU,============================,Zalaegerszegi TE
+HU,============================,Diósgyőri VTK
+HU,============================,Mezőkövesd Zsóry SE
+HU,============================,Puskás Akadémia FC
+HU,============================,Kaposvári Rákóczi FC
+HU,============================,Salgótarjáni BTC
+HU,============================,Pécsi MFC
+HU,============================,FC Sopron (1921-2008)
+HU,============================,Békéscsaba 1912 Előre
+HU,============================,Pápai FC (1995-2015)
+HU,============================,FC Tatabánya
+HU,============================,BFC Siófok
+HU,============================,Komlói Bányász SK
+HU,============================,Kisvárda FC
+HU,============================,Nyíregyháza Spartacus
+HU,============================,FC Dorogi
+HU,============================,Budaörsi SC
+HU,============================,Aqvital FC Csákvár
+HU,============================,Szeged-Csanád Grosics Akadémia
+HU,============================,Kazincbarcikai SC
+HU,============================,FC Ajka
+HU,============================,Szolnoki MÁV FC
+IS,=============================,KR Reykjavík
+IS,=============================,Fram Reykjavík
+IS,=============================,Fylkir Reykjavik
+IS,=============================,Valur Reykjavík
+IS,=============================,Víkingur Reykjavík
+IS,=============================,Fjölnir Reykjavík
+IS,=============================,Throttur Reykjavik
+IS,=============================,Leiknir Reykjavík
+IS,=============================,ÍR Reykjavík
+IS,=============================,Grótta
+IS,=============================,ÍA Akranes
+IS,=============================,FH Hafnarfjörður
+IS,=============================,Breiðablik
+IS,=============================,ÍBV Vestmannaeyjar
+IS,=============================,Stjarnan
+IS,=============================,Grindavík
+IS,=============================,HK Kópavogs
+IS,=============================,KA Akureyri
+IS,=============================,Thór Akureyri
+IS,=============================,Keflavík ÍF
+IS,=============================,Knattspyrnufélag Fjallabyggðar
+IS,=============================,UMF Afturelding
+IS,=============================,UMF Njarðvík
+IS,=============================,ÍF Vestri
+IS,=============================,Dalvík/Reynir
+IE,==========================,Shamrock Rovers FC
+IE,==========================,ii) Shamrock Rovers II
+IE,==========================,Bohemian FC
+IE,==========================,St Patrick's Athletic FC
+IE,==========================,University College Dublin AFC
+IE,==========================,Shelbourne FC
+IE,==========================,Drumcondra FC
+IE,==========================,Dublin City FC (1999-2006)
+IE,==========================,Athlone Town AFC
+IE,==========================,Bray Wanderers FC
+IE,==========================,Cobh Ramblers FC
+IE,==========================,Cork City FC
+IE,==========================,Cork Celtic FC (1951-1979)
+IE,==========================,Cork Hibernians FC (1957-1976)
+IE,==========================,Drogheda United FC
+IE,==========================,Dundalk FC
+IE,==========================,Finn Harps FC
+IE,==========================,Galway United FC
+IE,==========================,Limerick FC (1937-2020)
+IE,==========================,Treaty United
+IE,==========================,Longford Town FC
+IE,==========================,Mervue
+IE,==========================,Monaghan
+IE,==========================,Sligo Rovers FC
+IE,==========================,Waterford FC
+IE,==========================,Wexford FC
+IE,==========================,Sporting Fingal FC
+IE,==========================,Cabinteely FC
+IE,==========================,Kerry FC
+IT,Lazio,AS Roma
+IT,Lazio,SS Lazio
+IT,Lazio,AC Milan
+IT,Lazio,FC Internazionale Milano
+IT,Lazio,Atalanta Bergamo
+IT,Lazio,US Cremonese
+IT,Lazio,Brescia Calcio
+IT,Lazio,AC Monza
+IT,Lazio,Torino FC
+IT,Lazio,Juventus
+IT,Lazio,Alessandria
+IT,Veneto,Hellas Verona
+IT,Veneto,AC Chievo Verona
+IT,Veneto,Venezia FC
+IT,Veneto,LR Vicenza Virtus
+IT,Veneto,Calcio Padova
+IT,Veneto,Cittadella
+IT,Friuli-Venezia Giulia,Udinese Calcio
+IT,Friuli-Venezia Giulia,US Triestina Calcio
+IT,Liguria,Genoa CFC
+IT,Liguria,UC Sampdoria
+IT,Campania,SSC Napoli
+IT,Campania,Benevento Calcio
+IT,Campania,Avellino
+IT,Calabria,FC Crotone
+IT,Calabria,Bari
+IT,Calabria,Calcio Foggia 1920
+IT,Emilia-Romagna,Ravenna FC
+IT,Emilia-Romagna,Bologna FC
+IT,Emilia-Romagna,US Sassuolo Calcio
+IT,Emilia-Romagna,SPAL Ferrara
+IT,Emilia-Romagna,Carpi
+IT,Emilia-Romagna,AC Cesena (1940-2018)
+IT,Emilia-Romagna,Modena FC
+IT,Emilia-Romagna,ACF Fiorentina
+IT,Emilia-Romagna,Empoli FC
+IT,Emilia-Romagna,SS Robur Siena
+IT,Emilia-Romagna,AC Pisa
+IT,Marche,Ascoli
+IT,Marche,Cagliari Calcio
+IT,??,Frosinone Calcio
+IT,??,Novara
+IT,??,Palermo FC
+IT,??,Parma Calcio
+IT,??,AC Perugia
+IT,??,Pescara
+IT,??,Pro Vercelli
+IT,??,Salernitana
+IT,??,Spezia Calcio
+IT,??,Ternana
+IT,??,Virtus Entella
+IT,??,Piacenza Calcio
+IT,??,US Anconitana ASD
+IT,??,AC Ancona
+IT,??,Cosenza Calcio
+IT,??,SS Fidelis Andria
+IT,??,US Lecce
+IT,??,AS Lucchese Libertas
+IT,??,AC Reggiana
+IT,??,Urbs Reggina
+IT,??,Reggina 1914
+IT,??,ACD Treviso
+IT,??,ASD Castel di Sangro
+IT,??,Unione Calcio Albinoleffe
+IT,??,Calcio Catania
+IT,??,Como 1907
+IT,??,AS Livorno Calcio
+IT,??,ACR Messina SSD
+IT,??,SS Arezzo
+IT,??,US Catanzaro
+IT,??,ASD Virtus Bergamo
+IT,??,MC Fermana FC
+IT,??,Gallipoli Football SSD
+IT,??,ASD US Grosseto
+IT,??,AS Gubbio
+IT,??,SS Juve Stabia
+IT,??,SSD Latina Calcio
+IT,??,Mantova SSD
+IT,??,ASD Nocerina
+IT,??,US Pistoiese
+IT,??,Portogruaro Calcio ASD
+IT,??,Rimini FC SSD
+IT,??,ASD Savoia
+IT,??,Trapani Calcio
+IT,??,Varese Calcio
+IT,??,Virtus Lanciano
+IT,??,Pordenone Calcio
+IT,??,Vis Pesaro 1898
+IT,??,Giana Erminio
+IT,??,Carrarese Calcio
+IT,??,Pontedera
+IT,??,Pro Patria
+IT,??,AC Renate
+IT,??,Calcio Lecco
+IT,??,FC Südtirol
+IT,??,Feralpisalò
+IT,??,Sambenedettese
+IT,??,Potenza Calcio
+IT,??,Paganese Calcio
+IT,??,Vibonese Calcio
+XK,======================================,KF Drita
+XK,======================================,FC Prishtina
+XK,======================================,Flamurtari Prishtina
+XK,======================================,KF Trepça'89
+XK,======================================,FC Ballkani
+XK,======================================,FC Suhareka
+XK,======================================,KF Feronikeli
+XK,======================================,KF Gjilani
+XK,======================================,KF Drenica
+XK,======================================,KF Llapi
+XK,======================================,KF Ferizaj
+XK,======================================,Vushtrria
+XK,======================================,KF Dukagjini
+XK,======================================,KF Malisheva
+LV,==========================,FK RFS
+LV,==========================,Rīga FC
+LV,==========================,FS METTA
+LV,==========================,FK LU/Daugava (1979-2000)
+LV,==========================,FC Daugava Rīga (2003-2015)
+LV,==========================,Skonto FC (1991-2006)
+LV,==========================,FK Auda Riga
+LV,==========================,FK Ventspils
+LV,==========================,FK Liepāja
+LV,==========================,SK Liepājas Metalurgs
+LV,==========================,FK Jelgava
+LV,==========================,FS Jelgava
+LV,==========================,FK Valmiera
+LV,==========================,FK Spartaks Jūrmala
+LV,==========================,FC Daugava Daugavpils
+LV,==========================,BFC Daugavpils
+LV,==========================,FC Dinaburg
+LV,==========================,Grobiņas SC
+LV,==========================,FK Tukums 2000
+LV,==========================,Valmiera FC
+LI,===============================,FC Vaduz
+LI,===============================,FC USV Eschen/Mauren
+LT,===========================,FK Riteriai
+LT,===========================,FK TransINVEST
+LT,===========================,VMFD Žalgiris
+LT,===========================,FK Kauno Žalgiris
+LT,===========================,FC Stumbras
+LT,===========================,FC Hegelmann
+LT,===========================,FBK Kaunas
+LT,===========================,FK Kareda Kaunas (1935-2003)
+LT,===========================,FK Inkaras Kaunas (1937-2003)
+LT,===========================,FK Ekranas
+LT,===========================,Panevėžys
+LT,===========================,FK Sūduva
+LT,===========================,FK Tauras
+LT,===========================,FK Vėtra
+LT,===========================,FA Šiauliai
+LT,===========================,FC Šiauliai (1995-2016)
+LT,===========================,FK Banga
+LT,===========================,FK Atlantas
+LT,===========================,FK Kruoja
+LT,===========================,FK Palanga
+LT,===========================,FK Mažeikiai
+LT,===========================,FC Džiugas
+LT,===========================,DFK Dainava
+LU,============================,Racing FC Union Lëtzebuerg
+LU,============================,FC Aris Bonnevoie (-2001)
+LU,============================,FC Avenir Beggen
+LU,============================,Spora Luxemburg (1923-2005)
+LU,============================,Union Luxembourg (1925-2005)
+LU,============================,FC Blue Boys Muhlenbach
+LU,============================,RM Hamm Benfica
+LU,============================,F91 Dudelange
+LU,============================,Stade Dudelange (1913-1991)
+LU,============================,FC Differdange 03
+LU,============================,Red Boys Differdange (1907-2003)
+LU,============================,CS Fola Esch
+LU,============================,Jeunesse d'Esch
+LU,============================,CS Grevenmacher
+LU,============================,UN Käerjéng 97
+LU,============================,FC Progrès Niederkorn
+LU,============================,US Mondorf-les-Bains
+LU,============================,FC Union Titus Pétange
+LU,============================,CS Pétange (1910-2015)
+LU,============================,FC UNA Strassen
+LU,============================,FC Victoria Rosport
+LU,============================,FC Etzella Ettelbruck
+LU,============================,FC Rodange 91
+LU,============================,US Hostert
+LU,============================,FC Mondercange
+LU,============================,US Rumelange
+LU,============================,FC Wiltz 71
+LU,============================,FC Swift Hesperange
+LU,============================,SC Bettembourg
+MK,================================,FK Metalurg Skopje
+MK,================================,FK Makedonija Skopje
+MK,================================,FK Vardar
+MK,================================,FK Cementarnica 55
+MK,================================,Sloga Jugomagnat Skopje (1927-2009)
+MK,================================,FK Rabotnički
+MK,================================,KF Shkupi
+MK,================================,FK Renova
+MK,================================,FK Shkëndija 79
+MK,================================,FK Teteks
+MK,================================,FK Milano
+MK,================================,FK Pelister
+MK,================================,FK Belasica
+MK,================================,Brera Strumica
+MK,================================,FK Sileks
+MK,================================,FK Turnovo
+MK,================================,FC Struga
+MK,================================,FK Borec Veles
+MK,================================,FK Pobeda
+MK,================================,FK Bashkimi Kumanovo (1947-2008)
+MK,================================,GFK Tikvesh 1930
+MK,================================,KF Gostivari
+MK,================================,KF Besa Dobërdoll
+MK,================================,Voska Sport
+MT,============================,Valletta FC
+MT,============================,Sliema Wanderers FC
+MT,============================,Birkirkara FC
+MT,============================,Floriana FC
+MT,============================,Hibernians FC
+MT,============================,Marsaxlokk FC
+MT,============================,Balzan FC
+MT,============================,Gżira United FC
+MT,============================,Gudja United
+MT,============================,Hamrun Spartans FC
+MT,============================,FC Sirens
+MT,============================,Santa Lucia
+MT,============================,Senglea Athletic FC
+MT,============================,Mosta FC
+MT,============================,Tarxien Rainbows FC
+MT,============================,Rabat Ajax
+MT,============================,Marsa FC
+MT,============================,Żurrieq FC
+MT,============================,Melita FC
+MT,============================,St. Patrick FC Żabbar
+MT,============================,Naxxar Lions FC

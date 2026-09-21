@@ -290,14 +290,24 @@ class SiteController extends Controller
 
         $catalogFilterClubs = collect();
         if ($catalogClubEnabled && $selectedCountryModel && $selectedCounty !== '') {
-            $catalogFilterClubs = CatalogClub::query()
+            $clubBase = CatalogClub::query()
                 ->active()
                 ->where('governing_body', $catalogCountryScope)
-                ->where('catalog_country_id', $selectedCountryModel->id)
+                ->where('catalog_country_id', $selectedCountryModel->id);
+
+            $hasExactCountyClubs = (clone $clubBase)
                 ->where('catalog_county_code', $selectedCounty)
+                ->exists();
+
+            $catalogFilterClubs = $clubBase
+                ->when(
+                    $catalogCountryScope === 'fifa' && ! $hasExactCountyClubs,
+                    fn ($query) => $query->whereNull('catalog_county_code'),
+                    fn ($query) => $query->where('catalog_county_code', $selectedCounty),
+                )
                 ->orderBy('sort_order')
                 ->orderBy('name')
-                ->get(['id', 'name', 'slug']);
+                ->get(['id', 'name', 'slug', 'catalog_county_code']);
         }
 
         $selectedClub = trim((string) $request->input('club', ''));

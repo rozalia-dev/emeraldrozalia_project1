@@ -1,0 +1,501 @@
+country_code,region_name,club_name
+CA,Quebec,CF Montréal
+CA,Ontario,Toronto FC
+CA,Ontario,York9 FC
+CA,Ontario,Forge FC
+CA,Nova Scotia,HFX Wanderers
+CA,Manitoba,Valour FC
+CA,Alberta,Cavalry FC
+CA,Alberta,FC Edmonton
+CA,British Columbia,Vancouver Whitecaps FC
+CA,British Columbia,Pacific FC
+MX,Ciudad de México,Club América
+MX,Ciudad de México,Calle del Toro No. 100
+MX,Ciudad de México,Cruz Azul
+MX,Ciudad de México,San Pablo No. 100
+MX,Ciudad de México,Pumas UNAM
+MX,Ciudad de México,Calle Totonacas No. 560
+MX,México,Deportivo Toluca FC
+MX,Ciudad de México,Felipe Villanueva No. 300 1er piso
+MX,México,Potros UAEM
+MX,Jalisco,CD Guadalajara Chivas
+MX,Jalisco,Francisco I. Madero No. 5840
+MX,Jalisco,CD Tapatío
+MX,Jalisco,Club Atlas
+MX,Jalisco,Av. Patria 2300
+MX,Jalisco,Leones Negros U. de G.
+MX,Jalisco,Estudiantes UAG
+MX,Jalisco,Tepatitlán FC
+MX,Nuevo León,CF Monterrey
+MX,Nuevo León,Av Revolución 846-B
+MX,Nuevo León,Tigres UANL
+MX,Nuevo León,Estadio Universitario
+MX,Puebla,Club Puebla
+MX,Puebla,Calz. Ignacio Zaragoza No. 666
+MX,Puebla,Lobos BUAP
+MX,Tlaxcala,Tlaxcala FC
+MX,Veracruz,Tiburones Rojos Veracruz
+MX,Veracruz,Av. Jacarandas s/n esq. Av. España Fraccionamiento Virginia Boca del Río // Veracruz
+MX,Chihuahua,FC Juárez
+MX,Chihuahua,Indios de Ciudad Juarez (2005-2011)
+MX,Tamaulipas,Altamira
+MX,Tamaulipas,Correcaminos
+MX,Tamaulipas,Tampico Madero
+MX,San Luis Potosí,Atlético San Luis
+MX,San Luis Potosí,San Luis FC (1957-2013)
+MX,Guanajuato,Club León
+MX,Guanajuato,Boulevard Adolfo López Mateos 1810
+MX,Guanajuato,Celaya
+MX,Morelos,Galeana
+MX,Morelos,Zacatepec
+MX,Baja California,Club Tijuana
+MX,Baja California,Paseo del Centenario 9211 Local 3 Módulo 6
+MX,Baja California Sur,Club Atlético La Paz
+MX,Sinaloa,Dorados Sinaloa
+MX,Sinaloa,Mazatlán FC
+MX,Zacatecas,Mineros Zacatecas
+MX,Michoacán,Atlético Morelia
+MX,Michoacán,Av. Camelinas No. 3537
+MX,Aguascalientes,Club Necaxa
+MX,Hidalgo,CF Pachuca
+MX,Hidalgo,Libramiento Circuito de la Concepción km 2 s/n
+MX,Hidalgo,Cruz Azul Hidalgo
+MX,Querétaro,Querétaro FC
+MX,Querétaro,Prol. Luis Vega y Monroy 409-4
+MX,Coahuila,Santos Laguna
+MX,Coahuila,Calz. Territorio Santos Modelo No. 1
+MX,Colima,U. de C.
+MX,Sonora,Cimarrones de Sonora
+MX,Oaxaca,Alebrijes de Oaxaca
+MX,Chiapas,Jaguares Chiapas
+MX,Chiapas,Calzada de las Etnias s/n
+MX,Chiapas,Cafetaleros de Chiapas
+MX,Campeche,Delfines
+MX,Yucatán,Mérida
+MX,Yucatán,Venados FC
+MX,Quintana Roo,Atlante FC
+MX,Quintana Roo,Av. Mayapán esq. Av. Kabah s/n Supermanzana 43 Pedregal del Bosque // Quintana Roo
+MX,Quintana Roo,Cancún FC
+US,Georgia,Atlanta United FC
+US,Georgia,ii) Atlanta United 2
+US,Georgia,South Georgia Tormenta FC
+US,Georgia,ii) South Georgia Tormenta 2
+US,Alabama,Birmingham Legion FC
+US,Arkansas,Little Rock Rangers
+US,South Carolina,Charleston Battery
+US,South Carolina,Greenville Triumph
+US,North Carolina,Charlotte FC
+US,North Carolina,Charlotte Independence
+US,North Carolina,North Carolina FC
+US,Wisconsin,Forward Madison FC
+US,Wisconsin,Milwaukee Bavarian SC
+US,Illinois,Chicago Fire
+US,Michigan,AFC Ann Arbor
+US,Michigan,Lansing Ignite FC
+US,Ohio,Columbus Crew SC
+US,Ohio,FC Cincinnati
+US,Ohio,Dayton Dutch Lions
+US,Iowa,Des Moines Menace
+US,Iowa,D.C. United
+US,Maryland,FC Baltimore
+US,Virginia,Loudoun United FC
+US,Virginia,Richmond Kickers
+US,Virginia,Virginia United FC
+US,Massachusetts,New England Revolution
+US,Massachusetts,Black Rock FC
+US,New York,New York City FC
+US,New York,New York Cosmos
+US,New Jersey,New York Red Bulls
+US,New Jersey,ii) New York Red Bulls II
+US,New Jersey,New York Red Bulls U23
+US,New Jersey,FC Motown
+US,Connecticut,Hartford Athletic
+US,Missouri,Saint Louis FC (2014-2020)
+US,Missouri,Saint Louis City
+US,Florida,Orlando City SC
+US,Florida,Inter Miami CF
+US,Florida,Miami FC
+US,Florida,Tampa Bay Rowdies
+US,Florida,Florida Soccer Soldiers
+US,Florida,Lakeland Tropics
+US,Florida,The Villages SC
+US,Pennsylvania,Philadelphia Union
+US,Pennsylvania,ii) Philadelphia Union II
+US,Pennsylvania,Philadelphia Lone Star FC
+US,Pennsylvania,Pittsburgh Riverhounds SC
+US,Pennsylvania,Erie Commodores FC
+US,Pennsylvania,Reading United AC
+US,Pennsylvania,West Chester Predators
+US,Tennessee,Nashville SC
+US,Tennessee,Memphis 901 FC
+US,Tennessee,Chattanooga Red Wolves
+US,Indiana,Indy Eleven
+US,Colorado,Colorado Rapids
+US,Colorado,Colorado Springs Switchbacks FC
+US,Colorado,FC Denver
+US,Texas,FC Dallas
+US,Texas,NTX Rayados
+US,Texas,Houston Dynamo
+US,Texas,Austin FC
+US,Texas,Austin Bold FC
+US,Texas,El Paso Locomotive FC
+US,Texas,Rio Grande Valley FC Toros
+US,Texas,San Antonio FC
+US,Texas,Brazos Valley Cavalry FC
+US,Texas,Laredo Heat
+US,Texas,Midland-Odessa Sockers FC
+US,California,LA Galaxy
+US,California,ii) LA Galaxy II
+US,California,Los Angeles FC
+US,California,San Jose Earthquakes
+US,California,Orange County SC
+US,California,Orange County FC
+US,California,Sacramento Republic FC
+US,California,San Diego Loyal SC
+US,California,Academica SC
+US,California,Cal FC
+US,California,El Farolito
+US,California,Golden State Force
+US,California,Fresno FC
+US,Washington,Seattle Sounders FC
+US,Washington,Tacoma Defiance
+US,Oregon,Portland Timbers
+US,Oregon,ii) Portland Timbers 2
+US,Oregon,FC Mulhouse Portland
+US,Minnesota,Minnesota United FC
+US,Minnesota,Duluth FC
+US,Utah,Real Salt Lake
+US,Utah,Real Monarchs
+US,Kansas,Sporting Kansas City
+US,Kansas,ii) Sporting Kansas City II
+US,Oklahoma,OKC Energy FC
+US,Oklahoma,FC Tulsa
+US,Kentucky,Louisville City FC
+US,Nevada,Las Vegas Lights FC
+US,Nevada,Reno 1868 FC
+US,New Mexico,New Mexico United
+US,Arizona,Phoenix Rising FC
+US,Florida,Tampa Bay Mutiny (1996-2001)
+US,Florida,Miami Fusion     (1998-2001)
+US,California,CD Chivas USA    (2005-2014)
+AU,New South Wales,Sydney FC
+AU,New South Wales,Western Sydney Wanderers
+AU,New South Wales,Central Coast Mariners
+AU,New South Wales,Newcastle United Jets
+AU,Victoria,Melbourne City FC
+AU,Victoria,Melbourne Victory
+AU,Victoria,Western United
+AU,Queensland,Brisbane Roar
+AU,South Australia,Adelaide United
+AU,Western Australia,Perth Glory
+NZ,Auckland › North Island,Auckland City FC
+NZ,Auckland › North Island,Waitakere United
+NZ,Auckland › North Island,Eastern Suburbs
+NZ,Hawke's Bay › North Island,Hawke's Bay United
+NZ,Wellington › North Island,Team Wellington
+NZ,Wellington › North Island,Wellington Phoenix
+NZ,========================================,ii) Wellington Phoenix Reserves
+NZ,Waikato › North Island,Hamilton Wanderers
+NZ,Waikato › North Island,WaiBOP United  (-2016)
+NZ,Manawatu-Wanganui › North Island,YoungHeart Manawatu
+NZ,Canterbury › South Island,Canterbury United
+NZ,Otago  › South Island,Southern United
+NZ,Nelson › South Island,Tasman United
+AR,Buenos Aires,All Boys
+AR,Buenos Aires,Argentinos Juniors
+AR,Buenos Aires,Boca Juniors
+AR,Buenos Aires,River Plate
+AR,Buenos Aires,San Lorenzo
+AR,Buenos Aires,Vélez Sarsfield
+AR,Buenos Aires,Huracán
+AR,Buenos Aires,Nueva Chicago
+AR,Buenos Aires,Atlanta
+AR,Buenos Aires,Barracas Central
+AR,Buenos Aires,Defensores de Belgranes
+AR,Buenos Aires,Deportivo Riestra
+AR,Buenos Aires,Estudiantes de Buenos Aires
+AR,Buenos Aires,Ferro Carril Oeste
+AR,Buenos Aires,CA Tigre
+AR,Buenos Aires,CA Independiente de Avellaneda
+AR,Buenos Aires,Racing Club
+AR,Buenos Aires,Deportivo Español
+AR,Buenos Aires,Quilmes AC
+AR,Buenos Aires,CA Lanús
+AR,Buenos Aires,Arsenal de Sarandí
+AR,Buenos Aires,Estudiantes LP
+AR,Buenos Aires,Gimnasia y Esgrima LP
+AR,Buenos Aires,Club Atlético Aldosivi
+AR,Buenos Aires,Alvarado
+AR,Buenos Aires,Club Atlético Banfield
+AR,Buenos Aires,Defensa y Justicia
+AR,Buenos Aires,Olimpo Bahía Blanca
+AR,Buenos Aires,Sarmiento Junín
+AR,Buenos Aires,Temperley
+AR,Buenos Aires,Chacarita Juniors
+AR,Buenos Aires,Agropecuario Argentino
+AR,Buenos Aires,Almagro
+AR,Buenos Aires,Brown
+AR,Buenos Aires,Deportivo Morón
+AR,Buenos Aires,Platense
+AR,Buenos Aires,Santamarina
+AR,Buenos Aires,Villa Dálmine
+AR,Buenos Aires,Huracán de Tres Arroyos
+AR,Buenos Aires,CA Los Andes
+AR,Provincia Santa Fe,Colón Santa Fe
+AR,Provincia Santa Fe,Unión Santa Fe
+AR,Provincia Santa Fe,Newell's Old Boys
+AR,Provincia Santa Fe,Rosario Central
+AR,Provincia Santa Fe,Tiro Federal
+AR,Provincia Santa Fe,Atlético Rafaela
+AR,Provincia Córdoba,Talleres de Córdoba
+AR,Provincia Córdoba,Club Atlético Belgrano
+AR,Provincia Córdoba,Instituto
+AR,Provincia Córdoba,Estudiantes de Río Cuarto
+AR,Provincia Mendoza,Godoy Cruz
+AR,Provincia Mendoza,Gimnasia y Esgrima de Mendoza
+AR,Provincia Mendoza,Independiente Rivadavia
+AR,Provincia San Juan,San Martín San Juan
+AR,Provincia Jujuy,Gimnasia y Esgrima de Jujuy
+AR,Tucumán,Atlético Tucumán
+AR,Tucumán,San Martín de Tucumán
+AR,Entre Ríos,Patronato
+AR,Misiones,Crucero del Norte
+AR,Santiago del Estero,Central Córdoba
+AR,Provincia Santiago del Estero,Mitre
+AR,Provincia Chubut,Guillermo Brown
+AR,Provincia Corrientes,Deportivo Mandiyú
+AR,Provincia Corrientes,Huracán Corrientes
+AR,Provincia Salta,Gimnasia y Tiro
+AR,Provincia Chaco,Chaco For Ever
+BO,=====================,Club Bolívar
+BO,=====================,The Strongest
+BO,=====================,Club Always Ready
+BO,=====================,La Paz FC (1989-2013)
+BO,=====================,Club Deportivo Oriente Petrolero
+BO,=====================,Club Blooming
+BO,=====================,Real Santa Cruz
+BO,=====================,Royal Pari FC
+BO,=====================,Club Destroyers
+BO,=====================,Real Potosí
+BO,=====================,Nacional Potosí
+BO,=====================,Club Deportivo San José
+BO,=====================,GV San José
+BO,=====================,Club Deportivo Guabirá
+BO,=====================,CD Jorge Wilstermann
+BO,=====================,Club Aurora
+BO,=====================,Universitario de Vinto
+BO,=====================,San Antonio Bulo Bulo
+BO,=====================,Universitario de Sucre
+BO,=====================,Independiente Petrolero
+BO,=====================,Sport Boys Warnes
+BO,=====================,Petrolero del Chaco
+BO,=====================,Real Tomayapo
+BO,=====================,Palmaflor del Trópico
+BR,São Paulo,Corinthians SP
+BR,São Paulo,São Paulo FC
+BR,São Paulo,Palmeiras SP
+BR,São Paulo,Santos SP
+BR,São Paulo,Ponte Preta
+BR,São Paulo,CA Bragantino (1928-2019)
+BR,São Paulo,RB Bragantino
+BR,São Paulo,RB Brasil
+BR,São Paulo,Oeste SP
+BR,São Paulo,Portuguesa
+BR,São Paulo,Botafogo SP
+BR,São Paulo,Guarani FC
+BR,São Paulo,São Bento
+BR,São Paulo,AD São Caetano
+BR,São Paulo,União São João
+BR,São Paulo,Grêmio Barueri
+BR,São Paulo,Santo André
+BR,São Paulo,São José
+BR,São Paulo,Grêmio Novorizontino
+BR,São Paulo,Mirassol FC SP
+BR,São Paulo,Ituano FC SP
+BR,Rio de Janeiro,Botafogo RJ
+BR,Rio de Janeiro,Flamengo RJ
+BR,Rio de Janeiro,Fluminense RJ
+BR,Rio de Janeiro,CR Vasco da Gama
+BR,Rio de Janeiro,America RJ
+BR,Minas Gerais,Atlético MG
+BR,Minas Gerais,Cruzeiro MG
+BR,Minas Gerais,América MG
+BR,Minas Gerais,Tupi MG
+BR,Minas Gerais,Ipatinga Futebol Clube
+BR,Minas Gerais,Betim FC
+BR,Minas Gerais,Tombense FC
+BR,Rio Grande do Sul,Grêmio RS
+BR,Rio Grande do Sul,Internacional Porto Alegre
+BR,Rio Grande do Sul,Brasil RS
+BR,Rio Grande do Sul,Esporte Clube Juventude
+BR,Rio Grande do Sul,Ypiranga FC
+BR,Rio Grande do Norte,América de Natal
+BR,Rio Grande do Norte,ABC FC RN
+BR,Paraíba,Sousa EC
+BR,Paraná,Atlético PR
+BR,Paraná,Coritiba PR
+BR,Paraná,Londrina EC
+BR,Paraná,Paraná Clube
+BR,Paraná,Operário Ferroviário
+BR,Santa Catarina,Figueirense
+BR,Santa Catarina,Chapecoense
+BR,Santa Catarina,Criciúma EC
+BR,Santa Catarina,Avaí FC
+BR,Santa Catarina,Joinville EC
+BR,Santa Catarina,Brusque FC
+BR,Pernambuco,Sport Recife
+BR,Pernambuco,Santa Cruz
+BR,Pernambuco,Náutico PE
+BR,Bahia,EC Vitória
+BR,Bahia,EC Bahia
+BR,Goiás,Goiás EC
+BR,Goiás,Atlético GO
+BR,Goiás,Vila Nova GO
+BR,Ceará,Ceára SC
+BR,Ceará,Fortaleza EC
+BR,Pará,Paysandu SC
+BR,Pará,Clube do Remo
+BR,Alagoas,CRB AL
+BR,Alagoas,CS Alagoano
+BR,Mato Grosso,Luverdense EC
+BR,Mato Grosso,Cuiabá
+BR,Maranhão,Sampaio Corrêa FC
+BR,Espírito Santo,Desportiva Ferroviária
+BR,Distrito Federal,Sociedade Esportiva do Gama
+BR,Distrito Federal,Brasiliense FC
+BR,Distrito Federal,Brasília FC
+BR,Amazonas,Amazonas FC
+CL,=====================,Universidad de Chile
+CL,=====================,Universidad Católica
+CL,=====================,Unión Española
+CL,=====================,Audax Italiano
+CL,=====================,Colo-Colo
+CL,=====================,CD Palestino
+CL,=====================,CD Magallanes
+CL,=====================,CD Huachipato
+CL,=====================,Deportes Iquique
+CL,=====================,CD Cobresal
+CL,=====================,Coquimbo Unido
+CL,=====================,Curicó Unido
+CL,=====================,CD Antofagasta
+CL,=====================,Everton de Viña del Mar
+CL,=====================,O'Higgins FC
+CL,=====================,Unión La Calera
+CL,=====================,CD Universidad de Concepción
+CL,=====================,Deportes Vallenar
+CL,=====================,Deportes La Serena
+CL,=====================,Santiago Wanderers
+CL,=====================,CD Ñublense
+CL,=====================,Deportes Melipilla
+CO,======================,Millonarios Bogotá
+CO,======================,Independiente Santa Fe
+CO,======================,La Equidad
+CO,======================,Fortaleza FC
+CO,======================,Bogotá FC
+CO,======================,Tigres FC
+CO,======================,Real Cundinamarca
+CO,======================,Atlético Nacional
+CO,======================,Independiente Medellín
+CO,======================,Junior de Barranquilla
+CO,======================,Barranquilla FC
+CO,======================,Once Caldas
+CO,======================,Deportes Tolima
+CO,======================,Alianza Petrolera FC (1990-2024)
+CO,======================,Alianza Valledupar
+CO,======================,América de Cali
+CO,======================,Deportivo Cali
+CO,======================,Atlético FC
+CO,======================,Boca Juniors de Cali
+CO,======================,Atlético Bucaramanga
+CO,======================,Real Santander
+CO,======================,Atlético Huila
+CO,======================,Cúcuta Deportivo
+CO,======================,Deportivo Pasto
+CO,======================,Envigado FC
+CO,======================,Jaguares de Córdoba
+CO,======================,Patriotas Boyacá
+CO,======================,Boyacá Chicó
+CO,======================,Rionegro Águilas
+CO,======================,Unión Magdalena
+CO,======================,Deportivo Pereira
+CO,======================,Deportes Quindío
+CO,======================,Internacional de Palmira
+CO,======================,Orsomarso SC
+CO,======================,Leones FC
+CO,======================,Llaneros FC
+CO,======================,Real Cartagena
+EC,=====================,Deportivo Quito
+EC,=====================,El Nacional
+EC,=====================,LDU Quito
+EC,=====================,CD Universidad Católica del Ecuador
+EC,=====================,América de Quito
+EC,=====================,SD Aucas
+EC,=====================,Cumbayá
+EC,=====================,CS Emelec
+EC,=====================,Barcelona Guayaquil
+EC,=====================,Guayaquil City FC
+EC,=====================,CSD Macará
+EC,=====================,Mushuc Runa SC
+EC,=====================,CD Técnico Universitario
+EC,=====================,LDU Loja
+EC,=====================,Delfín SC
+EC,=====================,Orense
+EC,=====================,Libertad
+EC,=====================,Imbabura
+EC,=====================,CD Cuenca
+EC,=====================,Fuerza Amarilla SC
+EC,=====================,Independiente del Valle
+EC,=====================,CD Olmedo
+GY,=======================,Alpha United FC
+PY,=======================,Libertad Ascunción
+PY,=======================,Club Olimpia
+PY,=======================,Club Nacional
+PY,=======================,Cerro Porteño
+PY,=======================,Club Guaraní
+PY,=======================,Club River Plate
+PY,=======================,Sportivo Trinidense
+PY,=======================,Tacuary
+PY,=======================,Resistencia FC
+PY,=======================,Deportivo Capiatá
+PY,=======================,Deportivo Santaní
+PY,=======================,Club General Díaz
+PY,=======================,Sportivo Luqueño
+PY,=======================,Club Sportivo San Lorenzo
+PY,=======================,Club Sol de América
+PY,=======================,Sportivo Ameliano
+PY,=======================,Guaireña FC
+PY,=======================,General Caballero (JLM)
+PY,=======================,2 de Mayo
+PY,=======================,3 de Febrero
+PE,======================,Alianza Lima
+PE,======================,Sporting Cristal
+PE,======================,Deportivo Municipal
+PE,======================,Club Deportivo Universidad de San Martín de Porres
+PE,======================,Club Universitario de Deportes
+PE,======================,Deportivo Coopsol
+PE,======================,Juan Aurich
+PE,======================,Molinos El Pirata
+PE,======================,Sport Huancayo
+PE,======================,Alianza Universidad
+PE,======================,Cusco FC
+PE,======================,Deportivo Garcilaso
+PE,======================,Club Cienciano
+PE,======================,Universidad César Vallejo
+PE,======================,Carlos A. Mannucci
+PE,======================,Ayacucho FC
+PE,======================,Deportivo Binacional FC
+PE,======================,Academia Cantolao
+PE,======================,Sport Boys
+PE,======================,FBC Melgar
+PE,======================,Unión Comercio
+PE,======================,Universidad Técnica de Cajamarca
+PE,======================,Club Atlético Grau
+PE,======================,Alianza Atlético
+PE,======================,Los Chankas
+PE,======================,Comerciantes Unidos
+PE,======================,AD Comerciantes FC
+PE,======================,ADT Tarma
+PE,======================,FC Carlos Stein
+PE,======================,Club Sport Rosario
+PE,======================,Santos de Nasca FC
+PE,======================,Deportivo Llacuabamba

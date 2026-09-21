@@ -74,6 +74,69 @@ class CatalogTaxonomyManagementTest extends TestCase
         ]);
     }
 
+    public function test_club_options_are_lazy_and_fifa_includes_country_fallback(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $japan = CatalogCountry::query()->where('code', 'JP')->firstOrFail();
+
+        $exact = CatalogClub::create([
+            'catalog_country_id' => $japan->id,
+            'catalog_county_code' => 'JP-13',
+            'governing_body' => 'fifa',
+            'name' => 'Tokyo Exact Club',
+            'slug' => 'tokyo-exact-club',
+            'is_active' => true,
+            'sort_order' => 10,
+        ]);
+        $fallback = CatalogClub::create([
+            'catalog_country_id' => $japan->id,
+            'catalog_county_code' => null,
+            'governing_body' => 'fifa',
+            'name' => 'Japan Country Club',
+            'slug' => 'japan-country-club',
+            'is_active' => true,
+            'sort_order' => 20,
+        ]);
+        CatalogClub::create([
+            'catalog_country_id' => $japan->id,
+            'catalog_county_code' => 'JP-27',
+            'governing_body' => 'fifa',
+            'name' => 'Osaka Other Club',
+            'slug' => 'osaka-other-club',
+            'is_active' => true,
+            'sort_order' => 30,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'fifa',
+                'catalog_country_id' => $japan->id,
+                'catalog_county_code' => 'JP-13',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('clubs.0.id', $exact->id)
+            ->assertJsonMissing(['id' => $fallback->id])
+            ->assertJsonMissing(['name' => 'Osaka Other Club']);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'fifa',
+                'catalog_country_id' => $japan->id,
+                'catalog_county_code' => 'JP-01',
+            ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $fallback->id, 'scope' => 'country'])
+            ->assertJsonMissing(['name' => 'Tokyo Exact Club'])
+            ->assertJsonMissing(['name' => 'Osaka Other Club']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.add-product'))
+            ->assertOk()
+            ->assertSee('data-club-options-url', false)
+            ->assertDontSee('Tokyo Exact Club', false)
+            ->assertDontSee('Japan Country Club', false);
+    }
+
     public function test_uefa_country_club_product_type_hierarchy_can_be_built(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
