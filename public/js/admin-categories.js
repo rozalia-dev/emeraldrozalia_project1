@@ -106,6 +106,7 @@
     const selectedCount = page.querySelector('[data-selected-count]');
     const editSelectedButton = page.querySelector('[data-edit-selected]');
     const deleteSelectedButton = page.querySelector('[data-delete-selected]');
+    const deleteSelectedCount = page.querySelector('[data-delete-selected-count]');
     const deleteAllButton = page.querySelector('[data-delete-all]');
 
     const selectedChecks = () => rowChecks.filter(input => input.checked);
@@ -114,9 +115,17 @@
         const selected = selectedChecks();
         const count = selected.length;
         if (selectedCount) selectedCount.textContent = count;
+        if (deleteSelectedCount) deleteSelectedCount.textContent = `(${count})`;
         if (bulkForm) bulkForm.hidden = count === 0;
         if (editSelectedButton) editSelectedButton.disabled = count !== 1;
         if (deleteSelectedButton) deleteSelectedButton.disabled = count === 0;
+        if (deleteAllButton) {
+            const total = Number.parseInt(page.dataset.totalCategories || '0', 10);
+            deleteAllButton.disabled = total < 1 || count > 0;
+            deleteAllButton.title = count > 0
+                ? 'Clear the selected categories before using Delete All.'
+                : 'Delete every category in the catalogue.';
+        }
         if (checkAll) {
             const visibleChecks = rowChecks.filter(input => !input.closest('[data-category-row]')?.classList.contains('cat-row-collapsed'));
             const visibleSelected = visibleChecks.filter(input => input.checked).length;
