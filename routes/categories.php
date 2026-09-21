@@ -11,6 +11,7 @@ Route::prefix('admin/resource/categories')
         Route::get('/', [CategoryController::class, 'index'])->name('index');
         Route::post('/', [CategoryController::class, 'store'])->name('store');
         Route::post('/bulk', [CategoryController::class, 'bulk'])->name('bulk');
+        Route::delete('/bulk', [CategoryController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::post('/reorder', [CategoryController::class, 'reorder'])->name('reorder');
         Route::post('/import', [CategoryController::class, 'import'])->name('import');
         Route::get('/export', [CategoryController::class, 'export'])->name('export');
