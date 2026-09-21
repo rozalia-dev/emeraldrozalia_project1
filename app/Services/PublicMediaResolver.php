@@ -96,9 +96,42 @@ class PublicMediaResolver
             ? $product->media->firstWhere('type', $type)
             : $product->media()->where('type', $type)->first();
 
-        return $media instanceof ProductMedia
-            ? $this->forProductMedia($media, $product->name)
-            : null;
+        if ($media instanceof ProductMedia) {
+            $resolved = $this->forProductMedia($media, $product->name);
+            if ($resolved) {
+                return $resolved;
+            }
+        }
+
+        // Listings often have their approved photography attached to a colour
+        // variant rather than to the product itself. Use that photography as
+        // the card image, while keeping the asset scoped to this exact product.
+        $variants = $product->relationLoaded('variants')
+            ? $product->variants
+            : $product->variants()->with('approvedMedia')->orderBy('sort_order')->orderBy('id')->get();
+
+        if ($product->relationLoaded('variants')) {
+            $product->loadMissing('variants.approvedMedia');
+            $variants = $product->variants;
+        }
+
+        foreach ($variants->sortBy([['sort_order', 'asc'], ['id', 'asc']]) as $variant) {
+            if (! $variant->is_active) {
+                continue;
+            }
+
+            $variant->setRelation('product', $product);
+            $variantMedia = $variant->approvedMedia->firstWhere('type', $type);
+
+            if ($variantMedia) {
+                $resolved = $this->forVariantMedia($variantMedia, $product->name);
+                if ($resolved) {
+                    return $resolved;
+                }
+            }
+        }
+
+        return null;
     }
 
     public function forProductMedia(ProductMedia $media, ?string $fallbackAlt = null): ?array

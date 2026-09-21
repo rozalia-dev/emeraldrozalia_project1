@@ -17,9 +17,7 @@
     $materialOptions = ['Tweed','Wool','Cotton','Linen','Leather','Felt'];
     $priceCeiling = max(1, (int) ($priceCeiling ?? 1));
     $productImage = static function ($product): ?array {
-        $media = $product->media?->firstWhere('type', 'image');
-
-        return $media ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($media, $product->name) : null;
+        return app(\App\Services\PublicMediaResolver::class)->forProduct($product);
     };
     $swatchColour = static function ($value): string {
         $value = strtolower(trim((string) $value));

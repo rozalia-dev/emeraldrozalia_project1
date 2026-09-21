@@ -591,6 +591,79 @@
     }
 }
 
+/* Keep public product cards image-led, consistent and free of control-panel copy. */
+.home-page .home-managed-media[data-public-media-state="awaiting-approved-media"]::before {
+    display: none;
+    content: none;
+}
+
+.home-page .home-collections--managed .home-managed-media--collection {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+}
+
+.home-page .home-collections--managed .home-managed-media--collection img,
+.home-page .home-product-card .home-product-media img {
+    object-fit: contain;
+}
+
+.home-page .home-product-card .home-product-media {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+}
+
+.home-page .home-product-card .home-product-media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.home-page .home-product-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.home-page .home-product-card .home-product-link {
+    flex: 1;
+}
+
+.home-page .home-product-card .home-product-link > span {
+    font-size: clamp(.9rem, .95vw, 1rem);
+    line-height: 1.35;
+}
+
+.home-page .home-product-card .home-product-link > strong {
+    font-size: clamp(1rem, 1.05vw, 1.1rem);
+}
+
+.home-page .home-collection-card h3 {
+    font-size: clamp(.95rem, 1vw, 1.1rem);
+}
+
+.home-page .home-collection-card p {
+    font-size: .875rem;
+}
+
+.home-page .home-collection-card > div:last-child > span {
+    font-size: .875rem;
+}
+
+@media (min-width: 1101px) {
+    .home-page .home-product-card {
+        flex-basis: calc((100% - 21px) / 4);
+    }
+}
+
+@media (min-width: 701px) and (max-width: 1100px) {
+    .home-page .home-product-card {
+        flex-basis: calc((100% - 14px) / 3);
+    }
+}
+
 /* The hero is a real layout: editable copy on the left, approved media in
    the centre and a functional Virtual Try-On panel on the right. The
    reference asset is cropped into the centre media slot only; it is never

@@ -24,9 +24,7 @@
 
 @php
     $productImage = static function ($product): ?array {
-        $media = $product->media?->firstWhere('type', 'image');
-
-        return $media ? app(\App\Services\PublicMediaResolver::class)->forProductMedia($media, $product->name) : null;
+        return app(\App\Services\PublicMediaResolver::class)->forProduct($product);
     };
 
     $swatchColour = static function ($value): string {

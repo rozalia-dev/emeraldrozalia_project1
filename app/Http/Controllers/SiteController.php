@@ -40,12 +40,44 @@ class SiteController extends Controller
             ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
             ->first();
 
-        $homeProducts = Product::with('media')
+        $homeProducts = Product::with(['media', 'variants.approvedMedia'])
             ->published()
             ->where('is_new', true)
             ->latest()
             ->limit(8)
             ->get();
+        $categories = Category::where('is_active', true)
+            ->withCount(['products' => fn ($query) => $query->published()])
+            ->orderBy('sort_order')
+            ->get();
+        $collectionCategoryAliases = [
+            'baseball-caps' => ['baseball-caps', 'caps', 'outdoor', 'sports'],
+            'bucket-hats' => ['bucket-hats', 'hats', 'outdoor'],
+            'snapbacks' => ['snapbacks', 'winter', 'winder-cold'],
+            'irish-traditional-flat-caps' => ['irish-traditional-flat-caps', 'traditional'],
+            'irish-heritage-hats' => ['irish-heritage-hats', 'heritage'],
+            'beanies-more' => ['beanies-more', 'beanies', 'heritage', 'irish-heritage-hats'],
+        ];
+        $collectionCategorySlugs = collect($collectionCategoryAliases)->flatten()->unique()->all();
+        $collectionCategoryMedia = [];
+        foreach ($categories->whereIn('slug', $collectionCategorySlugs)->where('products_count', '>', 0) as $category) {
+            $representative = Product::query()
+                ->published()
+                ->where('category_id', $category->id)
+                ->where(function ($query) {
+                    $query->whereHas('media', fn ($media) => $media->where('type', 'image'))
+                        ->orWhereHas('variants', fn ($variant) => $variant
+                            ->where('is_active', true)
+                            ->whereHas('approvedMedia', fn ($media) => $media->where('type', 'image')));
+                })
+                ->with(['media', 'variants.approvedMedia'])
+                ->latest('updated_at')
+                ->first();
+
+            if ($representative) {
+                $collectionCategoryMedia[$category->slug] = $mediaResolver->forProduct($representative);
+            }
+        }
         $bestSellerCollection = ProductCollection::query()
             ->where('slug', 'best-sellers')
             ->where('status', 'active')
@@ -54,14 +86,14 @@ class SiteController extends Controller
         $homeBestsellers = $bestSellerCollection
             ? $bestSellerCollection->products()
                 ->published()
-                ->with('media')
+                ->with(['media', 'variants.approvedMedia'])
                 ->orderBy('collection_product.sort_order')
                 ->orderBy('products.name')
                 ->limit(8)
                 ->get()
             : $homeProducts;
 
-        $homeLatestProducts = Product::with('media')
+        $homeLatestProducts = Product::with(['media', 'variants.approvedMedia'])
             ->published()
             ->latest()
             ->limit(8)
@@ -75,10 +107,8 @@ class SiteController extends Controller
             ->get();
 
         return [
-            'categories' => Category::where('is_active', true)
-                ->withCount(['products' => fn ($query) => $query->published()])
-                ->orderBy('sort_order')
-                ->get(),
+            'categories' => $categories,
+            'homeCollectionCategoryMedia' => $collectionCategoryMedia,
             'homeProducts' => $homeProducts,
             'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
@@ -118,16 +148,47 @@ class SiteController extends Controller
         $bestsellers = $bestSellerCollection
             ? $bestSellerCollection->products()
                 ->published()
-                ->with('media')
+                ->with(['media', 'variants.approvedMedia'])
                 ->orderBy('collection_product.sort_order')
                 ->limit(6)
                 ->get()
-            : Product::published()->with('media')->latest()->limit(6)->get();
+            : Product::published()->with(['media', 'variants.approvedMedia'])->latest()->limit(6)->get();
+
+        $collections = ProductCollection::query()
+            ->with('media')
+            ->where('status', 'active')
+            ->where('visibility', 'visible')
+            ->orderBy('sort_order')
+            ->get();
+        $collectionProductMedia = [];
+        foreach ($collections as $collection) {
+            if ($collection->media?->isApprovedPublic()) {
+                continue;
+            }
+
+            $representative = $collection->products()
+                ->published()
+                ->where(function ($query) {
+                    $query->whereHas('media', fn ($media) => $media->where('type', 'image'))
+                        ->orWhereHas('variants', fn ($variant) => $variant
+                            ->where('is_active', true)
+                            ->whereHas('approvedMedia', fn ($media) => $media->where('type', 'image')));
+                })
+                ->with(['media', 'variants.approvedMedia'])
+                ->orderBy('collection_product.sort_order')
+                ->orderBy('products.name')
+                ->first();
+
+            if ($representative) {
+                $collectionProductMedia[$collection->id] = app(PublicMediaResolver::class)->forProduct($representative);
+            }
+        }
 
         return view('site.collections', [
             'categories' => Category::withCount(['products' => fn ($q) => $q->published()])->where('is_active', true)->orderBy('sort_order')->get(),
             'bestsellers' => $bestsellers,
-            'collections' => ProductCollection::with('media')->where('status', 'active')->where('visibility', 'visible')->orderBy('sort_order')->get(),
+            'collections' => $collections,
+            'collectionProductMedia' => $collectionProductMedia,
         ]);
     }
 
@@ -140,7 +201,7 @@ class SiteController extends Controller
                 ->where('status', 'published')
                 ->where('visibility', 'public')
                 ->latest('updated_at'),
-        ])->withCount('reviews')->withAvg('reviews', 'rating')->published()->where('is_new', true);
+        ])->with(['variants.approvedMedia'])->withCount('reviews')->withAvg('reviews', 'rating')->published()->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
         $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
         if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
@@ -207,7 +268,7 @@ class SiteController extends Controller
     private function categoryLanding(CatalogFilterRequest $request, string $slug, string $eyebrow, string $title, string $intro)
     {
         $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
-        $query = $category->exists ? $category->products()->with(['category', 'media'])->published() : Product::whereRaw('1 = 0');
+        $query = $category->exists ? $category->products()->with(['category', 'media', 'variants.approvedMedia'])->published() : Product::whereRaw('1 = 0');
         if ($request->filled('q')) $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('sku', 'like', '%'.$request->q.'%'));
         match ($request->input('sort')) {
             'price_low' => $query->orderBy('price'),
@@ -308,7 +369,7 @@ class SiteController extends Controller
             ->with([
                 'category',
                 'media',
-                'variants' => fn ($variantQuery) => $variantQuery->where('is_active', true)->orderBy('sort_order')->orderBy('id'),
+                'variants' => fn ($variantQuery) => $variantQuery->where('is_active', true)->with('approvedMedia')->orderBy('sort_order')->orderBy('id'),
                 'spins' => fn ($spinQuery) => $spinQuery->where('status', 'published')->where('visibility', 'public')->latest('updated_at'),
                 'tryOnAssets' => fn ($tryOnQuery) => $tryOnQuery->where('status', 'published')->where('visibility', 'public')->latest('updated_at'),
             ])
@@ -557,7 +618,7 @@ class SiteController extends Controller
         $related = Product::published()
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
-            ->with('media')
+            ->with(['media', 'variants.approvedMedia'])
             ->limit(4)->get();
         return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData'));
     }

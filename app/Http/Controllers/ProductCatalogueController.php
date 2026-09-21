@@ -88,7 +88,7 @@ class ProductCatalogueController extends Controller
         $products = Product::withoutGlobalScopes()
             ->where('company_id', $companyId)
             ->published()
-            ->with(['category', 'media'])
+            ->with(['category', 'media', 'variants.approvedMedia'])
             ->get()
             ->sortBy(function (Product $product): string {
                 $sort = (int) ($product->category?->sort_order ?? 999999);
