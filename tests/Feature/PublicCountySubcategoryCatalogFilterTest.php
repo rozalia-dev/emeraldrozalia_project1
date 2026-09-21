@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CatalogClub;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
@@ -189,6 +190,151 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
             ->assertOk()
             ->assertSee('Metadata Limerick Cap', false)
             ->assertDontSee('Metadata Dublin Cap', false);
+    }
+
+    public function test_gaa_public_catalogue_uses_country_county_club_then_subcategory(): void
+    {
+        $ireland = CatalogCountry::query()->where('code', 'IE')->firstOrFail();
+
+        $root = Category::create([
+            'name' => 'GAA',
+            'slug' => 'gaa-public-filter-root',
+            'taxonomy_type' => 'gaa',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $country = Category::create([
+            'parent_id' => $root->id,
+            'name' => 'Ireland',
+            'slug' => 'gaa-public-ie',
+            'taxonomy_type' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $laois = Category::create([
+            'parent_id' => $country->id,
+            'name' => 'Laois',
+            'slug' => 'gaa-public-ie-laois',
+            'taxonomy_type' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $laoisClub = CatalogClub::create([
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'governing_body' => 'gaa',
+            'name' => 'Laois GAA',
+            'slug' => 'laois-gaa',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $portlaoiseClub = CatalogClub::create([
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'governing_body' => 'gaa',
+            'name' => 'Portlaoise GAA',
+            'slug' => 'portlaoise-gaa',
+            'is_active' => true,
+            'sort_order' => 2,
+        ]);
+
+        $laoisClubCategory = Category::create([
+            'parent_id' => $laois->id,
+            'name' => 'Laois GAA',
+            'slug' => 'gaa-public-ie-laois-laois-gaa',
+            'taxonomy_type' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'catalog_club_id' => $laoisClub->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $portlaoiseClubCategory = Category::create([
+            'parent_id' => $laois->id,
+            'name' => 'Portlaoise GAA',
+            'slug' => 'gaa-public-ie-laois-portlaoise-gaa',
+            'taxonomy_type' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'catalog_club_id' => $portlaoiseClub->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 2,
+        ]);
+
+        $laoisCaps = Category::create([
+            'parent_id' => $laoisClubCategory->id,
+            'name' => 'Caps',
+            'slug' => 'gaa-public-ie-laois-laois-gaa-caps',
+            'taxonomy_type' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'catalog_club_id' => $laoisClub->id,
+            'product_type' => 'caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $portlaoiseCaps = Category::create([
+            'parent_id' => $portlaoiseClubCategory->id,
+            'name' => 'Caps',
+            'slug' => 'gaa-public-ie-laois-portlaoise-gaa-caps',
+            'taxonomy_type' => 'gaa',
+            'catalog_country_id' => $ireland->id,
+            'catalog_county_code' => 'IE-LS',
+            'catalog_club_id' => $portlaoiseClub->id,
+            'product_type' => 'caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->product($laoisCaps, 'Laois GAA Cap', 'GAA-LAOIS-CAP');
+        $this->product($portlaoiseCaps, 'Portlaoise GAA Cap', 'GAA-PORTLAOISE-CAP');
+
+        $this->get(route('category', $root))
+            ->assertOk()
+            ->assertSee('data-shop-country', false)
+            ->assertSee('data-shop-county', false)
+            ->assertSee('data-shop-club', false)
+            ->assertSee('Select Country First', false)
+            ->assertSee('Select Club First', false);
+
+        $this->get(route('category', $root).'?country=IE')
+            ->assertOk()
+            ->assertSee('Laois', false)
+            ->assertSee('Select County First', false);
+
+        $this->get(route('category', $root).'?country=IE&county=IE-LS')
+            ->assertOk()
+            ->assertSee('Laois GAA', false)
+            ->assertSee('Portlaoise GAA', false)
+            ->assertSee('Select Club First', false);
+
+        $this->get(route('category', $root).'?country=IE&county=IE-LS&club=laois-gaa&subcategory=type:caps')
+            ->assertOk()
+            ->assertSee('Laois GAA Cap', false)
+            ->assertDontSee('Portlaoise GAA Cap', false);
     }
 
     public function test_county_control_is_not_rendered_for_non_traditional_or_heritage_category(): void
