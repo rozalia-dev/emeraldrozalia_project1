@@ -5,7 +5,7 @@
 @push('styles')
 <link rel="stylesheet" href="/css/shop.css?v=20260919-catalog-type-scale">
 <style>
-.shop-view-tools{flex-wrap:wrap;justify-content:flex-end}.shop-toolbar-filter{display:grid;gap:4px;min-width:142px}.shop-toolbar-filter>span{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5b685f}.shop-toolbar-filter select{min-width:142px;max-width:210px}.shop-toolbar-filter--county select{min-width:180px;max-width:250px}.shop-toolbar-filter--subcategory select{min-width:180px;max-width:250px}.shop-toolbar-filter small{font-size:11px;line-height:1.25;color:#718078;max-width:210px}.shop-view-tools .shop-layout-switch{align-self:end}.shop-hero.has-category-banner:before{z-index:1;background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 29%,rgba(3,16,11,.82) 36%,rgba(3,16,11,.24) 46%,rgba(3,16,11,0) 58%)}.shop-hero.has-category-banner .shop-hero-shade{z-index:1}.shop-hero.has-category-banner .shop-hero-content{width:36%;max-width:640px;box-sizing:border-box}.shop-category-hero-media{position:absolute;z-index:0;inset:0 0 0 36%;display:block;overflow:hidden;background:#07130d}.shop-category-hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}.shop-category-hero-media:hover img{transform:scale(1.01)}.shop-category-hero-media img{transition:transform .25s ease}@media(max-width:1050px){.shop-results-top{align-items:flex-start}.shop-view-tools{width:100%;justify-content:flex-start}.shop-toolbar-filter{flex:1 1 145px}.shop-toolbar-filter select{width:100%;max-width:none}.shop-hero.has-category-banner .shop-hero-content{width:44%}.shop-category-hero-media{left:44%}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 35%,rgba(3,16,11,.72) 44%,rgba(3,16,11,.12) 58%,rgba(3,16,11,0) 70%)}}@media(max-width:700px){.shop-hero.has-category-banner .shop-hero-content{width:100%;max-width:none}.shop-category-hero-media{inset:0;opacity:.42}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,rgba(3,16,11,.94),rgba(3,16,11,.72))}}@media(max-width:650px){.shop-view-tools{display:grid!important;grid-template-columns:1fr 1fr}.shop-toolbar-filter,.shop-view-tools>label{min-width:0!important}.shop-toolbar-filter select,.shop-view-tools>label select{width:100%;min-width:0!important;max-width:none}.shop-layout-switch{grid-column:1/-1;justify-self:end}}.shop-empty-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}.shop-empty-actions a{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding:10px 18px;border:1px solid #075b2f;border-radius:8px;font-weight:800;text-decoration:none}.shop-empty-actions .shop-empty-contact{background:#075b2f;color:#fff}.shop-empty-actions .shop-empty-contact:hover,.shop-empty-actions .shop-empty-contact:focus-visible{background:#064a27}.shop-empty-actions .shop-empty-reset{background:transparent;color:#075b2f}
+.shop-view-tools{flex-wrap:wrap;justify-content:flex-end}.shop-toolbar-filter{display:grid;gap:4px;min-width:142px}.shop-toolbar-filter>span{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5b685f}.shop-toolbar-filter select{min-width:142px;max-width:210px}.shop-toolbar-filter--county select{min-width:180px;max-width:250px}.shop-toolbar-filter--club select{min-width:200px;max-width:280px}.shop-toolbar-filter--subcategory select{min-width:180px;max-width:250px}.shop-toolbar-filter small{font-size:11px;line-height:1.25;color:#718078;max-width:210px}.shop-view-tools .shop-layout-switch{align-self:end}.shop-hero.has-category-banner:before{z-index:1;background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 29%,rgba(3,16,11,.82) 36%,rgba(3,16,11,.24) 46%,rgba(3,16,11,0) 58%)}.shop-hero.has-category-banner .shop-hero-shade{z-index:1}.shop-hero.has-category-banner .shop-hero-content{width:36%;max-width:640px;box-sizing:border-box}.shop-category-hero-media{position:absolute;z-index:0;inset:0 0 0 36%;display:block;overflow:hidden;background:#07130d}.shop-category-hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}.shop-category-hero-media:hover img{transform:scale(1.01)}.shop-category-hero-media img{transition:transform .25s ease}@media(max-width:1050px){.shop-results-top{align-items:flex-start}.shop-view-tools{width:100%;justify-content:flex-start}.shop-toolbar-filter{flex:1 1 145px}.shop-toolbar-filter select{width:100%;max-width:none}.shop-hero.has-category-banner .shop-hero-content{width:44%}.shop-category-hero-media{left:44%}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,#03100b 0%,rgba(3,16,11,.98) 35%,rgba(3,16,11,.72) 44%,rgba(3,16,11,.12) 58%,rgba(3,16,11,0) 70%)}}@media(max-width:700px){.shop-hero.has-category-banner .shop-hero-content{width:100%;max-width:none}.shop-category-hero-media{inset:0;opacity:.42}.shop-hero.has-category-banner:before{background-image:linear-gradient(90deg,rgba(3,16,11,.94),rgba(3,16,11,.72))}}@media(max-width:650px){.shop-view-tools{display:grid!important;grid-template-columns:1fr 1fr}.shop-toolbar-filter,.shop-view-tools>label{min-width:0!important}.shop-toolbar-filter select,.shop-view-tools>label select{width:100%;min-width:0!important;max-width:none}.shop-layout-switch{grid-column:1/-1;justify-self:end}}.shop-empty-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}.shop-empty-actions a{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding:10px 18px;border:1px solid #075b2f;border-radius:8px;font-weight:800;text-decoration:none}.shop-empty-actions .shop-empty-contact{background:#075b2f;color:#fff}.shop-empty-actions .shop-empty-contact:hover,.shop-empty-actions .shop-empty-contact:focus-visible{background:#064a27}.shop-empty-actions .shop-empty-reset{background:transparent;color:#075b2f}
 .shop-product-card--coming-soon{display:flex;height:100%;flex-direction:column;cursor:default;border-style:dashed;border-color:rgba(143,191,89,.62);background:linear-gradient(180deg,#0b1912,#07110c)}
 .shop-product-card--coming-soon:hover{transform:none;border-color:rgba(143,191,89,.62);box-shadow:none}
 .shop-product-card--coming-soon .shop-product-media{display:grid;flex:0 0 auto;place-items:center;background:radial-gradient(circle at 50% 42%,rgba(46,133,74,.3),transparent 53%),linear-gradient(145deg,#0b2418,#07150e)}
@@ -43,7 +43,8 @@
     $mainCategories = $categories->filter(fn ($category) => is_null($category->parent_id))->values();
     $hasCategoryContext = (bool) $activeCategory || count($selectedCategories) === 1;
     $hierarchicalLocation = (bool) ($catalogCountyEnabled ?? false);
-    $subcategoryReady = $hasCategoryContext;
+    $hierarchicalClub = (bool) ($catalogClubEnabled ?? false);
+    $subcategoryReady = $hasCategoryContext && (! $hierarchicalClub || filled($selectedClub ?? ''));
     $displaySubcategoryOptions = collect($catalogSubcategoryOptions ?? [])->unique('value')->values();
 
     $resetUrl = $activeCategory ? route('category', $activeCategory) : route('shop');
@@ -51,11 +52,15 @@
     $activeFilterCount = count($selectedCategories) + count($selectedMaterials) + count($selectedColours) + count($selectedSizes)
         + (filled($selectedCountry ?? '') ? 1 : 0)
         + (filled($selectedCounty ?? '') ? 1 : 0)
+        + (filled($selectedClub ?? '') ? 1 : 0)
         + (filled($selectedSubcategory ?? '') ? 1 : 0)
         + ($availability ? 1 : 0) + (request()->boolean('sale') ? 1 : 0)
         + (request()->filled('min_price') ? 1 : 0) + (request()->filled('max_price') ? 1 : 0);
     $selectedCountyLabel = filled($selectedCounty ?? '')
         ? (data_get(collect($catalogFilterCounties ?? [])->firstWhere('code', $selectedCounty), 'name') ?: $selectedCounty)
+        : null;
+    $selectedClubLabel = filled($selectedClub ?? '')
+        ? (optional(($catalogFilterClubs ?? collect())->firstWhere('slug', $selectedClub))->name ?: $selectedClub)
         : null;
     $selectedSubcategoryLabel = filled($selectedSubcategory ?? '')
         ? (data_get(collect($catalogSubcategoryOptions ?? [])->firstWhere('value', $selectedSubcategory), 'label') ?: $selectedSubcategory)
@@ -233,6 +238,7 @@
                             @if(request()->filled('q'))<span>“{{ request('q') }}”</span>@endif
                             @if(filled($selectedCountry ?? ''))<span>{{ optional(($catalogFilterCountries ?? collect())->firstWhere('code', $selectedCountry))->name ?: $selectedCountry }}</span>@endif
                             @if($selectedCountyLabel)<span>{{ $selectedCountyLabel }}</span>@endif
+                            @if($selectedClubLabel)<span>{{ $selectedClubLabel }}</span>@endif
                             @if($selectedSubcategoryLabel)<span>{{ $selectedSubcategoryLabel }}</span>@endif
                             @foreach($selectedCategories as $value)<span>{{ str($value)->replace('-',' ')->headline() }}</span>@endforeach
                             @foreach($selectedMaterials as $value)<span>{{ $value }}</span>@endforeach
@@ -254,7 +260,13 @@
                                 <option value="{{ $country->code }}" @selected($selectedCountry === $country->code)>{{ $country->name }}</option>
                             @endforeach
                         </select>
-                        <small>EU countries only for {{ str($catalogCountryScope)->headline() }}. Choose country first.</small>
+                        <small>
+                            @if(in_array($catalogCountryScope, ['traditional', 'heritage'], true))
+                                EU countries only for {{ str($catalogCountryScope)->headline() }}. Choose country first.
+                            @else
+                                Choose country first.
+                            @endif
+                        </small>
                     </label>
                     <label class="shop-toolbar-filter shop-toolbar-filter--county">
                         <span>County</span>
@@ -271,11 +283,33 @@
                         <small>Then choose county.</small>
                     </label>
                     @endif
+                    @if($hierarchicalClub)
+                    <label class="shop-toolbar-filter shop-toolbar-filter--club">
+                        <span>{{ strtoupper((string) $catalogCountryScope) }} Club</span>
+                        <select name="club" form="shop-filter-form" aria-label="Select {{ strtoupper((string) $catalogCountryScope) }} club" data-shop-club @disabled(!$selectedCountry || !$selectedCounty)>
+                            @if(!$selectedCountry)
+                                <option value="">Select Country First</option>
+                            @elseif(!$selectedCounty)
+                                <option value="">Select County First</option>
+                            @elseif(($catalogFilterClubs ?? collect())->isEmpty())
+                                <option value="">No Clubs Available</option>
+                            @else
+                                <option value="">Select Club</option>
+                                @foreach($catalogFilterClubs as $club)
+                                    <option value="{{ $club->slug }}" @selected($selectedClub === $club->slug)>{{ $club->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <small>Then choose club / team.</small>
+                    </label>
+                    @endif
                     <label class="shop-toolbar-filter shop-toolbar-filter--subcategory">
                         <span>Subcategory</span>
                         <select name="subcategory" form="shop-filter-form" aria-label="Select subcategory" data-shop-subcategory @disabled(!$subcategoryReady)>
                             @if(!$hasCategoryContext)
                                 <option value="">Select Main Category First</option>
+                            @elseif($hierarchicalClub && !filled($selectedClub ?? ''))
+                                <option value="">Select Club First</option>
                             @else
                                 <option value="">All Subcategories</option>
                                 @foreach($displaySubcategoryOptions as $option)
@@ -285,6 +319,8 @@
                         </select>
                         @if($hasCategoryContext && $displaySubcategoryOptions->isEmpty())
                             <small>No subcategories are configured for this main category.</small>
+                        @elseif($hierarchicalClub)
+                            <small>Choose after country, county and club.</small>
                         @elseif($hierarchicalLocation)
                             <small>Independent of country and county.</small>
                         @endif
@@ -433,5 +469,5 @@
 @endsection
 
 @push('scripts')
-<script src="/js/shop.js?v=20260917-category-hierarchy" defer></script>
+<script src="/js/shop.js?v=20260921-public-geo-club-filters" defer></script>
 @endpush

@@ -16,7 +16,7 @@ class CatalogFilterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $normalized = [];
-        foreach (['q', 'country', 'county', 'subcategory', 'min_price', 'max_price', 'availability', 'sort'] as $field) {
+        foreach (['q', 'country', 'county', 'club', 'subcategory', 'min_price', 'max_price', 'availability', 'sort'] as $field) {
             if ($this->has($field)) {
                 $normalized[$field] = trim((string) $this->input($field));
             }
@@ -60,6 +60,7 @@ class CatalogFilterRequest extends FormRequest
                     }
                 },
             ],
+            'club' => ['nullable', 'string', 'max:220', 'regex:/^[a-z0-9][a-z0-9-]*$/i'],
             'subcategory' => ['nullable', 'string', 'max:200', 'regex:/^(?:type|category):[a-z0-9][a-z0-9-]*$/i'],
             'category' => ['nullable'],
             'category.*' => ['string', 'max:80'],

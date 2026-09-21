@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\{CatalogFilterRequest, PublicInquiryRequest};
-use App\Models\{Banner,CatalogCountry,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
+use App\Models\{Banner,CatalogClub,CatalogCountry,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -265,7 +265,8 @@ class SiteController extends Controller
             $contextCategory = $categoriesBySlug->get($selectedCategories[0]);
         }
         $catalogCountryScope = $this->catalogTaxonomyForCategory($contextCategory, $categoriesById);
-        $catalogCountyEnabled = in_array($catalogCountryScope, ['traditional', 'heritage'], true);
+        $catalogCountyEnabled = in_array($catalogCountryScope, ['traditional', 'heritage', 'gaa', 'english', 'uefa', 'fifa'], true);
+        $catalogClubEnabled = in_array($catalogCountryScope, ['gaa', 'english', 'uefa', 'fifa'], true);
 
         $catalogFilterCountries = CatalogCountry::query()
             ->active()
@@ -286,6 +287,24 @@ class SiteController extends Controller
         $catalogFilterCounties = $catalogCountyEnabled && $selectedCountry !== ''
             ? CatalogCounties::forCountry($selectedCountry)
             : [];
+
+        $catalogFilterClubs = collect();
+        if ($catalogClubEnabled && $selectedCountryModel && $selectedCounty !== '') {
+            $catalogFilterClubs = CatalogClub::query()
+                ->active()
+                ->where('governing_body', $catalogCountryScope)
+                ->where('catalog_country_id', $selectedCountryModel->id)
+                ->where('catalog_county_code', $selectedCounty)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug']);
+        }
+
+        $selectedClub = trim((string) $request->input('club', ''));
+        $selectedClubModel = $selectedClub !== '' ? $catalogFilterClubs->firstWhere('slug', $selectedClub) : null;
+        if ($selectedClub !== '' && (! $catalogClubEnabled || ! $selectedClubModel)) {
+            throw ValidationException::withMessages(['club' => 'The selected club is not available for this catalogue category, country and county.']);
+        }
 
         $catalogSubcategoryOptions = collect(CatalogProductTypes::all())
             ->map(fn (string $label, string $value): array => [
@@ -349,6 +368,13 @@ class SiteController extends Controller
                 $countyQuery
                     ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_county_code', $selectedCounty))
                     ->orWhere('product_metadata->catalog_classification->catalog_county_code', $selectedCounty);
+            });
+        }
+        if ($selectedClubModel) {
+            $query->where(function ($clubQuery) use ($selectedClubModel) {
+                $clubQuery
+                    ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('catalog_club_id', $selectedClubModel->id))
+                    ->orWhere('product_metadata->catalog_classification->catalog_club_id', (string) $selectedClubModel->id);
             });
         }
         if ($selectedSubcategory !== '') {
@@ -439,12 +465,15 @@ class SiteController extends Controller
             'selectedSizes' => $selectedSizes,
             'selectedCountry' => $selectedCountry,
             'selectedCounty' => $selectedCounty,
+            'selectedClub' => $selectedClub,
             'selectedSubcategory' => $selectedSubcategory,
             'catalogFilterCountries' => $catalogFilterCountries,
             'catalogFilterCounties' => $catalogFilterCounties,
+            'catalogFilterClubs' => $catalogFilterClubs,
             'catalogSubcategoryOptions' => $catalogSubcategoryOptions,
             'catalogCountryScope' => $catalogCountryScope,
             'catalogCountyEnabled' => $catalogCountyEnabled,
+            'catalogClubEnabled' => $catalogClubEnabled,
             'availability' => $availability,
             'sort' => $sort,
             'perPage' => $perPage,
