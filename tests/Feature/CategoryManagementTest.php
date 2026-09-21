@@ -19,7 +19,7 @@ class CategoryManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.categories.index'))
             ->assertOk()
-            ->assertSee(['Categories', 'All Categories', 'Category Tree', 'UUID Traceability', 'Edit', 'Delete Selected', 'Delete All'])
+            ->assertSee(['Categories', 'All Categories', 'Category Tree', 'UUID Traceability', 'Public Category Icon', 'Edit', 'Delete Selected', 'Delete All'])
             ->assertSee('data-edit-selected', false)
             ->assertSee('data-delete-selected', false)
             ->assertSee('data-delete-selected-count', false)
@@ -33,6 +33,7 @@ class CategoryManagementTest extends TestCase
                 'status' => 'active',
                 'is_visible' => 1,
                 'sort_order' => 1,
+                'icon' => 'hat',
                 'description' => 'Premium caps.',
                 'meta_title' => 'Premium Caps | Emerald Rozalia',
                 'meta_description' => 'Premium Emerald Rozalia caps.',
@@ -42,6 +43,7 @@ class CategoryManagementTest extends TestCase
         $parent = Category::query()->where('slug', 'caps')->firstOrFail();
         $this->assertNotNull($parent->public_uuid);
         $this->assertSame($admin->id, $parent->created_by);
+        $this->assertSame('hat', $parent->icon);
 
         $this->actingAs($admin)
             ->post(route('admin.categories.store'), [
@@ -57,6 +59,25 @@ class CategoryManagementTest extends TestCase
         $child = Category::query()->where('slug', 'baseball-caps')->firstOrFail();
         $this->assertSame($parent->id, $child->parent_id);
         $this->assertDatabaseHas('audit_logs', ['action' => 'category.created', 'subject_id' => $child->id]);
+    }
+
+    public function test_category_icon_must_use_the_approved_generic_icon_catalogue(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.store'), [
+                'name' => 'League Category',
+                'slug' => 'league-category',
+                'parent_id' => null,
+                'status' => 'active',
+                'is_visible' => 1,
+                'sort_order' => 1,
+                'icon' => 'official-league-logo',
+            ])
+            ->assertSessionHasErrors('icon');
+
+        $this->assertDatabaseMissing('categories', ['slug' => 'league-category']);
     }
 
     public function test_all_categories_and_expand_all_show_the_complete_tree(): void
