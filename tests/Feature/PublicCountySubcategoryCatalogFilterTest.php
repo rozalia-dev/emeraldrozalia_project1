@@ -6,6 +6,8 @@ use App\Models\CatalogClub;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\CatalogCounties;
+use App\Support\CatalogEngland;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -335,6 +337,108 @@ class PublicCountySubcategoryCatalogFilterTest extends TestCase
             ->assertOk()
             ->assertSee('Laois GAA Cap', false)
             ->assertDontSee('Portlaoise GAA Cap', false);
+    }
+
+    public function test_english_public_catalogue_has_counties_and_clubs(): void
+    {
+        $england = CatalogCountry::query()->where('code', 'ENG')->firstOrFail();
+
+        $this->assertTrue(collect(CatalogCounties::forCountry('ENG'))->contains(
+            fn (array $county): bool => $county['code'] === 'ENG-GTM' && $county['name'] === 'Greater Manchester'
+        ));
+        $this->assertTrue(collect(CatalogEngland::CLUBS)->contains(
+            fn (array $club): bool => $club['county_code'] === 'ENG-GTM' && $club['name'] === 'Manchester United'
+        ));
+
+        $root = Category::create([
+            'name' => 'English',
+            'slug' => 'english-public-filter-root',
+            'taxonomy_type' => 'english',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $country = Category::create([
+            'parent_id' => $root->id,
+            'name' => 'England',
+            'slug' => 'english-public-eng',
+            'taxonomy_type' => 'english',
+            'catalog_country_id' => $england->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $county = Category::create([
+            'parent_id' => $country->id,
+            'name' => 'Greater Manchester',
+            'slug' => 'english-public-eng-gtm',
+            'taxonomy_type' => 'english',
+            'catalog_country_id' => $england->id,
+            'catalog_county_code' => 'ENG-GTM',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $united = CatalogClub::create([
+            'catalog_country_id' => $england->id,
+            'catalog_county_code' => 'ENG-GTM',
+            'governing_body' => 'english',
+            'name' => 'Manchester United',
+            'slug' => 'manchester-united',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $clubCategory = Category::create([
+            'parent_id' => $county->id,
+            'name' => 'Manchester United',
+            'slug' => 'english-public-eng-gtm-manchester-united',
+            'taxonomy_type' => 'english',
+            'catalog_country_id' => $england->id,
+            'catalog_county_code' => 'ENG-GTM',
+            'catalog_club_id' => $united->id,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $caps = Category::create([
+            'parent_id' => $clubCategory->id,
+            'name' => 'Caps',
+            'slug' => 'english-public-eng-gtm-manchester-united-caps',
+            'taxonomy_type' => 'english',
+            'catalog_country_id' => $england->id,
+            'catalog_county_code' => 'ENG-GTM',
+            'catalog_club_id' => $united->id,
+            'product_type' => 'caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->product($caps, 'Manchester United Cap', 'ENG-MU-CAP');
+
+        $this->get(route('category', $root).'?country=ENG')
+            ->assertOk()
+            ->assertSee('Greater Manchester', false)
+            ->assertSee('Select County First', false);
+
+        $this->get(route('category', $root).'?country=ENG&county=ENG-GTM')
+            ->assertOk()
+            ->assertSee('Manchester United', false)
+            ->assertSee('Select Club', false);
+
+        $this->get(route('category', $root).'?country=ENG&county=ENG-GTM&club=manchester-united&subcategory=type:caps')
+            ->assertOk()
+            ->assertSee('Manchester United Cap', false);
     }
 
     public function test_county_control_is_not_rendered_for_non_traditional_or_heritage_category(): void
