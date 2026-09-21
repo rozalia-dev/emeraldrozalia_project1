@@ -15,7 +15,7 @@ class Category extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'company_id','parent_id','name','slug','description','status','is_active','is_visible','sort_order','meta_title','meta_description','seo','translations',
+        'company_id','parent_id','name','icon','slug','description','status','is_active','is_visible','sort_order','meta_title','meta_description','seo','translations',
         'taxonomy_type','catalog_country_id','catalog_county_code','catalog_club_id','product_type','created_by','updated_by',
     ];
 
