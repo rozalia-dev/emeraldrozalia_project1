@@ -16,6 +16,7 @@ class ProductManagerServiceProvider extends ServiceProvider
                 ->name('admin.product-manager.')
                 ->group(function (): void {
                     Route::get('/', [ProductManagerController::class, 'index'])->name('index');
+                    Route::delete('/bulk', [ProductManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
                     Route::delete('/{product}', [ProductManagerController::class, 'destroy'])->whereNumber('product')->name('destroy');
                     Route::post('/{product}/restore', [ProductManagerController::class, 'restore'])->whereNumber('product')->name('restore');
                     Route::delete('/{product}/permanent', [ProductManagerController::class, 'permanentDestroy'])->whereNumber('product')->name('permanent-destroy');
