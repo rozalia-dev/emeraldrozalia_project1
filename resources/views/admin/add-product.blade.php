@@ -144,17 +144,6 @@
                                 </div>
 
                                 <div class="ap-field-row ap-field-row-three">
-                                    <label class="ap-field">
-                                        <span>Style / Range</span>
-                                        <select name="catalog_style">
-                                            <option value="">Select style</option>
-                                            @foreach($catalogStyles as $styleValue => $styleLabel)
-                                                <option value="{{ $styleValue }}" @selected((string) $selectedStyle === (string) $styleValue)>{{ $styleLabel }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('catalog_style')<small class="ap-field-error">{{ $message }}</small>@enderror
-                                    </label>
-
                                     <label class="ap-field" data-catalog-country-field>
                                         <span data-catalog-country-label>Country</span>
                                         <select name="catalog_country_id" data-catalog-country>
@@ -212,6 +201,17 @@
                                     </select>
                                     <small class="ap-field-help">Subcategory is selected after the geographic/club path for GAA, English, UEFA and FIFA. Canonical product families are Caps, Hats and Beanie.</small>
                                     @error('category_id')<small class="ap-field-error">{{ $message }}</small>@enderror
+                                </label>
+
+                                <label class="ap-field ap-field-wide">
+                                    <span>Style / Range</span>
+                                    <select name="catalog_style">
+                                        <option value="">Select style</option>
+                                        @foreach($catalogStyles as $styleValue => $styleLabel)
+                                            <option value="{{ $styleValue }}" @selected((string) $selectedStyle === (string) $styleValue)>{{ $styleLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('catalog_style')<small class="ap-field-error">{{ $message }}</small>@enderror
                                 </label>
                             </section>
 
