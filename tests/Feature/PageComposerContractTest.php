@@ -83,8 +83,8 @@ class PageComposerContractTest extends TestCase
             ->assertSee('class="home-hero home-hero--structured"', false)
             ->assertSee('class="home-hero-structured-copy"', false)
             ->assertSee('class="home-hero-structured-product', false)
-            ->assertSee('class="home-hero-tryon"', false)
-            ->assertSee('data-home-tryon-form', false)
+            ->assertDontSee('class="home-hero-tryon"', false)
+            ->assertDontSee('data-home-tryon-form', false)
             ->assertSee('class="managed-page-preview-banner"', false)
             ->assertSee('data-public-layout-source="default-layout-fallback"', false);
     }

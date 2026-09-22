@@ -45,7 +45,7 @@
 
 .home-page .home-hero-structured-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.34fr) minmax(360px, 1.02fr) minmax(340px, .84fr);
+    grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr);
     align-items: stretch;
     gap: clamp(20px, 2.6vw, 40px);
     width: min(1460px, 100%);
