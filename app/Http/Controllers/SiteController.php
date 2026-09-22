@@ -129,11 +129,27 @@ class SiteController extends Controller
             ->orderBy('name')
             ->get();
 
+        // "Shop by Collection" must also expose the products assigned to each
+        // public collection. This uses the collection_product pivot ordering
+        // configured in cPanel and only includes products that are public.
+        $homeCollectionProducts = $homeCollections->mapWithKeys(function (ProductCollection $collection): array {
+            return [
+                $collection->id => $collection->products()
+                    ->published()
+                    ->with('media')
+                    ->orderBy('collection_product.sort_order')
+                    ->orderBy('products.name')
+                    ->limit(6)
+                    ->get(),
+            ];
+        });
+
         return [
             'categories' => $homeCategories,
             'homeCategories' => $homeCategories,
             'homeCategoryProducts' => $homeCategoryProducts,
             'homeCollections' => $homeCollections,
+            'homeCollectionProducts' => $homeCollectionProducts,
             'homeProducts' => $homeProducts,
             'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
