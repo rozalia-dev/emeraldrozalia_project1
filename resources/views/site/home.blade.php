@@ -112,6 +112,7 @@
                     'homeCategories' => $homeCategories ?? $categories ?? collect(),
                     'homeCategoryProducts' => $homeCategoryProducts ?? collect(),
                     'homeCollections' => $homeCollections ?? collect(),
+                    'homeCollectionProducts' => $homeCollectionProducts ?? collect(),
                     'homeProducts' => $homeProducts ?? $newProducts ?? collect(),
                     'homeBestsellers' => $homeBestsellers ?? collect(),
                     'homeLatestProducts' => $homeLatestProducts ?? $homeProducts ?? $newProducts ?? collect(),
