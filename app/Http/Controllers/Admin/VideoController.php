@@ -61,7 +61,9 @@ class VideoController extends Controller
         $types = collect(ProductVideo::CATEGORIES)->map(fn ($label, $key) => $all->filter(fn ($v) => data_get($v->metadata, 'category', 'product') === $key)->count());
         $top = ProductVideo::with('product')->withCount(['plays' => fn ($q) => $q->where('day', '>=', now()->subDays(29)->toDateString())])->orderByDesc('plays_count')->limit(5)->get();
         $products = Product::orderBy('name')->get(['id','name','sku']);
-        return view('admin.videos.index', compact('videos','stats','types','top','products'));
+        $scopedProductId = $request->filled('product_id') ? $request->integer('product_id') : null;
+        $scopedProduct = $scopedProductId ? $products->firstWhere('id', $scopedProductId) : null;
+        return view('admin.videos.index', compact('videos','stats','types','top','products','scopedProductId','scopedProduct'));
     }
 
     private function validated(Request $request, ?ProductVideo $video = null): array
@@ -188,14 +190,14 @@ class VideoController extends Controller
     {
         $video = $this->save($request);
         if ($request->expectsJson()) return response()->json(['message'=>'Video saved.', 'video'=>$video->details()],201);
-        return redirect()->route('admin.videos.index')->with('success','Video saved.');
+        return redirect()->route('admin.videos.index',['product_id'=>$video->product_id])->with('success','Video saved.');
     }
 
     public function update(Request $request, ProductVideo $video)
     {
         $video = $this->save($request, $video);
         if ($request->expectsJson()) return response()->json(['message'=>'Video updated.', 'video'=>$video->details()]);
-        return redirect()->route('admin.videos.index')->with('success','Video updated.');
+        return redirect()->route('admin.videos.index',['product_id'=>$video->product_id])->with('success','Video updated.');
     }
 
     public function bulk(Request $request)
