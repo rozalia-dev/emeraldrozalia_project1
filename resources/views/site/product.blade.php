@@ -45,11 +45,15 @@
         ])
         ->values();
 
+    $galleryColourNames = collect($product->colours ?? [])
+        ->filter(fn ($colour) => is_string($colour) && trim($colour) !== '')
+        ->values();
+
     $fallbackMedia = collect($galleryImages)
         ->map(fn (string $url, int $index) => [
             'url' => $url,
-            'label' => 'Product image '.($index + 1),
-            'kind' => 'photo',
+            'label' => $galleryColourNames->get($index) ?: 'Colour image '.($index + 1),
+            'kind' => 'colour',
         ]);
 
     $thumbnailMedia = $colourMedia
@@ -72,8 +76,17 @@
     $thumbnailImages = $thumbnailMedia->pluck('url')->filter()->values()->all();
     $firstImage = $thumbnailImages[0] ?? $galleryImages[0] ?? $spinImages[0] ?? null;
     $productVideos = collect($productVideos ?? [])->values();
-    $hasVideo = $productVideos->isNotEmpty();
-    $hasTryOn = is_array($tryOnViewerData ?? null) && filled(data_get($tryOnViewerData, 'preview'));
+    $productVideoMedia = collect($productVideoMedia ?? [])->values();
+    $hasVideo = $productVideos->isNotEmpty() || $productVideoMedia->isNotEmpty();
+
+    $productTryOnMedia = collect($productTryOnMedia ?? [])->values();
+    $tryOnPreview = data_get($tryOnViewerData ?? [], 'preview')
+        ?: data_get($productTryOnMedia->first(), 'url');
+    $tryOnTitle = data_get($tryOnViewerData ?? [], 'title')
+        ?: data_get($productTryOnMedia->first(), 'alt')
+        ?: $product->name.' virtual try-on';
+    $hasTryOn = filled($tryOnPreview);
+    $visibleColourImageCount = min(6, $thumbnailMedia->where('kind', 'colour')->count());
 
     $colours = $activeVariants->pluck('colour')->filter()->unique()->values()->all() ?: collect($product->colours ?? [])->filter()->values()->all();
     $sizes = $activeVariants->pluck('size')->filter()->unique()->values()->all() ?: collect($product->sizes ?? [])->filter()->values()->all();
@@ -183,6 +196,15 @@
                                     @if(data_get($video->metadata, 'description'))<p>{{ data_get($video->metadata, 'description') }}</p>@endif
                                 </article>
                             @endforeach
+                            @foreach($productVideoMedia as $videoMedia)
+                                <article class="product-video-card">
+                                    <h4>{{ $videoMedia['alt'] ?: 'Product video' }}</h4>
+                                    <video controls playsinline preload="metadata" style="width:100%;max-height:520px;background:#06100b;border-radius:8px">
+                                        <source src="{{ $videoMedia['url'] }}" @if($videoMedia['mime_type']) type="{{ $videoMedia['mime_type'] }}" @endif>
+                                        Your browser cannot play this product video.
+                                    </video>
+                                </article>
+                            @endforeach
                         </div>
                     @else
                         <p>No approved public product video is available yet.</p>
@@ -193,7 +215,7 @@
                     <h3>Virtual Try-On</h3>
                     @if($hasTryOn)
                         <div class="product-tryon-preview">
-                            <img src="{{ data_get($tryOnViewerData, 'preview') }}" alt="{{ data_get($tryOnViewerData, 'title', $product->name.' virtual try-on') }}">
+                            <img src="{{ $tryOnPreview }}" alt="{{ $tryOnTitle }}">
                             <div>
                                 <p>Preview this product on your own photo. Your face photo stays in your browser and is not uploaded by the Try-On Studio.</p>
                                 <div class="product-tryon-actions">
@@ -222,9 +244,9 @@
                 </div>
 
                 <div class="product-media-features">
-                    <div class="media-feature"><x-icon name="image" size="22" /><div><strong>COLOUR IMAGES</strong><small>{{ $colourMedia->count() }} of 6 colour views available</small></div></div>
+                    <div class="media-feature"><x-icon name="image" size="22" /><div><strong>COLOUR IMAGES</strong><small>{{ $visibleColourImageCount }} of 6 colour views available</small></div></div>
                     <div class="media-feature"><x-icon name="rotate-ccw" size="22" /><div><strong>360° VIEW</strong><small>{{ $has360 ? 'Explore every angle' : 'Available when approved' }}</small></div></div>
-                    <div class="media-feature"><x-icon name="play" size="22" /><div><strong>VIDEO</strong><small>{{ $hasVideo ? $productVideos->count().' approved video'.($productVideos->count() === 1 ? '' : 's') : 'Available when approved' }}</small></div></div>
+                    <div class="media-feature"><x-icon name="play" size="22" /><div><strong>VIDEO</strong><small>{{ $hasVideo ? ($productVideos->count() + $productVideoMedia->count()).' approved video'.(($productVideos->count() + $productVideoMedia->count()) === 1 ? '' : 's') : 'Available when approved' }}</small></div></div>
                     <div class="media-feature"><x-icon name="camera" size="22" /><div><strong>TRY ON</strong><small>{{ $hasTryOn ? 'Interactive preview ready' : 'Available when approved' }}</small></div></div>
                     <div class="media-feature"><x-icon name="star" size="22" /><div><strong>REVIEWS</strong><small>{{ $reviewCount }} customer review{{ $reviewCount === 1 ? '' : 's' }}</small></div></div>
                 </div>
@@ -255,14 +277,14 @@
                 <input type="hidden" name="size" data-size-value @if(count($sizes)) value="{{ $sizes[0] }}" @endif>
                 <div class="purchase-row">
                     <div class="quantity-control"><button type="button" data-quantity-minus aria-label="Decrease quantity">−</button><input type="number" name="quantity" min="1" max="{{ max(1, $stock) }}" value="1" data-quantity aria-label="Quantity"><button type="button" data-quantity-plus aria-label="Increase quantity">+</button></div>
-                    <button class="primary-cta" type="submit" data-add-to-cart @disabled($stock < 1)>{{ $stock > 0 ? 'ADD TO CART' : 'OUT OF STOCK' }}</button>
+                    <button class="primary-cta" type="submit" data-add-to-cart @disabled($stock < 1 || ($activeVariants->count() > 0 && !count($colours) && !count($sizes)))>{{ $activeVariants->count() > 0 && !count($colours) && !count($sizes) ? 'SELECT VARIANT' : ($stock > 0 ? 'ADD TO CART' : 'OUT OF STOCK') }}</button>
                     @auth
                         <button class="wishlist-button" type="submit" form="wishlist-form" aria-label="Add to wishlist"><x-icon name="heart" size="21" /></button>
                     @else
                         <a class="wishlist-button" href="{{ route('login') }}" aria-label="Sign in to save this product"><x-icon name="heart" size="21" /></a>
                     @endauth
                 </div>
-                <p class="purchase-note" data-stock-note>{{ $stock > 0 ? $stock . ' available · Ships from Limerick, Ireland' : 'Currently unavailable' }}</p>
+                <p class="purchase-note" data-stock-note>{{ $activeVariants->count() > 0 && !count($colours) && !count($sizes) ? 'Choose a variant to see availability' : ($stock > 0 ? $stock . ' available · Ships from Limerick, Ireland' : 'Currently unavailable') }}</p>
             </form>
             @auth<form id="wishlist-form" method="post" action="{{ route('wishlist.toggle', $product) }}">@csrf</form>@endauth
             <a class="tryon-cta" href="{{ route('virtual-tryon', ['product_id' => $product->id]) }}"><span><strong><x-icon name="camera" size="17" /> TRY IT ON</strong><small>See how it looks on you — private in-browser preview</small></span><x-icon name="arrow-right" size="18" /></a>
@@ -457,10 +479,14 @@
 
     let variants = [];
     try { variants = JSON.parse(page.dataset.variantPayload || '[]') || []; } catch (error) { variants = []; }
+    const variantSelect = page.querySelector('[data-variant-select]');
     const selected = { colour: page.querySelector('[data-colour-value]')?.value || '', size: page.querySelector('[data-size-value]')?.value || '' };
     const variantMatches = () => variants.filter((variant) => (!selected.colour || variant.colour === selected.colour) && (!selected.size || variant.size === selected.size));
     const applyVariant = (preferColourPhotos = false, syncMedia = true) => {
-        const match = variantMatches()[0];
+        const requiresExplicitVariant = !!variantSelect;
+        const match = requiresExplicitVariant
+            ? variants.find((variant) => String(variant.id) === String(variantSelect.value || ''))
+            : variantMatches()[0];
         const galleryVariants = selected.colour
             ? variants.filter((variant) => variant.colour === selected.colour)
             : (match ? [match] : []);
@@ -475,10 +501,18 @@
         const quantity = page.querySelector('[data-quantity]');
         if (priceDisplay) priceDisplay.textContent = '€' + price.toFixed(2);
         if (page.querySelector('[data-variant-id]')) page.querySelector('[data-variant-id]').value = match?.id || '';
-        if (quantity) { quantity.max = String(Math.max(1, available)); if (Number(quantity.value) > available) quantity.value = Math.max(1, available); }
-        if (stockNote) stockNote.textContent = available > 0 ? available + ' available · Ships from Limerick, Ireland' : 'This combination is currently unavailable';
-        if (add) { add.disabled = available < 1 || (variants.length > 0 && !match); add.textContent = available > 0 ? 'ADD TO CART' : 'OUT OF STOCK'; }
-        const detailStock = page.querySelector('[data-detail-stock]'); if (detailStock) detailStock.textContent = available > 0 ? 'In stock' : 'Out of stock';
+
+        if (requiresExplicitVariant && !match) {
+            if (quantity) quantity.max = String(Math.max(1, Number(page.dataset.productStock || 0)));
+            if (stockNote) stockNote.textContent = 'Choose a variant to see availability';
+            if (add) { add.disabled = true; add.textContent = 'SELECT VARIANT'; }
+            const detailStock = page.querySelector('[data-detail-stock]'); if (detailStock) detailStock.textContent = 'Select a variant';
+        } else {
+            if (quantity) { quantity.max = String(Math.max(1, available)); if (Number(quantity.value) > available) quantity.value = Math.max(1, available); }
+            if (stockNote) stockNote.textContent = available > 0 ? available + ' available · Ships from Limerick, Ireland' : 'This combination is currently unavailable';
+            if (add) { add.disabled = available < 1 || (variants.length > 0 && !match); add.textContent = available > 0 ? 'ADD TO CART' : 'OUT OF STOCK'; }
+            const detailStock = page.querySelector('[data-detail-stock]'); if (detailStock) detailStock.textContent = available > 0 ? 'In stock' : 'Out of stock';
+        }
         if (page.querySelector('[data-selected-colour]')) page.querySelector('[data-selected-colour]').textContent = selected.colour || 'Select';
         if (page.querySelector('[data-selected-size]')) page.querySelector('[data-selected-size]').textContent = selected.size || 'Select';
     };
