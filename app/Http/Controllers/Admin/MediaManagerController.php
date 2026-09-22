@@ -2,7 +2,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Product,ProductMedia};
+use App\Models\{Product,ProductMedia,ProductSpin,ProductVideo,Review,TryOnAsset};
 use App\Rules\MediaDimensions;
 use App\Services\{AuditTrail, PublicMediaDerivativeService};
 use Illuminate\Http\Request;
@@ -48,7 +48,94 @@ class MediaManagerController extends Controller
             $media = $media->where('type','document')->values();
         }
 
-        return view('admin.media-manager.index',compact('products','selected','media','mediaType','mediaStatus','mediaSort'));
+        $mediaReadiness = null;
+        if ($selected) {
+            $publicImages = ProductMedia::query()
+                ->where('product_id', $selected->id)
+                ->whereIn('type', ['image', 'gallery'])
+                ->where('approval_status', 'approved')
+                ->where('active', true)
+                ->count();
+
+            $genericSpinFrames = ProductMedia::query()
+                ->where('product_id', $selected->id)
+                ->where('type', 'spin_360')
+                ->where('approval_status', 'approved')
+                ->where('active', true)
+                ->count();
+
+            $publicSpin = ProductSpin::query()
+                ->with('product')
+                ->where('product_id', $selected->id)
+                ->where('status', 'published')
+                ->where('visibility', 'public')
+                ->latest('updated_at')
+                ->get()
+                ->first(fn (ProductSpin $spin): bool => $spin->isPublic());
+
+            $publicVideos = ProductVideo::query()
+                ->with('product')
+                ->where('product_id', $selected->id)
+                ->where('approval_status', 'approved')
+                ->where('active', true)
+                ->orderBy('sort_order')
+                ->get()
+                ->filter(fn (ProductVideo $video): bool => $video->isPubliclyPlayable() && (bool) data_get($video->metadata, 'gallery', true))
+                ->count();
+
+            $publicTryOnAsset = TryOnAsset::query()
+                ->with('product')
+                ->where('product_id', $selected->id)
+                ->where('status', 'published')
+                ->where('visibility', 'public')
+                ->latest('updated_at')
+                ->get()
+                ->first(fn (TryOnAsset $asset): bool => $asset->isPublic());
+
+            $genericTryOn = ProductMedia::query()
+                ->where('product_id', $selected->id)
+                ->where('type', 'try_on')
+                ->where('approval_status', 'approved')
+                ->where('active', true)
+                ->count();
+
+            $approvedReviews = Review::query()
+                ->approved()
+                ->where('product_id', $selected->id)
+                ->count();
+
+            $mediaReadiness = [
+                'images' => [
+                    'ready' => $publicImages > 0,
+                    'count' => min(6, $publicImages),
+                    'detail' => min(6, $publicImages).' of 6 public colour/product images',
+                ],
+                'spin' => [
+                    'ready' => $publicSpin !== null || $genericSpinFrames >= 2,
+                    'count' => $publicSpin ? count($publicSpin->frames ?? []) : $genericSpinFrames,
+                    'detail' => $publicSpin
+                        ? count($publicSpin->frames ?? []).' published 360° frames'
+                        : ($genericSpinFrames >= 2 ? $genericSpinFrames.' approved 360° frames' : 'Publish a 360° ZIP/frame set'),
+                ],
+                'video' => [
+                    'ready' => $publicVideos > 0,
+                    'count' => $publicVideos,
+                    'detail' => $publicVideos > 0 ? $publicVideos.' public gallery video'.($publicVideos === 1 ? '' : 's') : 'Publish a public gallery video',
+                ],
+                'tryon' => [
+                    'ready' => $publicTryOnAsset !== null || $genericTryOn > 0,
+                    'count' => ($publicTryOnAsset ? 1 : 0) + $genericTryOn,
+                    'detail' => $publicTryOnAsset || $genericTryOn > 0 ? 'Public Try-On asset ready' : 'Publish a public Try-On preview',
+                ],
+                'reviews' => [
+                    'ready' => $approvedReviews > 0,
+                    'count' => $approvedReviews,
+                    'detail' => $approvedReviews.' approved customer review'.($approvedReviews === 1 ? '' : 's'),
+                ],
+            ];
+        }
+
+        return view('admin.media-manager.index',compact('products','selected','media','mediaType','mediaStatus','mediaSort','mediaReadiness'));
     }
 
     public function store(Request $request, PublicMediaDerivativeService $derivatives)
