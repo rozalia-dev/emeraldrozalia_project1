@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\{CatalogFilterRequest, PublicInquiryRequest};
-use App\Models\{Banner,CatalogClub,CatalogCountry,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection};
+use App\Models\{Banner,CatalogClub,CatalogCountry,Category,ContentPage,Conversation,FranchiseApplication,FranchiseStore,Inquiry,Product,ProductCollection,ProductVideo};
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -603,6 +603,10 @@ class SiteController extends Controller
                 ->where('status', 'published')
                 ->where('visibility', 'public')
                 ->latest('updated_at'),
+            'tryOnAssets' => fn ($query) => $query
+                ->where('status', 'published')
+                ->where('visibility', 'public')
+                ->latest('updated_at'),
         ]);
         $managedSpin = $product->latestPublicSpin();
         $spinViewerData = $managedSpin?->viewerData();
@@ -617,12 +621,33 @@ class SiteController extends Controller
                 }));
         }
         $spinFrames = $spinFrames->filter()->unique()->values()->all();
+        $productVideos = ProductVideo::query()
+            ->where('product_id', $product->id)
+            ->where('active', true)
+            ->where('approval_status', 'approved')
+            ->orderBy('sort_order')
+            ->get()
+            ->filter(fn (ProductVideo $video): bool => $video->isPubliclyPlayable() && (bool) data_get($video->metadata, 'gallery', true))
+            ->values();
+
+        $tryOnAsset = $product->tryOnAssets
+            ->first(fn ($asset): bool => $asset->isPublic());
+        $tryOnViewerData = $tryOnAsset?->viewerData();
+
         $related = Product::published()
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn ($q) => $q->where('category_id', $product->category_id))
             ->with('media')
             ->limit(4)->get();
-        return view('site.product', compact('product', 'related', 'spinFrames', 'spinViewerData'));
+
+        return view('site.product', compact(
+            'product',
+            'related',
+            'spinFrames',
+            'spinViewerData',
+            'productVideos',
+            'tryOnViewerData',
+        ));
     }
 
     public function page(string $page)
