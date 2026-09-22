@@ -146,7 +146,7 @@
                  data-initial-image="{{ $firstImage }}">
                 <div class="product-viewer-toolbar">
                     <div class="viewer-switcher" role="tablist" aria-label="Product media">
-                        <button type="button" class="is-active" data-product-mode="gallery" role="tab" aria-selected="true"><x-icon name="image" size="15" /> COLOURS</button>
+                        <button type="button" class="is-active" data-product-mode="gallery" role="tab" aria-selected="true"><x-icon name="image" size="15" /> PHOTOS</button>
                         <button type="button" data-product-mode="spin" role="tab" aria-selected="false" @if(!$has360) disabled aria-disabled="true" @endif><x-icon name="rotate-ccw" size="15" /> 360° VIEW</button>
                         <button type="button" data-product-mode="video" role="tab" aria-selected="false" @if(!$hasVideo) disabled aria-disabled="true" @endif><x-icon name="play" size="15" /> VIDEO</button>
                         <button type="button" data-product-mode="tryon" role="tab" aria-selected="false" @if(!$hasTryOn) disabled aria-disabled="true" @endif><x-icon name="camera" size="15" /> TRY ON</button>
