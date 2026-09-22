@@ -125,10 +125,11 @@
 
     <section class="product-showcase">
         <div class="product-media-shell">
-            <div class="product-thumbnails" data-product-thumbnails>
-                @forelse($thumbnailImages as $image)
-                    <button class="product-thumb @if($loop->first) is-active @endif" type="button" data-product-thumb data-index="{{ $loop->index }}" aria-label="View product image {{ $loop->iteration }}">
-                        <img src="{{ $image }}" alt="{{ $product->name }} angle {{ $loop->iteration }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+            <div class="product-thumbnails" data-product-thumbnails aria-label="Up to six approved colour/product images">
+                @forelse($thumbnailMedia as $thumb)
+                    <button class="product-thumb @if($loop->first) is-active @endif" type="button" data-product-thumb data-index="{{ $loop->index }}" aria-label="View {{ $thumb['label'] }}">
+                        <img src="{{ $thumb['url'] }}" alt="{{ $product->name }} — {{ $thumb['label'] }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                        <span class="product-thumb-label">{{ $thumb['label'] }}</span>
                     </button>
                 @empty
                     <div class="product-thumb"><span class="product-thumb-fallback">Media<br>pending</span></div>
@@ -137,36 +138,96 @@
 
             <div class="product-viewer" data-product-viewer
                  data-spin-frames='@json($has360 ? $spinImages : [])'
-                 data-gallery-frames='@json($galleryImages)'
+                 data-gallery-frames='@json($thumbnailImages ?: $galleryImages)'
                  data-spin-source="{{ $spinSource }}"
+                 data-has-video="{{ $hasVideo ? 'true' : 'false' }}"
+                 data-has-tryon="{{ $hasTryOn ? 'true' : 'false' }}"
                  @if($spinViewerData) data-spin-uuid="{{ $spinViewerData['uuid'] }}" data-spin-title="{{ $spinViewerData['title'] }}" @endif
                  data-initial-image="{{ $firstImage }}">
                 <div class="product-viewer-toolbar">
                     <div class="viewer-switcher" role="tablist" aria-label="Product media">
-                        <button type="button" class="@if($has360) is-active @endif" data-product-mode="spin" role="tab" aria-selected="{{ $has360 ? 'true' : 'false' }}" @if(!$has360) disabled aria-disabled="true" @endif><x-icon name="rotate-ccw" size="15" /> 360° VIEW</button>
-                        <button type="button" class="@if(!$has360) is-active @endif" data-product-mode="gallery" role="tab" aria-selected="{{ $has360 ? 'false' : 'true' }}"><x-icon name="image" size="15" /> PHOTOS</button>
+                        <button type="button" class="is-active" data-product-mode="gallery" role="tab" aria-selected="true"><x-icon name="image" size="15" /> COLOURS</button>
+                        <button type="button" data-product-mode="spin" role="tab" aria-selected="false" @if(!$has360) disabled aria-disabled="true" @endif><x-icon name="rotate-ccw" size="15" /> 360° VIEW</button>
+                        <button type="button" data-product-mode="video" role="tab" aria-selected="false" @if(!$hasVideo) disabled aria-disabled="true" @endif><x-icon name="play" size="15" /> VIDEO</button>
+                        <button type="button" data-product-mode="tryon" role="tab" aria-selected="false" @if(!$hasTryOn) disabled aria-disabled="true" @endif><x-icon name="camera" size="15" /> TRY ON</button>
+                        <button type="button" data-product-mode="reviews" role="tab" aria-selected="false"><x-icon name="star" size="15" /> REVIEWS ({{ $reviewCount }})</button>
                     </div>
                     <div class="viewer-toolbar-actions">
                         <button class="icon-button" type="button" data-media-zoom aria-label="Zoom product image"><x-icon name="search" size="17" /></button>
                         <button class="icon-button" type="button" data-media-fullscreen aria-label="Open full screen product viewer"><x-icon name="arrow-up" size="17" /></button>
                     </div>
                 </div>
-                <div class="product-stage" data-product-stage tabindex="0" aria-label="{{ $has360 ? 'Interactive 360° product viewer. Drag or swipe to rotate.' : 'Product image viewer. Select Photos to browse approved product images.' }}">
-                    @if($firstImage)<img data-product-stage-image src="{{ $firstImage }}" alt="{{ data_get($galleryMedia->first(), 'alt', $product->name) }}" draggable="false">@else<div class="product-placeholder" data-product-placeholder><div><x-icon name="image" size="34" /><br>Product imagery will appear here when approved in Product Media Manager.</div></div>@endif
-                    <div class="product-stage-overlay"><button class="stage-arrow" type="button" data-rotate-prev aria-label="Previous angle"><x-icon name="arrow-left" size="18" /></button><button class="stage-arrow" type="button" data-rotate-next aria-label="Next angle"><x-icon name="arrow-right" size="18" /></button></div>
-                    <div class="stage-loading" data-stage-loading aria-hidden="true"><span></span></div>
-                    <span class="stage-caption" data-stage-caption>Drag to rotate</span><span class="stage-degree" data-stage-degree>0°</span>
-                    <span class="product-sr-status" data-stage-status role="status" aria-live="polite"></span>
+
+                <div data-media-visual>
+                    <div class="product-stage" data-product-stage tabindex="0" aria-label="Product colour images and interactive 360° viewer">
+                        @if($firstImage)<img data-product-stage-image src="{{ $firstImage }}" alt="{{ data_get($galleryMedia->first(), 'alt', $product->name) }}" draggable="false">@else<div class="product-placeholder" data-product-placeholder><div><x-icon name="image" size="34" /><br>Product imagery will appear here when approved in Product Media Manager.</div></div>@endif
+                        <div class="product-stage-overlay"><button class="stage-arrow" type="button" data-rotate-prev aria-label="Previous image or angle"><x-icon name="arrow-left" size="18" /></button><button class="stage-arrow" type="button" data-rotate-next aria-label="Next image or angle"><x-icon name="arrow-right" size="18" /></button></div>
+                        <div class="stage-loading" data-stage-loading aria-hidden="true"><span></span></div>
+                        <span class="stage-caption" data-stage-caption>Colour images</span><span class="stage-degree" data-stage-degree hidden>0°</span>
+                        <span class="product-sr-status" data-stage-status role="status" aria-live="polite"></span>
+                    </div>
+                    <div class="rotation-panel" data-rotation-panel hidden>
+                        <div class="rotation-controls"><button class="icon-button" type="button" data-rotate-prev aria-label="Rotate left"><x-icon name="arrow-left" size="15" /></button><input class="rotation-slider" type="range" min="0" max="360" value="0" step="1" data-rotation-slider aria-label="Product rotation angle"><button class="icon-button" type="button" data-rotate-next aria-label="Rotate right"><x-icon name="arrow-right" size="15" /></button><output data-rotation-value>0°</output></div>
+                        <div class="rotation-help"><span>0°</span><span>Drag, swipe or use arrow keys</span><span>360°</span></div>
+                    </div>
                 </div>
-                <div class="rotation-panel">
-                    <div class="rotation-controls"><button class="icon-button" type="button" data-rotate-prev aria-label="Rotate left"><x-icon name="arrow-left" size="15" /></button><input class="rotation-slider" type="range" min="0" max="360" value="0" step="1" data-rotation-slider aria-label="Product rotation angle"><button class="icon-button" type="button" data-rotate-next aria-label="Rotate right"><x-icon name="arrow-right" size="15" /></button><output data-rotation-value>0°</output></div>
-                    <div class="rotation-help"><span>0°</span><span>Drag, swipe or use arrow keys</span><span>360°</span></div>
+
+                <div class="product-rich-media-panel" data-rich-media-panel="video" hidden>
+                    <h3>Product Video</h3>
+                    @if($hasVideo)
+                        <div class="product-video-grid">
+                            @foreach($productVideos as $video)
+                                <article class="product-video-card">
+                                    <h4>{{ $video->title }}</h4>
+                                    <x-video-player :video="$video" />
+                                    @if(data_get($video->metadata, 'description'))<p>{{ data_get($video->metadata, 'description') }}</p>@endif
+                                </article>
+                            @endforeach
+                        </div>
+                    @else
+                        <p>No approved public product video is available yet.</p>
+                    @endif
                 </div>
+
+                <div class="product-rich-media-panel" data-rich-media-panel="tryon" hidden>
+                    <h3>Virtual Try-On</h3>
+                    @if($hasTryOn)
+                        <div class="product-tryon-preview">
+                            <img src="{{ data_get($tryOnViewerData, 'preview') }}" alt="{{ data_get($tryOnViewerData, 'title', $product->name.' virtual try-on') }}">
+                            <div>
+                                <p>Preview this product on your own photo. Your face photo stays in your browser and is not uploaded by the Try-On Studio.</p>
+                                <div class="product-tryon-actions">
+                                    <a class="product-media-button" href="{{ route('virtual-tryon', ['product_id' => $product->id]) }}"><x-icon name="camera" size="17" /> OPEN TRY-ON STUDIO</a>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <p>Virtual Try-On will appear here when a published product-specific asset is approved.</p>
+                    @endif
+                </div>
+
+                <div class="product-rich-media-panel" data-rich-media-panel="reviews" hidden>
+                    <h3>Customer Reviews</h3>
+                    <div class="product-review-preview">
+                        <div class="review-score"><strong>{{ $averageRating ?: '—' }}</strong><span class="stars">{{ $averageRating ? str_repeat('★', (int) round($averageRating)) : '☆☆☆☆☆' }}</span><p>{{ $reviewCount }} verified reviews</p></div>
+                        <div>
+                            @forelse($product->reviews->take(2) as $review)
+                                <article class="review-card"><header><span>{{ $review->user?->name ?: 'Verified customer' }}</span><span class="stars">{{ str_repeat('★', (int) $review->rating) }}</span></header>@if($review->title)<b>{{ $review->title }}</b>@endif<p>{{ $review->body }}</p></article>
+                            @empty
+                                <p>No reviews yet. Be the first to share your experience.</p>
+                            @endforelse
+                            <button class="product-media-button" type="button" data-open-review-details>READ / WRITE REVIEWS</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="product-media-features">
+                    <div class="media-feature"><x-icon name="image" size="22" /><div><strong>COLOUR IMAGES</strong><small>{{ $colourMedia->count() }} of 6 colour views available</small></div></div>
                     <div class="media-feature"><x-icon name="rotate-ccw" size="22" /><div><strong>360° VIEW</strong><small>{{ $has360 ? 'Explore every angle' : 'Available when approved' }}</small></div></div>
-                    <div class="media-feature"><x-icon name="search" size="22" /><div><strong>ZOOM</strong><small>Inspect the details</small></div></div>
-                    <div class="media-feature"><x-icon name="arrow-up" size="22" /><div><strong>FULL SCREEN</strong><small>Close-up experience</small></div></div>
-                </div>
+                    <div class="media-feature"><x-icon name="play" size="22" /><div><strong>VIDEO</strong><small>{{ $hasVideo ? $productVideos->count().' approved video'.($productVideos->count() === 1 ? '' : 's') : 'Available when approved' }}</small></div></div>
+                    <div class="media-feature"><x-icon name="camera" size="22" /><div><strong>TRY ON</strong><small>{{ $hasTryOn ? 'Interactive preview ready' : 'Available when approved' }}</small></div></div>
+                    <div class="media-feature"><x-icon name="star" size="22" /><div><strong>REVIEWS</strong><small>{{ $reviewCount }} customer review{{ $reviewCount === 1 ? '' : 's' }}</small></div></div>
+                </div>                </div>
             </div>
         </div>
 
