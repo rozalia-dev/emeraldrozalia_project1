@@ -167,56 +167,65 @@
         </section>
 <?php } elseif ($type === 'collections') { ?>
 
-        <?php $collectionItems = is_array($settings['items'] ?? null) ? array_values($settings['items']) : []; ?>
-        <section {!! $sectionAttributes !!} class="home-section home-collections home-collections--managed">
-            <div class="home-section-heading"><span></span><h2>{{ $copy('title', $section->label ?: 'SHOP BY COLLECTIONS') }}</h2><span></span></div>
-            <div class="home-collection-grid">
-                <?php
-                    $collectionCategoryAliasesBySlug = [
-                        'baseball-caps' => ['caps', 'outdoor', 'sports'],
-                        'bucket-hats' => ['hats', 'outdoor'],
-                        'snapbacks' => ['winter', 'winder-cold'],
-                        'irish-traditional-flat-caps' => ['traditional'],
-                        'irish-heritage-hats' => ['heritage'],
-                        'beanies-more' => ['beanies', 'heritage', 'irish-heritage-hats'],
-                    ];
-                ?>
-                <?php foreach ($collectionItems as $collectionIndex => $item) { ?>
-                    <?php if (is_array($item) && filled($item['title'] ?? null)) { ?>
-                                @php
-                                    $slug = trim((string) ($item['slug'] ?? ''));
-                                    $category = isset($categories) && $categories instanceof \Illuminate\Support\Collection ? $categories->firstWhere('slug', $slug) : null;
-                                    if (! $category && isset($categories) && $categories instanceof \Illuminate\Support\Collection) {
-                                        foreach ($collectionCategoryAliasesBySlug[$slug] ?? [] as $categoryAlias) {
-                                            $candidate = $categories->firstWhere('slug', $categoryAlias);
-                                            if ($candidate && (int) ($candidate->products_count ?? 0) > 0) {
-                                                $category = $candidate;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    $collectionUrl = $category ? route('category', $category) : route('shop');
-                                    $collectionMedia = is_array($homeMedia ?? null) && filled($item['media_uuid'] ?? null) ? ($homeMedia[$item['media_uuid']] ?? null) : null;
-                                @endphp
-                        <?php if ($collectionUrl) { ?>
-                            <a class="home-collection-card" href="{{ $collectionUrl }}">
-                                <div class="home-managed-media home-managed-media--collection" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($item['title'].' collection image') }}">
-                                    <?php if ($collectionMedia) { ?>
-                                        @if(str_starts_with((string) ($collectionMedia['mime_type'] ?? ''), 'video/'))
-                                            <video src="{{ $collectionMedia['url'] }}" muted playsinline loop preload="metadata" aria-label="{{ $collectionMedia['alt'] }}"></video>
-                                        @else
-                                            <img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif alt="{{ $collectionMedia['alt'] }}" loading="lazy">
-                                        @endif
-                                    <?php } ?>
-                                    <?php if (!empty($item['new'])) { ?>
-                                        <span class="home-collection-new">NEW</span>
-                                    <?php } ?>
-                                </div>
-                                <div><h3>{{ $item['title'] }}</h3><p>{{ $item['copy'] ?? '' }}</p><span>{{ $copy('card_cta', 'SHOP NOW') }} <b aria-hidden="true"><x-icon name="arrow-right" /></b></span></div>
-                            </a>
-                        <?php } ?>
-                    <?php } ?>
-                <?php } ?>
+        @php
+            $landingCategories = ($homeCategories ?? $categories ?? collect()) instanceof \Illuminate\Support\Collection
+                ? ($homeCategories ?? $categories ?? collect())
+                : collect();
+            $landingCollections = ($homeCollections ?? collect()) instanceof \Illuminate\Support\Collection
+                ? $homeCollections
+                : collect();
+            $publicMediaResolver = app(\App\Services\PublicMediaResolver::class);
+        @endphp
+
+        <section {!! $sectionAttributes !!} class="home-section home-catalog-groups" data-home-catalog-groups>
+            <div class="home-catalog-group" data-home-shop-by-category>
+                <div class="home-section-heading"><span></span><h2>SHOP BY CATEGORY</h2><span></span></div>
+                <div class="home-category-grid">
+                    @forelse($landingCategories as $category)
+                        @php($categoryIcon = \App\Support\CategoryIcons::resolve($category->icon, $category->slug, $category->name))
+                        <a class="home-category-card" href="{{ route('category', ['category' => $category->slug]) }}" data-home-category="{{ $category->slug }}">
+                            <span class="home-category-card__icon"><x-icon :name="$categoryIcon" size="26" /></span>
+                            <strong>{{ $category->name }}</strong>
+                            <small>{{ (int) ($category->products_count ?? 0) }} {{ (int) ($category->products_count ?? 0) === 1 ? 'product' : 'products' }}</small>
+                            <em>SHOP NOW <x-icon name="arrow-right" size="14" /></em>
+                        </a>
+                    @empty
+                        <p class="home-managed-empty">No public categories are available yet.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="home-catalog-group" data-home-shop-by-collection>
+                <div class="home-section-heading"><span></span><h2>SHOP BY COLLECTION</h2><span></span></div>
+                <div class="home-collection-grid home-collection-grid--all">
+                    @forelse($landingCollections as $collection)
+                        @php
+                            $collectionMedia = $collection->media && $collection->media->isApprovedPublic()
+                                ? $publicMediaResolver->describe($collection->media, $collection->name)
+                                : null;
+                        @endphp
+                        <a class="home-collection-card" href="{{ route('collection.show', ['collection' => $collection->slug]) }}" data-home-collection="{{ $collection->slug }}">
+                            <div class="home-managed-media home-managed-media--collection" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($collection->name.' collection image') }}">
+                                @if($collectionMedia)
+                                    @if(str_starts_with((string) ($collectionMedia['mime_type'] ?? ''), 'video/'))
+                                        <video src="{{ $collectionMedia['url'] }}" muted playsinline loop preload="metadata" aria-label="{{ $collectionMedia['alt'] }}"></video>
+                                    @else
+                                        <img src="{{ $collectionMedia['url'] }}" @if($collectionMedia['srcset']) srcset="{{ $collectionMedia['srcset'] }}" sizes="{{ $collectionMedia['sizes'] }}" @endif alt="{{ $collectionMedia['alt'] }}" loading="lazy">
+                                    @endif
+                                @else
+                                    <span class="home-collection-fallback-icon" aria-hidden="true"><x-icon name="clover" size="34" /></span>
+                                @endif
+                            </div>
+                            <div>
+                                <h3>{{ $collection->name }}</h3>
+                                <p>{{ $collection->description ?: 'Explore this Emerald Rozalia collection.' }}</p>
+                                <span>VIEW COLLECTION <b aria-hidden="true"><x-icon name="arrow-right" /></b></span>
+                            </div>
+                        </a>
+                    @empty
+                        <p class="home-managed-empty">No public collections are available yet.</p>
+                    @endforelse
+                </div>
             </div>
         </section>
 <?php } elseif ($type === 'heritage') { ?>
