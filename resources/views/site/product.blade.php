@@ -227,7 +227,7 @@
                     <div class="media-feature"><x-icon name="play" size="22" /><div><strong>VIDEO</strong><small>{{ $hasVideo ? $productVideos->count().' approved video'.($productVideos->count() === 1 ? '' : 's') : 'Available when approved' }}</small></div></div>
                     <div class="media-feature"><x-icon name="camera" size="22" /><div><strong>TRY ON</strong><small>{{ $hasTryOn ? 'Interactive preview ready' : 'Available when approved' }}</small></div></div>
                     <div class="media-feature"><x-icon name="star" size="22" /><div><strong>REVIEWS</strong><small>{{ $reviewCount }} customer review{{ $reviewCount === 1 ? '' : 's' }}</small></div></div>
-                </div>                </div>
+                </div>
             </div>
         </div>
 
@@ -310,20 +310,6 @@
         </section>
     @endif
 </div>
-@php
-    $productVideos = \App\Models\ProductVideo::where('product_id',$product->id)->with('product')->where('active',true)->orderBy('sort_order')->get()
-        ->filter(fn ($video) => $video->isPubliclyPlayable() && data_get($video->metadata,'gallery',true));
-@endphp
-@if($productVideos->isNotEmpty())
-<section class="product-details" style="padding:24px" aria-label="Product videos">
-    <h2>Product videos</h2>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:24px;margin-top:16px">
-    @foreach($productVideos as $video)
-        <article><h3>{{ $video->title }}</h3><x-video-player :video="$video" /><p>{{ data_get($video->metadata,'description') }}</p></article>
-    @endforeach
-    </div>
-</section>
-@endif
 @endsection
 
 @push('scripts')
