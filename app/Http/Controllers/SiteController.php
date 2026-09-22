@@ -74,11 +74,27 @@ class SiteController extends Controller
             ->orderBy('id')
             ->get();
 
+        $homeCategories = Category::query()
+            ->websiteVisible()
+            ->whereNull('parent_id')
+            ->withCount(['products' => fn ($query) => $query->published()])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $homeCollections = ProductCollection::query()
+            ->with('media')
+            ->withCount(['products' => fn ($query) => $query->published()])
+            ->where('status', 'active')
+            ->where('visibility', 'visible')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
         return [
-            'categories' => Category::where('is_active', true)
-                ->withCount(['products' => fn ($query) => $query->published()])
-                ->orderBy('sort_order')
-                ->get(),
+            'categories' => $homeCategories,
+            'homeCategories' => $homeCategories,
+            'homeCollections' => $homeCollections,
             'homeProducts' => $homeProducts,
             'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
