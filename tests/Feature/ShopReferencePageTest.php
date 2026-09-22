@@ -20,6 +20,7 @@ class ShopReferencePageTest extends TestCase
                 'Irish made. Premium quality. Made in Limerick.',
                 'IRISH MADE',
                 'WORLDWIDE DELIVERY',
+                'SHOP BY CATEGORY',
                 'FILTERS',
                 'CATEGORY',
                 'COLOUR',
@@ -33,6 +34,15 @@ class ShopReferencePageTest extends TestCase
                 '/js/shop.js',
                 'data-shop-page',
             ], false);
+    }
+
+    public function test_shop_product_images_preserve_the_complete_product_photo(): void
+    {
+        $css = file_get_contents(public_path('css/shop.css'));
+
+        $this->assertIsString($css);
+        $this->assertStringContainsString('object-fit:contain!important', $css);
+        $this->assertStringContainsString('.shop-category-heading', $css);
     }
 
     public function test_shop_category_cards_render_generic_icons_instead_of_letter_initials(): void

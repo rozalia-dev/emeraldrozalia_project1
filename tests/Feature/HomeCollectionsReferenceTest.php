@@ -126,6 +126,43 @@ class HomeCollectionsReferenceTest extends TestCase
             ->assertDontSee('hidden-collection-home-test', false);
     }
 
+    public function test_homepage_root_category_count_includes_published_products_from_visible_descendants(): void
+    {
+        $root = Category::create([
+            'name' => 'Traditional Count Root',
+            'slug' => 'traditional-count-root',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 940,
+        ]);
+        $child = Category::create([
+            'parent_id' => $root->id,
+            'name' => 'Traditional Count Caps',
+            'slug' => 'traditional-count-caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        Product::create([
+            'category_id' => $child->id,
+            'name' => 'Descendant Count Cap',
+            'slug' => 'descendant-count-cap',
+            'sku' => 'DESC-COUNT-001',
+            'price' => 39.00,
+            'stock' => 4,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('data-home-category="traditional-count-root"', false)
+            ->assertSeeText('1 product');
+    }
+
     public function test_homepage_product_card_css_preserves_the_full_product_image(): void
     {
         $css = file_get_contents(public_path('css/home-collections.css'));
