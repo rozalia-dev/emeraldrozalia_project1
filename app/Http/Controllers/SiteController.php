@@ -103,6 +103,23 @@ class SiteController extends Controller
                 $category->setAttribute('products_count', $publishedCount);
             });
 
+        // The homepage "Shop by Category" area must show real public products,
+        // not only navigation cards/counts. Products assigned to descendant
+        // categories belong to the root category row as well.
+        $homeCategoryProducts = $homeCategories->mapWithKeys(function (Category $category) use ($homeCategoryChildren): array {
+            $categoryIds = $this->catalogDescendantIds($category, $homeCategoryChildren);
+
+            return [
+                $category->id => Product::query()
+                    ->with('media')
+                    ->published()
+                    ->whereIn('category_id', $categoryIds)
+                    ->latest()
+                    ->limit(6)
+                    ->get(),
+            ];
+        });
+
         $homeCollections = ProductCollection::query()
             ->with('media')
             ->withCount(['products' => fn ($query) => $query->published()])
@@ -112,10 +129,27 @@ class SiteController extends Controller
             ->orderBy('name')
             ->get();
 
+        // "Shop by Collection" must also expose the products assigned to each
+        // public collection. This uses the collection_product pivot ordering
+        // configured in cPanel and only includes products that are public.
+        $homeCollectionProducts = $homeCollections->mapWithKeys(function (ProductCollection $collection): array {
+            return [
+                $collection->id => $collection->products()
+                    ->published()
+                    ->with('media')
+                    ->orderBy('collection_product.sort_order')
+                    ->orderBy('products.name')
+                    ->limit(6)
+                    ->get(),
+            ];
+        });
+
         return [
             'categories' => $homeCategories,
             'homeCategories' => $homeCategories,
+            'homeCategoryProducts' => $homeCategoryProducts,
             'homeCollections' => $homeCollections,
+            'homeCollectionProducts' => $homeCollectionProducts,
             'homeProducts' => $homeProducts,
             'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
