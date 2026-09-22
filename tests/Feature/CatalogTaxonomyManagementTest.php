@@ -137,6 +137,62 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->assertDontSee('Japan Country Club', false);
     }
 
+    public function test_uefa_club_options_prefer_exact_region_and_fall_back_to_country(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $germany = CatalogCountry::query()->where('code', 'DE')->firstOrFail();
+
+        $bayern = CatalogClub::create([
+            'catalog_country_id' => $germany->id,
+            'catalog_county_code' => 'DE-BY',
+            'governing_body' => 'uefa',
+            'name' => 'Bayern München',
+            'slug' => 'bayern-munchen',
+            'is_active' => true,
+            'sort_order' => 10,
+        ]);
+        $countryFallback = CatalogClub::create([
+            'catalog_country_id' => $germany->id,
+            'catalog_county_code' => null,
+            'governing_body' => 'uefa',
+            'name' => 'Germany Country Club',
+            'slug' => 'germany-country-club',
+            'is_active' => true,
+            'sort_order' => 20,
+        ]);
+        CatalogClub::create([
+            'catalog_country_id' => $germany->id,
+            'catalog_county_code' => 'DE-NW',
+            'governing_body' => 'uefa',
+            'name' => 'Dortmund Region Club',
+            'slug' => 'dortmund-region-club',
+            'is_active' => true,
+            'sort_order' => 30,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'uefa',
+                'catalog_country_id' => $germany->id,
+                'catalog_county_code' => 'DE-BY',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('clubs.0.id', $bayern->id)
+            ->assertJsonMissing(['id' => $countryFallback->id])
+            ->assertJsonMissing(['name' => 'Dortmund Region Club']);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'uefa',
+                'catalog_country_id' => $germany->id,
+                'catalog_county_code' => 'DE-HE',
+            ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $countryFallback->id, 'scope' => 'country'])
+            ->assertJsonMissing(['name' => 'Bayern München'])
+            ->assertJsonMissing(['name' => 'Dortmund Region Club']);
+    }
+
     public function test_uefa_country_club_product_type_hierarchy_can_be_built(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
