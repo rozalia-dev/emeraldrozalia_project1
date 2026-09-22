@@ -279,6 +279,7 @@
                 default => $homeProducts ?? collect(),
             };
             $homeProductItems = $productPool instanceof \Illuminate\Support\Collection ? $productPool->take($productLimit) : collect();
+            $staticProductRow = $homeProductItems->count() <= 6;
             $viewAllUrl = $safeUrl($settings['view_all_href'] ?? '/shop');
         @endphp
         <section {!! $sectionAttributes !!} class="home-section home-bestsellers home-bestsellers--managed" data-home-bestsellers>
@@ -290,9 +291,11 @@
                 <?php } ?>
             </div>
             <?php if ($homeProductItems->isNotEmpty()) { ?>
-                <div class="home-product-carousel">
-                    <button class="home-carousel-arrow home-carousel-arrow--prev" type="button" data-home-carousel-prev aria-label="Previous {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-left" size="20" /></button>
-                    <div class="home-product-grid" data-home-carousel-track>
+                <div class="home-product-carousel {{ $staticProductRow ? 'home-product-carousel--static' : '' }}" data-home-product-count="{{ $homeProductItems->count() }}">
+                    <?php if (! $staticProductRow) { ?>
+                        <button class="home-carousel-arrow home-carousel-arrow--prev" type="button" data-home-carousel-prev aria-label="Previous {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-left" size="20" /></button>
+                    <?php } ?>
+                    <div class="home-product-grid {{ $staticProductRow ? 'home-product-grid--static' : '' }}" data-home-carousel-track>
                         <?php foreach ($homeProductItems as $productIndex => $product) { ?>
                             <?php
                                 $productMedia = $product->media->firstWhere('type', 'image');
@@ -317,7 +320,9 @@
                             </article>
                         <?php } ?>
                     </div>
-                    <button class="home-carousel-arrow home-carousel-arrow--next" type="button" data-home-carousel-next aria-label="Next {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-right" size="20" /></button>
+                    <?php if (! $staticProductRow) { ?>
+                        <button class="home-carousel-arrow home-carousel-arrow--next" type="button" data-home-carousel-next aria-label="Next {{ strtolower($copy('title', 'products')) }}"><x-icon name="chevron-right" size="20" /></button>
+                    <?php } ?>
                 </div>
             <?php } else { ?>
                 <p class="home-managed-empty">No published products are available for this section.</p>
