@@ -5,9 +5,12 @@
 <div class="sd-edit-grid">
 <section class="sd-card sd-create-card">
     <h2>{{ $editing?'Update 360° View':'Create 360° View' }}</h2>
+    @if(!$editing && ($scopedProduct ?? null))
+        <p class="sd-product-context" data-scoped-product-context>Managing 360° media for <strong>{{ $scopedProduct->name }}</strong> · SKU {{ $scopedProduct->sku }}</p>
+    @endif
     <div class="sd-core-fields">
         <label>Title<input name="title" required maxlength="160" value="{{ old('title',$record?->title??'') }}"></label>
-        <label>Product / SKU<select name="product_id" required><option value="">Select a product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected(old('product_id',$record?->product_id)==$product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
+        <label>Product / SKU<select name="product_id" required data-scoped-product-select><option value="">Select a product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((int) old('product_id',$record?->product_id ?? $scopedProductId ?? 0)===(int) $product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
     </div>
     <label class="sd-drop"><x-icon name="upload" size="28" /><strong>{{ $editing?'Replace 360° frames (ZIP)':'Drag & drop 360° frames (ZIP)' }}</strong><span>or</span><input type="file" name="archive" accept=".zip,application/zip" @required(!$editing)><span data-file-note>Choose Files</span></label>
     <small>Supports: ZIP (recommended). Image formats: JPG, PNG.</small>
