@@ -116,7 +116,7 @@ class ProductRichMediaHubTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(6, substr_count($content, 'data-product-thumb'));
+        $this->assertSame(6, substr_count($content, 'data-product-thumb data-index='));
         foreach (['Emerald', 'Navy', 'Black', 'Brown', 'Grey', 'Cream'] as $colour) {
             $this->assertStringContainsString($colour, $content);
         }
