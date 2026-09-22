@@ -21,7 +21,7 @@
 <section class="sd-card sd-settings-card" data-settings-card><h2>360° Settings <small>{{ $editing?'(Selected View)':'(Default)' }}</small></h2>
     <label id="sd-category-field">Type<select name="category">@foreach(\App\Models\ProductSpin::CATEGORIES as $key=>$label)<option value="{{ $key }}" @selected(old('category',$record?->category??'product')===$key)>{{ $label }}</option>@endforeach</select></label>
     <label>Status<select name="status">@foreach(\App\Models\ProductSpin::STATUSES as $key=>$label)<option value="{{ $key }}" @selected(old('status',$record?->status??'draft')===$key)>{{ $label }}</option>@endforeach</select></label>
-    <label>Visibility<select name="visibility"><option value="private" @selected(old('visibility',$record?->visibility)==='private')>Private</option><option value="public" @selected(old('visibility',$record?->visibility)==='public')>Public</option></select></label>
+    <label>Visibility<select name="visibility"><option value="private" @selected(old('visibility',$record?->visibility??'public')==='private')>Private</option><option value="public" @selected(old('visibility',$record?->visibility??'public')==='public')>Public</option></select></label>
     @foreach(['auto_rotate'=>'Auto Rotate','zoom'=>'Zoom In/Out','fullscreen'=>'Fullscreen Mode','hotspots'=>'Hotspot Support','lazy_load'=>'Lazy Load','mobile'=>'Mobile Optimized'] as $key=>$label)
     <label class="sd-toggle"><span>{{ $label }}</span><input type="checkbox" role="switch" name="{{ $key }}" value="1" @checked(old($key,$record?->settings[$key]??\App\Models\ProductSpin::DEFAULTS[$key]))></label>
     @endforeach
