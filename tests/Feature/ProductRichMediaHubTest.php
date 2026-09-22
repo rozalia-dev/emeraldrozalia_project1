@@ -127,7 +127,7 @@ class ProductRichMediaHubTest extends TestCase
         $this->assertStringContainsString('data-product-mode="tryon"', $content);
         $this->assertStringContainsString('data-product-mode="reviews"', $content);
 
-        $this->assertStringContainsString('/360/'.$spin->uuid.'/frames/0', $content);
+        $this->assertStringContainsString('data-spin-uuid="'.$spin->uuid.'"', $content);
         $this->assertStringContainsString('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ', $content);
         $this->assertStringContainsString(route('tryons.asset', [$tryOnUuid, 'preview']), $content);
         $this->assertStringContainsString(route('virtual-tryon', ['product_id' => $product->id]), $content);
