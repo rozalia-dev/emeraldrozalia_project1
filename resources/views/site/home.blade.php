@@ -104,8 +104,20 @@
             </section>
         @endif
 
+        @php
+            // These legacy promotional blocks are intentionally not part of the
+            // public homepage. Their Page Manager records are preserved so they
+            // can be reused elsewhere without rendering empty/placeholder bands.
+            $hiddenPublicHomepageTypes = ['benefits', 'heritage', 'quality', 'franchise'];
+        @endphp
+
         @foreach($homepageSections as $section)
-            @if($section->visible && (! $heroSection || $section->id !== $heroSection->id))
+            @php $homepageSectionType = strtolower(trim((string) $section->type)); @endphp
+            @if(
+                $section->visible
+                && (! $heroSection || $section->id !== $heroSection->id)
+                && ! in_array($homepageSectionType, $hiddenPublicHomepageTypes, true)
+            )
                 @include('site.partials.home-section', [
                     'section' => $section,
                     'categories' => $categories ?? collect(),
