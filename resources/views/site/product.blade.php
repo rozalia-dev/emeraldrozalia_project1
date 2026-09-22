@@ -13,8 +13,6 @@
     $spinImages = collect($spinFrames ?? [])->filter()->values()->all();
     $has360 = count($spinImages) >= 2;
     $spinSource = $spinViewerData ? 'managed' : ($has360 ? 'approved-media' : 'none');
-    $thumbnailImages = collect($galleryImages ?: $spinImages)->values()->all();
-    $firstImage = $galleryImages[0] ?? $spinImages[0] ?? null;
     $activeVariants = $product->variants->where('is_active', true)->values();
     $variantPayload = $activeVariants->map(function ($variant) use ($publicMedia, $product) {
         $variantImages = $variant->approvedMedia
@@ -35,6 +33,48 @@
             'images' => $variantImages,
         ];
     })->values()->all();
+
+    $colourMedia = collect($variantPayload)
+        ->filter(fn (array $variant) => filled($variant['colour'] ?? null) && filled($variant['image'] ?? null))
+        ->unique(fn (array $variant) => strtolower(trim((string) $variant['colour'])))
+        ->take(6)
+        ->map(fn (array $variant) => [
+            'url' => $variant['image'],
+            'label' => $variant['colour'],
+            'kind' => 'colour',
+        ])
+        ->values();
+
+    $fallbackMedia = collect($galleryImages)
+        ->map(fn (string $url, int $index) => [
+            'url' => $url,
+            'label' => 'Product image '.($index + 1),
+            'kind' => 'photo',
+        ]);
+
+    $thumbnailMedia = $colourMedia
+        ->concat($fallbackMedia)
+        ->unique('url')
+        ->take(6)
+        ->values();
+
+    if ($thumbnailMedia->isEmpty() && $spinImages) {
+        $thumbnailMedia = collect($spinImages)
+            ->take(6)
+            ->values()
+            ->map(fn (string $url, int $index) => [
+                'url' => $url,
+                'label' => '360° frame '.($index + 1),
+                'kind' => 'spin',
+            ]);
+    }
+
+    $thumbnailImages = $thumbnailMedia->pluck('url')->filter()->values()->all();
+    $firstImage = $thumbnailImages[0] ?? $galleryImages[0] ?? $spinImages[0] ?? null;
+    $productVideos = collect($productVideos ?? [])->values();
+    $hasVideo = $productVideos->isNotEmpty();
+    $hasTryOn = is_array($tryOnViewerData ?? null) && filled(data_get($tryOnViewerData, 'preview'));
+
     $colours = $activeVariants->pluck('colour')->filter()->unique()->values()->all() ?: collect($product->colours ?? [])->filter()->values()->all();
     $sizes = $activeVariants->pluck('size')->filter()->unique()->values()->all() ?: collect($product->sizes ?? [])->filter()->values()->all();
     $reviewCount = $product->reviews->count();
