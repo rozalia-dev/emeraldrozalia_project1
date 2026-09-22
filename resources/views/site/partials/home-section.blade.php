@@ -195,6 +195,55 @@
                         <p class="home-managed-empty">No public categories are available yet.</p>
                     <?php } ?>
                 </div>
+
+                <div class="home-category-product-groups" data-home-category-product-groups>
+                    <?php foreach ($landingCategories as $catalogCategory) { ?>
+                        <?php
+                            $categoryProductItems = ($homeCategoryProducts ?? collect()) instanceof \Illuminate\Support\Collection
+                                ? ($homeCategoryProducts ?? collect())->get($catalogCategory->id, collect())
+                                : collect();
+                            $categoryProductItems = $categoryProductItems instanceof \Illuminate\Support\Collection
+                                ? $categoryProductItems
+                                : collect();
+                        ?>
+                        <?php if ($categoryProductItems->isNotEmpty()) { ?>
+                            <section class="home-category-product-group" data-home-category-products="{{ $catalogCategory->slug }}" aria-labelledby="home-category-products-{{ $catalogCategory->id }}">
+                                <div class="home-category-product-heading">
+                                    <h3 id="home-category-products-{{ $catalogCategory->id }}">{{ $catalogCategory->name }}</h3>
+                                    <a href="{{ route('category', ['category' => $catalogCategory->slug]) }}">VIEW ALL <x-icon name="arrow-right" size="14" /></a>
+                                </div>
+                                <div class="home-product-grid home-product-grid--static home-category-product-grid">
+                                    <?php foreach ($categoryProductItems as $product) { ?>
+                                        <?php
+                                            $productMedia = $product->media->firstWhere('type', 'image');
+                                            $productMediaDescriptor = $productMedia
+                                                ? $publicMediaResolver->forProductMedia($productMedia, $product->name)
+                                                : null;
+                                        ?>
+                                        <article class="home-product-card" data-home-category-product="{{ $product->slug }}">
+                                            <a class="home-product-link" href="{{ route('product', $product) }}">
+                                                <div class="home-product-media home-managed-media home-managed-media--product" data-public-media-state="{{ $productMediaDescriptor ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $productMediaDescriptor['alt'] ?? ($product->name.' product image') }}">
+                                                    <?php if ($productMediaDescriptor) { ?>
+                                                        <img src="{{ $productMediaDescriptor['url'] }}" @if($productMediaDescriptor['srcset']) srcset="{{ $productMediaDescriptor['srcset'] }}" sizes="{{ $productMediaDescriptor['sizes'] }}" @endif width="{{ $productMediaDescriptor['width'] ?: '' }}" height="{{ $productMediaDescriptor['height'] ?: '' }}" alt="{{ $productMediaDescriptor['alt'] }}" loading="lazy">
+                                                    <?php } else { ?>
+                                                        <span class="sr-only">Approved product media is not configured.</span>
+                                                    <?php } ?>
+                                                </div>
+                                                <span>{{ $product->name }}</span>
+                                                <strong>€{{ number_format((float) $product->price, 2) }}</strong>
+                                            </a>
+                                            <?php if ((int) $product->stock > 0) { ?>
+                                                <form method="post" action="{{ route('cart.add', $product) }}" class="home-product-cart-form">@csrf<input type="hidden" name="quantity" value="1"><button class="home-product-cart" type="submit" aria-label="Add {{ $product->name }} to cart"><x-icon name="shopping-bag" size="16" /></button></form>
+                                            <?php } else { ?>
+                                                <a class="home-product-cart" href="{{ route('product', $product) }}" aria-label="View {{ $product->name }}"><x-icon name="arrow-right" size="16" /></a>
+                                            <?php } ?>
+                                        </article>
+                                    <?php } ?>
+                                </div>
+                            </section>
+                        <?php } ?>
+                    <?php } ?>
+                </div>
             </div>
 
             <div class="home-catalog-group" data-home-shop-by-collection>
