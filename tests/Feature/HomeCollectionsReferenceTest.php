@@ -36,7 +36,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'THE IRISH HERITAGE',
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
-                '/css/home-collections.css?v=20260922-bestseller-display',
+                '/css/home-collections.css?v=20260922-product-contain',
                 '/css/home-hero-layout.css?v=20260914-side-overlay-gradient',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
@@ -124,6 +124,16 @@ class HomeCollectionsReferenceTest extends TestCase
             ->assertSee(route('collection.show', ['collection' => $collectionA->slug]), false)
             ->assertSee(route('collection.show', ['collection' => $collectionB->slug]), false)
             ->assertDontSee('hidden-collection-home-test', false);
+    }
+
+    public function test_homepage_product_card_css_preserves_the_full_product_image(): void
+    {
+        $css = file_get_contents(public_path('css/home-collections.css'));
+
+        $this->assertIsString($css);
+        $this->assertStringContainsString('object-fit:contain !important', $css);
+        $this->assertStringContainsString('aspect-ratio:4 / 3', $css);
+        $this->assertStringContainsString('.home-page .home-product-card .home-product-media.home-managed-media--product', $css);
     }
 
     public function test_homepage_bestsellers_use_the_best_sellers_collection_instead_of_new_arrivals(): void
