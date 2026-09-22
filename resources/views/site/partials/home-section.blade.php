@@ -183,7 +183,7 @@
                 <div class="home-category-grid">
                     <?php if ($landingCategories->isNotEmpty()) { ?>
                         <?php foreach ($landingCategories as $catalogCategory) { ?>
-                            @php($categoryIcon = \App\Support\CategoryIcons::resolve($catalogCategory->icon, $catalogCategory->slug, $catalogCategory->name))
+                            <?php $categoryIcon = \App\Support\CategoryIcons::resolve($catalogCategory->icon, $catalogCategory->slug, $catalogCategory->name); ?>
                             <a class="home-category-card" href="{{ route('category', ['category' => $catalogCategory->slug]) }}" data-home-category="{{ $catalogCategory->slug }}">
                                 <span class="home-category-card__icon"><x-icon :name="$categoryIcon" size="26" /></span>
                                 <strong>{{ $catalogCategory->name }}</strong>
@@ -202,11 +202,11 @@
                 <div class="home-collection-grid home-collection-grid--all">
                     <?php if ($landingCollections->isNotEmpty()) { ?>
                         <?php foreach ($landingCollections as $catalogCollection) { ?>
-                            @php
+                            <?php
                                 $collectionMedia = $catalogCollection->media && $catalogCollection->media->isApprovedPublic()
                                     ? $publicMediaResolver->describe($catalogCollection->media, $catalogCollection->name)
                                     : null;
-                            @endphp
+                            ?>
                             <a class="home-collection-card" href="{{ route('collection.show', ['collection' => $catalogCollection->slug]) }}" data-home-collection="{{ $catalogCollection->slug }}">
                                 <div class="home-managed-media home-managed-media--collection" data-public-media-state="{{ $collectionMedia ? 'approved' : 'awaiting-approved-media' }}" role="img" aria-label="{{ $collectionMedia['alt'] ?? ($catalogCollection->name.' collection image') }}">
                                     @if($collectionMedia)
