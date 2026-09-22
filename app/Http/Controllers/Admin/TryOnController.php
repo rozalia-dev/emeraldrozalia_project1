@@ -66,6 +66,8 @@ class TryOnController extends Controller
         }
 
         $products = Product::orderBy('name')->get(['id','name','sku']);
+        $scopedProductId = $request->filled('product_id') ? $request->integer('product_id') : null;
+        $scopedProduct = $scopedProductId ? $products->firstWhere('id', $scopedProductId) : null;
         $selected = $request->filled('edit') ? TryOnAsset::findOrFail($request->integer('edit')) : $assets->first();
         $statuses = TryOnAsset::STATUSES;
         $types = TryOnAsset::TYPES;
@@ -80,7 +82,7 @@ class TryOnController extends Controller
 
         return view('admin.tryons.index', compact(
             'assets','stats','devices','products','selected','statuses','types','targets',
-            'pageStart','pageEnd','angleMobile','angleDesktop','angleIos'
+            'pageStart','pageEnd','angleMobile','angleDesktop','angleIos','scopedProductId','scopedProduct'
         ));
     }
 
@@ -150,7 +152,7 @@ class TryOnController extends Controller
             if ($stored) Storage::disk('local')->deleteDirectory($stored['directory']);
             throw $e;
         }
-        return redirect()->route('admin.tryons.index',['edit'=>$asset->id])->with('success','Virtual try-on asset saved.');
+        return redirect()->route('admin.tryons.index',['product_id'=>$asset->product_id,'edit'=>$asset->id])->with('success','Virtual try-on asset saved.');
     }
 
     public function store(Request $request) { return $this->save($request); }
