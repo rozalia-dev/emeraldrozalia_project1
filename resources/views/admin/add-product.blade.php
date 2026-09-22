@@ -114,8 +114,9 @@
                             </label>
 
                             <label class="ap-field ap-field-wide">
-                                <span>SKU / Barcode <em>*</em></span>
-                                <div class="ap-input-with-icon"><input type="text" name="sku" value="{{ old('sku', $product?->sku) }}" placeholder="ERCAP-GRN-001" required><x-icon name="tag" size="17" /></div>
+                                <span>SKU <small>(Auto)</small></span>
+                                <div class="ap-input-with-icon"><input type="text" name="sku" value="{{ old('sku', $product?->sku) }}" placeholder="Auto-generated on save"><x-icon name="tag" size="17" /></div>
+                                <small class="ap-field-help">Leave blank to generate automatically as ER-[category]-[family]-[product ID]. You can still enter your own SKU.</small>
                                 @error('sku')<small class="ap-field-error">{{ $message }}</small>@enderror
                             </label>
 
@@ -195,6 +196,7 @@
                                             @foreach($options as $option)
                                                 <option value="{{ $option['id'] }}"
                                                     data-root="{{ $rootId }}"
+                                                    data-product-type="{{ strtolower((string) ($option['product_type'] ?? '')) }}"
                                                     @selected((string) $selectedCategoryId === (string) $option['id'])>
                                                     {{ $option['label'] }}
                                                 </option>
@@ -248,8 +250,10 @@
                                     </select>
                                 </label>
                                 <label class="ap-field">
-                                    <span>HS Code</span>
-                                    <input type="text" name="hs_code" value="{{ old('hs_code', $product?->hs_code) }}" placeholder="6505.00.30">
+                                    <span>HS Code <small>(Auto)</small></span>
+                                    <input type="text" name="hs_code" value="{{ old('hs_code', $product?->hs_code) }}" placeholder="Auto-generated from product family" data-auto-hs-code>
+                                    <small class="ap-field-help">Caps, Hats and Beanie default to HS 650500. Edit this value when the product construction requires a different customs classification.</small>
+                                    @error('hs_code')<small class="ap-field-error">{{ $message }}</small>@enderror
                                 </label>
                             </div>
 
@@ -422,6 +426,8 @@
     const initialCounty = @json((string) $selectedCountyCode);
     const initialClub = @json((string) $selectedClubId);
     const initialSubcategory = @json((string) $selectedCategoryId);
+    const hsCode = document.querySelector('[data-auto-hs-code]');
+    let hsCodeManuallyEdited = Boolean(hsCode?.value.trim());
     const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
     let clubRequestSerial = 0;
 
@@ -448,7 +454,19 @@
         if (subcategory?.options[0]) {
             subcategory.options[0].textContent = selectedRoot ? 'Select subcategory' : 'Select category first';
         }
+        syncHsCode();
     };
+
+    const syncHsCode = () => {
+        if (!hsCode || hsCodeManuallyEdited) return;
+
+        const productType = subcategory?.selectedOptions[0]?.dataset.productType || '';
+        hsCode.value = ['caps', 'hats', 'beanies', 'beanie'].includes(productType) ? '650500' : '';
+    };
+
+    hsCode?.addEventListener('input', () => {
+        hsCodeManuallyEdited = hsCode.value.trim() !== '';
+    });
 
     const syncCounties = (preserve = false) => {
         if (!country || !county) return;
@@ -575,6 +593,7 @@
         void syncClubs(false);
     });
     county?.addEventListener('change', () => void syncClubs(false));
+    subcategory?.addEventListener('change', syncHsCode);
 
     syncSubcategories();
     syncCounties(true);

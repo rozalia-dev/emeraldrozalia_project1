@@ -18,6 +18,7 @@ class ProductDeletionWorkflowTest extends TestCase
             'name' => 'Delete Workflow Cap',
             'slug' => 'delete-workflow-cap',
             'sku' => 'ER-DELETE-001',
+            'hs_code' => '650500',
             'price' => 34.99,
             'stock' => 12,
             'brand' => 'Emerald Rozalia',
@@ -42,6 +43,11 @@ class ProductDeletionWorkflowTest extends TestCase
             ->assertRedirect(route('admin.resource', ['module' => 'product-manager']));
 
         $this->assertSoftDeleted('products', ['id' => $product->id]);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'sku' => 'ER-DELETE-001',
+            'hs_code' => '650500',
+        ]);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'product.trashed',
             'subject_id' => $product->id,
@@ -60,7 +66,12 @@ class ProductDeletionWorkflowTest extends TestCase
             ->post(route('admin.product-manager.restore', ['product' => $product->id]))
             ->assertRedirect(route('admin.resource', ['module' => 'product-manager', 'tab' => 'trash']));
 
-        $this->assertDatabaseHas('products', ['id' => $product->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'sku' => 'ER-DELETE-001',
+            'hs_code' => '650500',
+            'deleted_at' => null,
+        ]);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'product.restored',
             'subject_id' => $product->id,

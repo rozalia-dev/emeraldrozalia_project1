@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductCollection;
 use App\Support\CatalogCounties;
 use App\Support\CatalogStyles;
+use App\Support\ProductCodeGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -151,7 +152,7 @@ class AddProductController extends Controller
             'name' => ['required', 'string', 'max:180'],
             'short_description' => ['required', 'string', 'max:1500'],
             'slug' => ['nullable', 'string', 'max:180'],
-            'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product?->id)],
+            'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product?->id)],
             'category_root_id' => ['nullable', 'integer', 'exists:categories,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'catalog_country_id' => ['nullable', 'integer', 'exists:catalog_countries,id'],
@@ -317,12 +318,20 @@ class AddProductController extends Controller
                 'published_website' => $publishedWebsite,
                 'available_for_sale' => $request->boolean('available_for_sale'),
             ];
+            $category = Category::query()->findOrFail((int) $data['category_id']);
+            $manualSku = trim((string) ($data['sku'] ?? ''));
+            $manualHsCode = trim((string) ($data['hs_code'] ?? ''));
+            $autoHsCode = ProductCodeGenerator::suggestedHsCode($category, $data['catalog_style'] ?? null);
+
             $attributes = [
-                'category_id' => $data['category_id'], 'name' => $data['name'], 'slug' => $data['slug'], 'sku' => $data['sku'],
+                'category_id' => $data['category_id'], 'name' => $data['name'], 'slug' => $data['slug'],
+                'sku' => $manualSku !== ''
+                    ? $manualSku
+                    : ($product ? ProductCodeGenerator::sku((int) $product->id, $category) : ProductCodeGenerator::temporarySku()),
                 'description' => $data['description'], 'price' => $data['price'], 'compare_price' => $data['compare_price'] ?? null,
                 'stock' => $data['stock'], 'material' => $data['material'] ?? null, 'brand' => $data['brand'] ?? null, 'care' => $data['care'] ?? null,
                 'meta_title' => $data['meta_title'] ?? null, 'meta_description' => $data['meta_description'] ?? null, 'weight' => $data['weight'] ?? null,
-                'hs_code' => $data['hs_code'] ?? null,
+                'hs_code' => $manualHsCode !== '' ? $manualHsCode : $autoHsCode,
                 'is_new' => $request->boolean('is_new_arrival', $request->boolean('featured')),
                 'is_active' => $publishedWebsite && $request->boolean('available_for_sale'),
                 'status' => $status, 'product_metadata' => $metadata,
@@ -334,6 +343,11 @@ class AddProductController extends Controller
                 $product = $product->fresh();
             } else {
                 $product = Product::create($attributes);
+
+                if ($manualSku === '') {
+                    $product->update(['sku' => ProductCodeGenerator::sku((int) $product->id, $category)]);
+                    $product = $product->fresh();
+                }
             }
 
             if ($request->boolean('collection_ids_present')) {
