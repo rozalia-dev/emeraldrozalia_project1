@@ -608,14 +608,15 @@ class SiteController extends Controller
                 ->where('visibility', 'public')
                 ->latest('updated_at'),
         ]);
+        $mediaResolver = app(PublicMediaResolver::class);
         $managedSpin = $product->latestPublicSpin();
         $spinViewerData = $managedSpin?->viewerData();
         $spinFrames = collect($spinViewerData['frames'] ?? []);
         if (! $managedSpin) {
             $spinFrames = $spinFrames->merge($product->media
                 ->where('type', 'spin_360')
-                ->map(function ($media) use ($product) {
-                $descriptor = app(PublicMediaResolver::class)->forProductMedia($media, $product->name);
+                ->map(function ($media) use ($product, $mediaResolver) {
+                    $descriptor = $mediaResolver->forProductMedia($media, $product->name);
 
                     return $descriptor['url'] ?? null;
                 }));
@@ -630,9 +631,20 @@ class SiteController extends Controller
             ->filter(fn (ProductVideo $video): bool => $video->isPubliclyPlayable() && (bool) data_get($video->metadata, 'gallery', true))
             ->values();
 
+        $productVideoMedia = $product->media
+            ->where('type', 'video')
+            ->map(fn ($media) => $mediaResolver->forProductMedia($media, $product->name))
+            ->filter()
+            ->values();
+
         $tryOnAsset = $product->tryOnAssets
             ->first(fn ($asset): bool => $asset->isPublic());
         $tryOnViewerData = $tryOnAsset?->viewerData();
+        $productTryOnMedia = $product->media
+            ->where('type', 'try_on')
+            ->map(fn ($media) => $mediaResolver->forProductMedia($media, $product->name))
+            ->filter()
+            ->values();
 
         $related = Product::published()
             ->where('id', '!=', $product->id)
@@ -646,7 +658,9 @@ class SiteController extends Controller
             'spinFrames',
             'spinViewerData',
             'productVideos',
+            'productVideoMedia',
             'tryOnViewerData',
+            'productTryOnMedia',
         ));
     }
 

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Product, ProductSpin, ProductVariant, ProductVideo, Review, TryOnAsset, User, VariantMedia};
+use App\Models\{Product, ProductMedia, ProductSpin, ProductVariant, ProductVideo, Review, TryOnAsset, User, VariantMedia};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -136,6 +136,88 @@ class ProductRichMediaHubTest extends TestCase
         $this->assertStringContainsString('6 of 6 colour views available', $content);
         $this->assertStringContainsString('REVIEWS (1)', $content);
         $this->assertNotEmpty($video->uuid);
+    }
+
+
+    public function test_product_media_manager_assets_power_live_media_status_and_generic_variant_prompt(): void
+    {
+        $product = Product::create([
+            'name' => 'Media Manager Cap',
+            'slug' => 'media-manager-cap',
+            'sku' => 'MEDIA-MANAGER-001',
+            'price' => 70,
+            'stock' => 10,
+            'colours' => ['White', 'Black', 'Navy', 'Green', 'Red', 'Burgundy'],
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+
+        ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'MEDIA-MANAGER-V1',
+            'colour' => null,
+            'size' => null,
+            'price' => 70,
+            'stock' => 4,
+            'is_active' => true,
+        ]);
+
+        foreach (['white', 'black', 'navy', 'green', 'red', 'burgundy'] as $index => $colour) {
+            ProductMedia::create([
+                'uuid' => (string) Str::uuid(),
+                'product_id' => $product->id,
+                'type' => 'image',
+                'disk' => 'public',
+                'path' => 'product-media/media-manager/'.$colour.'.jpg',
+                'alt_text' => ucfirst($colour).' Media Manager Cap',
+                'sort_order' => $index,
+                'approval_status' => 'approved',
+                'active' => true,
+                'mime_type' => 'image/jpeg',
+            ]);
+        }
+
+        $videoUuid = (string) Str::uuid();
+        ProductMedia::create([
+            'uuid' => $videoUuid,
+            'product_id' => $product->id,
+            'type' => 'video',
+            'disk' => 'public',
+            'path' => 'product-media/media-manager/demo.mp4',
+            'alt_text' => 'Media Manager product video',
+            'sort_order' => 20,
+            'approval_status' => 'approved',
+            'active' => true,
+            'mime_type' => 'video/mp4',
+        ]);
+
+        $tryOnUuid = (string) Str::uuid();
+        ProductMedia::create([
+            'uuid' => $tryOnUuid,
+            'product_id' => $product->id,
+            'type' => 'try_on',
+            'disk' => 'public',
+            'path' => 'product-media/media-manager/try-on.png',
+            'alt_text' => 'Media Manager virtual try-on',
+            'sort_order' => 30,
+            'approval_status' => 'approved',
+            'active' => true,
+            'mime_type' => 'image/png',
+        ]);
+
+        $content = $this->get(route('product', $product))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(6, substr_count($content, 'data-product-thumb data-index='));
+        $this->assertStringContainsString('6 of 6 colour views available', $content);
+        $this->assertStringContainsString('data-has-video="true"', $content);
+        $this->assertStringContainsString('data-has-tryon="true"', $content);
+        $this->assertStringContainsString(route('media.public', ['uuid' => $videoUuid]), $content);
+        $this->assertStringContainsString(route('media.public', ['uuid' => $tryOnUuid]), $content);
+        $this->assertStringContainsString('SELECT VARIANT', $content);
+        $this->assertStringContainsString('Choose a variant to see availability', $content);
+        $this->assertStringNotContainsString('0 of 6 colour views available', $content);
     }
 
     public function test_unapproved_rich_media_is_not_exposed_as_available(): void
