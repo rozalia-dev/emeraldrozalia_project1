@@ -327,13 +327,16 @@
     const status = page.querySelector('[data-stage-status]');
     const caption = page.querySelector('[data-stage-caption]');
     const loading = page.querySelector('[data-stage-loading]');
+    const visualPanel = page.querySelector('[data-media-visual]');
+    const rotationPanel = page.querySelector('[data-rotation-panel]');
+    const richPanels = [...page.querySelectorAll('[data-rich-media-panel]')];
     const parse = (selector, fallback) => { try { return JSON.parse(viewer?.getAttribute(selector) || '[]') || fallback; } catch (error) { return fallback; } };
     const normalize = (value) => { if (typeof value === 'object' && value) value = value.url || ''; if (!value) return ''; return /^(https?:)?\//.test(String(value)) ? String(value) : ''; };
     const spinFrames = parse('data-spin-frames', []).map(normalize).filter(Boolean);
     const baseGalleryFrames = parse('data-gallery-frames', []).map(normalize).filter(Boolean);
     let galleryFrames = baseGalleryFrames;
     const thumbnailRail = page.querySelector('[data-product-thumbnails]');
-    let mode = spinFrames.length >= 2 ? 'spin' : 'gallery';
+    let mode = 'gallery';
     let index = 0;
     let zoomed = false;
     let dragStart = null;
@@ -355,17 +358,43 @@
             stageImage?.setAttribute('hidden', 'hidden'); placeholder.hidden = false;
         }
         const angle = list.length ? Math.round((index % list.length) * 360 / list.length) : 0;
-        if (degree) degree.textContent = angle + '°';
+        if (degree) { degree.textContent = angle + '°'; degree.hidden = mode !== 'spin'; }
         if (slider) slider.value = angle;
         if (rotationValue) rotationValue.textContent = angle + '°';
-        if (caption) caption.textContent = mode === 'spin' && list.length ? 'Drag to rotate' : 'Product photos';
-        if (announce) status.textContent = mode === 'spin' && list.length ? 'Showing angle ' + angle + ' degrees. Drag or swipe to rotate.' : 'Showing product photo ' + (index + 1) + '.';
+        if (rotationPanel) rotationPanel.hidden = mode !== 'spin';
+        if (caption) caption.textContent = mode === 'spin' && list.length ? 'Drag to rotate' : 'Colour images';
+        if (announce && status) status.textContent = mode === 'spin' && list.length ? 'Showing angle ' + angle + ' degrees. Drag or swipe to rotate.' : 'Showing product image ' + (index + 1) + '.';
         updateThumbs();
     };
     const step = (amount) => { const list = frames(); if (!list.length) return; index = (index + amount + list.length) % list.length; render(); };
-    const setMode = (nextMode) => { mode = nextMode === 'spin' && spinFrames.length >= 2 ? 'spin' : 'gallery'; index = Math.min(index, Math.max(frames().length - 1, 0)); page.querySelectorAll('[data-product-mode]').forEach((button) => { const active = button.dataset.productMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-selected', active ? 'true' : 'false'); }); render(); };
+    const setMode = (nextMode) => {
+        const richMode = ['video', 'tryon', 'reviews'].includes(nextMode);
+        if (richMode) {
+            mode = nextMode;
+            if (visualPanel) visualPanel.hidden = true;
+            richPanels.forEach((panel) => { panel.hidden = panel.dataset.richMediaPanel !== nextMode; });
+            page.querySelectorAll('[data-product-mode]').forEach((button) => {
+                const active = button.dataset.productMode === nextMode;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            if (status) status.textContent = nextMode === 'video' ? 'Product video selected.' : nextMode === 'tryon' ? 'Virtual Try-On selected.' : 'Customer reviews selected.';
+            return;
+        }
+
+        mode = nextMode === 'spin' && spinFrames.length >= 2 ? 'spin' : 'gallery';
+        if (visualPanel) visualPanel.hidden = false;
+        richPanels.forEach((panel) => { panel.hidden = true; });
+        index = Math.min(index, Math.max(frames().length - 1, 0));
+        page.querySelectorAll('[data-product-mode]').forEach((button) => {
+            const active = button.dataset.productMode === mode;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        render();
+    };
     const syncColourGallery = (images, preferPhotos = false) => {
-        const colourFrames = [...new Set((Array.isArray(images) ? images : []).map(normalize).filter(Boolean))];
+        const colourFrames = [...new Set((Array.isArray(images) ? images : []).map(normalize).filter(Boolean))].slice(0, 6);
         const nextFrames = colourFrames.length ? colourFrames : baseGalleryFrames;
         const changed = JSON.stringify(nextFrames) !== JSON.stringify(galleryFrames);
         if (changed) {
@@ -374,7 +403,7 @@
             if (viewer && galleryFrames[0]) viewer.dataset.initialImage = galleryFrames[0];
             index = 0;
             thumbnailRail?.replaceChildren();
-            galleryFrames.forEach((url, thumbnailIndex) => {
+            galleryFrames.slice(0, 6).forEach((url, thumbnailIndex) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'product-thumb';
@@ -386,6 +415,10 @@
                 image.alt = (selected.colour || 'Product') + ' image ' + (thumbnailIndex + 1);
                 image.loading = thumbnailIndex === 0 ? 'eager' : 'lazy';
                 button.append(image);
+                const label = document.createElement('span');
+                label.className = 'product-thumb-label';
+                label.textContent = selected.colour || ('Image ' + (thumbnailIndex + 1));
+                button.append(label);
                 thumbnailRail?.append(button);
             });
             if (thumbnailRail && !galleryFrames.length) {
@@ -405,7 +438,10 @@
             render(false);
         }
     };
-    page.querySelectorAll('[data-product-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.productMode)));
+    page.querySelectorAll('[data-product-mode]').forEach((button) => button.addEventListener('click', () => {
+        if (button.disabled) return;
+        setMode(button.dataset.productMode);
+    }));
     page.querySelectorAll('[data-rotate-prev]').forEach((button) => button.addEventListener('click', () => step(-1)));
     page.querySelectorAll('[data-rotate-next]').forEach((button) => button.addEventListener('click', () => step(1)));
     thumbnailRail?.addEventListener('click', (event) => { const button = event.target.closest?.('[data-product-thumb]'); if (!button || !thumbnailRail.contains(button)) return; index = Number(button.dataset.index) || 0; setMode('gallery'); });
@@ -423,13 +459,13 @@
     try { variants = JSON.parse(page.dataset.variantPayload || '[]') || []; } catch (error) { variants = []; }
     const selected = { colour: page.querySelector('[data-colour-value]')?.value || '', size: page.querySelector('[data-size-value]')?.value || '' };
     const variantMatches = () => variants.filter((variant) => (!selected.colour || variant.colour === selected.colour) && (!selected.size || variant.size === selected.size));
-    const applyVariant = (preferColourPhotos = false) => {
+    const applyVariant = (preferColourPhotos = false, syncMedia = true) => {
         const match = variantMatches()[0];
         const galleryVariants = selected.colour
             ? variants.filter((variant) => variant.colour === selected.colour)
             : (match ? [match] : []);
         const colourImages = galleryVariants.flatMap((variant) => Array.isArray(variant.images) ? variant.images : (variant.image ? [variant.image] : []));
-        syncColourGallery(colourImages, preferColourPhotos);
+        if (syncMedia) syncColourGallery(colourImages, preferColourPhotos);
 
         const price = match ? Number(match.price) : Number(page.dataset.productPrice || 0);
         const available = match ? Number(match.stock) : Number(page.dataset.productStock || 0);
@@ -453,7 +489,12 @@
     page.querySelector('[data-quantity-plus]')?.addEventListener('click', () => { const input = page.querySelector('[data-quantity]'); input.value = Math.min(Number(input.max || 50), Number(input.value || 1) + 1); });
     page.querySelector('[data-quantity]')?.addEventListener('change', (event) => { event.target.value = Math.max(1, Math.min(Number(event.target.max || 50), Number(event.target.value || 1))); });
     page.querySelectorAll('[data-detail-tab]').forEach((tab) => tab.addEventListener('click', () => { const target = tab.dataset.detailTab; page.querySelectorAll('[data-detail-tab]').forEach((item) => item.classList.toggle('is-active', item === tab)); page.querySelectorAll('[data-detail-panel]').forEach((panel) => { panel.hidden = panel.dataset.detailPanel !== target; }); }));
-    render(false); applyVariant();
+    page.querySelector('[data-open-review-details]')?.addEventListener('click', () => {
+        const reviewTab = page.querySelector('[data-detail-tab="reviews"]');
+        reviewTab?.click();
+        page.querySelector('[data-detail-panel="reviews"]')?.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    render(false); applyVariant(false, false);
 })();
 </script>
 @endpush
