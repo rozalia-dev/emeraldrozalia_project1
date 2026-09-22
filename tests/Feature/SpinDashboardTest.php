@@ -48,7 +48,8 @@ class SpinDashboardTest extends TestCase
             ->assertSeeText($product->name)
             ->assertSeeText($product->sku)
             ->assertSee('data-scoped-product-select', false)
-            ->assertSee('value="'.$product->id.'" selected', false);
+            ->assertSee('value="'.$product->id.'" selected', false)
+            ->assertSee('value="public" selected', false);
     }
 
     public function test_zip_upload_persists_optimized_frames_settings_and_audit():void
