@@ -22,8 +22,6 @@ class HomeCollectionsReferenceTest extends TestCase
                 'home-hero home-hero--structured',
                 'home-hero-structured-copy',
                 'home-hero-structured-product',
-                'home-hero-tryon',
-                'data-home-tryon-form',
                 'data-home-section="banners"',
                 'data-home-section="collections"',
                 'data-home-section="products"',
@@ -36,6 +34,11 @@ class HomeCollectionsReferenceTest extends TestCase
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
             ], false);
+        $this->get('/')
+            ->assertDontSee('home-hero-tryon', false)
+            ->assertDontSee('data-home-tryon-form', false)
+            ->assertDontSeeText('See It. Love It. Own It.');
+
         $this->get('/')
             ->assertDontSee('data-home-section="benefits"', false)
             ->assertDontSee('data-home-section="heritage"', false)
