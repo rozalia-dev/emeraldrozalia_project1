@@ -148,12 +148,12 @@
     </section>
     <dialog id="vd-dialog" class="vd-dialog" aria-labelledby="vd-dialog-title">
         <form id="vd-form" method="post" action="{{ route('admin.videos.store') }}" enctype="multipart/form-data">
-            <header><div><p>PRODUCT MEDIA MANAGER</p><h2 id="vd-dialog-title">Upload Video</h2></div><button type="button" data-close-dialog aria-label="Close dialog">×</button></header>
+            <header><div><p>PRODUCT MEDIA MANAGER @if($scopedProduct) · {{ $scopedProduct->name }} · {{ $scopedProduct->sku }} @endif</p><h2 id="vd-dialog-title">Upload Video</h2></div><button type="button" data-close-dialog aria-label="Close dialog">×</button></header>
             <div class="vd-form-body">
                 <div class="vd-form-errors" id="vd-form-errors" role="alert" hidden></div>
                 <div class="vd-form-grid">
                     <label class="vd-wide">Video title<input name="title" required maxlength="160" placeholder="Emerald Signature Cap — Product Overview"></label>
-                    <label>Product<select name="product_id" required><option value="">Select product</option>@foreach($products as $product)<option value="{{ $product->id }}">{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
+                    <label>Product<select name="product_id" required data-scoped-product-select><option value="">Select product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((int) old('product_id',$scopedProductId ?? 0)===(int) $product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
                     <label>Video category<select name="category">@foreach($categories as $key=>$label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
                     <label>Platform<select name="platform" id="vd-platform"><option>Website</option><option>YouTube</option><option>Vimeo</option></select></label>
                     <label>Publication status<select name="status" id="vd-status"><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
