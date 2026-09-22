@@ -2,7 +2,7 @@
 @section('body-class', 'home-body')
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
-    <link rel="stylesheet" href="/css/home-collections.css?v=20260914-side-overlay-gradient">
+    <link rel="stylesheet" href="/css/home-collections.css?v=20260922-all-category-collection">
     <link rel="stylesheet" href="/css/home-hero-layout.css?v=20260914-side-overlay-gradient">
 @endpush
 @section('content')
@@ -109,6 +109,8 @@
                 @include('site.partials.home-section', [
                     'section' => $section,
                     'categories' => $categories ?? collect(),
+                    'homeCategories' => $homeCategories ?? $categories ?? collect(),
+                    'homeCollections' => $homeCollections ?? collect(),
                     'homeProducts' => $homeProducts ?? $newProducts ?? collect(),
                     'homeLatestProducts' => $homeLatestProducts ?? $homeProducts ?? $newProducts ?? collect(),
                     'banners' => $banners ?? collect(),

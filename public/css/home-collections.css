@@ -1066,3 +1066,21 @@
         font-size: .68rem;
     }
 }
+
+
+/* Homepage catalogue discovery: every public root category and every active
+   visible collection are rendered from database records, not a six-card seed. */
+.home-catalog-groups{display:grid;gap:24px}
+.home-catalog-group{display:grid;gap:10px}
+.home-category-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.home-category-card{display:grid;min-height:138px;padding:16px;align-content:center;justify-items:center;gap:7px;border:1px solid #48603b;border-radius:6px;background:#06130d;color:#f4f1e9;text-align:center;text-decoration:none;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.home-category-card:hover,.home-category-card:focus-visible{transform:translateY(-2px);border-color:#9aba1c;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.home-category-card__icon{display:grid;width:50px;height:50px;place-items:center;border:1px solid #64804e;border-radius:50%;background:#0a1d13;color:#9dcc27}
+.home-category-card strong{font-size:14px;line-height:1.2}
+.home-category-card small{color:#9fb0a5;font-size:11px}
+.home-category-card em{display:inline-flex;align-items:center;gap:5px;color:#9fce0b;font-size:11px;font-style:normal;font-weight:700}
+.home-collection-grid--all{grid-template-columns:repeat(4,minmax(0,1fr))}
+.home-collection-fallback-icon{position:relative;z-index:2;display:grid;width:66px;height:66px;place-items:center;border:1px solid rgba(158,201,62,.45);border-radius:50%;color:#9dcc27;background:rgba(4,24,14,.64)}
+@media(max-width:1200px){.home-category-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.home-collection-grid--all{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.home-category-grid,.home-collection-grid--all{grid-template-columns:repeat(2,minmax(0,1fr))}.home-category-card{min-height:124px;padding:12px}}
+@media(max-width:430px){.home-category-grid,.home-collection-grid--all{grid-template-columns:1fr}.home-category-card{min-height:112px}}
