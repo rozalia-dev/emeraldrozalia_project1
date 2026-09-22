@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Services\TenantContext;
+use App\Support\CategoryIcons;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +47,14 @@ class Category extends Model
 
     public function getNameAttribute($value): string { return $this->localizedValue('name', (string) $value) ?? (string) $value; }
     public function getDescriptionAttribute($value): ?string { return $this->localizedValue('description', $value === null ? null : (string) $value); }
+    public function getPublicIconAttribute(): string
+    {
+        return CategoryIcons::resolve(
+            $this->attributes['icon'] ?? null,
+            $this->attributes['slug'] ?? null,
+            $this->attributes['name'] ?? null,
+        );
+    }
 
     private function localizedValue(string $field, ?string $fallback): ?string
     {
