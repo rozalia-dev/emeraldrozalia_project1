@@ -203,6 +203,48 @@ class HomeCollectionsReferenceTest extends TestCase
             ->assertSee(route('category', ['category' => $root->slug]), false);
     }
 
+    public function test_homepage_displays_products_assigned_to_each_public_collection(): void
+    {
+        $category = Category::create([
+            'name' => 'Collection Product Category',
+            'slug' => 'collection-product-category',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 950,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Homepage Collection Cap',
+            'slug' => 'homepage-collection-cap',
+            'sku' => 'HOME-COL-001',
+            'price' => 54.00,
+            'stock' => 7,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $collection = ProductCollection::create([
+            'name' => 'Homepage Featured Collection',
+            'slug' => 'homepage-featured-collection',
+            'description' => 'A public homepage collection.',
+            'type' => 'curated',
+            'status' => 'active',
+            'visibility' => 'visible',
+            'sort_order' => 950,
+        ]);
+        $collection->products()->attach($product->id, ['sort_order' => 1]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('data-home-collection-products="homepage-featured-collection"', false)
+            ->assertSee('data-home-collection-product="homepage-collection-cap"', false)
+            ->assertSeeText('Homepage Collection Cap')
+            ->assertSee(route('product', $product), false)
+            ->assertSee(route('collection.show', ['collection' => $collection->slug]), false);
+    }
+
     public function test_homepage_product_card_css_preserves_the_full_product_image(): void
     {
         $css = file_get_contents(public_path('css/home-collections.css'));
