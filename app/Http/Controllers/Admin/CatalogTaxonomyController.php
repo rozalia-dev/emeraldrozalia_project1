@@ -405,7 +405,7 @@ class CatalogTaxonomyController extends Controller
 
         return $base
             ->when(
-                $taxonomy === 'fifa' && ! $hasExactCountyClubs,
+                in_array($taxonomy, ['fifa', 'uefa'], true) && ! $hasExactCountyClubs,
                 fn ($query) => $query->whereNull('catalog_county_code'),
                 fn ($query) => $query->where('catalog_county_code', $countyCode),
             )
