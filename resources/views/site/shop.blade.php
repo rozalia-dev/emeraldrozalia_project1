@@ -130,6 +130,12 @@
         <div><x-icon name="shopping-bag" size="28" /><span><b>SECURE CHECKOUT</b><small>Protected payment</small></span></div>
     </section>
 
+    <div class="shop-category-heading" aria-labelledby="shop-category-heading">
+        <span aria-hidden="true"></span>
+        <h2 id="shop-category-heading">SHOP BY CATEGORY</h2>
+        <span aria-hidden="true"></span>
+    </div>
+
     <section class="shop-category-strip" aria-label="Main product categories">
         <a class="{{ !$activeCategory && !$selectedCategories ? 'is-active' : '' }}" href="{{ route('shop') }}"><span class="shop-category-icon" data-category-icon="grid"><x-icon name="grid" size="19" /></span>All Products</a>
         @foreach($mainCategories as $category)
