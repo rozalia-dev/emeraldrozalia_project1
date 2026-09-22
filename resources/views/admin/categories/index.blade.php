@@ -124,11 +124,11 @@
             <section class="cat-detail-card">
                 <div class="cat-card-title"><h2>Category Details</h2>@if($selected)<span class="cat-status-pill cat-status-pill--{{ $selected->status }}">{{ str($selected->status)->headline() }}</span>@endif</div>
                 @if($selected)
-                    <div class="cat-detail-hero"><span><x-icon name="{{ \App\Support\CategoryIcons::resolve($selected->icon, $selected->slug, $selected->name) }}" size="28" /></span><div><strong>{{ $selected->name }}</strong><small>{{ $selected->slug }}</small></div></div>
+                    <div class="cat-detail-hero"><span><x-icon :name="$selected->public_icon" size="28" /></span><div><strong>{{ $selected->name }}</strong><small>{{ $selected->slug }}</small></div></div>
                     <dl class="cat-detail-list">
                         <div><dt>Category Name</dt><dd>{{ $selected->name }}</dd></div>
                         <div><dt>Slug</dt><dd>{{ $selected->slug }}</dd></div>
-                        <div><dt>Public Icon</dt><dd>{{ $categoryIconOptions[\App\Support\CategoryIcons::resolve($selected->icon, $selected->slug, $selected->name)] ?? 'General Product' }}</dd></div>
+                        <div><dt>Public Icon</dt><dd>{{ $categoryIconOptions[$selected->public_icon] ?? 'General Product' }}</dd></div>
                         <div><dt>Parent Category</dt><dd>{{ $selected->parent?->name ?? '— (Top Level)' }}</dd></div>
                         <div><dt>Level</dt><dd>{{ $selectedLevel }}</dd></div>
                         <div><dt>Products</dt><dd>{{ number_format($selected->products_count) }}</dd></div>
