@@ -115,14 +115,16 @@ class HomeCollectionsReferenceTest extends TestCase
             ->assertOk()
             ->assertSee('data-home-shop-by-category', false)
             ->assertSee('SHOP BY CATEGORY')
-            ->assertSee(route('category', ['category' => $rootA->slug]), false)
-            ->assertSee(route('category', ['category' => $rootB->slug]), false)
+            ->assertDontSee('class="home-category-card"', false)
+            ->assertDontSee('data-home-category="traditional-home-test"', false)
+            ->assertDontSee('data-home-category="fifa-home-test"', false)
             ->assertDontSee('child-home-test', false)
             ->assertDontSee('hidden-home-test', false)
             ->assertSee('data-home-shop-by-collection', false)
             ->assertSee('SHOP BY COLLECTION')
-            ->assertSee(route('collection.show', ['collection' => $collectionA->slug]), false)
-            ->assertSee(route('collection.show', ['collection' => $collectionB->slug]), false)
+            ->assertDontSee('class="home-collection-card"', false)
+            ->assertDontSee('data-home-collection="heritage-collection-home-test"', false)
+            ->assertDontSee('data-home-collection="county-collection-home-test"', false)
             ->assertDontSee('hidden-collection-home-test', false);
     }
 
@@ -159,8 +161,9 @@ class HomeCollectionsReferenceTest extends TestCase
 
         $this->get('/')
             ->assertOk()
-            ->assertSee('data-home-category="traditional-count-root"', false)
-            ->assertSeeText('1 product');
+            ->assertSee('data-home-category-products="traditional-count-root"', false)
+            ->assertSeeText('Descendant Count Cap')
+            ->assertDontSee('data-home-category="traditional-count-root"', false);
     }
 
     public function test_homepage_displays_published_products_under_their_root_category(): void
