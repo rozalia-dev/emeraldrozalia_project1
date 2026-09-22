@@ -74,13 +74,34 @@ class SiteController extends Controller
             ->orderBy('id')
             ->get();
 
-        $homeCategories = Category::query()
+        // Homepage category cards represent root catalogue families. Products are
+        // commonly assigned to child categories (for example Traditional > Caps),
+        // so a direct products_count on the root incorrectly reports zero.
+        // Use the same visible hierarchy as the public shop and aggregate published
+        // products across every visible descendant.
+        $homeCategoryPool = Category::query()
             ->websiteVisible()
-            ->whereNull('parent_id')
-            ->withCount(['products' => fn ($query) => $query->published()])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+        $homeCategoryChildren = $homeCategoryPool
+            ->groupBy(fn (Category $category): int => (int) ($category->parent_id ?? 0));
+        $homeCategoryProductCounts = Product::query()
+            ->published()
+            ->whereIn('category_id', $homeCategoryPool->pluck('id'))
+            ->selectRaw('category_id, COUNT(*) as aggregate')
+            ->groupBy('category_id')
+            ->pluck('aggregate', 'category_id');
+
+        $homeCategories = $homeCategoryPool
+            ->whereNull('parent_id')
+            ->values()
+            ->each(function (Category $category) use ($homeCategoryChildren, $homeCategoryProductCounts): void {
+                $publishedCount = collect($this->catalogDescendantIds($category, $homeCategoryChildren))
+                    ->sum(fn (int $categoryId): int => (int) ($homeCategoryProductCounts[$categoryId] ?? 0));
+
+                $category->setAttribute('products_count', $publishedCount);
+            });
 
         $homeCollections = ProductCollection::query()
             ->with('media')
