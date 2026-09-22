@@ -1091,3 +1091,30 @@
 @media(max-width:430px){
   .home-page .home-product-grid--static{grid-template-columns:1fr}
 }
+
+/* Bestseller rows with six or fewer products should fill the available width.
+   Higher specificity keeps this behavior after the reference-layout rules. */
+.home-page .home-product-grid.home-product-grid--static{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  overflow:visible;
+  scroll-snap-type:none;
+  padding-right:0;
+  padding-left:0;
+}
+.home-page .home-product-grid.home-product-grid--static .home-product-card{
+  width:auto;
+  max-width:none;
+  flex:none;
+}
+@media(max-width:760px){
+  .home-page .home-product-grid.home-product-grid--static{
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    padding-right:0;
+    padding-left:0;
+  }
+}
+@media(max-width:430px){
+  .home-page .home-product-grid.home-product-grid--static{grid-template-columns:1fr}
+}
