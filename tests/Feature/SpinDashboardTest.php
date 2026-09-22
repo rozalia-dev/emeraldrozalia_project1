@@ -37,6 +37,21 @@ class SpinDashboardTest extends TestCase
         $this->actingAs(User::factory()->create(['is_admin'=>false]))->get('/admin/resource/360-product-view')->assertForbidden();
         $this->actingAs($this->admin())->get('/admin/resource/360-product-view')->assertOk()->assertSee(['Your 360° library starts here','UUID Traceability','Create 360° View'])->assertDontSee('Add Record');
     }
+    public function test_product_scoped_360_manager_preselects_the_exact_product(): void
+    {
+        $product = $this->product();
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.spins.index', ['product_id' => $product->id]))
+            ->assertOk()
+            ->assertSee('data-scoped-product-context', false)
+            ->assertSeeText($product->name)
+            ->assertSeeText($product->sku)
+            ->assertSee('data-scoped-product-select', false)
+            ->assertSee('value="'.$product->id.'" selected', false)
+            ->assertSee('value="public" selected', false);
+    }
+
     public function test_zip_upload_persists_optimized_frames_settings_and_audit():void
     {
         $p=$this->product();

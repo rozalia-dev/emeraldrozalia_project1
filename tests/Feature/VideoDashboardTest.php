@@ -59,6 +59,19 @@ class VideoDashboardTest extends TestCase
         $this->actingAs(User::factory()->create(['is_admin'=>false]))->postJson('/admin/resource/videos',[])->assertForbidden();
     }
 
+    public function test_product_scoped_video_manager_preselects_the_exact_product(): void
+    {
+        $product = $this->product();
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.videos.index', ['product_id' => $product->id]))
+            ->assertOk()
+            ->assertSeeText($product->name)
+            ->assertSeeText($product->sku)
+            ->assertSee('data-scoped-product-select', false)
+            ->assertSee('value="'.$product->id.'" selected', false);
+    }
+
     public function test_upload_persists_private_files_metadata_captions_uuid_and_audit(): void
     {
         $product = $this->product();

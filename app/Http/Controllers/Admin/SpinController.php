@@ -31,6 +31,8 @@ class SpinController extends Controller
         foreach(ProductSpin::STATUSES as $key=>$label) $stats[$key]=$all->where('status',$key)->count();
         $types=$all->countBy('category');
         $products=Product::orderBy('name')->get(['id','name','sku']);
+        $scopedProductId = $request->filled('product_id') ? $request->integer('product_id') : null;
+        $scopedProduct = $scopedProductId ? $products->firstWhere('id', $scopedProductId) : null;
         $selected=$request->filled('edit')?ProductSpin::findOrFail($request->integer('edit')):$spins->first();
         $statuses=ProductSpin::STATUSES;
         $categories=ProductSpin::CATEGORIES;
@@ -40,7 +42,7 @@ class SpinController extends Controller
         $anglePromotional=round($angleLifestyle+(360*(int)($types['promotional']??0)/$typeTotal),2);
         $pageStart=max(1,$spins->currentPage()-2);
         $pageEnd=min($spins->lastPage(),$spins->currentPage()+2);
-        return view('admin.spins.index',compact('spins','stats','types','products','selected','statuses','categories','angleProduct','angleLifestyle','anglePromotional','pageStart','pageEnd'));
+        return view('admin.spins.index',compact('spins','stats','types','products','selected','statuses','categories','angleProduct','angleLifestyle','anglePromotional','pageStart','pageEnd','scopedProductId','scopedProduct'));
     }
     private function save(Request $request, ?ProductSpin $spin=null)
     {
@@ -80,7 +82,7 @@ class SpinController extends Controller
             if($stored) Storage::disk('local')->deleteDirectory($stored['directory']);
             throw $e;
         }
-        return redirect()->route('admin.spins.index',['edit'=>$spin->id])->with('success','360° view saved.');
+        return redirect()->route('admin.spins.index',['product_id'=>$spin->product_id,'edit'=>$spin->id])->with('success','360° view saved.');
     }
     public function store(Request $request) { return $this->save($request); }
     public function update(Request $request, ProductSpin $spin) { return $this->save($request,$spin); }

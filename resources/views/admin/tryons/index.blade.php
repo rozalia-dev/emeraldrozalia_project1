@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('title','Virtual Try-On')
-@push('styles')<link rel="stylesheet" href="/css/spins.css"><link rel="stylesheet" href="/css/tryons.css">@endpush
+@push('styles')<link rel="stylesheet" href="/css/spins.css?v=20260922-product-scope"><link rel="stylesheet" href="/css/tryons.css?v=20260922-product-scope">@endpush
 @push('scripts')<script src="/js/tryons-admin.js" defer></script>@endpush
 @section('content')
 <div class="sd to" data-tryon-dashboard>

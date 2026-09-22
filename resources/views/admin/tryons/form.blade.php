@@ -5,9 +5,12 @@
 <div class="to-edit-grid">
 <section class="sd-card sd-create-card">
     <h2>{{ $editing?'Update Try-On Asset':'Upload Try-On Asset' }}</h2>
+    @if(!$editing && ($scopedProduct ?? null))
+        <p class="sd-product-context" data-scoped-product-context>Managing Try-On media for <strong>{{ $scopedProduct->name }}</strong> · SKU {{ $scopedProduct->sku }}</p>
+    @endif
     <div class="sd-core-fields">
         <label>Title<input name="title" required maxlength="160" value="{{ old('title',$record?->title??'') }}"></label>
-        <label>Product / SKU<select name="product_id" required><option value="">Select a product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected(old('product_id',$record?->product_id)==$product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
+        <label>Product / SKU<select name="product_id" required data-scoped-product-select><option value="">Select a product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((int) old('product_id',$record?->product_id ?? $scopedProductId ?? 0)===(int) $product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
     </div>
     <label class="sd-drop"><x-icon name="upload" size="28" /><strong>{{ $editing?'Replace Try-On files':'Drag & drop try-on files here' }}</strong><span>or</span><input type="file" name="asset" accept=".zip,.png,.jpg,.jpeg,.webp,.glb,.usdz" @required(!$editing)><span data-file-note>Choose Files</span></label>
     <small>Supports: ZIP, GLB, USDZ, JPG, PNG, WebP. Maximum upload size: 20 MB.</small>

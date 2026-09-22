@@ -71,6 +71,20 @@ class TryOnDashboardTest extends TestCase
         ]);
     }
 
+    public function test_product_scoped_tryon_manager_preselects_the_exact_product(): void
+    {
+        $product = $this->product();
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.tryons.index', ['product_id' => $product->id]))
+            ->assertOk()
+            ->assertSee('data-scoped-product-context', false)
+            ->assertSeeText($product->name)
+            ->assertSeeText($product->sku)
+            ->assertSee('data-scoped-product-select', false)
+            ->assertSee('value="'.$product->id.'" selected', false);
+    }
+
     public function test_upload_persists_optimized_preview_settings_seo_and_audit(): void
     {
         $product=$this->product();
