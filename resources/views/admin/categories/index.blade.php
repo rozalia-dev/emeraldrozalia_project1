@@ -124,10 +124,11 @@
             <section class="cat-detail-card">
                 <div class="cat-card-title"><h2>Category Details</h2>@if($selected)<span class="cat-status-pill cat-status-pill--{{ $selected->status }}">{{ str($selected->status)->headline() }}</span>@endif</div>
                 @if($selected)
-                    <div class="cat-detail-hero"><span><x-icon name="package" size="28" /></span><div><strong>{{ $selected->name }}</strong><small>{{ $selected->slug }}</small></div></div>
+                    <div class="cat-detail-hero"><span><x-icon name="{{ \App\Support\CategoryIcons::resolve($selected->icon, $selected->slug, $selected->name) }}" size="28" /></span><div><strong>{{ $selected->name }}</strong><small>{{ $selected->slug }}</small></div></div>
                     <dl class="cat-detail-list">
                         <div><dt>Category Name</dt><dd>{{ $selected->name }}</dd></div>
                         <div><dt>Slug</dt><dd>{{ $selected->slug }}</dd></div>
+                        <div><dt>Public Icon</dt><dd>{{ $categoryIconOptions[\App\Support\CategoryIcons::resolve($selected->icon, $selected->slug, $selected->name)] ?? 'General Product' }}</dd></div>
                         <div><dt>Parent Category</dt><dd>{{ $selected->parent?->name ?? '— (Top Level)' }}</dd></div>
                         <div><dt>Level</dt><dd>{{ $selectedLevel }}</dd></div>
                         <div><dt>Products</dt><dd>{{ number_format($selected->products_count) }}</dd></div>
@@ -143,7 +144,7 @@
                     </dl>
                     <div class="cat-detail-actions">
                         <button type="button" class="cat-btn js-edit-category"
-                            data-id="{{ $selected->id }}" data-name="{{ $selected->name }}" data-slug="{{ $selected->slug }}" data-parent-id="{{ $selected->parent_id }}" data-status="{{ $selected->status }}" data-visible="{{ $selected->is_visible ? '1' : '0' }}" data-sort-order="{{ $selected->sort_order }}" data-description="{{ $selected->description }}" data-meta-title="{{ $selected->meta_title }}" data-meta-description="{{ $selected->meta_description }}" data-action="{{ route('admin.categories.update', $selected) }}"><x-icon name="pencil" size="14" /> Edit Category</button>
+                            data-id="{{ $selected->id }}" data-name="{{ $selected->name }}" data-slug="{{ $selected->slug }}" data-icon="{{ $selected->icon }}" data-parent-id="{{ $selected->parent_id }}" data-status="{{ $selected->status }}" data-visible="{{ $selected->is_visible ? '1' : '0' }}" data-sort-order="{{ $selected->sort_order }}" data-description="{{ $selected->description }}" data-meta-title="{{ $selected->meta_title }}" data-meta-description="{{ $selected->meta_description }}" data-action="{{ route('admin.categories.update', $selected) }}"><x-icon name="pencil" size="14" /> Edit Category</button>
                         <button type="button" class="cat-btn cat-btn--outline js-add-subcategory" data-parent-id="{{ $selected->id }}" data-parent-name="{{ $selected->name }}"><x-icon name="plus" size="14" /> Add Sub-Category</button>
                         <form method="POST" action="{{ route('admin.categories.destroy', $selected) }}" style="grid-column:1/-1" onsubmit="return confirm('Delete {{ addslashes($selected->name) }}? Products assigned to it will become uncategorised and child categories will move to top level. This cannot be undone.')">
                             @csrf
@@ -220,6 +221,7 @@
                 <label><span>Category Name *</span><input name="name" required maxlength="160" data-field="name"></label>
                 <label><span>Slug</span><input name="slug" maxlength="180" placeholder="auto-generated-from-name" data-field="slug"></label>
                 <label><span>Parent Category</span><select name="parent_id" data-field="parent_id"><option value="">— Top Level —</option>@foreach($allCategories as $option)<option value="{{ $option->id }}">{{ $option->parent_id ? '↳ ' : '' }}{{ $option->name }}</option>@endforeach</select></label>
+                <label><span>Public Category Icon</span><select name="icon" data-field="icon"><option value="">Automatic generic icon</option>@foreach($categoryIconOptions as $iconKey => $iconLabel)<option value="{{ $iconKey }}">{{ $iconLabel }}</option>@endforeach</select></label>
                 <label><span>Status *</span><select name="status" required data-field="status"><option value="active">Active</option><option value="draft">Draft</option><option value="inactive">Inactive</option></select></label>
                 <label><span>Website Visibility *</span><select name="is_visible" required data-field="is_visible"><option value="1">Visible</option><option value="0">Hidden</option></select></label>
                 <label><span>Sort Order *</span><input type="number" name="sort_order" min="0" max="100000" value="0" required data-field="sort_order"></label>
@@ -237,11 +239,12 @@
             <p><strong>Create hierarchy:</strong> choose a parent when creating a sub-category. Categories can be nested beyond one level.</p>
             <p><strong>Reorder:</strong> drag a category row above or below another row with the same parent. The new sort order is saved automatically.</p>
             <p><strong>Visibility:</strong> hidden categories cannot be opened through public category route binding. Draft and inactive categories are also excluded there.</p>
-            <p><strong>CSV import:</strong> required columns are <code>name</code> and <code>slug</code>. Optional columns: <code>parent_slug,status,visibility,sort_order,description,meta_title,meta_description</code>.</p>
+            <p><strong>CSV import:</strong> required columns are <code>name</code> and <code>slug</code>. Optional columns: <code>parent_slug,status,visibility,sort_order,icon,description,meta_title,meta_description</code>.</p>
+            <p><strong>Public icons:</strong> choose one of the approved generic icons for each category. Official league or federation logos are not used by this field.</p>
             <p><strong>Traceability:</strong> create, edit, visibility, bulk, import, reorder and delete actions are written to the audit log.</p>
         </div>
     </dialog>
 </div>
 
-<script src="{{ asset('js/admin-categories.js') }}?v=20260921-4" defer></script>
+<script src="{{ asset('js/admin-categories.js') }}?v=20260922-category-icons" defer></script>
 @endsection

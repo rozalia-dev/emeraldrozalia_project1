@@ -51,6 +51,7 @@
         submitLabel.textContent = 'Update Category';
         fields.name.value = button.dataset.name || '';
         fields.slug.value = button.dataset.slug || '';
+        fields.icon.value = button.dataset.icon || '';
         fields.parent_id.value = button.dataset.parentId || '';
         fields.status.value = button.dataset.status || 'active';
         fields.is_visible.value = button.dataset.visible || '1';

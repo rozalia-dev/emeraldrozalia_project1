@@ -35,6 +35,37 @@ class ShopReferencePageTest extends TestCase
             ], false);
     }
 
+    public function test_shop_category_cards_render_generic_icons_instead_of_letter_initials(): void
+    {
+        Category::create([
+            'name' => 'Traditional',
+            'slug' => 'traditional',
+            'icon' => 'hat',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        Category::create([
+            'name' => 'FIFA',
+            'slug' => 'fifa',
+            'icon' => 'globe',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 2,
+        ]);
+
+        $this->get('/shop')
+            ->assertOk()
+            ->assertSee('data-category-icon="grid"', false)
+            ->assertSee('data-category-icon="hat"', false)
+            ->assertSee('data-category-icon="globe"', false)
+            ->assertSeeText('Traditional')
+            ->assertSeeText('FIFA');
+    }
+
     public function test_empty_shop_results_offer_contact_us_as_the_primary_action(): void
     {
         $this->get('/shop?q=definitely-no-matching-product')
