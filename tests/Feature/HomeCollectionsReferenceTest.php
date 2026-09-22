@@ -36,7 +36,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'THE IRISH HERITAGE',
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
-                '/css/home-collections.css?v=20260922-all-category-collection',
+                '/css/home-collections.css?v=20260922-bestseller-display',
                 '/css/home-hero-layout.css?v=20260914-side-overlay-gradient',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
@@ -124,6 +124,59 @@ class HomeCollectionsReferenceTest extends TestCase
             ->assertSee(route('collection.show', ['collection' => $collectionA->slug]), false)
             ->assertSee(route('collection.show', ['collection' => $collectionB->slug]), false)
             ->assertDontSee('hidden-collection-home-test', false);
+    }
+
+    public function test_homepage_bestsellers_use_the_best_sellers_collection_instead_of_new_arrivals(): void
+    {
+        $collection = ProductCollection::query()->where('slug', 'best-sellers')->first();
+        if (! $collection) {
+            $collection = ProductCollection::create([
+                'name' => 'Best Sellers',
+                'slug' => 'best-sellers',
+                'type' => 'curated',
+                'status' => 'active',
+                'visibility' => 'visible',
+                'sort_order' => 1,
+            ]);
+        } else {
+            $collection->update(['status' => 'active', 'visibility' => 'visible']);
+        }
+
+        $collection->products()->detach();
+
+        foreach (range(1, 6) as $index) {
+            $product = Product::create([
+                'name' => 'Bestseller Row '.$index,
+                'slug' => 'bestseller-row-'.$index,
+                'sku' => 'BEST-ROW-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+                'price' => 30 + $index,
+                'stock' => 5,
+                'status' => 'active',
+                'is_active' => true,
+                'is_new' => false,
+            ]);
+
+            $collection->products()->attach($product->id, ['sort_order' => $index]);
+        }
+
+        Product::create([
+            'name' => 'New Arrival Fallback Must Not Render',
+            'slug' => 'new-arrival-fallback-must-not-render',
+            'sku' => 'NEW-FALLBACK-001',
+            'price' => 99,
+            'stock' => 5,
+            'status' => 'active',
+            'is_active' => true,
+            'is_new' => true,
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSeeText('Bestseller Row 1')
+            ->assertSeeText('Bestseller Row 6')
+            ->assertDontSeeText('New Arrival Fallback Must Not Render')
+            ->assertSee('data-home-product-count="6"', false)
+            ->assertSee('home-product-carousel--static', false);
     }
 
     public function test_homepage_bestseller_cart_button_is_functional(): void
