@@ -80,26 +80,6 @@
                         @endif
                     </div>
 
-                    <aside class="home-hero-tryon" aria-labelledby="{{ $heroId }}-tryon-title">
-                        <div class="home-hero-tryon-heading">
-                            <p class="eyebrow">VIRTUAL TRY-ON</p>
-                            <h2 id="{{ $heroId }}-tryon-title">See It.<br>Love It.<br>Own It.</h2>
-                            <p>Upload your photo and see how our hats look on you.</p>
-                        </div>
-                        <form action="{{ route('virtual-tryon') }}" method="get" class="home-hero-tryon-form" data-home-tryon-form>
-                            <label class="home-hero-tryon-upload">
-                                <span><x-icon name="upload" size="22" /> UPLOAD YOUR PHOTO</span>
-                                <input type="file" accept="image/jpeg,image/png,image/webp" data-home-tryon-upload>
-                                <strong data-home-tryon-file>or</strong>
-                                <em><x-icon name="camera" size="15" /> TAKE PHOTO</em>
-                            </label>
-                            <div class="home-hero-tryon-preview" data-home-tryon-preview hidden>
-                                <img alt="Your selected Try-On preview photo" data-home-tryon-preview-image>
-                            </div>
-                            <button class="btn home-hero-tryon-submit" type="submit">{{ $heroCopy('primary_label', 'START TRY-ON') }} <x-icon name="arrow-right" size="16" /></button>
-                            <small class="home-hero-tryon-private">🔒 100% Private &amp; Secure</small>
-                        </form>
-                    </aside>
                 </div>
             </section>
         @endif
@@ -175,30 +155,6 @@
                 updateControls();
             });
 
-            document.querySelectorAll('[data-home-tryon-form]').forEach((form) => {
-                const input = form.querySelector('[data-home-tryon-upload]');
-                const filename = form.querySelector('[data-home-tryon-file]');
-                const preview = form.querySelector('[data-home-tryon-preview]');
-                const previewImage = form.querySelector('[data-home-tryon-preview-image]');
-                if (!input || !filename || !preview || !previewImage) return;
-
-                input.addEventListener('change', () => {
-                    const file = input.files && input.files[0];
-                    if (!file) {
-                        filename.textContent = 'Choose JPG, PNG or WebP';
-                        preview.hidden = true;
-                        previewImage.removeAttribute('src');
-                        return;
-                    }
-                    filename.textContent = file.name;
-                    const reader = new FileReader();
-                    reader.addEventListener('load', () => {
-                        previewImage.src = String(reader.result || '');
-                        preview.hidden = false;
-                    }, {once: true});
-                    reader.readAsDataURL(file);
-                });
-            });
         })();
     </script>
 @endpush
