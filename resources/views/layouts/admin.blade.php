@@ -53,6 +53,7 @@
                 ],
                 ['route'=>'admin.banners.index','label'=>'Banners / Sliders','icon'=>'image','active'=>'admin/resource/banners-sliders*'],
                 ['route'=>'admin.pages','label'=>'Pages','icon'=>'file-text','active'=>'admin/pages*'],
+                ['route'=>'admin.pages.header-footer','label'=>'Header & Footer Manager','icon'=>'settings','active'=>'admin/pages/header-footer*'],
                 ['route'=>'admin.pages.layouts','label'=>'Shared Site Layout','icon'=>'file-text','active'=>'admin/pages/layouts*'],
                 ['route'=>'admin.seo.dashboard','label'=>'SEO & Content','icon'=>'briefcase','active'=>'admin/seo*'],
                 ['slug'=>'reviews-ratings','label'=>'Reviews & Ratings','icon'=>'star','active'=>'admin/resource/reviews-ratings*'],

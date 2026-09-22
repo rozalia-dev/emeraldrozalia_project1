@@ -1,7 +1,7 @@
 <?php
 use App\Http\Controllers\{CartController,CheckoutController,ContextController,ReviewController,SiteController,WishlistController};
 use App\Http\Controllers\Account\AccountController;
-use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,ImageManagerController,MediaAssetController,MediaBulkActionController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SalesQuoteController,SeoController,SiteLayoutController};
+use App\Http\Controllers\Admin\{AddProductController,AdminController,BulkProductController,CartCheckoutController,DiscountController,HeaderFooterManagerController,ImageManagerController,MediaAssetController,MediaBulkActionController,MediaManagerController,OrderMasterController,PageManagerController,PaymentController,ResourceController,SalesQuoteController,SeoController,SiteLayoutController};
 use App\Http\Controllers\Admin\CollectionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\VideoController;
@@ -86,6 +86,9 @@ Route::middleware(['auth','admin'])->prefix('admin/resource/media-manager')->nam
     Route::post('/{media}/reject',[MediaManagerController::class,'reject'])->name('reject');
 });
 Route::middleware(['auth','admin'])->prefix('admin/pages')->name('admin.pages.')->group(function(){
+    Route::get('/header-footer',[HeaderFooterManagerController::class,'index'])->name('header-footer');
+    Route::post('/header-footer',[HeaderFooterManagerController::class,'save'])->name('header-footer.save');
+    Route::post('/header-footer/{layout}/publish',[HeaderFooterManagerController::class,'publish'])->name('header-footer.publish');
     Route::get('/layouts',[SiteLayoutController::class,'index'])->name('layouts');
     Route::post('/layouts',[SiteLayoutController::class,'store'])->name('layouts.store');
     Route::patch('/layouts/{layout}',[SiteLayoutController::class,'update'])->name('layouts.update');
