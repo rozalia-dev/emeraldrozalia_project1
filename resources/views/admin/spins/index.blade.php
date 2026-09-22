@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('title','360° Product View')
-@push('styles')<link rel="stylesheet" href="/css/spins.css">@endpush
+@push('styles')<link rel="stylesheet" href="/css/spins.css?v=20260922-product-scope">@endpush
 @push('scripts')<script src="/js/spin-viewer.js" defer></script><script src="/js/spins-admin.js" defer></script>@endpush
 @section('content')
 <div class="sd" data-spin-dashboard>
