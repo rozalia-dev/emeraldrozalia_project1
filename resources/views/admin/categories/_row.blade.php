@@ -20,7 +20,7 @@
             @else
                 <span class="cat-tree-spacer"></span>
             @endif
-            <span class="cat-folder"><x-icon name="{{ \App\Support\CategoryIcons::resolve($category->icon, $category->slug, $category->name) }}" size="15" /></span>
+            <span class="cat-folder"><x-icon :name="$category->public_icon" size="15" /></span>
             <a class="cat-category-link" href="{{ route('admin.categories.index', array_merge(request()->except('page','selected'), ['selected' => $category->public_uuid])) }}">
                 @if($level === 0)<b>{{ $category->sort_order ?: $loopIndex ?? '' }}.</b>@endif {{ $category->name }}
             </a>
