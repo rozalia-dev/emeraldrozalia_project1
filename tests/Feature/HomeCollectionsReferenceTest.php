@@ -25,16 +25,10 @@ class HomeCollectionsReferenceTest extends TestCase
                 'home-hero-tryon',
                 'data-home-tryon-form',
                 'data-home-section="banners"',
-                'data-home-section="benefits"',
                 'data-home-section="collections"',
-                'data-home-section="heritage"',
                 'data-home-section="products"',
-                'data-home-section="quality"',
-                'data-home-section="franchise"',
                 'SHOP BY CATEGORY',
                 'SHOP BY COLLECTION',
-                'THE IRISH HERITAGE',
-                'Tradition, Made in Limerick.',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260922-category-products',
                 '/css/home-hero-layout.css?v=20260914-side-overlay-gradient',
@@ -42,6 +36,15 @@ class HomeCollectionsReferenceTest extends TestCase
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
             ], false);
+        $this->get('/')
+            ->assertDontSee('data-home-section="benefits"', false)
+            ->assertDontSee('data-home-section="heritage"', false)
+            ->assertDontSee('data-home-section="quality"', false)
+            ->assertDontSee('data-home-section="franchise"', false)
+            ->assertDontSeeText('THE IRISH HERITAGE COLLECTION')
+            ->assertDontSeeText('QUALITY IN EVERY STITCH.')
+            ->assertDontSeeText('FRANCHISE OPEN NOW');
+
         $this->get('/')->assertDontSee('<select name="product_id"', false)->assertDontSeeText('Select a product');
         $this->get('/')->assertDontSee('home-collections-reference', false)->assertDontSee('home-page-reference', false);
     }
