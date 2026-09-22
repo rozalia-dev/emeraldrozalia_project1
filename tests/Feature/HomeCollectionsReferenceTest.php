@@ -36,7 +36,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'THE IRISH HERITAGE',
                 'Tradition, Made in Limerick.',
                 'BESTSELLERS',
-                '/css/home-collections.css?v=20260922-product-contain',
+                '/css/home-collections.css?v=20260922-category-products',
                 '/css/home-hero-layout.css?v=20260914-side-overlay-gradient',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
@@ -161,6 +161,46 @@ class HomeCollectionsReferenceTest extends TestCase
             ->assertOk()
             ->assertSee('data-home-category="traditional-count-root"', false)
             ->assertSeeText('1 product');
+    }
+
+    public function test_homepage_displays_published_products_under_their_root_category(): void
+    {
+        $root = Category::create([
+            'name' => 'Traditional Product Row',
+            'slug' => 'traditional-product-row',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 945,
+        ]);
+        $child = Category::create([
+            'parent_id' => $root->id,
+            'name' => 'Baseball Caps Product Row',
+            'slug' => 'baseball-caps-product-row',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $child->id,
+            'name' => 'Homepage Traditional Driver Cap',
+            'slug' => 'homepage-traditional-driver-cap',
+            'sku' => 'HOME-CAT-001',
+            'price' => 49.00,
+            'stock' => 8,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('data-home-category-products="traditional-product-row"', false)
+            ->assertSee('data-home-category-product="homepage-traditional-driver-cap"', false)
+            ->assertSeeText('Homepage Traditional Driver Cap')
+            ->assertSee(route('product', $product), false)
+            ->assertSee(route('category', ['category' => $root->slug]), false);
     }
 
     public function test_homepage_product_card_css_preserves_the_full_product_image(): void
