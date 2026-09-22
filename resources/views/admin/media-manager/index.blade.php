@@ -99,6 +99,59 @@
     </section>
 
     @if($selected)
+        <section class="mm-readiness" data-media-readiness aria-label="Public product media readiness">
+            <div class="mm-readiness__head">
+                <div>
+                    <p class="mm-eyebrow">PUBLIC PRODUCT PAGE READINESS</p>
+                    <h2>{{ $selected->name }} <small>· {{ $selected->sku ?: 'No SKU' }}</small></h2>
+                    <p>These are the media/customer features currently available on the public product page.</p>
+                </div>
+                <a class="mm-primary-button" href="{{ route('product', $selected) }}" target="_blank" rel="noopener">Open Product Page <x-icon name="arrow-right" size="13" /></a>
+            </div>
+
+            <div class="mm-readiness__grid">
+                <article class="mm-readiness-card {{ data_get($mediaReadiness, 'images.ready') ? 'is-ready' : 'is-missing' }}" data-readiness-type="images">
+                    <span class="mm-readiness-card__icon"><x-icon name="image" size="22" /></span>
+                    <div><strong>COLOUR / PRODUCT IMAGES</strong><span>{{ data_get($mediaReadiness, 'images.detail', 'No approved images') }}</span></div>
+                    <b>{{ data_get($mediaReadiness, 'images.ready') ? 'LIVE' : 'NEEDS MEDIA' }}</b>
+                    <a href="{{ route('admin.media.index', ['product_id' => $selected->id, 'media_type' => 'image']) }}">Manage Images</a>
+                </article>
+
+                <article class="mm-readiness-card {{ data_get($mediaReadiness, 'spin.ready') ? 'is-ready' : 'is-missing' }}" data-readiness-type="spin">
+                    <span class="mm-readiness-card__icon"><x-icon name="refresh" size="22" /></span>
+                    <div><strong>360° VIEW</strong><span>{{ data_get($mediaReadiness, 'spin.detail', 'No published 360° view') }}</span></div>
+                    <b>{{ data_get($mediaReadiness, 'spin.ready') ? 'LIVE' : 'NOT LIVE' }}</b>
+                    <a href="{{ route('admin.spins.index', ['product_id' => $selected->id]) }}">Manage 360°</a>
+                </article>
+
+                <article class="mm-readiness-card {{ data_get($mediaReadiness, 'video.ready') ? 'is-ready' : 'is-missing' }}" data-readiness-type="video">
+                    <span class="mm-readiness-card__icon"><x-icon name="play" size="22" /></span>
+                    <div><strong>PRODUCT VIDEO</strong><span>{{ data_get($mediaReadiness, 'video.detail', 'No public gallery video') }}</span></div>
+                    <b>{{ data_get($mediaReadiness, 'video.ready') ? 'LIVE' : 'NOT LIVE' }}</b>
+                    <a href="{{ route('admin.videos.index', ['product_id' => $selected->id]) }}">Manage Video</a>
+                </article>
+
+                <article class="mm-readiness-card {{ data_get($mediaReadiness, 'tryon.ready') ? 'is-ready' : 'is-missing' }}" data-readiness-type="tryon">
+                    <span class="mm-readiness-card__icon"><x-icon name="camera" size="22" /></span>
+                    <div><strong>VIRTUAL TRY-ON</strong><span>{{ data_get($mediaReadiness, 'tryon.detail', 'No public Try-On asset') }}</span></div>
+                    <b>{{ data_get($mediaReadiness, 'tryon.ready') ? 'LIVE' : 'NOT LIVE' }}</b>
+                    <a href="{{ route('admin.tryons.index', ['product_id' => $selected->id]) }}">Manage Try-On</a>
+                </article>
+
+                <article class="mm-readiness-card {{ data_get($mediaReadiness, 'reviews.ready') ? 'is-ready' : 'is-missing' }}" data-readiness-type="reviews">
+                    <span class="mm-readiness-card__icon"><x-icon name="star" size="22" /></span>
+                    <div><strong>CUSTOMER REVIEWS</strong><span>{{ data_get($mediaReadiness, 'reviews.detail', '0 approved customer reviews') }}</span></div>
+                    <b>{{ data_get($mediaReadiness, 'reviews.ready') ? 'LIVE' : 'NO REVIEWS' }}</b>
+                    <a href="{{ route('admin.resource', 'reviews-ratings') }}">Manage Reviews</a>
+                </article>
+            </div>
+
+            <div class="mm-readiness__note">
+                <x-icon name="info" size="15" />
+                <span><b>360°:</b> publish a frame ZIP in the 360° manager. <b>Video:</b> publish a public video with “Add to product gallery” enabled. <b>Try-On:</b> publish a public preview overlay. The public product page updates automatically from these records.</span>
+            </div>
+        </section>
+
         <div class="mm-workspace">
             <section class="mm-main-column" aria-label="Media library and editing tools">
                 <section class="mm-panel mm-library-panel">
@@ -326,6 +379,20 @@
         <section class="mm-panel mm-empty-products"><x-icon name="package" size="32" /><h2>No active products</h2><p>Create or publish a product before adding media.</p><a class="mm-primary-button" href="{{ route('admin.add-product') }}">Add Product <x-icon name="arrow-right" size="13" /></a></section>
     @endif
 <style>
+.mm-readiness{margin:14px 0 16px;padding:15px;border:1px solid #d7e4da;border-radius:8px;background:#fff;box-shadow:0 2px 10px rgba(24,72,42,.05)}
+.mm-readiness__head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:13px}
+.mm-readiness__head h2{margin:2px 0 4px;color:#183a27;font-size:18px}.mm-readiness__head h2 small{color:#718178;font-size:11px;font-weight:600}.mm-readiness__head p{margin:0;color:#748279;font-size:11px}
+.mm-readiness__grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.mm-readiness-card{display:grid;grid-template-columns:auto 1fr;gap:8px 9px;align-items:start;padding:11px;border:1px solid #dce6de;border-radius:7px;background:#fbfdfb}
+.mm-readiness-card__icon{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:#edf4ef;color:#52675a}
+.mm-readiness-card div{min-width:0}.mm-readiness-card strong{display:block;color:#274032;font-size:10px;line-height:1.2}.mm-readiness-card span{display:block;margin-top:3px;color:#718077;font-size:9px;line-height:1.35}
+.mm-readiness-card>b{grid-column:1/2;align-self:center;justify-self:start;padding:3px 6px;border-radius:999px;background:#eef2ef;color:#637068;font-size:8px;letter-spacing:.05em}
+.mm-readiness-card>a{grid-column:2/3;justify-self:end;color:#0b7139;font-size:9px;font-weight:800;text-decoration:none}.mm-readiness-card>a:hover{text-decoration:underline}
+.mm-readiness-card.is-ready{border-color:#b9ddc2;background:#f4fbf5}.mm-readiness-card.is-ready .mm-readiness-card__icon{background:#daf1df;color:#0b7139}.mm-readiness-card.is-ready>b{background:#dff3e4;color:#0a6b35}
+.mm-readiness-card.is-missing{border-color:#ead9ad;background:#fffaf0}.mm-readiness-card.is-missing .mm-readiness-card__icon{background:#f7edcf;color:#8d6b16}.mm-readiness-card.is-missing>b{background:#f7edcf;color:#806112}
+.mm-readiness__note{display:flex;gap:8px;align-items:flex-start;margin-top:11px;padding:9px 10px;border-radius:5px;background:#f5f8f5;color:#607166;font-size:9px;line-height:1.45}.mm-readiness__note svg{flex:none;color:#0b7139}
+@media(max-width:1200px){.mm-readiness__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.mm-readiness__head{display:block}.mm-readiness__head>a{margin-top:10px}.mm-readiness__grid{grid-template-columns:1fr}}
+
 .mm-bulk-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:9px 13px;margin:10px 13px;border:1px solid #d9e3db;border-radius:6px;background:#f7faf7;color:#405448;font-size:10px}
 .mm-bulk-toolbar__select-all,.mm-bulk-toolbar__action{display:flex;align-items:center;gap:7px;font-weight:700}
 .mm-bulk-toolbar__select-all input,.mm-card-select input{width:15px;height:15px;accent-color:#0b7139;cursor:pointer}
