@@ -446,18 +446,31 @@ class CatalogTaxonomyController extends Controller
         $data = $request->validate([
             'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
             'catalog_county_code' => ['required', 'string', 'max:16'],
-            'organizations' => ['required', 'array', 'min:1'],
+            'organizations' => ['nullable', 'array'],
             'organizations.*' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
+            'governing_body' => ['nullable', Rule::in(self::CLUB_TAXONOMIES)],
             'name' => ['required', 'string', 'max:180'],
             'slug' => ['nullable', 'string', 'max:220'],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
         ]);
 
-        $data['organizations'] = array_values(array_unique(array_map(
+        $organizations = $data['organizations'] ?? [];
+        if ($organizations === [] && filled($data['governing_body'] ?? null)) {
+            $organizations = [(string) $data['governing_body']];
+        }
+
+        $data['organizations'] = array_values(array_unique(array_filter(array_map(
             static fn ($organization): string => strtolower(trim((string) $organization)),
-            $data['organizations'],
-        )));
+            $organizations,
+        ))));
+
+        if ($data['organizations'] === []) {
+            throw ValidationException::withMessages([
+                'organizations' => 'Select at least one organization for this club.',
+            ]);
+        }
+
         $data['governing_body'] = $data['organizations'][0];
 
         $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
