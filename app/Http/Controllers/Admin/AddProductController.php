@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CatalogClub;
+use App\Models\CatalogCounty;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductCollection;
-use App\Support\CatalogCounties;
 use App\Support\CatalogStyles;
 use App\Support\ProductCodeGenerator;
 use Illuminate\Http\RedirectResponse;
@@ -110,7 +110,20 @@ class AddProductController extends Controller
             'categoryRoots' => $categories->whereNull('parent_id')->values(),
             'subcategoryOptionsByRoot' => $subcategoryOptionsByRoot,
             'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
-            'catalogCountyOptionsByCountry' => CatalogCounties::all(),
+            'catalogCountyOptionsByCountry' => CatalogCounty::query()
+                ->active()
+                ->with('country:id,code')
+                ->orderBy('catalog_country_id')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'catalog_country_id', 'code', 'name'])
+                ->filter(fn (CatalogCounty $county) => filled($county->country?->code))
+                ->groupBy(fn (CatalogCounty $county) => strtoupper((string) $county->country->code))
+                ->map(fn ($rows) => $rows->map(fn (CatalogCounty $county): array => [
+                    'code' => $county->code,
+                    'name' => $county->name,
+                ])->values()->all())
+                ->all(),
             'catalogClubs' => $this->selectedCatalogClubs($product),
             'catalogStyles' => CatalogStyles::all(),
             'clubRequiredTaxonomies' => self::REQUIRED_CLUB_TAXONOMIES,
@@ -239,7 +252,11 @@ class AddProductController extends Controller
             $country = ! empty($data['catalog_country_id'])
                 ? CatalogCountry::query()->find((int) $data['catalog_country_id'])
                 : null;
-            if (! $country || ! CatalogCounties::isValid($country->code, $data['catalog_county_code'])) {
+            if (! $country || ! CatalogCounty::query()
+                ->active()
+                ->where('catalog_country_id', $country->id)
+                ->where('code', strtoupper((string) $data['catalog_county_code']))
+                ->exists()) {
                 throw ValidationException::withMessages([
                     'catalog_county_code' => 'Select a county that belongs to the selected country.',
                 ]);
