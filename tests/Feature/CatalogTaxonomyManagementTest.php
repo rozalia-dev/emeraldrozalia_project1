@@ -79,6 +79,58 @@ class CatalogTaxonomyManagementTest extends TestCase
         ]);
     }
 
+    public function test_adding_existing_country_club_assigns_county_and_new_organization_instead_of_failing(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $scotland = CatalogCountry::query()->where('code', 'SCO')->firstOrFail();
+
+        $glasgow = CatalogCounty::query()
+            ->where('catalog_country_id', $scotland->id)
+            ->where('name', 'Glasgow City')
+            ->firstOrFail();
+
+        $existing = CatalogClub::create([
+            'catalog_country_id' => $scotland->id,
+            'catalog_county_code' => null,
+            'governing_body' => 'fifa',
+            'name' => 'Celtic FC',
+            'slug' => 'celtic-fc',
+            'is_active' => true,
+            'sort_order' => 10,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.clubs.store'), [
+                'organizations' => ['uefa'],
+                'catalog_country_id' => $scotland->id,
+                'catalog_county_code' => $glasgow->code,
+                'name' => 'Celtic FC',
+                'slug' => 'celtic-fc',
+                'is_active' => 1,
+                'sort_order' => 10,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $existing->refresh();
+
+        $this->assertSame($glasgow->code, $existing->catalog_county_code);
+        $this->assertTrue($existing->belongsToOrganization('fifa'));
+        $this->assertTrue($existing->belongsToOrganization('uefa'));
+        $this->assertSame(1, CatalogClub::query()
+            ->where('catalog_country_id', $scotland->id)
+            ->where('slug', 'celtic-fc')
+            ->count());
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'uefa',
+                'catalog_country_id' => $scotland->id,
+                'catalog_county_code' => $glasgow->code,
+            ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $existing->id, 'name' => 'Celtic FC']);
+    }
+
     public function test_one_club_can_belong_to_english_and_uefa(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

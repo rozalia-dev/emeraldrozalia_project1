@@ -461,6 +461,60 @@ class CatalogTaxonomyController extends Controller
         $organizations = $data['organizations'];
         unset($data['organizations']);
 
+        $existing = CatalogClub::query()
+            ->with('organizations')
+            ->where('catalog_country_id', $data['catalog_country_id'])
+            ->where('slug', $data['slug'])
+            ->first();
+
+        if ($existing) {
+            $existingCounty = strtoupper((string) $existing->catalog_county_code);
+            $requestedCounty = strtoupper((string) $data['catalog_county_code']);
+
+            if ($existingCounty !== '' && $existingCounty !== $requestedCounty) {
+                $countyName = CatalogCounty::query()
+                    ->where('catalog_country_id', $existing->catalog_country_id)
+                    ->where('code', $existingCounty)
+                    ->value('name');
+
+                throw ValidationException::withMessages([
+                    'slug' => 'This club already exists in '.($countyName ?: $existingCounty).'. Edit the existing club if its county / region needs to change.',
+                ]);
+            }
+
+            $before = $existing->toArray();
+            $allOrganizations = collect($existing->organizations->pluck('taxonomy_type'))
+                ->push($existing->governing_body)
+                ->merge($organizations)
+                ->filter()
+                ->map(fn ($organization) => strtolower(trim((string) $organization)))
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($existingCounty === '') {
+                $existing->catalog_county_code = $requestedCounty;
+            }
+
+            $existing->name = $data['name'];
+            $existing->is_active = (bool) $data['is_active'];
+            if ((int) $data['sort_order'] > 0) {
+                $existing->sort_order = (int) $data['sort_order'];
+            }
+            $existing->save();
+            $existing->syncOrganizations($allOrganizations);
+            $existing->load('organizations');
+
+            AuditTrail::record('catalog.club.merged', $existing, $before, $existing->toArray());
+
+            return redirect()->route('admin.categories.clubs', [
+                'q' => $existing->name,
+                'catalog_country_id' => $existing->catalog_country_id,
+                'catalog_county_code' => $existing->catalog_county_code,
+                'status' => 'all',
+            ])->with('success', $existing->name.' already existed. Its county / region and organization assignments were updated.');
+        }
+
         $club = CatalogClub::create($data);
         $club->syncOrganizations($organizations);
         $club->load('organizations');
@@ -592,14 +646,17 @@ class CatalogTaxonomyController extends Controller
         }
 
         $data['slug'] = Str::slug(filled($data['slug'] ?? null) ? $data['slug'] : $data['name']);
-        $duplicate = CatalogClub::query()
-            ->where('catalog_country_id', $data['catalog_country_id'])
-            ->where('slug', $data['slug']);
         if ($club) {
-            $duplicate->whereKeyNot($club->id);
-        }
-        if ($duplicate->exists()) {
-            throw ValidationException::withMessages(['slug' => 'This club already exists for the selected country. Add another organization to the existing club instead.']);
+            $duplicate = CatalogClub::query()
+                ->where('catalog_country_id', $data['catalog_country_id'])
+                ->where('slug', $data['slug'])
+                ->whereKeyNot($club->id);
+
+            if ($duplicate->exists()) {
+                throw ValidationException::withMessages([
+                    'slug' => 'Another club with this slug already exists for the selected country.',
+                ]);
+            }
         }
 
         return $data;
