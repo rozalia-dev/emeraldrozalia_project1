@@ -109,7 +109,7 @@ class AddProductController extends Controller
             'categories' => $categories,
             'categoryRoots' => $categories->whereNull('parent_id')->values(),
             'subcategoryOptionsByRoot' => $subcategoryOptionsByRoot,
-            'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name']),
+            'catalogCountries' => CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id', 'code', 'name', 'is_eu', 'is_uefa']),
             'catalogCountyOptionsByCountry' => CatalogCounties::all(),
             'catalogClubs' => $this->selectedCatalogClubs($product),
             'catalogStyles' => CatalogStyles::all(),
@@ -227,6 +227,15 @@ class AddProductController extends Controller
             throw ValidationException::withMessages([
                 'catalog_country_id' => 'Select a country before selecting the '.strtoupper($rootTaxonomy).' club / city / town.',
             ]);
+        }
+
+        if ($rootTaxonomy === 'uefa' && ! empty($data['catalog_country_id'])) {
+            $uefaCountry = CatalogCountry::query()->find((int) $data['catalog_country_id']);
+            if (! $uefaCountry || ! $uefaCountry->is_uefa) {
+                throw ValidationException::withMessages([
+                    'catalog_country_id' => 'Select a UEFA association country. Use England, Scotland, Wales or Northern Ireland instead of United Kingdom.',
+                ]);
+            }
         }
 
         if (in_array($rootTaxonomy, self::REQUIRED_COUNTY_TAXONOMIES, true) && empty($data['catalog_county_code'])) {
