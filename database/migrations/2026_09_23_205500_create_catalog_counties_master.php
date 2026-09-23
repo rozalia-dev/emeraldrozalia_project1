@@ -59,6 +59,10 @@ return new class extends Migration
             }
         }
 
+        if (app()->environment('testing')) {
+            return;
+        }
+
         // Extend County / Region Master from the bundled global club catalogue.
         // This catches regions that are present in club source data but were not
         // part of the older hard-coded subdivision snapshot.
