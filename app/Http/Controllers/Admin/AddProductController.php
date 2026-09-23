@@ -258,7 +258,7 @@ class AddProductController extends Controller
                 && (int) $club?->catalog_country_id !== (int) $data['catalog_country_id'];
             $wrongOrganization = $rootTaxonomy !== ''
                 && in_array($rootTaxonomy, self::REQUIRED_CLUB_TAXONOMIES, true)
-                && $club?->governing_body !== $rootTaxonomy;
+                && ! $club?->belongsToOrganization($rootTaxonomy);
             $clubCounty = strtoupper((string) $club?->catalog_county_code);
             $selectedCounty = strtoupper((string) ($data['catalog_county_code'] ?? ''));
             $countryWideFifaClub = $rootTaxonomy === 'fifa' && $clubCounty === '';

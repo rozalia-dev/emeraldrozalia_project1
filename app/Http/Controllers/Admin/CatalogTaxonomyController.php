@@ -296,18 +296,18 @@ class CatalogTaxonomyController extends Controller
         $status = strtolower((string) $request->query('status', 'active'));
 
         $clubs = CatalogClub::query()
-            ->with('country')
+            ->with(['country', 'organizations'])
             ->withCount('categories')
             ->when($search !== '', fn ($query) => $query->where(fn ($sub) => $sub
                 ->where('name', 'like', '%'.$search.'%')
                 ->orWhere('slug', 'like', '%'.$search.'%')))
-            ->when(in_array($governingBody, self::CLUB_TAXONOMIES, true), fn ($query) => $query->where('governing_body', $governingBody))
+            ->when(in_array($governingBody, self::CLUB_TAXONOMIES, true), fn ($query) => $query->forOrganization($governingBody))
             ->when($countryId > 0, fn ($query) => $query->where('catalog_country_id', $countryId))
             ->when($countyCode !== '', fn ($query) => $query->where('catalog_county_code', $countyCode))
             ->when($status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
-            ->orderBy('governing_body')
             ->orderBy('catalog_country_id')
+            ->orderBy('governing_body')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->paginate(60)
@@ -364,7 +364,13 @@ class CatalogTaxonomyController extends Controller
     public function storeClub(Request $request): RedirectResponse
     {
         $data = $this->clubData($request);
+        $organizations = $data['organizations'];
+        unset($data['organizations']);
+
         $club = CatalogClub::create($data);
+        $club->syncOrganizations($organizations);
+        $club->load('organizations');
+
         AuditTrail::record('catalog.club.created', $club, null, $club->toArray());
 
         return back()->with('success', $club->name.' added to Club Master.');
@@ -372,8 +378,15 @@ class CatalogTaxonomyController extends Controller
 
     public function updateClub(Request $request, CatalogClub $club): RedirectResponse
     {
-        $before = $club->toArray();
-        $club->update($this->clubData($request, $club));
+        $before = $club->load('organizations')->toArray();
+        $data = $this->clubData($request, $club);
+        $organizations = $data['organizations'];
+        unset($data['organizations']);
+
+        $club->update($data);
+        $club->syncOrganizations($organizations);
+        $club->load('organizations');
+
         AuditTrail::record('catalog.club.updated', $club, $before, $club->fresh()->toArray());
 
         return back()->with('success', $club->name.' updated.');
@@ -396,7 +409,7 @@ class CatalogTaxonomyController extends Controller
     {
         $base = CatalogClub::query()
             ->active()
-            ->where('governing_body', $taxonomy)
+            ->forOrganization($taxonomy)
             ->where('catalog_country_id', $countryId);
 
         $hasExactCountyClubs = (clone $base)
@@ -433,12 +446,32 @@ class CatalogTaxonomyController extends Controller
         $data = $request->validate([
             'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
             'catalog_county_code' => ['required', 'string', 'max:16'],
-            'governing_body' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
+            'organizations' => ['nullable', 'array'],
+            'organizations.*' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
+            'governing_body' => ['nullable', Rule::in(self::CLUB_TAXONOMIES)],
             'name' => ['required', 'string', 'max:180'],
             'slug' => ['nullable', 'string', 'max:220'],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
         ]);
+
+        $organizations = $data['organizations'] ?? [];
+        if ($organizations === [] && filled($data['governing_body'] ?? null)) {
+            $organizations = [(string) $data['governing_body']];
+        }
+
+        $data['organizations'] = array_values(array_unique(array_filter(array_map(
+            static fn ($organization): string => strtolower(trim((string) $organization)),
+            $organizations,
+        ))));
+
+        if ($data['organizations'] === []) {
+            throw ValidationException::withMessages([
+                'organizations' => 'Select at least one organization for this club.',
+            ]);
+        }
+
+        $data['governing_body'] = $data['organizations'][0];
 
         $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
         $data['catalog_county_code'] = strtoupper(trim((string) $data['catalog_county_code']));
@@ -450,14 +483,13 @@ class CatalogTaxonomyController extends Controller
 
         $data['slug'] = Str::slug(filled($data['slug'] ?? null) ? $data['slug'] : $data['name']);
         $duplicate = CatalogClub::query()
-            ->where('governing_body', $data['governing_body'])
             ->where('catalog_country_id', $data['catalog_country_id'])
             ->where('slug', $data['slug']);
         if ($club) {
             $duplicate->whereKeyNot($club->id);
         }
         if ($duplicate->exists()) {
-            throw ValidationException::withMessages(['slug' => 'This club already exists for the selected organization and country.']);
+            throw ValidationException::withMessages(['slug' => 'This club already exists for the selected country. Add another organization to the existing club instead.']);
         }
 
         return $data;
@@ -503,7 +535,7 @@ class CatalogTaxonomyController extends Controller
 
         if (
             ! $country
-            || $club->governing_body !== $taxonomy
+            || ! $club->belongsToOrganization($taxonomy)
             || (int) $club->catalog_country_id !== (int) $country->id
             || (! $countryWideFifaClub && $clubCounty !== strtoupper((string) $countyCode))
         ) {

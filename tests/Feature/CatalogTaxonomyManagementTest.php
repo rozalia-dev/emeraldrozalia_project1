@@ -74,6 +74,63 @@ class CatalogTaxonomyManagementTest extends TestCase
         ]);
     }
 
+    public function test_one_club_can_belong_to_english_and_uefa(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $england = CatalogCountry::query()->where('code', 'ENG')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.clubs.store'), [
+                'organizations' => ['english', 'uefa'],
+                'catalog_country_id' => $england->id,
+                'catalog_county_code' => 'ENG-GTM',
+                'name' => 'Manchester United',
+                'slug' => 'manchester-united-multi-org-test',
+                'is_active' => 1,
+                'sort_order' => 10,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $club = CatalogClub::query()
+            ->where('slug', 'manchester-united-multi-org-test')
+            ->firstOrFail();
+
+        $this->assertTrue($club->belongsToOrganization('english'));
+        $this->assertTrue($club->belongsToOrganization('uefa'));
+        $this->assertDatabaseHas('catalog_club_organizations', [
+            'catalog_club_id' => $club->id,
+            'taxonomy_type' => 'english',
+        ]);
+        $this->assertDatabaseHas('catalog_club_organizations', [
+            'catalog_club_id' => $club->id,
+            'taxonomy_type' => 'uefa',
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'english',
+                'catalog_country_id' => $england->id,
+                'catalog_county_code' => 'ENG-GTM',
+            ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $club->id, 'name' => 'Manchester United']);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'uefa',
+                'catalog_country_id' => $england->id,
+                'catalog_county_code' => 'ENG-GTM',
+            ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $club->id, 'name' => 'Manchester United']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.clubs'))
+            ->assertOk()
+            ->assertSee('name="organizations[]"', false)
+            ->assertSee('Manchester United');
+    }
+
     public function test_club_options_are_lazy_and_fifa_includes_country_fallback(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

@@ -52,6 +52,51 @@ class CatalogClub extends Model
         return $this->hasMany(Category::class, 'catalog_club_id');
     }
 
+    public function organizations(): HasMany
+    {
+        return $this->hasMany(CatalogClubOrganization::class, 'catalog_club_id');
+    }
+
+    public function scopeForOrganization(Builder $query, string $taxonomy): Builder
+    {
+        $taxonomy = strtolower(trim($taxonomy));
+
+        return $query->where(function (Builder $organizationQuery) use ($taxonomy): void {
+            $organizationQuery
+                ->where('governing_body', $taxonomy)
+                ->orWhereHas('organizations', fn (Builder $membershipQuery) => $membershipQuery->where('taxonomy_type', $taxonomy));
+        });
+    }
+
+    public function belongsToOrganization(string $taxonomy): bool
+    {
+        $taxonomy = strtolower(trim($taxonomy));
+
+        if ($this->governing_body === $taxonomy) {
+            return true;
+        }
+
+        if ($this->relationLoaded('organizations')) {
+            return $this->organizations->contains('taxonomy_type', $taxonomy);
+        }
+
+        return $this->organizations()->where('taxonomy_type', $taxonomy)->exists();
+    }
+
+    public function syncOrganizations(array $taxonomies): void
+    {
+        $taxonomies = array_values(array_unique(array_filter(array_map(
+            static fn ($taxonomy): string => strtolower(trim((string) $taxonomy)),
+            $taxonomies,
+        ))));
+
+        $this->organizations()->whereNotIn('taxonomy_type', $taxonomies)->delete();
+
+        foreach ($taxonomies as $taxonomy) {
+            $this->organizations()->firstOrCreate(['taxonomy_type' => $taxonomy]);
+        }
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

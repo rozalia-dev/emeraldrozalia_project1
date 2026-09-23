@@ -363,7 +363,7 @@ class SiteController extends Controller
         if ($catalogClubEnabled && $selectedCountryModel && $selectedCounty !== '') {
             $clubBase = CatalogClub::query()
                 ->active()
-                ->where('governing_body', $catalogCountryScope)
+                ->forOrganization($catalogCountryScope)
                 ->where('catalog_country_id', $selectedCountryModel->id);
 
             $hasExactCountyClubs = (clone $clubBase)
