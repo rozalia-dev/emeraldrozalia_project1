@@ -41,6 +41,11 @@ class CatalogCountry extends Model
         return $this->hasMany(CatalogClub::class);
     }
 
+    public function counties(): HasMany
+    {
+        return $this->hasMany(CatalogCounty::class, 'catalog_country_id');
+    }
+
     public function categories(): HasMany
     {
         return $this->hasMany(Category::class, 'catalog_country_id');
