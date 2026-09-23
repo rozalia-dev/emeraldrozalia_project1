@@ -152,9 +152,16 @@
                                         <select name="catalog_country_id" data-catalog-country>
                                             <option value="">All / not applicable</option>
                                             @foreach($catalogCountries as $country)
-                                                <option value="{{ $country->id }}" data-code="{{ $country->code }}" @selected((string) $selectedCountryId === (string) $country->id)>{{ $country->name }}</option>
+                                                <option value="{{ $country->id }}"
+                                                    data-code="{{ $country->code }}"
+                                                    data-eu="{{ $country->is_eu ? '1' : '0' }}"
+                                                    data-uefa="{{ $country->is_uefa ? '1' : '0' }}"
+                                                    @selected((string) $selectedCountryId === (string) $country->id)>
+                                                    {{ $country->name }}
+                                                </option>
                                             @endforeach
                                         </select>
+                                        <small class="ap-field-help" data-catalog-country-help></small>
                                         @error('catalog_country_id')<small class="ap-field-error">{{ $message }}</small>@enderror
                                     </label>
 
@@ -413,6 +420,7 @@
     const subcategory = root.querySelector('[data-subcategory]');
     const country = root.querySelector('[data-catalog-country]');
     const countryLabel = root.querySelector('[data-catalog-country-label]');
+    const countryHelp = root.querySelector('[data-catalog-country-help]');
     const county = root.querySelector('[data-catalog-county]');
     const countyField = root.querySelector('[data-catalog-county-field]');
     const countyLabel = root.querySelector('[data-catalog-county-label]');
@@ -467,6 +475,42 @@
     hsCode?.addEventListener('input', () => {
         hsCodeManuallyEdited = hsCode.value.trim() !== '';
     });
+
+    const syncCountries = () => {
+        if (!country) return;
+
+        const taxonomy = selectedTaxonomy();
+        let selectedAllowed = true;
+
+        [...country.options].forEach((option, index) => {
+            if (index === 0) return;
+
+            const allowed = taxonomy === 'uefa'
+                ? option.dataset.uefa === '1'
+                : (['traditional', 'heritage'].includes(taxonomy)
+                    ? option.dataset.eu === '1'
+                    : true);
+
+            option.hidden = !allowed;
+            option.disabled = !allowed;
+
+            if (option.selected && !allowed) {
+                selectedAllowed = false;
+            }
+        });
+
+        if (!selectedAllowed) {
+            country.value = '';
+            county.value = '';
+            club.value = '';
+        }
+
+        if (countryHelp) {
+            countryHelp.textContent = taxonomy === 'uefa'
+                ? 'UEFA uses association countries. Select England, Scotland, Wales or Northern Ireland rather than United Kingdom.'
+                : '';
+        }
+    };
 
     const syncCounties = (preserve = false) => {
         if (!country || !county) return;
@@ -585,6 +629,7 @@
 
     category?.addEventListener('change', () => {
         syncSubcategories();
+        syncCountries();
         syncCounties(false);
         void syncClubs(false);
     });
@@ -596,6 +641,7 @@
     subcategory?.addEventListener('change', syncHsCode);
 
     syncSubcategories();
+    syncCountries();
     syncCounties(true);
     void syncClubs(true);
 })();
