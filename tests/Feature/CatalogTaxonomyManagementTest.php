@@ -84,6 +84,11 @@ class CatalogTaxonomyManagementTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $scotland = CatalogCountry::query()->where('code', 'SCO')->firstOrFail();
 
+        $glasgow = CatalogCounty::query()
+            ->where('catalog_country_id', $scotland->id)
+            ->where('name', 'Glasgow City')
+            ->firstOrFail();
+
         $existing = CatalogClub::create([
             'catalog_country_id' => $scotland->id,
             'catalog_county_code' => null,
@@ -98,7 +103,7 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->post(route('admin.categories.clubs.store'), [
                 'organizations' => ['uefa'],
                 'catalog_country_id' => $scotland->id,
-                'catalog_county_code' => 'SCO-GLG',
+                'catalog_county_code' => $glasgow->code,
                 'name' => 'Celtic FC',
                 'slug' => 'celtic-fc',
                 'is_active' => 1,
@@ -108,7 +113,7 @@ class CatalogTaxonomyManagementTest extends TestCase
 
         $existing->refresh();
 
-        $this->assertSame('SCO-GLG', $existing->catalog_county_code);
+        $this->assertSame($glasgow->code, $existing->catalog_county_code);
         $this->assertTrue($existing->belongsToOrganization('fifa'));
         $this->assertTrue($existing->belongsToOrganization('uefa'));
         $this->assertSame(1, CatalogClub::query()
@@ -120,7 +125,7 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->getJson(route('admin.categories.clubs.options', [
                 'governing_body' => 'uefa',
                 'catalog_country_id' => $scotland->id,
-                'catalog_county_code' => 'SCO-GLG',
+                'catalog_county_code' => $glasgow->code,
             ]))
             ->assertOk()
             ->assertJsonFragment(['id' => $existing->id, 'name' => 'Celtic FC']);
