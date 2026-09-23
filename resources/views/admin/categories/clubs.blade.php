@@ -10,7 +10,7 @@
 
 @section('content')
 <div class="club-page">
-    <header class="club-head"><div><span class="club-kicker">Website &amp; Products · Categories</span><h1>Club Master</h1><p>Add each club once, then assign it to one or more organizations. Example: Manchester United can belong to both English and UEFA while keeping the same country, county and club record.</p></div><nav class="club-nav"><a class="club-btn" href="{{ route('admin.categories.index') }}">Categories</a><a class="club-btn" href="{{ route('admin.categories.taxonomy') }}">Taxonomy Builder</a><a class="club-btn" href="{{ route('admin.categories.countries') }}">Country Master</a></nav></header>
+    <header class="club-head"><div><span class="club-kicker">Website &amp; Products · Categories</span><h1>Club Master</h1><p>Add each club once using Category → Country → County → Club Name, then assign it to one or more organizations. Example: Manchester United can belong to both English and UEFA while keeping the same country, county and club record.</p></div><nav class="club-nav"><a class="club-btn" href="{{ route('admin.categories.index') }}">Categories</a><a class="club-btn" href="{{ route('admin.categories.taxonomy') }}">Taxonomy Builder</a><a class="club-btn" href="{{ route('admin.categories.countries') }}">Country Master</a></nav></header>
     @if(session('success'))<div class="club-alert">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="club-alert error">{{ $errors->first() }}</div>@endif
 
