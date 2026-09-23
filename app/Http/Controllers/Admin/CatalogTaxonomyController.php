@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CatalogClub;
+use App\Models\CatalogCounty;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Services\AuditTrail;
-use App\Support\CatalogCounties;
 use App\Support\CatalogProductTypes;
 use App\Support\CatalogStyles;
 use Illuminate\Http\JsonResponse;
@@ -71,7 +71,7 @@ class CatalogTaxonomyController extends Controller
         } elseif ($countryId > 0 && $countyCode !== '' && in_array($taxonomy, self::CLUB_TAXONOMIES, true)) {
             $clubs = $this->clubOptionQuery($taxonomy, $countryId, $countyCode)->with('country')->get();
         }
-        $countyOptionsByCountry = CatalogCounties::all();
+        $countyOptionsByCountry = $this->countyOptionsByCountry();
         $countyNames = collect($countyOptionsByCountry)
             ->flatten(1)
             ->filter(fn ($row) => is_array($row) && filled($row['code'] ?? null))
@@ -253,7 +253,7 @@ class CatalogTaxonomyController extends Controller
         $status = strtolower((string) $request->query('status', 'active'));
 
         $countries = CatalogCountry::query()
-            ->withCount('clubs')
+            ->withCount(['clubs', 'counties'])
             ->when($search !== '', fn ($query) => $query->where(fn ($sub) => $sub
                 ->where('name', 'like', '%'.$search.'%')
                 ->orWhere('code', 'like', '%'.$search.'%')))
@@ -287,6 +287,100 @@ class CatalogTaxonomyController extends Controller
         return back()->with('success', $country->name.' updated.');
     }
 
+    public function counties(Request $request): View
+    {
+        $search = trim((string) $request->query('q', ''));
+        $countryId = (int) $request->query('catalog_country_id', 0);
+        $status = strtolower((string) $request->query('status', 'active'));
+
+        $counties = CatalogCounty::query()
+            ->with('country:id,code,name')
+            ->when($search !== '', fn ($query) => $query->where(fn ($sub) => $sub
+                ->where('name', 'like', '%'.$search.'%')
+                ->orWhere('code', 'like', '%'.$search.'%')))
+            ->when($countryId > 0, fn ($query) => $query->where('catalog_country_id', $countryId))
+            ->when($status === 'active', fn ($query) => $query->where('is_active', true))
+            ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
+            ->orderBy('catalog_country_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->paginate(60)
+            ->withQueryString();
+
+        return view('admin.categories.counties', [
+            'counties' => $counties,
+            'countries' => CatalogCountry::query()->active()->orderBy('name')->get(['id', 'code', 'name']),
+            'search' => $search,
+            'countryId' => $countryId,
+            'status' => $status,
+        ]);
+    }
+
+    public function storeCounty(Request $request): RedirectResponse
+    {
+        $data = $this->countyData($request);
+        $county = CatalogCounty::create($data);
+        AuditTrail::record('catalog.county.created', $county, null, $county->toArray());
+
+        return back()->with('success', $county->name.' added to County / Region Master.');
+    }
+
+    public function updateCounty(Request $request, CatalogCounty $county): RedirectResponse
+    {
+        $before = $county->toArray();
+        $oldCountryId = (int) $county->catalog_country_id;
+        $oldCode = strtoupper((string) $county->code);
+        $data = $this->countyData($request, $county);
+
+        DB::transaction(function () use ($county, $data, $oldCountryId, $oldCode): void {
+            $county->update($data);
+
+            if ($oldCountryId !== (int) $county->catalog_country_id || $oldCode !== strtoupper((string) $county->code)) {
+                CatalogClub::query()
+                    ->where('catalog_country_id', $oldCountryId)
+                    ->where('catalog_county_code', $oldCode)
+                    ->update([
+                        'catalog_country_id' => $county->catalog_country_id,
+                        'catalog_county_code' => $county->code,
+                    ]);
+
+                Category::query()
+                    ->where('catalog_country_id', $oldCountryId)
+                    ->where('catalog_county_code', $oldCode)
+                    ->update([
+                        'catalog_country_id' => $county->catalog_country_id,
+                        'catalog_county_code' => $county->code,
+                    ]);
+            }
+        });
+
+        AuditTrail::record('catalog.county.updated', $county, $before, $county->fresh()->toArray());
+
+        return back()->with('success', $county->name.' updated.');
+    }
+
+    public function destroyCounty(CatalogCounty $county): RedirectResponse
+    {
+        $inUseByClubs = CatalogClub::query()
+            ->where('catalog_country_id', $county->catalog_country_id)
+            ->where('catalog_county_code', $county->code)
+            ->exists();
+        $inUseByCategories = Category::query()
+            ->where('catalog_country_id', $county->catalog_country_id)
+            ->where('catalog_county_code', $county->code)
+            ->exists();
+
+        if ($inUseByClubs || $inUseByCategories) {
+            return back()->withErrors(['county' => 'This county / region is in use. Reassign its clubs and categories before deleting it.']);
+        }
+
+        $before = $county->toArray();
+        AuditTrail::record('catalog.county.deleted', $county, $before, null);
+        $county->delete();
+
+        return back()->with('success', 'County / region removed from Master.');
+    }
+
     public function clubs(Request $request): View
     {
         $search = trim((string) $request->query('q', ''));
@@ -316,8 +410,8 @@ class CatalogTaxonomyController extends Controller
         return view('admin.categories.clubs', [
             'clubs' => $clubs,
             'countries' => CatalogCountry::query()->active()->orderBy('name')->get(),
-            'countyOptionsByCountry' => CatalogCounties::all(),
-            'countyNames' => collect(CatalogCounties::all())->flatten(1)->mapWithKeys(fn ($row) => [(string) ($row['code'] ?? '') => (string) ($row['name'] ?? '')])->all(),
+            'countyOptionsByCountry' => $this->countyOptionsByCountry(),
+            'countyNames' => CatalogCounty::query()->pluck('name', 'code')->all(),
             'governingBodies' => array_intersect_key(self::TAXONOMIES, array_flip(self::CLUB_TAXONOMIES)),
             'search' => $search,
             'governingBody' => $governingBody,
@@ -338,7 +432,7 @@ class CatalogTaxonomyController extends Controller
         $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
         $countyCode = strtoupper(trim((string) $data['catalog_county_code']));
 
-        if (! CatalogCounties::isValid($country->code, $countyCode)) {
+        if (! CatalogCounty::query()->active()->where('catalog_country_id', $country->id)->where('code', $countyCode)->exists()) {
             throw ValidationException::withMessages([
                 'catalog_county_code' => 'The selected county / subdivision does not belong to the selected country.',
             ]);
@@ -412,16 +506,8 @@ class CatalogTaxonomyController extends Controller
             ->forOrganization($taxonomy)
             ->where('catalog_country_id', $countryId);
 
-        $hasExactCountyClubs = (clone $base)
-            ->where('catalog_county_code', $countyCode)
-            ->exists();
-
         return $base
-            ->when(
-                in_array($taxonomy, ['fifa', 'uefa'], true) && ! $hasExactCountyClubs,
-                fn ($query) => $query->whereNull('catalog_county_code'),
-                fn ($query) => $query->where('catalog_county_code', $countyCode),
-            )
+            ->where('catalog_county_code', $countyCode)
             ->orderBy('sort_order')
             ->orderBy('name');
     }
@@ -437,6 +523,30 @@ class CatalogTaxonomyController extends Controller
             'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
         ]);
         $data['code'] = strtoupper(trim($data['code']));
+
+        return $data;
+    }
+
+    private function countyData(Request $request, ?CatalogCounty $county = null): array
+    {
+        $data = $request->validate([
+            'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
+            'code' => [
+                'required',
+                'string',
+                'min:1',
+                'max:16',
+                Rule::unique('catalog_counties', 'code')
+                    ->where(fn ($query) => $query->where('catalog_country_id', (int) $request->input('catalog_country_id')))
+                    ->ignore($county?->id),
+            ],
+            'name' => ['required', 'string', 'max:180'],
+            'is_active' => ['required', 'boolean'],
+            'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+        ]);
+
+        $data['code'] = strtoupper(trim((string) $data['code']));
+        $data['name'] = trim((string) $data['name']);
 
         return $data;
     }
@@ -475,7 +585,7 @@ class CatalogTaxonomyController extends Controller
 
         $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
         $data['catalog_county_code'] = strtoupper(trim((string) $data['catalog_county_code']));
-        if (! CatalogCounties::isValid($country->code, $data['catalog_county_code'])) {
+        if (! CatalogCounty::query()->active()->where('catalog_country_id', $country->id)->where('code', $data['catalog_county_code'])->exists()) {
             throw ValidationException::withMessages([
                 'catalog_county_code' => 'Select a county that belongs to the selected country.',
             ]);
@@ -560,12 +670,34 @@ class CatalogTaxonomyController extends Controller
             throw ValidationException::withMessages(['catalog_county_code' => 'Select a country before selecting a county.']);
         }
 
-        $county = CatalogCounties::find($country->code, $countyCode);
+        $county = CatalogCounty::query()
+            ->active()
+            ->where('catalog_country_id', $country->id)
+            ->where('code', $countyCode)
+            ->first();
         if (! $county) {
             throw ValidationException::withMessages(['catalog_county_code' => 'The selected county does not belong to the selected country.']);
         }
 
-        return $county;
+        return ['code' => $county->code, 'name' => $county->name];
+    }
+
+    private function countyOptionsByCountry(): array
+    {
+        return CatalogCounty::query()
+            ->active()
+            ->with('country:id,code')
+            ->orderBy('catalog_country_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'catalog_country_id', 'code', 'name'])
+            ->filter(fn (CatalogCounty $county) => filled($county->country?->code))
+            ->groupBy(fn (CatalogCounty $county) => strtoupper((string) $county->country->code))
+            ->map(fn ($rows) => $rows->map(fn (CatalogCounty $county): array => [
+                'code' => $county->code,
+                'name' => $county->name,
+            ])->values()->all())
+            ->all();
     }
 
     private function ensureCategory(
