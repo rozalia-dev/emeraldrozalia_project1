@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CatalogClub;
+use App\Models\CatalogCounty;
 use App\Models\CatalogCountry;
 use App\Models\Category;
 use App\Models\User;
@@ -31,6 +32,10 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->actingAs($admin)->get(route('admin.categories.countries'))
             ->assertOk()
             ->assertSee('Country Master');
+        $this->actingAs($admin)->get(route('admin.categories.counties'))
+            ->assertOk()
+            ->assertSee('County / Region Master');
+        $this->assertTrue(CatalogCounty::query()->whereHas('country', fn ($query) => $query->where('code', 'IE'))->where('code', 'IE-LK')->exists());
         $this->actingAs($admin)->get(route('admin.categories.clubs'))
             ->assertOk()
             ->assertSee('Club Master')
@@ -131,7 +136,7 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->assertSee('Manchester United');
     }
 
-    public function test_club_options_are_lazy_and_fifa_includes_country_fallback(): void
+    public function test_club_options_are_lazy_and_fifa_requires_exact_county(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $japan = CatalogCountry::query()->where('code', 'JP')->firstOrFail();
@@ -182,7 +187,8 @@ class CatalogTaxonomyManagementTest extends TestCase
                 'catalog_county_code' => 'JP-01',
             ]))
             ->assertOk()
-            ->assertJsonFragment(['id' => $fallback->id, 'scope' => 'country'])
+            ->assertJsonCount(0, 'clubs')
+            ->assertJsonMissing(['id' => $fallback->id])
             ->assertJsonMissing(['name' => 'Tokyo Exact Club'])
             ->assertJsonMissing(['name' => 'Osaka Other Club']);
 
@@ -194,7 +200,7 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->assertDontSee('Japan Country Club', false);
     }
 
-    public function test_uefa_club_options_prefer_exact_region_and_fall_back_to_country(): void
+    public function test_uefa_club_options_require_exact_region(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $germany = CatalogCountry::query()->where('code', 'DE')->firstOrFail();
@@ -245,7 +251,8 @@ class CatalogTaxonomyManagementTest extends TestCase
                 'catalog_county_code' => 'DE-HE',
             ]))
             ->assertOk()
-            ->assertJsonFragment(['id' => $countryFallback->id, 'scope' => 'country'])
+            ->assertJsonCount(0, 'clubs')
+            ->assertJsonMissing(['id' => $countryFallback->id])
             ->assertJsonMissing(['name' => 'Bayern München'])
             ->assertJsonMissing(['name' => 'Dortmund Region Club']);
     }
