@@ -21,6 +21,10 @@ Route::prefix('admin/resource/categories')
         Route::get('/countries', [CatalogTaxonomyController::class, 'countries'])->name('countries');
         Route::post('/countries', [CatalogTaxonomyController::class, 'storeCountry'])->name('countries.store');
         Route::patch('/countries/{country}', [CatalogTaxonomyController::class, 'updateCountry'])->name('countries.update');
+        Route::get('/counties', [CatalogTaxonomyController::class, 'counties'])->name('counties');
+        Route::post('/counties', [CatalogTaxonomyController::class, 'storeCounty'])->name('counties.store');
+        Route::patch('/counties/{county}', [CatalogTaxonomyController::class, 'updateCounty'])->name('counties.update');
+        Route::delete('/counties/{county}', [CatalogTaxonomyController::class, 'destroyCounty'])->name('counties.destroy');
         Route::get('/clubs', [CatalogTaxonomyController::class, 'clubs'])->name('clubs');
         Route::get('/clubs/options', [CatalogTaxonomyController::class, 'clubOptions'])->name('clubs.options');
         Route::post('/clubs', [CatalogTaxonomyController::class, 'storeClub'])->name('clubs.store');
