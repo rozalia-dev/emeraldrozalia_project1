@@ -128,6 +128,36 @@ class CategoryController extends Controller
         ));
     }
 
+    public function products(Request $request, Category $category): View
+    {
+        $search = trim((string) $request->query('q', ''));
+        $query = Product::query()
+            ->where('category_id', $category->id)
+            ->with('category')
+            ->orderBy('name')
+            ->orderBy('id');
+
+        if ($search !== '') {
+            $query->where(function ($products) use ($search): void {
+                $products->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('sku', 'like', '%'.$search.'%')
+                    ->orWhere('brand', 'like', '%'.$search.'%');
+            });
+        }
+
+        $products = $query->paginate(20)->withQueryString();
+
+        $base = Product::query()->where('category_id', $category->id);
+        $stats = [
+            'total' => (clone $base)->count(),
+            'approved' => (clone $base)->whereRaw("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(product_metadata, '$.approval_status')), '') = 'approved'")->count(),
+            'published' => (clone $base)->where('is_active', true)->whereIn('status', Product::PUBLIC_STATUSES)->count(),
+            'draft' => (clone $base)->whereIn('status', ['draft', 'planned'])->count(),
+        ];
+
+        return view('admin.categories.products', compact('category', 'products', 'stats', 'search'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validatedData($request);
