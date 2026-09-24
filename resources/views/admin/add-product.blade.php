@@ -36,16 +36,10 @@
     ))
         ->map(static fn ($id): string => (string) $id)
         ->all();
-    $selectedCollectionCategoryIds = collect(old(
-        'collection_category_ids',
-        $productMeta['collection_category_ids'] ?? ($selectedRootId ? [(int) $selectedRootId] : [])
-    ))
-        ->map(static fn ($id): string => (string) $id)
-        ->all();
     $selectedCollectionIds = collect(old('collection_ids', $product?->collections?->pluck('id')->all() ?? []))
         ->map(static fn ($id): string => (string) $id)
         ->all();
-    $placementCollections = $collections->reject(static fn ($collection): bool => $collection->slug === 'new-arrivals')->values();
+    $placementCollections = $collections->values();
 @endphp
 
 @push('styles')
@@ -389,7 +383,7 @@
                                 <x-icon name="chevron-down" size="13" />
                             </summary>
                             <div class="ap-multi-select-menu">
-                                @foreach($categoryRoots as $root)
+                                @foreach($publicCategoryRoots as $root)
                                     <label>
                                         <input type="checkbox"
                                             name="shop_category_ids[]"
@@ -414,31 +408,8 @@
 
                     <fieldset class="ap-placement-collections">
                         <legend>Shop by Collection</legend>
-                        <small class="ap-field-help">First select one or more Main Categories, then choose the collections for this product.</small>
+                        <small class="ap-field-help">Choose one or more public collections. This list matches the public COLLECTIONS menu.</small>
                         <input type="hidden" name="collection_ids_present" value="1">
-
-                        <details class="ap-multi-select" data-collection-category-dropdown>
-                            <summary>
-                                <span data-collection-category-summary>
-                                    {{ count($selectedCollectionCategoryIds) ? count($selectedCollectionCategoryIds).' selected' : 'Select categories' }}
-                                </span>
-                                <x-icon name="chevron-down" size="13" />
-                            </summary>
-                            <div class="ap-multi-select-menu">
-                                @foreach($categoryRoots as $root)
-                                    <label>
-                                        <input type="checkbox"
-                                            name="collection_category_ids[]"
-                                            value="{{ $root->id }}"
-                                            @checked(in_array((string) $root->id, $selectedCollectionCategoryIds, true))
-                                            data-collection-category-option>
-                                        <span>{{ $root->name }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </details>
-
-                        <p class="ap-field-help" data-collection-category-hint>Select one or more categories to see matching collections.</p>
 
                         <details class="ap-multi-select" data-collection-dropdown>
                             <summary>
@@ -449,31 +420,23 @@
                             </summary>
                             <div class="ap-multi-select-menu">
                                 @forelse($placementCollections as $collection)
-                                    <label data-placement-collection data-main-category="{{ $collection->main_category_id ?: '' }}">
+                                    <label>
                                         <input type="checkbox"
                                             name="collection_ids[]"
                                             value="{{ $collection->id }}"
                                             @checked(in_array((string) $collection->id, $selectedCollectionIds, true))
                                             data-collection-option>
-                                        <span>
-                                            <strong>{{ $collection->name }}</strong>
-                                            @if($collection->slug === 'best-sellers')
-                                                <small> — Homepage Bestsellers</small>
-                                            @elseif($collection->slug === 'irish-heritage')
-                                                <small> — Irish Heritage Collection</small>
-                                            @endif
-                                        </span>
+                                        <span><strong>{{ $collection->name }}</strong></span>
                                     </label>
                                 @empty
-                                    <p class="ap-field-help">No collections are available yet.</p>
+                                    <p class="ap-field-help">No public collections are available yet.</p>
                                 @endforelse
                             </div>
                         </details>
 
-                        @error('collection_category_ids')<small class="ap-field-error">{{ $message }}</small>@enderror
                         @error('collection_ids')<small class="ap-field-error">{{ $message }}</small>@enderror
                         @foreach($errors->getMessages() as $field => $messages)
-                            @if(str_starts_with($field, 'collection_category_ids.') || str_starts_with($field, 'collection_ids.'))
+                            @if(str_starts_with($field, 'collection_ids.'))
                                 <small class="ap-field-error">{{ $messages[0] }}</small>
                             @endif
                         @endforeach
@@ -516,18 +479,13 @@
     const initialClub = @json((string) $selectedClubId);
     const initialSubcategory = @json((string) $selectedCategoryId);
     const hsCode = document.querySelector('[data-auto-hs-code]');
-    const placementCollections = Array.from(document.querySelectorAll('[data-placement-collection]'));
     const shopCategoryDropdown = document.querySelector('[data-shop-category-dropdown]');
     const shopCategorySummary = document.querySelector('[data-shop-category-summary]');
     const shopCategoryPath = document.querySelector('[data-shop-category-path]');
     const shopCategoryOptions = Array.from(document.querySelectorAll('[data-shop-category-option]'));
-    const collectionCategoryDropdown = document.querySelector('[data-collection-category-dropdown]');
-    const collectionCategorySummary = document.querySelector('[data-collection-category-summary]');
-    const collectionCategoryOptions = Array.from(document.querySelectorAll('[data-collection-category-option]'));
     const collectionDropdown = document.querySelector('[data-collection-dropdown]');
     const collectionSummary = document.querySelector('[data-collection-summary]');
     const collectionOptions = Array.from(document.querySelectorAll('[data-collection-option]'));
-    const collectionCategoryHint = document.querySelector('[data-collection-category-hint]');
     let hsCodeManuallyEdited = Boolean(hsCode?.value.trim());
     const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
     let clubRequestSerial = 0;
@@ -551,59 +509,14 @@
         }
     };
 
-    const syncCollectionCategories = () => {
-        const checked = collectionCategoryOptions.filter(option => option.checked);
-        if (collectionCategorySummary) {
-            collectionCategorySummary.textContent = checked.length === 0
-                ? 'Select categories'
-                : checked.length === 1
-                    ? checked[0].closest('label')?.innerText?.trim() || '1 selected'
-                    : checked.length + ' categories selected';
-        }
-    };
-
     const syncCollections = () => {
-        const selectedCategoryIds = collectionCategoryOptions
-            .filter(option => option.checked)
-            .map(option => String(option.value));
-        let visibleCount = 0;
-
-        placementCollections.forEach(label => {
-            const mainCategory = String(label.dataset.mainCategory || '');
-            const visible = selectedCategoryIds.length > 0
-                && (mainCategory === '' || selectedCategoryIds.includes(mainCategory));
-            if (visible) visibleCount++;
-            label.hidden = !visible;
-
-            const checkbox = label.querySelector('input[type="checkbox"]');
-            if (!checkbox) return;
-            checkbox.disabled = !visible;
-            if (!visible) checkbox.checked = false;
-        });
-
-        const checkedCollections = collectionOptions.filter(option => option.checked && !option.disabled);
+        const checkedCollections = collectionOptions.filter(option => option.checked);
         if (collectionSummary) {
             collectionSummary.textContent = checkedCollections.length === 0
                 ? 'Select collections'
                 : checkedCollections.length === 1
                     ? checkedCollections[0].closest('label')?.innerText?.trim() || '1 collection selected'
                     : checkedCollections.length + ' collections selected';
-        }
-
-        if (collectionDropdown) {
-            collectionDropdown.hidden = selectedCategoryIds.length === 0 || visibleCount === 0;
-        }
-
-        if (collectionCategoryHint) {
-            if (selectedCategoryIds.length === 0) {
-                collectionCategoryHint.hidden = false;
-                collectionCategoryHint.textContent = 'Select one or more categories to see matching collections.';
-            } else if (visibleCount === 0) {
-                collectionCategoryHint.hidden = false;
-                collectionCategoryHint.textContent = 'No collections are assigned to the selected categories yet.';
-            } else {
-                collectionCategoryHint.hidden = true;
-            }
         }
     };
 
@@ -793,16 +706,6 @@
         });
     });
 
-    collectionCategoryOptions.forEach(option => {
-        option.addEventListener('click', event => {
-            event.stopPropagation();
-        });
-        option.addEventListener('change', () => {
-            syncCollectionCategories();
-            syncCollections();
-            closePlacementDropdown(collectionCategoryDropdown);
-        });
-    });
 
     collectionOptions.forEach(option => {
         option.addEventListener('click', event => {
@@ -815,7 +718,7 @@
     });
 
     document.addEventListener('click', event => {
-        [shopCategoryDropdown, collectionCategoryDropdown, collectionDropdown].forEach(dropdown => {
+        [shopCategoryDropdown, collectionDropdown].forEach(dropdown => {
             if (dropdown?.open && !dropdown.contains(event.target)) {
                 dropdown.open = false;
             }
@@ -824,14 +727,13 @@
 
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
-        [shopCategoryDropdown, collectionCategoryDropdown, collectionDropdown].forEach(dropdown => {
+        [shopCategoryDropdown, collectionDropdown].forEach(dropdown => {
             if (dropdown) dropdown.open = false;
         });
     });
 
     syncSubcategories();
     syncCategoryPlacement();
-    syncCollectionCategories();
     syncCollections();
     syncCounties(true);
     void syncClubs(true);
