@@ -248,7 +248,7 @@ class ImageManagerController extends Controller
     public function bulk(Request $request)
     {
         $data = $request->validate([
-            'action' => ['required', Rule::in(['activate', 'deactivate', 'delete'])],
+            'action' => ['required', Rule::in(['activate', 'deactivate', 'approve', 'reject', 'delete'])],
             'media_ids' => 'required|array|min:1',
             'media_ids.*' => 'integer',
         ]);
@@ -259,10 +259,28 @@ class ImageManagerController extends Controller
             if ($data['action'] === 'delete') {
                 AuditTrail::record('image.deleted', $image, $before, null);
                 $image->delete();
-            } else {
-                $image->update(['active' => $data['action'] === 'activate']);
-                AuditTrail::record('image.updated', $image, $before, $image->fresh()->toArray());
+                continue;
             }
+
+            $attributes = match ($data['action']) {
+                'activate' => ['active' => true],
+                'deactivate' => ['active' => false],
+                'approve' => [
+                    'approval_status' => 'approved',
+                    'approved_at' => now(),
+                    'approved_by' => auth()->id(),
+                    'active' => true,
+                ],
+                'reject' => [
+                    'approval_status' => 'rejected',
+                    'approved_at' => null,
+                    'approved_by' => null,
+                    'active' => false,
+                ],
+            };
+
+            $image->update($attributes);
+            AuditTrail::record('image.'.$data['action'], $image, $before, $image->fresh()->toArray());
         }
 
         return back()->with('success', count($images).' selected image'.(count($images) === 1 ? '' : 's').' updated.');
