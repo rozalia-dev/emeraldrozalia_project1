@@ -120,7 +120,7 @@
             </div>
             <form class="im-bulk-toolbar" id="im-bulk-form" method="post" action="{{ route('admin.images.bulk') }}" data-im-bulk-form>
                 @csrf
-                <label><span>Bulk Actions</span><select name="action"><option value="activate">Activate selected</option><option value="deactivate">Deactivate selected</option><option value="delete">Delete selected</option></select></label>
+                <label><span>Bulk Actions</span><select name="action"><option value="approve">Approve selected for public</option><option value="reject">Reject selected from public</option><option value="activate">Activate selected</option><option value="deactivate">Deactivate selected</option><option value="delete">Delete selected</option></select></label>
                 <button type="submit" class="im-outline-button"><x-icon name="check" size="12" /> Apply</button>
                 <span data-im-selection-count>0 selected</span>
             </form>
@@ -143,9 +143,27 @@
                             <td>{{ $dimensions }}</td>
                             <td>{{ $sizeLabel }}</td>
                             <td><span class="im-alt-cell" title="{{ $image->alt_text }}">{{ $image->alt_text ?: 'Alt text not set' }}</span></td>
-                            <td><span class="im-status {{ $image->active ? 'is-active' : 'is-inactive' }}">{{ $image->active ? 'Active' : 'Inactive' }}</span></td>
+                            <td>
+                                <span class="im-status {{ $image->active ? 'is-active' : 'is-inactive' }}">{{ $image->active ? 'Active' : 'Inactive' }}</span>
+                                <small class="im-approval-status">{{ str($image->approval_status ?: 'pending')->headline() }}</small>
+                            </td>
                             <td><input class="im-order-input" value="{{ $image->sort_order }}" readonly aria-label="Sort order for {{ $imageName }}"></td>
-                            <td><div class="im-actions"><a class="im-icon-button" href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])) }}" aria-label="Preview {{ $imageName }}"><x-icon name="eye" size="13" /></a><button type="button" class="im-icon-button" data-im-select-image aria-label="Edit {{ $imageName }}"><x-icon name="pencil" size="13" /></button><details class="im-row-menu"><summary aria-label="More actions for {{ $imageName }}"><x-icon name="dots" size="14" /></summary><div><button type="button" data-im-select-image>Edit details</button><form method="post" action="{{ route('admin.images.destroy', $image) }}">@csrf @method('DELETE')<button type="submit">Remove image</button></form></div></details></div></td>
+                            <td><div class="im-actions">
+                                <a class="im-icon-button" href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])) }}" aria-label="Preview {{ $imageName }}"><x-icon name="eye" size="13" /></a>
+                                <a class="im-icon-button" href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])).'#im-edit-panel' }}" aria-label="Edit {{ $imageName }}"><x-icon name="pencil" size="13" /></a>
+                                <details class="im-row-menu">
+                                    <summary aria-label="More actions for {{ $imageName }}"><x-icon name="dots" size="14" /></summary>
+                                    <div>
+                                        <a href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])).'#im-edit-panel' }}">Edit details</a>
+                                        @if(($image->approval_status ?: 'pending') !== 'approved')
+                                            <form method="post" action="{{ route('admin.media.approve', $image) }}">@csrf<button type="submit">Approve for public</button></form>
+                                        @else
+                                            <form method="post" action="{{ route('admin.media.reject', $image) }}">@csrf<button type="submit">Reject public use</button></form>
+                                        @endif
+                                        <form method="post" action="{{ route('admin.images.destroy', $image) }}">@csrf @method('DELETE')<button type="submit">Remove image</button></form>
+                                    </div>
+                                </details>
+                            </div></td>
                         </tr>
                     @empty
                         <tr><td colspan="9"><div class="im-empty-state"><x-icon name="image" size="32" /><strong>No images uploaded yet</strong><span>Upload the approved product photography to start the image library.</span><button type="button" class="im-link-button" data-im-open-upload>Upload Images <x-icon name="arrow-right" size="12" /></button></div></td></tr>
@@ -178,7 +196,7 @@
             <section class="im-side-card im-quick-actions">
                 <div class="im-side-heading"><h2>Quick Actions</h2><x-icon name="arrow-right" size="13" /></div>
                 <button type="button" data-im-open-upload><x-icon name="upload" size="13" /> Upload Images</button>
-                <button type="button" data-im-select-first><x-icon name="pencil" size="13" /> Edit Selected Image</button>
+                @if($selectedImage)<a href="#im-edit-panel"><x-icon name="pencil" size="13" /> Edit Selected Image</a>@else<button type="button" disabled><x-icon name="pencil" size="13" /> Edit Selected Image</button>@endif
                 <button type="button" data-im-optimize><x-icon name="settings" size="13" /> Optimize Images</button>
                 <a href="{{ route('admin.resource', 'media-manager') }}"><x-icon name="camera" size="13" /> Open Media Manager</a>
             </section>
@@ -205,20 +223,35 @@
             <label class="im-toggle-row"><span>Strip Metadata (EXIF)</span><input type="checkbox" checked disabled><i></i></label>
             <button type="button" class="im-tool-link" data-im-settings>Settings are managed by the media policy <x-icon name="arrow-right" size="11" /></button>
         </article>
-        <article class="im-tool-card">
-            <div class="im-tool-heading"><h2>Alt Text &amp; SEO</h2><x-icon name="file-text" size="15" /></div>
+        <article class="im-tool-card" id="im-edit-panel">
+            <div class="im-tool-heading"><h2>Edit Selected Image</h2><x-icon name="file-text" size="15" /></div>
             @if($selectedImage)
                 @php $selectedRole = $roleFor($selectedImage); @endphp
+                <p class="im-note"><strong>{{ basename($selectedImage->path) }}</strong> · {{ $selectedImage->product?->sku ?: 'No SKU' }}</p>
                 <form class="im-editor-form" method="post" action="{{ route('admin.images.update', $selectedImage) }}" data-im-editor>
                     @csrf @method('PATCH')
-                    <input type="hidden" name="image_role" value="{{ $selectedRole }}" data-im-editor-role>
-                    <input type="hidden" name="sort_order" value="{{ $selectedImage->sort_order }}" data-im-editor-order>
-                    <input type="hidden" name="active" value="{{ $selectedImage->active ? 1 : 0 }}" data-im-editor-active>
+                    <label>Image type
+                        <select name="image_role" data-im-editor-role>
+                            @foreach($roleLabels as $role => $label)
+                                <option value="{{ $role }}" @selected($selectedRole === $role)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label>Sort order<input type="number" min="0" max="10000" name="sort_order" value="{{ $selectedImage->sort_order }}" data-im-editor-order></label>
                     <label>Alt text<textarea name="alt_text" maxlength="255" data-im-editor-alt>{{ $selectedImage->alt_text }}</textarea></label>
-                    <button type="submit" class="im-small-button">Save Alt Text</button>
+                    <label class="im-toggle-row"><span>Active</span><input type="hidden" name="active" value="0"><input type="checkbox" name="active" value="1" @checked($selectedImage->active) data-im-editor-active><i></i></label>
+                    <button type="submit" class="im-small-button">Save Image Details</button>
                 </form>
+                <div class="im-card-approval-actions">
+                    @if(($selectedImage->approval_status ?: 'pending') !== 'approved')
+                        <form method="post" action="{{ route('admin.media.approve', $selectedImage) }}">@csrf<button type="submit" class="im-small-button">Approve for public</button></form>
+                    @else
+                        <span class="im-approved-public">Approved for public</span>
+                        <form method="post" action="{{ route('admin.media.reject', $selectedImage) }}">@csrf<button type="submit" class="im-small-button">Reject public use</button></form>
+                    @endif
+                </div>
             @else
-                <p class="im-note">Select an image to edit alt text and ordering.</p>
+                <p class="im-note">Select an image to edit its type, order, alt text, active state and public approval.</p>
             @endif
         </article>
         <article class="im-tool-card">
