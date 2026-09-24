@@ -36,16 +36,10 @@
     ))
         ->map(static fn ($id): string => (string) $id)
         ->all();
-    $selectedCollectionCategoryIds = collect(old(
-        'collection_category_ids',
-        $productMeta['collection_category_ids'] ?? ($selectedRootId ? [(int) $selectedRootId] : [])
-    ))
-        ->map(static fn ($id): string => (string) $id)
-        ->all();
     $selectedCollectionIds = collect(old('collection_ids', $product?->collections?->pluck('id')->all() ?? []))
         ->map(static fn ($id): string => (string) $id)
         ->all();
-    $placementCollections = $collections->reject(static fn ($collection): bool => $collection->slug === 'new-arrivals')->values();
+    $placementCollections = $collections->values();
 @endphp
 
 @push('styles')
