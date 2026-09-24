@@ -662,8 +662,38 @@ class BulkProductImporter
     private function number(mixed $value): float
     {
         $value = trim((string) $value);
+        if ($value === '') {
+            return 0;
+        }
 
-        return $value === '' ? 0 : (float) str_replace(',', '', $value);
+        $negative = str_starts_with($value, '(') && str_ends_with($value, ')');
+        $normalized = preg_replace('/[^0-9,.-]+/u', '', $value) ?? '';
+
+        if ($normalized === '' || $normalized === '-' || $normalized === '.' || $normalized === ',') {
+            return 0;
+        }
+
+        $lastComma = strrpos($normalized, ',');
+        $lastDot = strrpos($normalized, '.');
+
+        if ($lastComma !== false && $lastDot !== false) {
+            if ($lastComma > $lastDot) {
+                $normalized = str_replace('.', '', $normalized);
+                $normalized = str_replace(',', '.', $normalized);
+            } else {
+                $normalized = str_replace(',', '', $normalized);
+            }
+        } elseif ($lastComma !== false) {
+            if (preg_match('/,\d{1,2}$/', $normalized)) {
+                $normalized = str_replace(',', '.', $normalized);
+            } else {
+                $normalized = str_replace(',', '', $normalized);
+            }
+        }
+
+        $number = (float) $normalized;
+
+        return $negative ? -abs($number) : $number;
     }
 
     private function integer(mixed $value): int

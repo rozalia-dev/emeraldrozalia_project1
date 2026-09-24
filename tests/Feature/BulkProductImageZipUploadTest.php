@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -98,6 +100,62 @@ class BulkProductImageZipUploadTest extends TestCase
         } finally {
             @unlink($csvPath);
             @unlink($zipPath);
+        }
+    }
+
+    public function test_formatted_euro_price_in_xlsx_previews_and_imports_as_numeric_price(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        Category::create([
+            'name' => 'Gift for Her',
+            'slug' => 'gift',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 7,
+        ]);
+
+        $xlsxPath = tempnam(sys_get_temp_dir(), 'bulk-euro-').'.xlsx';
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            ['Product Name', 'SKU', 'Category', 'Price', 'Stock', 'Status'],
+            ['Euro Format Hat', 'ER-GFH-902', 'Gift for Her', 75, 0, 'published'],
+        ]);
+        $sheet->getStyle('D2')->getNumberFormat()->setFormatCode('€0.00');
+        (new Xlsx($spreadsheet))->save($xlsxPath);
+
+        try {
+            $preview = $this->actingAs($admin)->postJson(route('admin.bulk-upload.preview'), [
+                'file' => new UploadedFile(
+                    $xlsxPath,
+                    'gift-for-her.xlsx',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    null,
+                    true
+                ),
+            ]);
+
+            $preview
+                ->assertOk()
+                ->assertJsonPath('rows.0.price', 75)
+                ->assertJsonPath('sample.price', '€75.00');
+
+            $this->actingAs($admin)->post(route('admin.bulk-upload.store'), [
+                'file' => new UploadedFile(
+                    $xlsxPath,
+                    'gift-for-her.xlsx',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    null,
+                    true
+                ),
+                'default_status' => 'Published',
+            ])->assertRedirect()->assertSessionHas('result');
+
+            $product = Product::query()->where('sku', 'ER-GFH-902')->firstOrFail();
+            $this->assertSame(75.0, (float) $product->price);
+        } finally {
+            @unlink($xlsxPath);
         }
     }
 
