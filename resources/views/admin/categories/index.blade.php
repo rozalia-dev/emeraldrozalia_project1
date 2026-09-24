@@ -146,6 +146,8 @@
                         <button type="button" class="cat-btn js-edit-category"
                             data-id="{{ $selected->id }}" data-name="{{ $selected->name }}" data-slug="{{ $selected->slug }}" data-icon="{{ $selected->icon }}" data-parent-id="{{ $selected->parent_id }}" data-status="{{ $selected->status }}" data-visible="{{ $selected->is_visible ? '1' : '0' }}" data-sort-order="{{ $selected->sort_order }}" data-description="{{ $selected->description }}" data-meta-title="{{ $selected->meta_title }}" data-meta-description="{{ $selected->meta_description }}" data-action="{{ route('admin.categories.update', $selected) }}"><x-icon name="pencil" size="14" /> Edit Category</button>
                         <button type="button" class="cat-btn cat-btn--outline js-add-subcategory" data-parent-id="{{ $selected->id }}" data-parent-name="{{ $selected->name }}"><x-icon name="plus" size="14" /> Add Sub-Category</button>
+                        <a class="cat-btn cat-btn--primary" href="{{ route('admin.categories.products', $selected) }}"><x-icon name="package" size="14" /> Manage Products ({{ number_format($selected->products_count) }})</a>
+                        <a class="cat-btn cat-btn--outline" href="{{ route('admin.add-product', ['category_id' => $selected->id]) }}"><x-icon name="plus" size="14" /> Add Product Here</a>
                         <form method="POST" action="{{ route('admin.categories.destroy', $selected) }}" style="grid-column:1/-1" onsubmit="return confirm('Delete {{ addslashes($selected->name) }}? Products assigned to it will become uncategorised and child categories will move to top level. This cannot be undone.')">
                             @csrf
                             @method('DELETE')
@@ -168,6 +170,7 @@
                 <h3>Quick Actions</h3>
                 <button type="button" class="js-add-category"><x-icon name="plus" size="14" /> Add Category</button>
                 <button type="button" class="js-add-subcategory" @disabled(!$selected) data-parent-id="{{ $selected?->id }}" data-parent-name="{{ $selected?->name }}"><x-icon name="plus" size="14" /> Add Sub-Category</button>
+                @if($selected)<a href="{{ route('admin.categories.products', $selected) }}"><x-icon name="package" size="14" /> Manage {{ $selected->name }} Products</a>@endif
                 <button type="button" data-focus-bulk><x-icon name="refresh" size="14" /> Bulk Update Categories</button>
                 <button type="button" data-expand-all><x-icon name="refresh" size="14" /> Reorder Categories</button>
                 <button type="button" data-import-trigger><x-icon name="upload" size="14" /> Import Categories</button>
