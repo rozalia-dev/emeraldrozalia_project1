@@ -48,6 +48,8 @@
                     data-meta-description="{{ $category->meta_description }}"
                     data-action="{{ route('admin.categories.update', $category) }}"><x-icon name="pencil" size="14" /> Edit</button>
                 <button type="button" class="js-add-subcategory" data-parent-id="{{ $category->id }}" data-parent-name="{{ $category->name }}"><x-icon name="plus" size="14" /> Add Sub-Category</button>
+                <a href="{{ route('admin.categories.products', $category) }}"><x-icon name="package" size="14" /> Manage Products</a>
+                <a href="{{ route('admin.add-product', ['category_id' => $category->id]) }}"><x-icon name="plus" size="14" /> Add Product</a>
                 <form method="POST" action="{{ route('admin.categories.visibility', $category) }}">@csrf<button type="submit"><x-icon name="eye" size="14" /> {{ $category->is_visible ? 'Hide from Website' : 'Show on Website' }}</button></form>
                 <form method="POST" action="{{ route('admin.categories.destroy', $category) }}" onsubmit="return confirm('Delete {{ addslashes($category->name) }}? Products assigned to it will become uncategorised and child categories will move to top level. This cannot be undone.')">@csrf @method('DELETE')<button type="submit" class="danger"><x-icon name="trash" size="14" /> Delete</button></form>
             </div>
