@@ -201,6 +201,79 @@ class BulkProductImporter
         ];
     }
 
+    public function preview(string $path, ?string $extension = null, int $limit = 5): array
+    {
+        $rows = $this->readRows($path, $extension);
+        $preview = [];
+        $sample = [];
+        $valid = 0;
+        $errors = 0;
+
+        foreach ($rows as $row) {
+            if (! empty($row['__error'])) {
+                $errors++;
+                continue;
+            }
+
+            $name = trim((string) $this->value($row, ['Product Name', 'name'], ''));
+            $sku = trim((string) $this->value($row, ['SKU', 'sku'], ''));
+
+            if ($name === '' || $sku === '') {
+                $errors++;
+                continue;
+            }
+
+            $valid++;
+
+            if ($sample === []) {
+                foreach ($row as $header => $value) {
+                    if (str_starts_with((string) $header, '__')) {
+                        continue;
+                    }
+                    $sample[$this->key((string) $header)] = is_scalar($value) || $value === null
+                        ? (string) ($value ?? '')
+                        : '';
+                }
+            }
+
+            if (count($preview) >= max(1, min(20, $limit))) {
+                continue;
+            }
+
+            $imageCount = 0;
+            foreach (range(1, 6) as $position) {
+                if (trim((string) $this->value($row, ['Image '.$position, 'Image'.$position, 'Image_'.$position], '')) !== '') {
+                    $imageCount++;
+                }
+            }
+
+            if ($imageCount === 0) {
+                $combined = trim((string) $this->value($row, ['Images', 'images'], ''));
+                if ($combined !== '') {
+                    $imageCount = count(array_filter(array_map('trim', preg_split('/[|;,]+/', $combined) ?: [])));
+                }
+            }
+
+            $preview[] = [
+                'name' => $name,
+                'sku' => $sku,
+                'category' => trim((string) $this->value($row, ['Category', 'category'], '')),
+                'price' => $this->number($this->value($row, ['Price', 'Price (EUR)', 'price'], 0)),
+                'stock' => $this->integer($this->value($row, ['Stock', 'stock'], 0)),
+                'status' => trim((string) $this->value($row, ['Status', 'status'], '')),
+                'images' => min(6, $imageCount),
+            ];
+        }
+
+        return [
+            'total' => count($rows),
+            'valid' => $valid,
+            'errors' => $errors,
+            'rows' => $preview,
+            'sample' => $sample,
+        ];
+    }
+
     private function resolveCategory(string $name): Category
     {
         $name = trim($name);

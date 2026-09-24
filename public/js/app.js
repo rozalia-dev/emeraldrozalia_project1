@@ -123,13 +123,146 @@ if(checkout){
 
 const bulkUpload=document.querySelector('[data-bulk-upload]');
 if(bulkUpload){
-    const form=bulkUpload.querySelector('[data-bu-form]'),input=bulkUpload.querySelector('[data-bu-file-input]'),dropzone=bulkUpload.querySelector('[data-bu-dropzone]'),fileName=bulkUpload.querySelector('[data-bu-file-name]'),fileMeta=bulkUpload.querySelector('[data-bu-file-meta]'),fileState=bulkUpload.querySelector('[data-bu-file-state]'),summarySize=bulkUpload.querySelector('[data-bu-summary-size]'),summaryFile=bulkUpload.querySelector('[data-bu-summary-file]'),summaryStatus=bulkUpload.querySelector('[data-bu-summary-status]'),steps=[...bulkUpload.querySelectorAll('[data-bu-step]')],mapRows=[...bulkUpload.querySelectorAll('[data-bu-map-row]')],mapButtons=[...bulkUpload.querySelectorAll('[data-bu-reset-map]')],showUnmapped=bulkUpload.querySelector('[data-bu-show-unmapped]');
+    const form=bulkUpload.querySelector('[data-bu-form]'),
+        input=bulkUpload.querySelector('[data-bu-file-input]'),
+        imagesInput=bulkUpload.querySelector('[data-bu-images-input]'),
+        dropzone=bulkUpload.querySelector('[data-bu-dropzone]'),
+        fileName=bulkUpload.querySelector('[data-bu-file-name]'),
+        fileMeta=bulkUpload.querySelector('[data-bu-file-meta]'),
+        fileState=bulkUpload.querySelector('[data-bu-file-state]'),
+        summarySize=bulkUpload.querySelector('[data-bu-summary-size]'),
+        summaryFile=bulkUpload.querySelector('[data-bu-summary-file]'),
+        summaryImages=bulkUpload.querySelector('[data-bu-summary-images]'),
+        summaryStatus=bulkUpload.querySelector('[data-bu-summary-status]'),
+        totalRows=bulkUpload.querySelector('[data-bu-total-rows]'),
+        validRows=bulkUpload.querySelector('[data-bu-valid-rows]'),
+        errorRows=bulkUpload.querySelector('[data-bu-error-rows]'),
+        previewBody=bulkUpload.querySelector('[data-bu-preview-body]'),
+        previewNote=bulkUpload.querySelector('[data-bu-preview-note]'),
+        previewUrl=bulkUpload.dataset.buPreviewUrl,
+        steps=[...bulkUpload.querySelectorAll('[data-bu-step]')],
+        mapRows=[...bulkUpload.querySelectorAll('[data-bu-map-row]')],
+        mapButtons=[...bulkUpload.querySelectorAll('[data-bu-reset-map]')],
+        showUnmapped=bulkUpload.querySelector('[data-bu-show-unmapped]');
+
     const formatSize=(bytes)=>{if(!bytes)return '—';const units=['B','KB','MB','GB'];let size=bytes,index=0;while(size>=1024&&index<units.length-1){size/=1024;index++}return `${size>=10||index===0?Math.round(size):size.toFixed(1)} ${units[index]}`};
-    const setFile=(selected)=>{const chosen=selected?.[0];if(!chosen)return;if(input){try{const transfer=new DataTransfer();transfer.items.add(chosen);input.files=transfer.files}catch(error){}}if(fileName)fileName.textContent=chosen.name;if(fileMeta)fileMeta.textContent=`${formatSize(chosen.size)} · Ready to map columns`;if(fileState){fileState.textContent='File selected';fileState.classList.add('is-success')}if(summaryFile)summaryFile.textContent=chosen.name;if(summarySize)summarySize.textContent=formatSize(chosen.size);if(summaryStatus)summaryStatus.textContent='File selected';const first=steps.find((step)=>step.dataset.buStep==='1'),second=steps.find((step)=>step.dataset.buStep==='2');if(first){first.classList.remove('is-active');first.classList.add('is-complete');const circle=first.querySelector('.bu-step-circle');if(circle&&!circle.querySelector('.ui-icon'))circle.innerHTML='<svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>'}if(second){second.classList.add('is-active')}};
+    const key=(value)=>String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    const setPreviewMessage=(message,isError=false)=>{
+        if(previewBody){
+            previewBody.replaceChildren();
+            const row=document.createElement('tr'),cell=document.createElement('td');
+            cell.colSpan=4;
+            cell.textContent=message;
+            if(isError)cell.classList.add('is-zero');
+            row.appendChild(cell);
+            previewBody.appendChild(row);
+        }
+        if(previewNote)previewNote.lastChild.textContent=` ${message}`;
+    };
+    const updateMappingPreview=(data)=>{
+        const sample=data?.sample||{},first=data?.rows?.[0]||{};
+        const aliases={price_eur:'price',selling_price:'price',sku_barcode:'sku',stock_quantity:'stock',short_description:'description',product_status:'status'};
+        mapRows.forEach((row)=>{
+            const source=row.querySelector('td')?.textContent.trim()||'';
+            const preview=row.children?.[1]?.querySelector('span')||row.children?.[1];
+            if(!preview)return;
+            const sourceKey=key(source);
+            let value=sample[sourceKey];
+            if((value===undefined||value==='')&&aliases[sourceKey])value=sample[aliases[sourceKey]];
+            if((value===undefined||value==='')&&sourceKey==='images'&&Number(first.images||0)>0)value=`${first.images} image reference${Number(first.images)===1?'':'s'}`;
+            if(value===undefined||value==='')value='—';
+            preview.textContent=String(value);
+            preview.title=String(value);
+        });
+    };
+    const renderPreview=(data)=>{
+        if(totalRows)totalRows.textContent=String(data.total??0);
+        if(validRows)validRows.textContent=String(data.valid??0);
+        if(errorRows)errorRows.textContent=String(data.errors??0);
+        updateMappingPreview(data);
+
+        if(!previewBody)return;
+        previewBody.replaceChildren();
+        const rows=Array.isArray(data.rows)?data.rows:[];
+        if(rows.length===0){
+            setPreviewMessage('No valid product rows were found in this file.',true);
+            return;
+        }
+
+        rows.forEach((item)=>{
+            const row=document.createElement('tr');
+            [item.name,item.sku,Number(item.price||0).toFixed(2),item.stock].forEach((value,index)=>{
+                const cell=document.createElement('td');
+                cell.textContent=String(value??'');
+                if(index===3&&Number(value)===0)cell.classList.add('is-zero');
+                row.appendChild(cell);
+            });
+            previewBody.appendChild(row);
+        });
+        if(previewNote)previewNote.lastChild.textContent=` Showing actual rows from the selected file (${data.total??0} total).`;
+    };
+    const previewFile=async(chosen)=>{
+        if(!chosen||!previewUrl||!form)return;
+        setPreviewMessage('Reading actual product rows…');
+        if(summaryStatus)summaryStatus.textContent='Reading file';
+        const body=new FormData();
+        body.append('file',chosen);
+        const token=form.querySelector('input[name="_token"]')?.value||'';
+        try{
+            const response=await fetch(previewUrl,{
+                method:'POST',
+                headers:{'Accept':'application/json','X-CSRF-TOKEN':token},
+                body,
+                credentials:'same-origin'
+            });
+            const data=await response.json().catch(()=>({}));
+            if(!response.ok)throw new Error(data.message||'The product file could not be previewed.');
+            renderPreview(data);
+            if(summaryStatus)summaryStatus.textContent='Preview ready';
+        }catch(error){
+            setPreviewMessage(error?.message||'The product file could not be previewed.',true);
+            if(totalRows)totalRows.textContent='—';
+            if(validRows)validRows.textContent='—';
+            if(errorRows)errorRows.textContent='—';
+            if(summaryStatus)summaryStatus.textContent='Preview error';
+        }
+    };
+    const setFile=(selected)=>{
+        const chosen=selected?.[0];
+        if(!chosen)return;
+        if(input){
+            try{
+                const transfer=new DataTransfer();
+                transfer.items.add(chosen);
+                input.files=transfer.files;
+            }catch(error){}
+        }
+        if(fileName)fileName.textContent=chosen.name;
+        if(fileMeta)fileMeta.textContent=`${formatSize(chosen.size)} · Reading actual product data`;
+        if(fileState){fileState.textContent='File selected';fileState.classList.add('is-success')}
+        if(summaryFile)summaryFile.textContent=chosen.name;
+        if(summarySize)summarySize.textContent=formatSize(chosen.size);
+        if(summaryStatus)summaryStatus.textContent='File selected';
+        const first=steps.find((step)=>step.dataset.buStep==='1'),second=steps.find((step)=>step.dataset.buStep==='2');
+        if(first){
+            first.classList.remove('is-active');
+            first.classList.add('is-complete');
+            const circle=first.querySelector('.bu-step-circle');
+            if(circle&&!circle.querySelector('.ui-icon'))circle.innerHTML='<svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
+        }
+        if(second)second.classList.add('is-active');
+        previewFile(chosen);
+    };
+
     input?.addEventListener('change',()=>setFile(input.files));
+    imagesInput?.addEventListener('change',()=>{
+        const chosen=imagesInput.files?.[0];
+        if(summaryImages)summaryImages.textContent=chosen?chosen.name:'Optional';
+    });
     ['dragenter','dragover'].forEach((eventName)=>dropzone?.addEventListener(eventName,(event)=>{event.preventDefault();dropzone.classList.add('is-dragging')}));
     ['dragleave','drop'].forEach((eventName)=>dropzone?.addEventListener(eventName,(event)=>{event.preventDefault();dropzone.classList.remove('is-dragging')}));
     dropzone?.addEventListener('drop',(event)=>setFile(event.dataTransfer?.files));
+
     const setMapIcon=(icon,mapped)=>{if(icon)icon.innerHTML=mapped?'<path d="m5 12 4 4L19 6"/>':'<path d="M20 11a8 8 0 0 0-14.7-4L3 10m0-4v4h4M4 13a8 8 0 0 0 14.7 4L21 14m0 4v-4h-4/>'};
     const updateMapRow=(row)=>{const select=row.querySelector('[data-bu-map-select]'),status=row.querySelector('[data-bu-map-status]'),mapped=!!select&&select.value!=='Unmapped';if(!select||!status)return;row.dataset.mapped=String(mapped);status.classList.toggle('is-mapped',mapped);status.classList.toggle('is-unmapped',!mapped);status.lastChild.textContent=mapped?' Mapped':' Unmapped';setMapIcon(status.querySelector('.ui-icon'),mapped);if(showUnmapped?.dataset.active==='true')row.classList.toggle('is-filtered-out',mapped)};
     mapRows.forEach((row)=>row.querySelector('[data-bu-map-select]')?.addEventListener('change',()=>updateMapRow(row)));

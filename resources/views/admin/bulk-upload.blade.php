@@ -18,36 +18,29 @@
     $errorRows = count($importErrors);
 
     $mappingRows = [
-        ['source' => 'Product Name', 'preview' => 'Emerald Signature Cap', 'target' => 'Product Name', 'type' => 'Text', 'required' => true, 'mapped' => true],
-        ['source' => 'SKU', 'preview' => 'ERCAP-GRN-001', 'target' => 'SKU / Barcode', 'type' => 'Text', 'required' => true, 'mapped' => true],
-        ['source' => 'Category', 'preview' => 'Caps', 'target' => 'Category', 'type' => 'Dropdown', 'required' => true, 'mapped' => true],
-        ['source' => 'Collection', 'preview' => "Men's Collection", 'target' => 'Collection', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
-        ['source' => 'Price (EUR)', 'preview' => '29.90', 'target' => 'Selling Price', 'type' => 'Number', 'required' => true, 'mapped' => true],
-        ['source' => 'Compare Price', 'preview' => '39.90', 'target' => 'Compare At Price', 'type' => 'Number', 'required' => false, 'mapped' => true],
-        ['source' => 'Stock', 'preview' => '245', 'target' => 'Stock Quantity', 'type' => 'Number', 'required' => true, 'mapped' => true],
-        ['source' => 'Description', 'preview' => 'Premium quality cap...', 'target' => 'Short Description', 'type' => 'Text', 'required' => true, 'mapped' => true],
-        ['source' => 'Images', 'preview' => 'cap1.jpg|cap2.jpg|cap3.jpg', 'target' => 'Images', 'type' => 'Text (URLs)', 'required' => false, 'mapped' => true],
-        ['source' => 'Status', 'preview' => 'Published', 'target' => 'Product Status', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
-        ['source' => 'Weight (kg)', 'preview' => '0.25', 'target' => 'Weight', 'type' => 'Number', 'required' => false, 'mapped' => true],
-        ['source' => 'Tags', 'preview' => 'green, premium, signature', 'target' => 'Tags', 'type' => 'Text', 'required' => false, 'mapped' => true],
-        ['source' => 'GTIN', 'preview' => '8901122334457', 'target' => 'GTIN / Barcode', 'type' => 'Text', 'required' => false, 'mapped' => true],
-        ['source' => 'Custom Field 1', 'preview' => 'New Arrival', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
-        ['source' => 'Custom Field 2', 'preview' => 'Summer 2025', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
-    ];
-    $mappingOptions = ['Product Name', 'SKU / Barcode', 'Category', 'Collection', 'Selling Price', 'Compare At Price', 'Stock Quantity', 'Short Description', 'Images', 'Product Status', 'Weight', 'Tags', 'GTIN / Barcode', 'Unmapped'];
-    $previewRows = [
-        ['name' => 'Emerald Signature Cap', 'sku' => 'ERCAP-GRN-001', 'price' => '29.90', 'stock' => '245'],
-        ['name' => 'Premium Black Cap', 'sku' => 'ERCAP-BLK-002', 'price' => '34.90', 'stock' => '89'],
-        ['name' => 'Emerald Leather Bracelet', 'sku' => 'ERBR-LBR-003', 'price' => '49.90', 'stock' => '156'],
-        ['name' => 'Emerald Chronograph Watch', 'sku' => 'ERWATCH-SB-004', 'price' => '199.00', 'stock' => '0'],
-        ['name' => 'Aviator Sunglasses', 'sku' => 'ERSG-AVI-005', 'price' => '69.90', 'stock' => '312'],
-    ];
+        ['source' => 'Product Name', 'preview' => '—', 'target' => 'Product Name', 'type' => 'Text', 'required' => true, 'mapped' => true],
+        ['source' => 'SKU', 'preview' => '—', 'target' => 'SKU / Barcode', 'type' => 'Text', 'required' => true, 'mapped' => true],
+        ['source' => 'Category', 'preview' => '—', 'target' => 'Category', 'type' => 'Dropdown', 'required' => true, 'mapped' => true],
+        ['source' => 'Collection', 'preview' => '—', 'target' => 'Collection', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
+        ['source' => 'Price (EUR)', 'preview' => '—', 'target' => 'Selling Price', 'type' => 'Number', 'required' => true, 'mapped' => true],
+        ['source' => 'Compare Price', 'preview' => '—', 'target' => 'Compare At Price', 'type' => 'Number', 'required' => false, 'mapped' => true],
+        ['source' => 'Stock', 'preview' => '—', 'target' => 'Stock Quantity', 'type' => 'Number', 'required' => true, 'mapped' => true],
+        ['source' => 'Description', 'preview' => '—', 'target' => 'Short Description', 'type' => 'Text', 'required' => true, 'mapped' => true],
+        ['source' => 'Images', 'preview' => '—', 'target' => 'Images', 'type' => 'Text (ZIP filenames)', 'required' => false, 'mapped' => true],
+        ['source' => 'Status', 'preview' => '—', 'target' => 'Product Status', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
+        ['source' => 'Weight (kg)', 'preview' => '—', 'target' => 'Weight', 'type' => 'Number', 'required' => false, 'mapped' => true],
+        ['source' => 'Tags', 'preview' => '—', 'target' => 'Tags', 'type' => 'Text', 'required' => false, 'mapped' => true],
+        ['source' => 'GTIN', 'preview' => '—', 'target' => 'GTIN / Barcode', 'type' => 'Text', 'required' => false, 'mapped' => true],
+        ['source' => 'Custom Field 1', 'preview' => '—', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
+        ['source' => 'Custom Field 2', 'preview' => '—', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
+    ];    $mappingOptions = ['Product Name', 'SKU / Barcode', 'Category', 'Collection', 'Selling Price', 'Compare At Price', 'Stock Quantity', 'Short Description', 'Images', 'Product Status', 'Weight', 'Tags', 'GTIN / Barcode', 'Unmapped'];
+    $previewRows = [];
     $categoryMapTotal = 10;
     $categoryMapMapped = 8;
 @endphp
 
 @section('content')
-    <div class="bu-page" data-bulk-upload>
+    <div class="bu-page" data-bulk-upload data-bu-preview-url="{{ route('admin.bulk-upload.preview') }}">
         <div class="bu-page-head">
             <div>
                 <p class="bu-eyebrow">WEBSITE &amp; PRODUCTS / DATA OPERATIONS</p>
@@ -115,7 +108,7 @@
                         </div>
                         <div class="bu-setting-fields" style="margin-top:14px">
                             <label>Product Images ZIP (Optional)
-                                <input id="bulk-images-zip" type="file" name="images_zip" accept=".zip,application/zip">
+                                <input id="bulk-images-zip" type="file" name="images_zip" accept=".zip,application/zip" data-bu-images-input>
                                 <small>{{ $bulkImagesFile ? 'Last image ZIP: '.$bulkImagesFile : 'Use Image 1…Image 6 columns, an Images column separated by |, or folders named by SKU.' }}</small>
                             </label>
                         </div>
@@ -160,9 +153,14 @@
                     <section class="bu-panel bu-preview-panel">
                         <div class="bu-panel-heading"><div><h2>3. Data Preview</h2><p>First 5 rows from your file</p></div><x-icon name="eye" size="18" /></div>
                         <div class="bu-table-scroll">
-                            <table class="bu-preview-table"><thead><tr><th>Product Name</th><th>SKU</th><th>Price (EUR)</th><th>Stock</th></tr></thead><tbody>@foreach ($previewRows as $row)<tr><td>{{ $row['name'] }}</td><td>{{ $row['sku'] }}</td><td>{{ $row['price'] }}</td><td class="{{ $row['stock'] === '0' ? 'is-zero' : '' }}">{{ $row['stock'] }}</td></tr>@endforeach</tbody></table>
+                            <table class="bu-preview-table">
+                                <thead><tr><th>Product Name</th><th>SKU</th><th>Price (EUR)</th><th>Stock</th></tr></thead>
+                                <tbody data-bu-preview-body>
+                                    <tr><td colspan="4">Choose a CSV/XLS/XLSX product file to preview the actual rows.</td></tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <p class="bu-preview-note"><x-icon name="help" size="12" /> Preview uses sample rows until a file is selected.</p>
+                        <p class="bu-preview-note" data-bu-preview-note><x-icon name="help" size="12" /> Actual rows from the selected product file will appear here before import.</p>
                     </section>
 
                     <section class="bu-panel bu-settings-panel">
@@ -185,15 +183,15 @@
                     <section class="bu-summary-card">
                         <div class="bu-summary-heading"><h2>Upload Summary</h2><x-icon name="file-text" size="17" /></div>
                         <dl class="bu-stat-list">
-                            <div><dt>Total Rows</dt><dd>{{ $hasImportResult ? number_format($totalRows) : '—' }}</dd></div>
-                            <div><dt>Valid Rows</dt><dd>{{ $hasImportResult ? number_format($validRows) : '—' }}</dd></div>
-                            <div><dt>Rows with Errors</dt><dd class="is-error">{{ $hasImportResult ? number_format($errorRows) : '—' }}</dd></div>
+                            <div><dt>Total Rows</dt><dd data-bu-total-rows>{{ $hasImportResult ? number_format($totalRows) : '—' }}</dd></div>
+                            <div><dt>Valid Rows</dt><dd data-bu-valid-rows>{{ $hasImportResult ? number_format($validRows) : '—' }}</dd></div>
+                            <div><dt>Rows with Errors</dt><dd class="is-error" data-bu-error-rows>{{ $hasImportResult ? number_format($errorRows) : '—' }}</dd></div>
                             <div><dt>Images Imported</dt><dd>{{ $hasImportResult ? number_format($imagesImported) : '—' }}</dd></div>
                             <div><dt>Products with Images</dt><dd>{{ $hasImportResult ? number_format($productsWithImages) : '—' }}</dd></div>
                         </dl>
                         <dl class="bu-file-summary">
                             <div><dt>Product File</dt><dd data-bu-summary-file>{{ $bulkFile ?: 'Awaiting file upload' }}</dd></div>
-                            <div><dt>Images ZIP</dt><dd>{{ $bulkImagesFile ?: 'Optional' }}</dd></div>
+                            <div><dt>Images ZIP</dt><dd data-bu-summary-images>{{ $bulkImagesFile ?: 'Optional' }}</dd></div>
                             <div><dt>File Size</dt><dd data-bu-summary-size>—</dd></div>
                             <div><dt>Uploaded By</dt><dd>{{ auth()->user()->name ?? 'Admin User' }}</dd></div>
                         </dl>
