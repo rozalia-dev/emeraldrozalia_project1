@@ -8,6 +8,7 @@ use App\Models\ProductMedia;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -100,6 +101,93 @@ class BulkProductImageZipUploadTest extends TestCase
         } finally {
             @unlink($csvPath);
             @unlink($zipPath);
+        }
+    }
+
+    public function test_admin_can_chunk_product_image_zip_and_import_by_token(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        Category::create([
+            'name' => 'Gift for Her',
+            'slug' => 'gift',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 7,
+        ]);
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'chunked-images-');
+        $csvPath = tempnam(sys_get_temp_dir(), 'chunked-products-');
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+        );
+
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        $zip->addFromString('ER-GFH-903/view-01.png', $png);
+        $zip->close();
+
+        $handle = fopen($csvPath, 'wb');
+        fputcsv($handle, ['Product Name', 'SKU', 'Category', 'Price', 'Stock', 'Status', 'Image 1']);
+        fputcsv($handle, ['Chunk Upload Hat', 'ER-GFH-903', 'Gift for Her', '75.00', '2', 'published', 'view-01.png']);
+        fclose($handle);
+
+        try {
+            $size = filesize($zipPath);
+
+            $init = $this->actingAs($admin)->postJson(route('admin.bulk-upload.images.init'), [
+                'filename' => 'gift-for-her-images.zip',
+                'size' => $size,
+            ]);
+
+            $init
+                ->assertOk()
+                ->assertJsonPath('chunk_size', 524288)
+                ->assertJsonPath('total_chunks', 1);
+
+            $token = (string) $init->json('token');
+            $chunkPath = tempnam(sys_get_temp_dir(), 'zip-chunk-');
+            file_put_contents($chunkPath, file_get_contents($zipPath));
+
+            try {
+                $this->actingAs($admin)->post(route('admin.bulk-upload.images.chunk'), [
+                    'token' => $token,
+                    'index' => 0,
+                    'chunk' => new UploadedFile($chunkPath, 'chunk-000000.part', 'application/octet-stream', null, true),
+                ])
+                    ->assertOk()
+                    ->assertJsonPath('progress', 100);
+            } finally {
+                @unlink($chunkPath);
+            }
+
+            $this->actingAs($admin)
+                ->postJson(route('admin.bulk-upload.images.complete'), ['token' => $token])
+                ->assertOk()
+                ->assertJsonPath('token', $token)
+                ->assertJsonPath('filename', 'gift-for-her-images.zip');
+
+            $this->actingAs($admin)->post(route('admin.bulk-upload.store'), [
+                'file' => new UploadedFile($csvPath, 'gift-for-her.csv', 'text/csv', null, true),
+                'images_zip_token' => $token,
+                'approve_images' => '1',
+                'default_status' => 'Published',
+            ])
+                ->assertRedirect()
+                ->assertSessionHas('result');
+
+            $product = Product::query()->where('sku', 'ER-GFH-903')->firstOrFail();
+            $this->assertSame(75.0, (float) $product->price);
+            $this->assertSame(1, ProductMedia::query()->where('product_id', $product->id)->count());
+            $this->assertSame(1, (int) session('result.images_imported'));
+            $this->assertSame(1, (int) session('result.products_with_images'));
+            $this->assertFalse(is_dir(storage_path('app/private/bulk-product-upload/'.$admin->id.'/'.$token)));
+        } finally {
+            @unlink($zipPath);
+            @unlink($csvPath);
+            File::deleteDirectory(storage_path('app/private/bulk-product-upload/'.$admin->id));
         }
     }
 
@@ -199,12 +287,16 @@ class BulkProductImageZipUploadTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.bulk-upload'))
             ->assertOk()
-            ->assertSee(['Product Images ZIP', 'Image 1…Image 6', 'Approve imported images', 'Up to six images are attached per product'], false)
-            ->assertSee('name="images_zip"', false)
+            ->assertSee(['Product Images ZIP', 'Image 1…Image 6', 'Approve imported images', 'Up to six images are attached per product', 'Large ZIPs upload in 512 KB chunks'], false)
+            ->assertSee('name="images_zip_token"', false)
             ->assertSee('name="approve_images"', false)
             ->assertSee('data-bu-preview-url=', false)
+            ->assertSee('data-bu-image-init-url=', false)
+            ->assertSee('data-bu-image-chunk-url=', false)
+            ->assertSee('data-bu-image-complete-url=', false)
             ->assertSee('data-bu-preview-body', false)
             ->assertSee('data-bu-summary-images', false)
+            ->assertDontSee('name="images_zip"', false)
             ->assertDontSee('Emerald Signature Cap', false)
             ->assertDontSee('Premium Black Cap', false);
     }

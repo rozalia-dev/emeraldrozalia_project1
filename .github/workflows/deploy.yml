@@ -187,5 +187,4 @@ jobs:
             export DEPLOY_PREVIOUS_COMMIT="$(git rev-parse HEAD)"
             git merge --ff-only "${{ github.sha }}"
             test "$(git rev-parse HEAD)" = "${{ github.sha }}"
-            bash deploy/configure-host-nginx-upload.sh
             bash deploy/docker-deploy.sh

@@ -40,7 +40,12 @@
 @endphp
 
 @section('content')
-    <div class="bu-page" data-bulk-upload data-bu-preview-url="{{ route('admin.bulk-upload.preview') }}">
+    <div class="bu-page"
+        data-bulk-upload
+        data-bu-preview-url="{{ route('admin.bulk-upload.preview') }}"
+        data-bu-image-init-url="{{ route('admin.bulk-upload.images.init') }}"
+        data-bu-image-chunk-url="{{ route('admin.bulk-upload.images.chunk') }}"
+        data-bu-image-complete-url="{{ route('admin.bulk-upload.images.complete') }}">
         <div class="bu-page-head">
             <div>
                 <p class="bu-eyebrow">WEBSITE &amp; PRODUCTS / DATA OPERATIONS</p>
@@ -108,11 +113,12 @@
                         </div>
                         <div class="bu-setting-fields" style="margin-top:14px">
                             <label>Product Images ZIP (Optional)
-                                <input id="bulk-images-zip" type="file" name="images_zip" accept=".zip,application/zip" data-bu-images-input>
-                                <small>{{ $bulkImagesFile ? 'Last image ZIP: '.$bulkImagesFile : 'Use Image 1…Image 6 columns, an Images column separated by |, or folders named by SKU.' }}</small>
+                                <input id="bulk-images-zip" type="file" accept=".zip,application/zip" data-bu-images-input>
+                                <input type="hidden" name="images_zip_token" value="" data-bu-images-token>
+                                <small data-bu-images-status>{{ $bulkImagesFile ? 'Last image ZIP: '.$bulkImagesFile : 'Large ZIP files are uploaded automatically in safe chunks. Use Image 1…Image 6 columns, an Images column separated by |, or folders named by SKU.' }}</small>
                             </label>
                         </div>
-                        <p class="bu-upload-note"><x-icon name="help" size="13" /> Product file maximum: 25 MB. Image ZIP maximum: 1 GB. Supported product images: JPG, PNG, WEBP, AVIF. Up to six images are attached per product.</p>
+                        <p class="bu-upload-note"><x-icon name="help" size="13" /> Product file maximum: 25 MB. Image ZIP maximum: 1 GB. Large ZIPs upload in 512 KB chunks to avoid proxy request-size limits. Supported product images: JPG, PNG, WEBP, AVIF. Up to six images are attached per product.</p>
                     </section>
 
                     <section class="bu-panel bu-mapping-panel">
@@ -222,7 +228,7 @@
 
             <div class="bu-bottom-actions">
                 <div class="bu-bottom-left"><a class="bu-button bu-button-muted" href="{{ route('admin.dashboard') }}">Cancel</a><button class="bu-button bu-button-muted" type="button" data-bu-save-mapping>Save Mapping Template</button></div>
-                <div class="bu-bottom-right"><button class="bu-button bu-button-muted" type="button" data-bu-back>Back</button><button class="bu-button bu-button-primary" type="submit"><x-icon name="check" size="14" /> VALIDATE &amp; IMPORT <x-icon name="arrow-right" size="15" /></button></div>
+                <div class="bu-bottom-right"><button class="bu-button bu-button-muted" type="button" data-bu-back>Back</button><button class="bu-button bu-button-primary" type="submit" data-bu-submit><x-icon name="check" size="14" /> VALIDATE &amp; IMPORT <x-icon name="arrow-right" size="15" /></button></div>
             </div>
         </form>
     </div>

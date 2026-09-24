@@ -7,12 +7,20 @@ use App\Services\BulkProductImporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
+use ZipArchive;
 
 class BulkProductController extends Controller
 {
+    private const IMAGE_ZIP_MAX_BYTES = 1073741824;
+    private const IMAGE_CHUNK_BYTES = 524288;
+    private const IMAGE_CHUNK_MAX_KB = 600;
+    private const IMAGE_UPLOAD_SESSION_KEY = 'bulk_product_image_uploads';
+    private const IMAGE_UPLOAD_TTL_SECONDS = 7200;
+
     public function index()
     {
         return view('admin.bulk-upload');
@@ -42,12 +50,239 @@ class BulkProductController extends Controller
         }
     }
 
+    public function imageUploadInit(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'filename' => ['required', 'string', 'max:255'],
+            'size' => ['required', 'integer', 'min:1', 'max:'.self::IMAGE_ZIP_MAX_BYTES],
+        ]);
+
+        $filename = basename(str_replace('\\', '/', trim($data['filename'])));
+        if (strtolower(pathinfo($filename, PATHINFO_EXTENSION)) !== 'zip') {
+            return response()->json(['message' => 'Product images must be supplied as a ZIP file.'], 422);
+        }
+
+        $this->cleanupStaleImageUploads($request);
+
+        $token = (string) Str::uuid();
+        $directory = $this->imageUploadDirectory($request, $token);
+        File::ensureDirectoryExists($directory, 0700, true);
+
+        $size = (int) $data['size'];
+        $totalChunks = (int) ceil($size / self::IMAGE_CHUNK_BYTES);
+
+        $uploads = $request->session()->get(self::IMAGE_UPLOAD_SESSION_KEY, []);
+        $uploads[$token] = [
+            'filename' => $filename,
+            'directory' => $directory,
+            'path' => $directory.'/archive.zip',
+            'size' => $size,
+            'total_chunks' => $totalChunks,
+            'received' => [],
+            'completed' => false,
+            'updated_at' => time(),
+        ];
+        $request->session()->put(self::IMAGE_UPLOAD_SESSION_KEY, $uploads);
+
+        return response()->json([
+            'token' => $token,
+            'chunk_size' => self::IMAGE_CHUNK_BYTES,
+            'total_chunks' => $totalChunks,
+        ]);
+    }
+
+    public function imageUploadChunk(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'uuid'],
+            'index' => ['required', 'integer', 'min:0'],
+            'chunk' => ['required', 'file', 'max:'.self::IMAGE_CHUNK_MAX_KB],
+        ]);
+
+        $uploads = $request->session()->get(self::IMAGE_UPLOAD_SESSION_KEY, []);
+        $token = (string) $data['token'];
+        $upload = $uploads[$token] ?? null;
+
+        if (! is_array($upload) || ($upload['completed'] ?? false)) {
+            return response()->json(['message' => 'This product-image upload is no longer active. Please select the ZIP again.'], 422);
+        }
+
+        $index = (int) $data['index'];
+        $totalChunks = (int) ($upload['total_chunks'] ?? 0);
+
+        if ($index >= $totalChunks) {
+            return response()->json(['message' => 'The ZIP upload chunk number is invalid.'], 422);
+        }
+
+        $directory = (string) $upload['directory'];
+        if (! str_starts_with($directory, $this->imageUploadBaseDirectory($request).DIRECTORY_SEPARATOR)) {
+            return response()->json(['message' => 'The ZIP upload session is invalid.'], 422);
+        }
+
+        File::ensureDirectoryExists($directory, 0700, true);
+        $partPath = $directory.'/chunk-'.str_pad((string) $index, 6, '0', STR_PAD_LEFT).'.part';
+        $sourcePath = $data['chunk']->getRealPath();
+
+        if ($sourcePath === false) {
+            return response()->json(['message' => 'The uploaded ZIP chunk could not be read.'], 422);
+        }
+
+        $bytes = (int) $data['chunk']->getSize();
+        if ($bytes < 1 || $bytes > self::IMAGE_CHUNK_BYTES) {
+            return response()->json(['message' => 'The uploaded ZIP chunk has an invalid size.'], 422);
+        }
+
+        $input = fopen($sourcePath, 'rb');
+        $output = fopen($partPath, 'wb');
+
+        if ($input === false || $output === false) {
+            if (is_resource($input)) {
+                fclose($input);
+            }
+            if (is_resource($output)) {
+                fclose($output);
+            }
+
+            return response()->json(['message' => 'The ZIP chunk could not be stored.'], 500);
+        }
+
+        $copied = stream_copy_to_stream($input, $output);
+        fclose($input);
+        fclose($output);
+
+        if ($copied !== $bytes) {
+            @unlink($partPath);
+
+            return response()->json(['message' => 'The ZIP chunk was not stored completely. Please retry.'], 500);
+        }
+
+        $received = is_array($upload['received'] ?? null) ? $upload['received'] : [];
+        $received[(string) $index] = $bytes;
+        $upload['received'] = $received;
+        $upload['updated_at'] = time();
+        $uploads[$token] = $upload;
+        $request->session()->put(self::IMAGE_UPLOAD_SESSION_KEY, $uploads);
+
+        $receivedBytes = array_sum(array_map('intval', $received));
+        $progress = min(100, (int) floor(($receivedBytes / max(1, (int) $upload['size'])) * 100));
+
+        return response()->json([
+            'received_chunks' => count($received),
+            'total_chunks' => $totalChunks,
+            'received_bytes' => $receivedBytes,
+            'progress' => $progress,
+        ]);
+    }
+
+    public function imageUploadComplete(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'uuid'],
+        ]);
+
+        $uploads = $request->session()->get(self::IMAGE_UPLOAD_SESSION_KEY, []);
+        $token = (string) $data['token'];
+        $upload = $uploads[$token] ?? null;
+
+        if (! is_array($upload)) {
+            return response()->json(['message' => 'This product-image upload expired. Please select the ZIP again.'], 422);
+        }
+
+        if ($upload['completed'] ?? false) {
+            return response()->json([
+                'token' => $token,
+                'filename' => $upload['filename'],
+                'size' => (int) $upload['size'],
+            ]);
+        }
+
+        $totalChunks = (int) $upload['total_chunks'];
+        $received = is_array($upload['received'] ?? null) ? $upload['received'] : [];
+
+        if (count($received) !== $totalChunks) {
+            return response()->json(['message' => 'The product-image ZIP is not fully uploaded yet.'], 422);
+        }
+
+        $directory = (string) $upload['directory'];
+        $finalPath = (string) $upload['path'];
+        $output = fopen($finalPath, 'wb');
+
+        if ($output === false) {
+            return response()->json(['message' => 'The product-image ZIP could not be assembled.'], 500);
+        }
+
+        try {
+            foreach (range(0, $totalChunks - 1) as $index) {
+                $partPath = $directory.'/chunk-'.str_pad((string) $index, 6, '0', STR_PAD_LEFT).'.part';
+
+                if (! is_file($partPath)) {
+                    throw new \RuntimeException('A ZIP upload chunk is missing. Please select the ZIP again.');
+                }
+
+                $input = fopen($partPath, 'rb');
+                if ($input === false) {
+                    throw new \RuntimeException('A ZIP upload chunk could not be read.');
+                }
+
+                stream_copy_to_stream($input, $output);
+                fclose($input);
+            }
+        } catch (Throwable $exception) {
+            fclose($output);
+            @unlink($finalPath);
+
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        fclose($output);
+
+        if ((int) filesize($finalPath) !== (int) $upload['size']) {
+            @unlink($finalPath);
+
+            return response()->json(['message' => 'The assembled ZIP size does not match the selected file. Please retry.'], 422);
+        }
+
+        $zip = new ZipArchive();
+        $opened = $zip->open($finalPath);
+        if ($opened !== true) {
+            @unlink($finalPath);
+
+            return response()->json(['message' => 'The selected product-image ZIP is invalid or damaged.'], 422);
+        }
+
+        if ($zip->numFiles > 10000) {
+            $zip->close();
+            @unlink($finalPath);
+
+            return response()->json(['message' => 'The product-image ZIP contains too many files.'], 422);
+        }
+
+        $zip->close();
+
+        foreach (range(0, $totalChunks - 1) as $index) {
+            @unlink($directory.'/chunk-'.str_pad((string) $index, 6, '0', STR_PAD_LEFT).'.part');
+        }
+
+        $upload['completed'] = true;
+        $upload['updated_at'] = time();
+        unset($upload['received']);
+        $uploads[$token] = $upload;
+        $request->session()->put(self::IMAGE_UPLOAD_SESSION_KEY, $uploads);
+
+        return response()->json([
+            'token' => $token,
+            'filename' => $upload['filename'],
+            'size' => (int) $upload['size'],
+        ]);
+    }
+
     public function store(Request $request, BulkProductImporter $importer): RedirectResponse
     {
         $data = $request->validate(
             [
                 'file' => ['bail', 'required', 'file', 'mimes:csv,xlsx,xls', 'max:25600'],
                 'images_zip' => ['nullable', 'file', 'mimes:zip', 'max:1048576'],
+                'images_zip_token' => ['nullable', 'uuid'],
                 'approve_images' => ['nullable', 'boolean'],
                 'default_status' => ['nullable', 'string', 'max:30'],
             ],
@@ -67,8 +302,16 @@ class BulkProductController extends Controller
         }
 
         $imageZipPath = null;
-        if ($request->hasFile('images_zip')) {
+        $bulkImagesFile = null;
+        $chunkedToken = trim((string) ($data['images_zip_token'] ?? ''));
+
+        if ($chunkedToken !== '') {
+            $chunkedUpload = $this->completedImageUpload($request, $chunkedToken);
+            $imageZipPath = $chunkedUpload['path'];
+            $bulkImagesFile = $chunkedUpload['filename'];
+        } elseif ($request->hasFile('images_zip')) {
             $imageZipPath = $request->file('images_zip')->getRealPath();
+            $bulkImagesFile = $request->file('images_zip')->getClientOriginalName();
 
             if ($imageZipPath === false) {
                 throw ValidationException::withMessages([
@@ -100,10 +343,81 @@ class BulkProductController extends Controller
                 ]);
         }
 
+        if ($chunkedToken !== '') {
+            $this->deleteImageUpload($request, $chunkedToken);
+        }
+
         return back()
             ->with('result', $result)
             ->with('bulk_file', $data['file']->getClientOriginalName())
-            ->with('bulk_images_file', $request->file('images_zip')?->getClientOriginalName())
+            ->with('bulk_images_file', $bulkImagesFile)
             ->with('bulk_upload_id', (string) Str::uuid());
+    }
+
+    private function completedImageUpload(Request $request, string $token): array
+    {
+        $uploads = $request->session()->get(self::IMAGE_UPLOAD_SESSION_KEY, []);
+        $upload = $uploads[$token] ?? null;
+
+        if (! is_array($upload)
+            || ! ($upload['completed'] ?? false)
+            || ! is_file((string) ($upload['path'] ?? ''))) {
+            throw ValidationException::withMessages([
+                'images_zip' => 'The product-image ZIP upload is incomplete or expired. Please select the ZIP again.',
+            ]);
+        }
+
+        return $upload;
+    }
+
+    private function imageUploadBaseDirectory(Request $request): string
+    {
+        return storage_path('app/private/bulk-product-upload/'.(int) $request->user()->id);
+    }
+
+    private function imageUploadDirectory(Request $request, string $token): string
+    {
+        return $this->imageUploadBaseDirectory($request).DIRECTORY_SEPARATOR.$token;
+    }
+
+    private function cleanupStaleImageUploads(Request $request): void
+    {
+        $uploads = $request->session()->get(self::IMAGE_UPLOAD_SESSION_KEY, []);
+        $cutoff = time() - self::IMAGE_UPLOAD_TTL_SECONDS;
+
+        foreach ($uploads as $token => $upload) {
+            if ((int) ($upload['updated_at'] ?? 0) < $cutoff) {
+                if (is_dir((string) ($upload['directory'] ?? ''))) {
+                    File::deleteDirectory((string) $upload['directory']);
+                }
+                unset($uploads[$token]);
+            }
+        }
+
+        $request->session()->put(self::IMAGE_UPLOAD_SESSION_KEY, $uploads);
+
+        $base = $this->imageUploadBaseDirectory($request);
+        if (! is_dir($base)) {
+            return;
+        }
+
+        foreach (File::directories($base) as $directory) {
+            if ((int) File::lastModified($directory) < $cutoff) {
+                File::deleteDirectory($directory);
+            }
+        }
+    }
+
+    private function deleteImageUpload(Request $request, string $token): void
+    {
+        $uploads = $request->session()->get(self::IMAGE_UPLOAD_SESSION_KEY, []);
+        $upload = $uploads[$token] ?? null;
+
+        if (is_array($upload) && is_dir((string) ($upload['directory'] ?? ''))) {
+            File::deleteDirectory((string) $upload['directory']);
+        }
+
+        unset($uploads[$token]);
+        $request->session()->put(self::IMAGE_UPLOAD_SESSION_KEY, $uploads);
     }
 }
