@@ -286,10 +286,15 @@ class BulkProductImageZipUploadTest extends TestCase
 
         $csv = $this->actingAs($admin)->get(route('admin.bulk-upload.template.csv'));
         $csv->assertOk()->assertDownload('emerald-rozalia-bulk-product-template.csv');
-        $csvContent = $csv->streamedContent();
-        $this->assertStringContainsString('Product Name,SKU,Category,Price,Stock,Description,Material,Status', $csvContent);
-        $this->assertStringContainsString('Image 1,Image 2,Image 3,Image 4,Image 5,Image 6', $csvContent);
-        $this->assertStringContainsString('ER-SAMPLE-001', $csvContent);
+        $csvContent = preg_replace('/^\\xEF\\xBB\\xBF/', '', $csv->streamedContent()) ?? '';
+        $lines = preg_split('/\\r\\n|\\n|\\r/', trim($csvContent)) ?: [];
+        $headers = str_getcsv($lines[0] ?? '');
+        $sample = str_getcsv($lines[1] ?? '');
+        $this->assertSame([
+            'Product Name', 'SKU', 'Category', 'Price', 'Stock', 'Description', 'Material', 'Status',
+            'Image 1', 'Image 2', 'Image 3', 'Image 4', 'Image 5', 'Image 6',
+        ], $headers);
+        $this->assertSame('ER-SAMPLE-001', $sample[1] ?? null);
 
         $this->actingAs($admin)
             ->get(route('admin.bulk-upload.template.xlsx'))
