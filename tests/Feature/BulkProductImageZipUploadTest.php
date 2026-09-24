@@ -280,6 +280,28 @@ class BulkProductImageZipUploadTest extends TestCase
         }
     }
 
+    public function test_admin_can_download_bulk_upload_templates(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $csv = $this->actingAs($admin)->get(route('admin.bulk-upload.template.csv'));
+        $csv->assertOk()->assertDownload('emerald-rozalia-bulk-product-template.csv');
+        $csvContent = $csv->streamedContent();
+        $this->assertStringContainsString('Product Name,SKU,Category,Price,Stock,Description,Material,Status', $csvContent);
+        $this->assertStringContainsString('Image 1,Image 2,Image 3,Image 4,Image 5,Image 6', $csvContent);
+        $this->assertStringContainsString('ER-SAMPLE-001', $csvContent);
+
+        $this->actingAs($admin)
+            ->get(route('admin.bulk-upload.template.xlsx'))
+            ->assertOk()
+            ->assertDownload('emerald-rozalia-bulk-product-template.xlsx');
+
+        $this->actingAs($admin)
+            ->get(route('admin.bulk-upload.template.images'))
+            ->assertOk()
+            ->assertDownload('emerald-rozalia-bulk-image-template.zip');
+    }
+
     public function test_bulk_upload_page_exposes_image_zip_workflow(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -287,7 +309,10 @@ class BulkProductImageZipUploadTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.bulk-upload'))
             ->assertOk()
-            ->assertSee(['Product Images ZIP', 'Image 1…Image 6', 'Approve imported images', 'Up to six images are attached per product', 'Large ZIPs upload in 512 KB chunks'], false)
+            ->assertSee(['Product Images ZIP', 'Image 1…Image 6', 'Approve imported images', 'Up to six images are attached per product', 'Large ZIPs upload in 512 KB chunks', 'Download CSV Product Template', 'Download Excel Product Template', 'Download Image ZIP Template'], false)
+            ->assertSee(route('admin.bulk-upload.template.csv'), false)
+            ->assertSee(route('admin.bulk-upload.template.xlsx'), false)
+            ->assertSee(route('admin.bulk-upload.template.images'), false)
             ->assertSee('name="images_zip_token"', false)
             ->assertSee('name="approve_images"', false)
             ->assertSee('data-bu-preview-url=', false)
