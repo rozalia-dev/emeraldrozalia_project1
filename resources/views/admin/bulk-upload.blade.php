@@ -111,6 +111,12 @@
                             <span><strong data-bu-file-name>{{ $bulkFile ?: 'No file selected yet' }}</strong><small data-bu-file-meta>{{ $bulkFile ? 'Upload received and ready for mapping' : 'Choose a CSV or XLSX file to begin' }}</small></span>
                             <b class="bu-file-state {{ $bulkFile ? 'is-success' : '' }}" data-bu-file-state>{{ $bulkFile ? 'File uploaded successfully' : 'Waiting for file' }}</b>
                         </div>
+                        <div class="bu-template-downloads" aria-label="Bulk upload templates">
+                            <strong>Download templates:</strong>
+                            <a class="bu-tool-button" href="{{ route('admin.bulk-upload.template.csv') }}"><x-icon name="download" size="13" /> CSV Product Template</a>
+                            <a class="bu-tool-button" href="{{ route('admin.bulk-upload.template.xlsx') }}"><x-icon name="download" size="13" /> Excel Product Template</a>
+                            <a class="bu-tool-button" href="{{ route('admin.bulk-upload.template.images') }}"><x-icon name="download" size="13" /> Image ZIP Template</a>
+                        </div>
                         <div class="bu-setting-fields" style="margin-top:14px">
                             <label>Product Images ZIP (Optional)
                                 <input id="bulk-images-zip" type="file" accept=".zip,application/zip" data-bu-images-input>
@@ -211,7 +217,9 @@
 
                     <section class="bu-summary-card bu-quick-actions">
                         <div class="bu-summary-heading"><h2>Quick Actions</h2><x-icon name="arrow-right" size="15" /></div>
-                        <button type="button" data-bu-download-sample><x-icon name="download" size="14" /> Download Sample File</button>
+                        <a href="{{ route('admin.bulk-upload.template.csv') }}"><x-icon name="download" size="14" /> Download CSV Product Template</a>
+                        <a href="{{ route('admin.bulk-upload.template.xlsx') }}"><x-icon name="download" size="14" /> Download Excel Product Template</a>
+                        <a href="{{ route('admin.bulk-upload.template.images') }}"><x-icon name="download" size="14" /> Download Image ZIP Template</a>
                         <button type="button"><x-icon name="clock" size="14" /> View Upload History</button>
                         <button type="button" data-bu-save-mapping><x-icon name="download" size="14" /> Save Mapping Template</button>
                         <button type="button"><x-icon name="help" size="14" /> Bulk Upload Guidelines</button>

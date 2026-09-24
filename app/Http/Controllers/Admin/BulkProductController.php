@@ -10,6 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use ZipArchive;
 
@@ -24,6 +29,153 @@ class BulkProductController extends Controller
     public function index()
     {
         return view('admin.bulk-upload');
+    }
+
+    public function downloadCsvTemplate(): StreamedResponse
+    {
+        $headers = $this->productTemplateHeaders();
+        $sample = $this->productTemplateExampleRow();
+
+        return response()->streamDownload(function () use ($headers, $sample): void {
+            $output = fopen('php://output', 'wb');
+            if ($output === false) {
+                return;
+            }
+
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, $headers);
+            fputcsv($output, $sample);
+            fclose($output);
+        }, 'emerald-rozalia-bulk-product-template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function downloadXlsxTemplate(): StreamedResponse
+    {
+        $spreadsheet = new Spreadsheet();
+        $products = $spreadsheet->getActiveSheet();
+        $products->setTitle('Products');
+        $products->fromArray([
+            $this->productTemplateHeaders(),
+            $this->productTemplateExampleRow(),
+        ], null, 'A1');
+
+        $products->freezePane('A2');
+        $products->getStyle('A1:N1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        $products->getStyle('A1:N1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0B4F3A');
+        $products->getStyle('D2:D500')->getNumberFormat()->setFormatCode('€0.00');
+        $products->getColumnDimension('A')->setWidth(38);
+        $products->getColumnDimension('B')->setWidth(18);
+        $products->getColumnDimension('C')->setWidth(20);
+        $products->getColumnDimension('D')->setWidth(13);
+        $products->getColumnDimension('E')->setWidth(12);
+        $products->getColumnDimension('F')->setWidth(44);
+        $products->getColumnDimension('G')->setWidth(24);
+        $products->getColumnDimension('H')->setWidth(14);
+        foreach (range('I', 'N') as $column) {
+            $products->getColumnDimension($column)->setWidth(18);
+        }
+
+        $instructions = $spreadsheet->createSheet();
+        $instructions->setTitle('Instructions');
+        $instructions->fromArray([
+            ['Emerald Rozalia Bulk Product + Image Template', ''],
+            ['Required fields', 'Product Name and SKU are required. Category, Price and Stock should also be supplied for normal catalogue imports.'],
+            ['Image option A', 'Put up to six image filenames in Image 1 through Image 6. Use the same filenames inside the matching SKU folder in the image ZIP.'],
+            ['Image option B', 'Leave Image 1 through Image 6 blank and place images inside a ZIP folder named exactly as the product SKU.'],
+            ['Recommended names', 'view-01.jpg, view-02.jpg, view-03.jpg, view-04.jpg, view-05.jpg, view-06.jpg'],
+            ['View order', '01 Front, 02 Back, 03 Left, 04 Right, 05 Inside, 06 Detail/Packaging.'],
+            ['Supported images', 'JPG, PNG, WEBP, AVIF. Maximum six images are attached per product.'],
+            ['Status', 'Use published, active, draft or inactive.'],
+            ['Update existing products', 'Keep Update existing products enabled to match existing products by SKU without creating duplicates.'],
+        ], null, 'A1');
+        $instructions->getStyle('A1:B1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        $instructions->getStyle('A1:B1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0B4F3A');
+        $instructions->getColumnDimension('A')->setWidth(28);
+        $instructions->getColumnDimension('B')->setWidth(100);
+        $instructions->getStyle('A1:B20')->getAlignment()->setWrapText(true);
+
+        return response()->streamDownload(function () use ($spreadsheet): void {
+            (new Xlsx($spreadsheet))->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+        }, 'emerald-rozalia-bulk-product-template.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function downloadImageZipTemplate(): BinaryFileResponse
+    {
+        $path = tempnam(sys_get_temp_dir(), 'emerald-bulk-images-');
+        if ($path === false) {
+            abort(500, 'Could not create the image ZIP template.');
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            @unlink($path);
+            abort(500, 'Could not create the image ZIP template.');
+        }
+
+        $readme = <<<'TXT'
+EMERALD ROZALIA — BULK PRODUCT IMAGE ZIP TEMPLATE
+
+1. Rename each sample folder to the EXACT product SKU from your CSV/XLSX.
+   Example: ER-HER-001, ER-HER-002, ER-GFH-001.
+
+2. Put up to six product images inside each SKU folder.
+
+3. Recommended filenames:
+   view-01.jpg  = Front
+   view-02.jpg  = Back
+   view-03.jpg  = Left side
+   view-04.jpg  = Right side
+   view-05.jpg  = Inside
+   view-06.jpg  = Detail / packaging
+
+4. Supported formats: JPG, PNG, WEBP, AVIF.
+
+5. You may reuse view-01.jpg ... view-06.jpg in every SKU folder.
+   The importer uses the SKU folder to match duplicate filenames safely.
+
+6. If your spreadsheet contains Image 1 ... Image 6 columns, those filenames
+   should match the files inside that product's SKU folder.
+
+7. Re-ZIP the SKU folders and upload the ZIP beside the CSV/XLSX on:
+   Admin > Bulk Product Upload.
+
+IMPORTANT:
+- Never rename the SKU folder differently from the spreadsheet SKU.
+- Keep "Update existing products (match by SKU)" ON when adding images to
+  products that already exist.
+- Keep "Approve imported images" ON when the images should be public-ready.
+TXT;
+
+        $mapping = implode("\n", [
+            'SKU,Image 1,Image 2,Image 3,Image 4,Image 5,Image 6',
+            'ER-SAMPLE-001,view-01.jpg,view-02.jpg,view-03.jpg,view-04.jpg,view-05.jpg,view-06.jpg',
+            'ER-SAMPLE-002,view-01.jpg,view-02.jpg,view-03.jpg,view-04.jpg,view-05.jpg,view-06.jpg',
+            '',
+        ]);
+
+        $zip->addFromString('README.txt', $readme);
+        $zip->addFromString('IMAGE-MAPPING-EXAMPLE.csv', $mapping);
+
+        foreach (['ER-SAMPLE-001', 'ER-SAMPLE-002'] as $sku) {
+            $zip->addEmptyDir($sku);
+            $zip->addFromString(
+                $sku.'/PUT-YOUR-IMAGES-HERE.txt',
+                "Replace this text file with up to six product images named view-01.jpg through view-06.jpg.\n"
+            );
+        }
+
+        $zip->close();
+
+        return response()
+            ->download($path, 'emerald-rozalia-bulk-image-template.zip', [
+                'Content-Type' => 'application/zip',
+            ])
+            ->deleteFileAfterSend(true);
     }
 
     public function preview(Request $request, BulkProductImporter $importer): JsonResponse
@@ -352,6 +504,46 @@ class BulkProductController extends Controller
             ->with('bulk_file', $data['file']->getClientOriginalName())
             ->with('bulk_images_file', $bulkImagesFile)
             ->with('bulk_upload_id', (string) Str::uuid());
+    }
+
+    private function productTemplateHeaders(): array
+    {
+        return [
+            'Product Name',
+            'SKU',
+            'Category',
+            'Price',
+            'Stock',
+            'Description',
+            'Material',
+            'Status',
+            'Image 1',
+            'Image 2',
+            'Image 3',
+            'Image 4',
+            'Image 5',
+            'Image 6',
+        ];
+    }
+
+    private function productTemplateExampleRow(): array
+    {
+        return [
+            'Sample Heritage Bucket Hat',
+            'ER-SAMPLE-001',
+            'Heritage',
+            79,
+            100,
+            'Premium Irish-made hat.',
+            '100% Irish Tweed',
+            'published',
+            'view-01.jpg',
+            'view-02.jpg',
+            'view-03.jpg',
+            'view-04.jpg',
+            'view-05.jpg',
+            'view-06.jpg',
+        ];
     }
 
     private function completedImageUpload(Request $request, string $token): array
