@@ -205,6 +205,12 @@ class AddProductController extends Controller
                 'distinct',
                 Rule::exists('categories', 'id')->where(fn ($query) => $query->whereNull('parent_id')),
             ],
+            'collection_category_ids' => ['nullable', 'array'],
+            'collection_category_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->whereNull('parent_id')),
+            ],
             'collection_ids_present' => ['nullable', 'boolean'],
             'collection_ids' => ['nullable', 'array'],
             'collection_ids.*' => ['integer', 'distinct'],
@@ -223,6 +229,7 @@ class AddProductController extends Controller
         validator(['slug' => $slug], ['slug' => ['required', 'string', 'max:180', $slugRule]])->validate();
         $data['slug'] = $slug;
         $data['shop_category_ids'] = array_values(array_unique(array_map('intval', $data['shop_category_ids'] ?? [])));
+        $data['collection_category_ids'] = array_values(array_unique(array_map('intval', $data['collection_category_ids'] ?? [])));
         $data['collection_ids'] = array_values(array_map('intval', $data['collection_ids'] ?? []));
 
         if (! empty($data['category_root_id'])) {
@@ -298,12 +305,12 @@ class AddProductController extends Controller
         }
 
         if ($data['collection_ids'] !== []) {
-            $rootCategoryId = (int) ($rootCategory?->id ?? 0);
+            $collectionCategoryIds = $data['collection_category_ids'];
             $availableCollectionIds = $this->collections()
                 ->whereIn('id', $data['collection_ids'])
                 ->filter(static fn ($collection): bool =>
                     ! $collection->main_category_id
-                    || (int) $collection->main_category_id === $rootCategoryId
+                    || in_array((int) $collection->main_category_id, $collectionCategoryIds, true)
                 )
                 ->pluck('id')
                 ->map(static fn ($id): int => (int) $id)
@@ -311,7 +318,7 @@ class AddProductController extends Controller
 
             if (array_diff($data['collection_ids'], $availableCollectionIds) !== []) {
                 throw ValidationException::withMessages([
-                    'collection_ids' => 'Select only collections assigned to this main category or available to all main categories.',
+                    'collection_ids' => 'Select only collections assigned to one of the selected Shop by Collection categories or available to all main categories.',
                 ]);
             }
         }
@@ -342,6 +349,7 @@ class AddProductController extends Controller
                     'style' => $data['catalog_style'] ?? null,
                 ],
                 'shop_category_ids' => array_values($data['shop_category_ids'] ?? []),
+                'collection_category_ids' => array_values($data['collection_category_ids'] ?? []),
                 'dimensions' => ['length' => $data['length'] ?? null, 'width' => $data['width'] ?? null, 'height' => $data['height'] ?? null],
                 'channels' => array_values($data['channels'] ?? []),
                 'order_categories' => array_values($data['order_categories'] ?? []),
