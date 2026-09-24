@@ -374,6 +374,7 @@
                         <legend>Shop by Collection</legend>
                         <small class="ap-field-help">Collections are filtered by the selected main category. Collections marked for all main categories remain available everywhere.</small>
                         <input type="hidden" name="collection_ids_present" value="1">
+                        <p class="ap-field-help" data-collection-category-hint>Select a Main Category first to see matching collections.</p>
                         <div class="ap-checklist">
                             @forelse($placementCollections as $collection)
                                 <label data-placement-collection data-main-category="{{ $collection->main_category_id ?: '' }}">
@@ -447,6 +448,7 @@
     const placementCollections = Array.from(document.querySelectorAll('[data-placement-collection]'));
     const shopCategoryMain = document.querySelector('[data-shop-category-main]');
     const shopCategorySub = document.querySelector('[data-shop-category-sub]');
+    const collectionCategoryHint = document.querySelector('[data-collection-category-hint]');
     let hsCodeManuallyEdited = Boolean(hsCode?.value.trim());
     const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
     let clubRequestSerial = 0;
@@ -464,9 +466,11 @@
 
     const syncCollections = () => {
         const selectedRoot = String(category?.value || '');
+        let visibleCount = 0;
         placementCollections.forEach(label => {
             const mainCategory = String(label.dataset.mainCategory || '');
-            const visible = mainCategory === '' || (selectedRoot !== '' && mainCategory === selectedRoot);
+            const visible = selectedRoot !== '' && (mainCategory === '' || mainCategory === selectedRoot);
+            if (visible) visibleCount++;
             label.hidden = !visible;
 
             const checkbox = label.querySelector('input[type="checkbox"]');
@@ -474,6 +478,18 @@
             checkbox.disabled = !visible;
             if (!visible) checkbox.checked = false;
         });
+
+        if (collectionCategoryHint) {
+            if (selectedRoot === '') {
+                collectionCategoryHint.hidden = false;
+                collectionCategoryHint.textContent = 'Select a Main Category first to see matching collections.';
+            } else if (visibleCount === 0) {
+                collectionCategoryHint.hidden = false;
+                collectionCategoryHint.textContent = 'No collections are assigned to this Main Category yet. Create or edit a collection and assign it to this Main Category.';
+            } else {
+                collectionCategoryHint.hidden = true;
+            }
+        }
     };
 
     const syncSubcategories = () => {
