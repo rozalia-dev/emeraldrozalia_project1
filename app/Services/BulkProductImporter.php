@@ -205,6 +205,7 @@ class BulkProductImporter
     {
         $rows = $this->readRows($path, $extension);
         $preview = [];
+        $sample = [];
         $valid = 0;
         $errors = 0;
 
@@ -223,6 +224,17 @@ class BulkProductImporter
             }
 
             $valid++;
+
+            if ($sample === []) {
+                foreach ($row as $header => $value) {
+                    if (str_starts_with((string) $header, '__')) {
+                        continue;
+                    }
+                    $sample[$this->key((string) $header)] = is_scalar($value) || $value === null
+                        ? (string) ($value ?? '')
+                        : '';
+                }
+            }
 
             if (count($preview) >= max(1, min(20, $limit))) {
                 continue;
@@ -258,6 +270,7 @@ class BulkProductImporter
             'valid' => $valid,
             'errors' => $errors,
             'rows' => $preview,
+            'sample' => $sample,
         ];
     }
 
