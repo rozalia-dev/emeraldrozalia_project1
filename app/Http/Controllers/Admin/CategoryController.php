@@ -150,7 +150,7 @@ class CategoryController extends Controller
         $base = Product::query()->where('category_id', $category->id);
         $stats = [
             'total' => (clone $base)->count(),
-            'approved' => (clone $base)->whereRaw("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(product_metadata, '$.approval_status')), '') = 'approved'")->count(),
+            'approved' => (clone $base)->where('product_metadata->approval_status', 'approved')->count(),
             'published' => (clone $base)->where('is_active', true)->whereIn('status', Product::PUBLIC_STATUSES)->count(),
             'draft' => (clone $base)->whereIn('status', ['draft', 'planned'])->count(),
         ];
