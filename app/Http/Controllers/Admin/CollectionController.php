@@ -401,9 +401,25 @@ class CollectionController extends Controller
 
                 $collection = ProductCollection::query()->where('slug', $slug)->first();
                 $before = $collection?->toArray();
+                $mainCategoryId = null;
+                $mainCategory = trim((string) ($record['main_category'] ?? ''));
+                if ($mainCategory !== '') {
+                    $mainCategoryId = Category::query()
+                        ->whereNull('parent_id')
+                        ->where(function ($query) use ($mainCategory): void {
+                            $query->where('name', $mainCategory)->orWhere('slug', Str::slug($mainCategory));
+                        })
+                        ->value('id');
+
+                    if (! $mainCategoryId) {
+                        throw ValidationException::withMessages(['file' => "CSV row {$rowNumber} references unknown main_category {$mainCategory}."]);
+                    }
+                }
+
                 $values = [
                     'name' => $name,
                     'slug' => $slug,
+                    'main_category_id' => $mainCategoryId,
                     'type' => $type,
                     'season' => $this->nullableCsv($record['season'] ?? null),
                     'description' => $this->nullableCsv($record['description'] ?? null),
@@ -442,12 +458,13 @@ class CollectionController extends Controller
         return response()->streamDownload(function () use ($request, $tab): void {
             $output = fopen('php://output', 'wb');
             fputcsv($output, [
-                'name', 'slug', 'type', 'season', 'status', 'visibility', 'is_featured',
+                'name', 'slug', 'main_category', 'type', 'season', 'status', 'visibility', 'is_featured',
                 'show_on_homepage', 'allow_in_filters', 'sort_order', 'products', 'description',
                 'meta_title', 'meta_description', 'image', 'meta_image', 'uuid',
             ]);
 
             $this->filteredQuery($request, $tab)
+                ->with('mainCategory:id,name')
                 ->withCount('products')
                 ->orderBy('sort_order')
                 ->orderBy('name')
@@ -456,6 +473,7 @@ class CollectionController extends Controller
                         fputcsv($output, [
                             $collection->name,
                             $collection->slug,
+                            $collection->mainCategory?->name,
                             $collection->type,
                             $collection->season,
                             $collection->status,
