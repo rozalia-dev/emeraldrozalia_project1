@@ -81,6 +81,17 @@
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
                     </form>
+                    @if($tab !== 'trash' && auth()->user()?->hasPermission('website.products.edit'))
+                        <div class="pm-publish-controls" data-product-bulk-publish>
+                            <label class="sr-only" for="product-publish-action">Bulk product publishing action</label>
+                            <select id="product-publish-action" data-publish-action>
+                                <option value="">Bulk Actions</option>
+                                <option value="publish">Approve selected for public</option>
+                                <option value="unpublish">Unpublish selected</option>
+                            </select>
+                            <button type="button" data-publish-selected disabled>Apply <span data-publish-selected-count></span></button>
+                        </div>
+                    @endif
                     @if($tab !== 'trash' && auth()->user()?->hasPermission('products.delete'))
                         <details class="pm-delete-menu" data-product-bulk-delete>
                             <summary>Delete <span aria-hidden="true">▾</span></summary>
@@ -133,7 +144,7 @@
                             $imageUrl=$product->image;
                             if($imageUrl && !preg_match('#^(https?:)?/#',$imageUrl))$imageUrl=\Illuminate\Support\Facades\Storage::url($imageUrl);
                         @endphp
-                        <tr id="product-{{ $product->id }}">
+                        <tr id="product-{{ $product->id }}" data-product-published="{{ $isPublished ? '1' : '0' }}">
                             <td class="pm-check-col"><input type="checkbox" name="products[]" value="{{ $product->id }}" aria-label="Select {{ $product->name }}"></td>
                             <td>
                                 <div class="pm-product-cell">

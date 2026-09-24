@@ -3,7 +3,10 @@
     $restoreTemplate = route('admin.product-manager.restore', ['product' => '__PRODUCT__']);
     $permanentTemplate = route('admin.product-manager.permanent-destroy', ['product' => '__PRODUCT__']);
     $bulkDestroyRoute = route('admin.product-manager.bulk-destroy');
+    $bulkPublishRoute = route('admin.product-manager.bulk-publish');
+    $publishTemplate = route('admin.product-manager.publish', ['product' => '__PRODUCT__']);
     $canDeleteProducts = (bool) (auth()->user()?->hasPermission('products.delete'));
+    $canEditProducts = (bool) (auth()->user()?->hasPermission('website.products.edit'));
 @endphp
 
 <style>
@@ -59,6 +62,26 @@
         background:#eef8f1;
         color:#087a48;
     }
+    .pm-publish-controls{
+        display:flex;
+        align-items:center;
+        gap:6px;
+    }
+    .pm-publish-controls select,
+    .pm-publish-controls button{
+        min-height:38px;
+        border:1px solid #cfd9d2;
+        border-radius:7px;
+        background:#fff;
+        color:#24372c;
+        font:inherit;
+        font-size:13px;
+    }
+    .pm-publish-controls select{padding:0 30px 0 10px;min-width:210px}
+    .pm-publish-controls button{padding:0 12px;font-weight:700;cursor:pointer}
+    .pm-publish-controls button:not(:disabled):hover,
+    .pm-publish-controls button:not(:disabled):focus-visible{border-color:#087a48;background:#eef8f1;color:#087a48;outline:none}
+    .pm-publish-controls button:disabled{color:#9aa5a0;background:#f7f9f8;cursor:not-allowed}
     .pm-delete-menu{position:relative}
     .pm-delete-menu>summary{
         display:flex;
@@ -127,6 +150,9 @@
     const restoreTemplate = @json($restoreTemplate);
     const permanentTemplate = @json($permanentTemplate);
     const bulkDestroyRoute = @json($bulkDestroyRoute);
+    const bulkPublishRoute = @json($bulkPublishRoute);
+    const publishTemplate = @json($publishTemplate);
+    const canEditProducts = @json($canEditProducts);
     const urlFor = (template, id) => template.replace('__PRODUCT__', encodeURIComponent(id));
 
     const icon = name => {
@@ -217,11 +243,16 @@
     const deleteSelected = document.querySelector('[data-delete-selected]');
     const deleteAll = document.querySelector('[data-delete-all]');
     const selectedCount = document.querySelector('[data-selected-count]');
+    const publishAction = document.querySelector('[data-publish-action]');
+    const publishSelected = document.querySelector('[data-publish-selected]');
+    const publishSelectedCount = document.querySelector('[data-publish-selected-count]');
 
     const syncBulkSelection = () => {
         const selected = productCheckboxes.filter(checkbox => checkbox.checked);
         if (selectedCount) selectedCount.textContent = `(${selected.length})`;
+        if (publishSelectedCount) publishSelectedCount.textContent = selected.length ? `(${selected.length})` : '';
         if (deleteSelected) deleteSelected.disabled = selected.length === 0;
+        if (publishSelected) publishSelected.disabled = selected.length === 0 || ! publishAction?.value;
 
         if (selectAll) {
             selectAll.checked = productCheckboxes.length > 0 && selected.length === productCheckboxes.length;
@@ -237,7 +268,25 @@
     });
 
     productCheckboxes.forEach(checkbox => checkbox.addEventListener('change', syncBulkSelection));
+    publishAction?.addEventListener('change', syncBulkSelection);
     syncBulkSelection();
+
+    publishSelected?.addEventListener('click', () => {
+        const ids = productCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
+        const action = publishAction?.value || '';
+        if (ids.length === 0 || ! ['publish', 'unpublish'].includes(action)) return;
+
+        submitAction({
+            action: bulkPublishRoute,
+            confirmText: action === 'publish'
+                ? `Publish ${ids.length} selected product${ids.length === 1 ? '' : 's'} to the public website?`
+                : `Remove ${ids.length} selected product${ids.length === 1 ? '' : 's'} from the public website?`,
+            fields: {
+                action,
+                'products[]': ids,
+            },
+        });
+    });
 
     deleteSelected?.addEventListener('click', () => {
         const ids = productCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
@@ -364,6 +413,25 @@
             } else {
                 if (viewHref) addLink({ href: viewHref, label: 'View product', iconName: 'eye' });
                 if (editHref) addLink({ href: editHref, label: 'Edit product', iconName: 'pencil' });
+                if (canEditProducts) {
+                    if (viewHref || editHref) addDivider();
+                    const isPublished = row.dataset.productPublished === '1';
+                    addButton({
+                        label: isPublished ? 'Unpublish from public' : 'Approve for public',
+                        iconName: 'eye',
+                        className: isPublished ? 'pm-menu-danger' : 'pm-menu-restore',
+                        onClick: () => {
+                            closeMenu();
+                            submitAction({
+                                action: urlFor(publishTemplate, id),
+                                confirmText: isPublished
+                                    ? `Remove ${name} from the public website?`
+                                    : `Publish ${name} to the public website?`,
+                                fields: { action: isPublished ? 'unpublish' : 'publish' },
+                            });
+                        },
+                    });
+                }
                 if (canDeleteProducts) {
                     if (viewHref || editHref) addDivider();
                     addButton({

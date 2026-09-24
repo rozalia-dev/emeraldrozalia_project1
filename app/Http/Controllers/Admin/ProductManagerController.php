@@ -162,6 +162,87 @@ class ProductManagerController extends Controller
         ));
     }
 
+    public function bulkPublish(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'products' => ['required', 'array', 'min:1', 'max:500'],
+            'products.*' => ['required', 'integer', 'distinct'],
+            'action' => ['required', 'in:publish,unpublish'],
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['products'])));
+        $records = Product::query()->whereKey($ids)->orderBy('id')->get();
+        abort_unless($records->count() === count($ids), 404);
+
+        $published = $validated['action'] === 'publish';
+        foreach ($records as $record) {
+            abort_unless($request->user()?->can('update', $record), 403);
+
+            $before = $record->toArray();
+            $metadata = is_array($record->product_metadata) ? $record->product_metadata : [];
+            $metadata['published_website'] = $published;
+            if ($published) {
+                $metadata['available_for_sale'] = true;
+            }
+
+            $record->forceFill([
+                'is_active' => $published,
+                'status' => $published ? 'active' : ($record->status === 'draft' ? 'draft' : 'active'),
+                'published_at' => $published ? ($record->published_at ?: now()) : null,
+                'product_metadata' => $metadata,
+            ])->save();
+
+            AuditTrail::record(
+                $published ? 'product.published' : 'product.unpublished',
+                $record,
+                $before,
+                $record->fresh()->toArray(),
+            );
+        }
+
+        $count = $records->count();
+        $label = $published ? 'published for public website' : 'removed from public website';
+
+        return redirect()
+            ->route('admin.product-manager.index')
+            ->with('success', $count.' product'.($count === 1 ? '' : 's').' '.$label.'.');
+    }
+
+    public function publish(Request $request, int $product): RedirectResponse
+    {
+        $record = Product::query()->findOrFail($product);
+        abort_unless($request->user()?->can('update', $record), 403);
+
+        $action = (string) $request->input('action', 'publish');
+        abort_unless(in_array($action, ['publish', 'unpublish'], true), 422, 'Invalid publishing action.');
+
+        $published = $action === 'publish';
+        $before = $record->toArray();
+        $metadata = is_array($record->product_metadata) ? $record->product_metadata : [];
+        $metadata['published_website'] = $published;
+        if ($published) {
+            $metadata['available_for_sale'] = true;
+        }
+
+        $record->forceFill([
+            'is_active' => $published,
+            'status' => $published ? 'active' : ($record->status === 'draft' ? 'draft' : 'active'),
+            'published_at' => $published ? ($record->published_at ?: now()) : null,
+            'product_metadata' => $metadata,
+        ])->save();
+
+        AuditTrail::record(
+            $published ? 'product.published' : 'product.unpublished',
+            $record,
+            $before,
+            $record->fresh()->toArray(),
+        );
+
+        return redirect()
+            ->route('admin.product-manager.index')
+            ->with('success', $record->name.($published ? ' published for public website.' : ' removed from public website.'));
+    }
+
     public function bulkDestroy(Request $request): RedirectResponse
     {
         $this->authorizeDeletion($request);
