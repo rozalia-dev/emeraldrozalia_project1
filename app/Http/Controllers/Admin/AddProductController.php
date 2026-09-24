@@ -156,7 +156,7 @@ class AddProductController extends Controller
             ->orderByRaw("CASE WHEN slug = 'best-sellers' THEN 0 WHEN slug = 'irish-heritage' THEN 1 ELSE 2 END")
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'status', 'visibility']);
+            ->get(['id', 'name', 'slug', 'status', 'visibility', 'main_category_id']);
     }
 
     private function validated(Request $request, ?Product $product = null): array
