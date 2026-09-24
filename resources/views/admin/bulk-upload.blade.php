@@ -6,7 +6,11 @@
     $importResult = session('result');
     $hasImportResult = is_array($importResult);
     $importErrors = $hasImportResult ? ($importResult['errors'] ?? []) : [];
+    $importWarnings = $hasImportResult ? ($importResult['warnings'] ?? []) : [];
+    $imagesImported = $hasImportResult ? (int) ($importResult['images_imported'] ?? 0) : 0;
+    $productsWithImages = $hasImportResult ? (int) ($importResult['products_with_images'] ?? 0) : 0;
     $bulkFile = session('bulk_file');
+    $bulkImagesFile = session('bulk_images_file');
     $uploadId = session('bulk_upload_id');
     $activeStep = $hasImportResult ? 5 : ($bulkFile ? 2 : 1);
     $totalRows = $hasImportResult ? (int) ($importResult['total'] ?? 0) : 0;
@@ -48,7 +52,7 @@
             <div>
                 <p class="bu-eyebrow">WEBSITE &amp; PRODUCTS / DATA OPERATIONS</p>
                 <h1>Bulk Product Upload</h1>
-                <p class="bu-subtitle">Upload multiple products using CSV or Excel files. Our intelligent mapper will help you map your columns to system fields.</p>
+                <p class="bu-subtitle">Upload multiple products using CSV or Excel, with an optional ZIP containing up to six product images per SKU.</p>
             </div>
             <div class="bu-head-meta">
                 <nav class="bu-breadcrumb" aria-label="Breadcrumb">
@@ -78,9 +82,12 @@
         @if ($hasImportResult)
             <div class="bu-result-banner" role="status">
                 <x-icon name="check" size="18" />
-                <span><strong>{{ $validRows }} product{{ $validRows === 1 ? '' : 's' }} imported successfully.</strong> {{ $errorRows }} row{{ $errorRows === 1 ? '' : 's' }} need{{ $errorRows === 1 ? 's' : '' }} attention.</span>
+                <span><strong>{{ $validRows }} product{{ $validRows === 1 ? '' : 's' }} imported successfully.</strong> {{ $imagesImported }} image{{ $imagesImported === 1 ? '' : 's' }} attached across {{ $productsWithImages }} product{{ $productsWithImages === 1 ? '' : 's' }}. {{ $errorRows }} row{{ $errorRows === 1 ? '' : 's' }} need{{ $errorRows === 1 ? 's' : '' }} attention.</span>
                 @if ($errorRows)
                     <details><summary>View errors</summary><ul>@foreach ($importErrors as $error)<li>Row {{ $error['row'] }}: {{ $error['message'] }}</li>@endforeach</ul></details>
+                @endif
+                @if (count($importWarnings))
+                    <details><summary>View image warnings ({{ count($importWarnings) }})</summary><ul>@foreach ($importWarnings as $warning)<li>Row {{ $warning['row'] }}: {{ $warning['message'] }}</li>@endforeach</ul></details>
                 @endif
             </div>
         @endif
@@ -91,7 +98,7 @@
                 <div class="bu-primary-column">
                     <section class="bu-panel bu-upload-panel">
                         <div class="bu-panel-heading">
-                            <div><h2>1. Upload Your File</h2><p>Supported formats: CSV, XLSX</p></div>
+                            <div><h2>1. Upload Your File + Product Images ZIP</h2><p>Products: CSV/XLS/XLSX · Images: optional ZIP</p></div>
                             <x-icon name="upload" size="18" />
                         </div>
                         <label class="bu-dropzone" for="bulk-file" data-bu-dropzone>
@@ -106,7 +113,13 @@
                             <span><strong data-bu-file-name>{{ $bulkFile ?: 'No file selected yet' }}</strong><small data-bu-file-meta>{{ $bulkFile ? 'Upload received and ready for mapping' : 'Choose a CSV or XLSX file to begin' }}</small></span>
                             <b class="bu-file-state {{ $bulkFile ? 'is-success' : '' }}" data-bu-file-state>{{ $bulkFile ? 'File uploaded successfully' : 'Waiting for file' }}</b>
                         </div>
-                        <p class="bu-upload-note"><x-icon name="help" size="13" /> Maximum file size: 25 MB. Use the sample template for the recommended column headings.</p>
+                        <div class="bu-setting-fields" style="margin-top:14px">
+                            <label>Product Images ZIP (Optional)
+                                <input id="bulk-images-zip" type="file" name="images_zip" accept=".zip,application/zip">
+                                <small>{{ $bulkImagesFile ? 'Last image ZIP: '.$bulkImagesFile : 'Use Image 1…Image 6 columns, an Images column separated by |, or folders named by SKU.' }}</small>
+                            </label>
+                        </div>
+                        <p class="bu-upload-note"><x-icon name="help" size="13" /> Product file maximum: 25 MB. Image ZIP maximum: 1 GB. Supported product images: JPG, PNG, WEBP, AVIF. Up to six images are attached per product.</p>
                     </section>
 
                     <section class="bu-panel bu-mapping-panel">
@@ -157,6 +170,7 @@
                         <div class="bu-setting-list">
                             <label class="bu-setting-toggle"><span>Update existing products <small>(match by SKU)</small></span><input type="hidden" name="update_existing" value="0"><input type="checkbox" name="update_existing" value="1" checked><i aria-hidden="true"><b></b></i></label>
                             <label class="bu-setting-toggle"><span>Skip products with errors</span><input type="hidden" name="skip_errors" value="0"><input type="checkbox" name="skip_errors" value="1" checked><i aria-hidden="true"><b></b></i></label>
+                            <label class="bu-setting-toggle"><span>Approve imported images <small>(public-ready media)</small></span><input type="hidden" name="approve_images" value="0"><input type="checkbox" name="approve_images" value="1" checked><i aria-hidden="true"><b></b></i></label>
                         </div>
                         <div class="bu-setting-fields">
                             <label>Default Product Status<select name="default_status"><option>Published</option><option>Draft</option></select></label>
@@ -174,10 +188,12 @@
                             <div><dt>Total Rows</dt><dd>{{ $hasImportResult ? number_format($totalRows) : '—' }}</dd></div>
                             <div><dt>Valid Rows</dt><dd>{{ $hasImportResult ? number_format($validRows) : '—' }}</dd></div>
                             <div><dt>Rows with Errors</dt><dd class="is-error">{{ $hasImportResult ? number_format($errorRows) : '—' }}</dd></div>
-                            <div><dt>Empty Rows</dt><dd>{{ $hasImportResult ? '0' : '—' }}</dd></div>
+                            <div><dt>Images Imported</dt><dd>{{ $hasImportResult ? number_format($imagesImported) : '—' }}</dd></div>
+                            <div><dt>Products with Images</dt><dd>{{ $hasImportResult ? number_format($productsWithImages) : '—' }}</dd></div>
                         </dl>
                         <dl class="bu-file-summary">
-                            <div><dt>File Name</dt><dd data-bu-summary-file>{{ $bulkFile ?: 'Awaiting file upload' }}</dd></div>
+                            <div><dt>Product File</dt><dd data-bu-summary-file>{{ $bulkFile ?: 'Awaiting file upload' }}</dd></div>
+                            <div><dt>Images ZIP</dt><dd>{{ $bulkImagesFile ?: 'Optional' }}</dd></div>
                             <div><dt>File Size</dt><dd data-bu-summary-size>—</dd></div>
                             <div><dt>Uploaded By</dt><dd>{{ auth()->user()->name ?? 'Admin User' }}</dd></div>
                         </dl>
