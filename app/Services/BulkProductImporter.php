@@ -406,7 +406,9 @@ class BulkProductImporter
     private function normalizeArchivePath(string $path): ?string
     {
         $path = str_replace('\\', '/', trim($path));
-        $path = ltrim($path, './');
+        while (str_starts_with($path, './')) {
+            $path = substr($path, 2);
+        }
 
         if ($path === ''
             || str_contains($path, "\0")
