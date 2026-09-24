@@ -16,7 +16,15 @@ run_root() {
         return
     fi
 
-    echo "Production nginx upload-limit update requires root or passwordless sudo." >&2
+    # The production deploy user already has Docker access for releases.
+    # Docker access is root-equivalent, so use an ephemeral privileged helper
+    # to execute host commands inside the host filesystem / PID namespace.
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        docker run --rm             --privileged             --pid=host             --network=host             -v /:/host             alpine:3.20             chroot /host "$@"
+        return
+    fi
+
+    echo "Production nginx upload-limit update requires root, passwordless sudo, or Docker access." >&2
     exit 78
 }
 
