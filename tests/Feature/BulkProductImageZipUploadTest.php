@@ -101,6 +101,39 @@ class BulkProductImageZipUploadTest extends TestCase
         }
     }
 
+    public function test_admin_can_preview_actual_bulk_product_rows_before_import(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $csvPath = tempnam(sys_get_temp_dir(), 'bulk-preview-');
+
+        $handle = fopen($csvPath, 'wb');
+        fputcsv($handle, ['Product Name', 'SKU', 'Category', 'Price', 'Stock', 'Status', 'Image 1', 'Image 2']);
+        fputcsv($handle, ['Emerald Gift Hat', 'ER-GFH-901', 'Gift for Her', '75.00', '0', 'inactive', 'front.png', 'back.png']);
+        fclose($handle);
+
+        try {
+            $response = $this->actingAs($admin)->postJson(route('admin.bulk-upload.preview'), [
+                'file' => new UploadedFile($csvPath, 'gift-preview.csv', 'text/csv', null, true),
+            ]);
+
+            $response
+                ->assertOk()
+                ->assertJsonPath('total', 1)
+                ->assertJsonPath('valid', 1)
+                ->assertJsonPath('errors', 0)
+                ->assertJsonPath('rows.0.name', 'Emerald Gift Hat')
+                ->assertJsonPath('rows.0.sku', 'ER-GFH-901')
+                ->assertJsonPath('rows.0.category', 'Gift for Her')
+                ->assertJsonPath('rows.0.price', 75)
+                ->assertJsonPath('rows.0.images', 2)
+                ->assertJsonPath('sample.product_name', 'Emerald Gift Hat')
+                ->assertJsonPath('sample.category', 'Gift for Her')
+                ->assertJsonPath('sample.price', '75.00');
+        } finally {
+            @unlink($csvPath);
+        }
+    }
+
     public function test_bulk_upload_page_exposes_image_zip_workflow(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -110,6 +143,11 @@ class BulkProductImageZipUploadTest extends TestCase
             ->assertOk()
             ->assertSee(['Product Images ZIP', 'Image 1…Image 6', 'Approve imported images', 'Up to six images are attached per product'], false)
             ->assertSee('name="images_zip"', false)
-            ->assertSee('name="approve_images"', false);
+            ->assertSee('name="approve_images"', false)
+            ->assertSee('data-bu-preview-url=', false)
+            ->assertSee('data-bu-preview-body', false)
+            ->assertSee('data-bu-summary-images', false)
+            ->assertDontSee('Emerald Signature Cap', false)
+            ->assertDontSee('Premium Black Cap', false);
     }
 }
