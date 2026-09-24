@@ -21,7 +21,7 @@ run_root() {
 }
 
 mapfile -t matches < <(
-    grep -RIlE "server_name[^;]*(www.)?${DOMAIN//./\.}" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null || true
+    grep -RIlF "$DOMAIN" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null || true
 )
 
 if [ "${#matches[@]}" -eq 0 ]; then
