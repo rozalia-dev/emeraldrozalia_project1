@@ -18,23 +18,22 @@
     $errorRows = count($importErrors);
 
     $mappingRows = [
-        ['source' => 'Product Name', 'preview' => 'Emerald Signature Cap', 'target' => 'Product Name', 'type' => 'Text', 'required' => true, 'mapped' => true],
-        ['source' => 'SKU', 'preview' => 'ERCAP-GRN-001', 'target' => 'SKU / Barcode', 'type' => 'Text', 'required' => true, 'mapped' => true],
-        ['source' => 'Category', 'preview' => 'Caps', 'target' => 'Category', 'type' => 'Dropdown', 'required' => true, 'mapped' => true],
-        ['source' => 'Collection', 'preview' => "Men's Collection", 'target' => 'Collection', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
-        ['source' => 'Price (EUR)', 'preview' => '29.90', 'target' => 'Selling Price', 'type' => 'Number', 'required' => true, 'mapped' => true],
-        ['source' => 'Compare Price', 'preview' => '39.90', 'target' => 'Compare At Price', 'type' => 'Number', 'required' => false, 'mapped' => true],
-        ['source' => 'Stock', 'preview' => '245', 'target' => 'Stock Quantity', 'type' => 'Number', 'required' => true, 'mapped' => true],
-        ['source' => 'Description', 'preview' => 'Premium quality cap...', 'target' => 'Short Description', 'type' => 'Text', 'required' => true, 'mapped' => true],
-        ['source' => 'Images', 'preview' => 'cap1.jpg|cap2.jpg|cap3.jpg', 'target' => 'Images', 'type' => 'Text (URLs)', 'required' => false, 'mapped' => true],
-        ['source' => 'Status', 'preview' => 'Published', 'target' => 'Product Status', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
-        ['source' => 'Weight (kg)', 'preview' => '0.25', 'target' => 'Weight', 'type' => 'Number', 'required' => false, 'mapped' => true],
-        ['source' => 'Tags', 'preview' => 'green, premium, signature', 'target' => 'Tags', 'type' => 'Text', 'required' => false, 'mapped' => true],
-        ['source' => 'GTIN', 'preview' => '8901122334457', 'target' => 'GTIN / Barcode', 'type' => 'Text', 'required' => false, 'mapped' => true],
-        ['source' => 'Custom Field 1', 'preview' => 'New Arrival', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
-        ['source' => 'Custom Field 2', 'preview' => 'Summer 2025', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
-    ];
-    $mappingOptions = ['Product Name', 'SKU / Barcode', 'Category', 'Collection', 'Selling Price', 'Compare At Price', 'Stock Quantity', 'Short Description', 'Images', 'Product Status', 'Weight', 'Tags', 'GTIN / Barcode', 'Unmapped'];
+        ['source' => 'Product Name', 'preview' => '—', 'target' => 'Product Name', 'type' => 'Text', 'required' => true, 'mapped' => true],
+        ['source' => 'SKU', 'preview' => '—', 'target' => 'SKU / Barcode', 'type' => 'Text', 'required' => true, 'mapped' => true],
+        ['source' => 'Category', 'preview' => '—', 'target' => 'Category', 'type' => 'Dropdown', 'required' => true, 'mapped' => true],
+        ['source' => 'Collection', 'preview' => '—', 'target' => 'Collection', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
+        ['source' => 'Price (EUR)', 'preview' => '—', 'target' => 'Selling Price', 'type' => 'Number', 'required' => true, 'mapped' => true],
+        ['source' => 'Compare Price', 'preview' => '—', 'target' => 'Compare At Price', 'type' => 'Number', 'required' => false, 'mapped' => true],
+        ['source' => 'Stock', 'preview' => '—', 'target' => 'Stock Quantity', 'type' => 'Number', 'required' => true, 'mapped' => true],
+        ['source' => 'Description', 'preview' => '—', 'target' => 'Short Description', 'type' => 'Text', 'required' => true, 'mapped' => true],
+        ['source' => 'Images', 'preview' => '—', 'target' => 'Images', 'type' => 'Text (ZIP filenames)', 'required' => false, 'mapped' => true],
+        ['source' => 'Status', 'preview' => '—', 'target' => 'Product Status', 'type' => 'Dropdown', 'required' => false, 'mapped' => true],
+        ['source' => 'Weight (kg)', 'preview' => '—', 'target' => 'Weight', 'type' => 'Number', 'required' => false, 'mapped' => true],
+        ['source' => 'Tags', 'preview' => '—', 'target' => 'Tags', 'type' => 'Text', 'required' => false, 'mapped' => true],
+        ['source' => 'GTIN', 'preview' => '—', 'target' => 'GTIN / Barcode', 'type' => 'Text', 'required' => false, 'mapped' => true],
+        ['source' => 'Custom Field 1', 'preview' => '—', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
+        ['source' => 'Custom Field 2', 'preview' => '—', 'target' => 'Unmapped', 'type' => 'Text', 'required' => false, 'mapped' => false],
+    ];    $mappingOptions = ['Product Name', 'SKU / Barcode', 'Category', 'Collection', 'Selling Price', 'Compare At Price', 'Stock Quantity', 'Short Description', 'Images', 'Product Status', 'Weight', 'Tags', 'GTIN / Barcode', 'Unmapped'];
     $previewRows = [];
     $categoryMapTotal = 10;
     $categoryMapMapped = 8;
