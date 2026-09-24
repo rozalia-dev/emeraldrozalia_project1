@@ -199,6 +199,12 @@ class AddProductController extends Controller
             'available_for_sale' => ['nullable', 'boolean'],
             'featured' => ['nullable', 'boolean'],
             'is_new_arrival' => ['nullable', 'boolean'],
+            'shop_category_ids' => ['nullable', 'array'],
+            'shop_category_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->whereNull('parent_id')),
+            ],
             'collection_ids_present' => ['nullable', 'boolean'],
             'collection_ids' => ['nullable', 'array'],
             'collection_ids.*' => ['integer', 'distinct'],
@@ -216,6 +222,7 @@ class AddProductController extends Controller
         }
         validator(['slug' => $slug], ['slug' => ['required', 'string', 'max:180', $slugRule]])->validate();
         $data['slug'] = $slug;
+        $data['shop_category_ids'] = array_values(array_unique(array_map('intval', $data['shop_category_ids'] ?? [])));
         $data['collection_ids'] = array_values(array_map('intval', $data['collection_ids'] ?? []));
 
         if (! empty($data['category_root_id'])) {
@@ -334,6 +341,7 @@ class AddProductController extends Controller
                     'catalog_club_id' => isset($data['catalog_club_id']) ? (int) $data['catalog_club_id'] : null,
                     'style' => $data['catalog_style'] ?? null,
                 ],
+                'shop_category_ids' => array_values($data['shop_category_ids'] ?? []),
                 'dimensions' => ['length' => $data['length'] ?? null, 'width' => $data['width'] ?? null, 'height' => $data['height'] ?? null],
                 'channels' => array_values($data['channels'] ?? []),
                 'order_categories' => array_values($data['order_categories'] ?? []),

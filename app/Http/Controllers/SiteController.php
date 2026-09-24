@@ -427,14 +427,27 @@ class SiteController extends Controller
 
         if ($selectedCategories) {
             $selectedCategoryIds = [];
+            $selectedRootPlacementIds = [];
             foreach ($selectedCategories as $slug) {
                 $category = $categoriesBySlug->get($slug);
                 if (! $category) {
                     throw ValidationException::withMessages(['category' => 'One or more selected categories are unavailable.']);
                 }
                 $selectedCategoryIds = array_merge($selectedCategoryIds, $this->catalogDescendantIds($category, $childrenByParent));
+                if ($category->parent_id === null) {
+                    $selectedRootPlacementIds[] = (int) $category->id;
+                }
             }
-            $query->whereIn('category_id', array_values(array_unique($selectedCategoryIds)));
+
+            $selectedCategoryIds = array_values(array_unique($selectedCategoryIds));
+            $selectedRootPlacementIds = array_values(array_unique($selectedRootPlacementIds));
+
+            $query->where(function ($categoryQuery) use ($selectedCategoryIds, $selectedRootPlacementIds): void {
+                $categoryQuery->whereIn('category_id', $selectedCategoryIds);
+                foreach ($selectedRootPlacementIds as $rootCategoryId) {
+                    $categoryQuery->orWhereJsonContains('product_metadata->shop_category_ids', $rootCategoryId);
+                }
+            });
         }
 
         if ($selectedCountryModel) {

@@ -30,11 +30,30 @@
     $publishedWebsite = filter_var(old('published_website', $productMeta['published_website'] ?? false), FILTER_VALIDATE_BOOLEAN);
     $availableForSale = filter_var(old('available_for_sale', $productMeta['available_for_sale'] ?? false), FILTER_VALIDATE_BOOLEAN);
     $newArrival = filter_var(old('is_new_arrival', $product?->is_new ?? old('featured', false)), FILTER_VALIDATE_BOOLEAN);
+    $selectedShopCategoryIds = collect(old(
+        'shop_category_ids',
+        $productMeta['shop_category_ids'] ?? ($selectedRootId ? [(int) $selectedRootId] : [])
+    ))
+        ->map(static fn ($id): string => (string) $id)
+        ->all();
     $selectedCollectionIds = collect(old('collection_ids', $product?->collections?->pluck('id')->all() ?? []))
         ->map(static fn ($id): string => (string) $id)
         ->all();
     $placementCollections = $collections->reject(static fn ($collection): bool => $collection->slug === 'new-arrivals')->values();
 @endphp
+
+@push('styles')
+<style>
+.ap-multi-select{position:relative;margin-top:10px}
+.ap-multi-select>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:9px 11px;border:1px solid #cfd9d2;border-radius:7px;background:#fff;color:#244333;font-weight:700;cursor:pointer;list-style:none}
+.ap-multi-select>summary::-webkit-details-marker{display:none}
+.ap-multi-select[open]>summary{border-color:#0b7139;box-shadow:0 0 0 2px rgba(11,113,57,.08)}
+.ap-multi-select-menu{position:absolute;z-index:30;top:calc(100% + 5px);left:0;right:0;max-height:260px;overflow:auto;padding:6px;border:1px solid #cfd9d2;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(20,55,35,.14)}
+.ap-multi-select-menu label{display:flex;align-items:center;gap:9px;padding:8px;border-radius:6px;cursor:pointer}
+.ap-multi-select-menu label:hover{background:#f2f8f4}
+.ap-multi-select-menu input{width:16px;height:16px;accent-color:#0b7139}
+</style>
+@endpush
 
 @section('content')
 <div class="ap-page">
@@ -355,19 +374,36 @@
 
                     <fieldset class="ap-placement-collections ap-placement-category">
                         <legend>Shop by Category</legend>
-                        <small class="ap-field-help">This product is placed automatically under the selected Main Category and Subcategory.</small>
-                        <div class="ap-checklist">
-                            <label>
-                                <input type="checkbox" checked disabled>
-                                <span>
-                                    <x-icon name="check" size="13" />
-                                    <span>
-                                        <strong data-shop-category-main>Select a main category</strong>
-                                        <small data-shop-category-sub>Select a subcategory above. Public category placement follows this classification automatically.</small>
-                                    </span>
+                        <small class="ap-field-help">Choose one or more public main categories where this product should appear. The product's primary classification above remains unchanged.</small>
+                        <details class="ap-multi-select" data-shop-category-dropdown>
+                            <summary>
+                                <span data-shop-category-summary>
+                                    {{ count($selectedShopCategoryIds) ? count($selectedShopCategoryIds).' selected' : 'Select categories' }}
                                 </span>
-                            </label>
-                        </div>
+                                <x-icon name="chevron-down" size="13" />
+                            </summary>
+                            <div class="ap-multi-select-menu">
+                                @foreach($categoryRoots as $root)
+                                    <label>
+                                        <input type="checkbox"
+                                            name="shop_category_ids[]"
+                                            value="{{ $root->id }}"
+                                            @checked(in_array((string) $root->id, $selectedShopCategoryIds, true))
+                                            data-shop-category-option>
+                                        <span>{{ $root->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </details>
+                        <small class="ap-field-help" data-shop-category-path>
+                            Primary classification: select Main Category and Subcategory above.
+                        </small>
+                        @error('shop_category_ids')<small class="ap-field-error">{{ $message }}</small>@enderror
+                        @foreach($errors->getMessages() as $field => $messages)
+                            @if(str_starts_with($field, 'shop_category_ids.'))
+                                <small class="ap-field-error">{{ $messages[0] }}</small>
+                            @endif
+                        @endforeach
                     </fieldset>
 
                     <fieldset class="ap-placement-collections">
@@ -446,8 +482,9 @@
     const initialSubcategory = @json((string) $selectedCategoryId);
     const hsCode = document.querySelector('[data-auto-hs-code]');
     const placementCollections = Array.from(document.querySelectorAll('[data-placement-collection]'));
-    const shopCategoryMain = document.querySelector('[data-shop-category-main]');
-    const shopCategorySub = document.querySelector('[data-shop-category-sub]');
+    const shopCategorySummary = document.querySelector('[data-shop-category-summary]');
+    const shopCategoryPath = document.querySelector('[data-shop-category-path]');
+    const shopCategoryOptions = Array.from(document.querySelectorAll('[data-shop-category-option]'));
     const collectionCategoryHint = document.querySelector('[data-collection-category-hint]');
     let hsCodeManuallyEdited = Boolean(hsCode?.value.trim());
     const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
@@ -456,11 +493,19 @@
     const syncCategoryPlacement = () => {
         const mainLabel = category?.selectedOptions[0]?.textContent?.trim() || 'Select a main category';
         const subLabel = subcategory?.selectedOptions[0]?.textContent?.trim() || 'Select a subcategory';
-        if (shopCategoryMain) shopCategoryMain.textContent = mainLabel;
-        if (shopCategorySub) {
-            shopCategorySub.textContent = category?.value && subcategory?.value
-                ? 'Public placement: ' + mainLabel + ' → ' + subLabel
-                : 'Select the Main Category and Subcategory above.';
+        if (shopCategoryPath) {
+            shopCategoryPath.textContent = category?.value && subcategory?.value
+                ? 'Primary classification: ' + mainLabel + ' → ' + subLabel
+                : 'Primary classification: select Main Category and Subcategory above.';
+        }
+
+        const checked = shopCategoryOptions.filter(option => option.checked);
+        if (shopCategorySummary) {
+            shopCategorySummary.textContent = checked.length === 0
+                ? 'Select categories'
+                : checked.length === 1
+                    ? checked[0].closest('label')?.innerText?.trim() || '1 selected'
+                    : checked.length + ' categories selected';
         }
     };
 
@@ -660,6 +705,7 @@
         syncHsCode();
         syncCategoryPlacement();
     });
+    shopCategoryOptions.forEach(option => option.addEventListener('change', syncCategoryPlacement));
 
     syncSubcategories();
     syncCategoryPlacement();
