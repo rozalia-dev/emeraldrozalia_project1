@@ -33,8 +33,12 @@ class ProductDeletionWorkflowTest extends TestCase
             ->assertSee('data-product-delete-actions', false)
             ->assertSee('pm-action-menu-portal', false)
             ->assertSee('Delete product')
-            ->assertSee('Delete Selected')
-            ->assertSee('Delete All Products')
+            ->assertSee('Edit')
+            ->assertSee('Delete')
+            ->assertSee('Delete All')
+            ->assertSee('data-edit-selected', false)
+            ->assertSee('data-delete-selected', false)
+            ->assertSee('data-delete-all', false)
             ->assertSee('Delete Workflow Cap')
             ->assertDontSee('pm-delete-product', false);
 
