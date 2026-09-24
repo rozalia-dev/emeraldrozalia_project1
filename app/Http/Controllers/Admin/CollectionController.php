@@ -45,6 +45,7 @@ class CollectionController extends Controller
         $type = (string) $request->query('type', '');
         $status = (string) $request->query('status', '');
         $season = trim((string) $request->query('season', ''));
+        $mainCategoryId = (int) $request->query('main_category_id', 0);
         $perPage = in_array((int) $request->query('per_page', 10), [10, 25, 50], true)
             ? (int) $request->query('per_page', 10)
             : 10;
@@ -90,7 +91,7 @@ class CollectionController extends Controller
 
         return view('admin.collections.index', compact(
             'collections', 'selectedCollection', 'metrics', 'typeBreakdown', 'tabs', 'tab',
-            'search', 'type', 'status', 'season', 'seasons', 'products', 'categories',
+            'search', 'type', 'status', 'season', 'mainCategoryId', 'seasons', 'products', 'categories',
             'reorderCollections', 'perPage'
         ) + [
             'collectionTypes' => self::TYPES,
@@ -516,6 +517,11 @@ class CollectionController extends Controller
         $type = (string) $request->query('type', '');
         $status = (string) $request->query('status', '');
         $season = trim((string) $request->query('season', ''));
+        $mainCategoryId = (int) $request->query('main_category_id', 0);
+
+        if ($mainCategoryId > 0) {
+            $query->where('main_category_id', $mainCategoryId);
+        }
 
         if ($search !== '') {
             $query->where(fn ($collections) => $collections
