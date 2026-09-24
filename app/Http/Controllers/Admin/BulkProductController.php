@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\BulkProductImporter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,6 +16,30 @@ class BulkProductController extends Controller
     public function index()
     {
         return view('admin.bulk-upload');
+    }
+
+    public function preview(Request $request, BulkProductImporter $importer): JsonResponse
+    {
+        $data = $request->validate([
+            'file' => ['bail', 'required', 'file', 'mimes:csv,xlsx,xls', 'max:25600'],
+        ]);
+
+        $path = $data['file']->getRealPath();
+        if ($path === false) {
+            return response()->json(['message' => 'The uploaded product file is no longer available.'], 422);
+        }
+
+        try {
+            return response()->json(
+                $importer->preview($path, $data['file']->getClientOriginalExtension(), 5)
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'The product file could not be previewed. Check that it is a readable CSV, XLS, or XLSX file.',
+            ], 422);
+        }
     }
 
     public function store(Request $request, BulkProductImporter $importer): RedirectResponse
