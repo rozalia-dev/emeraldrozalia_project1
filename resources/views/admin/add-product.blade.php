@@ -383,7 +383,7 @@
                                 <x-icon name="chevron-down" size="13" />
                             </summary>
                             <div class="ap-multi-select-menu">
-                                @foreach($categoryRoots as $root)
+                                @foreach($publicCategoryRoots as $root)
                                     <label>
                                         <input type="checkbox"
                                             name="shop_category_ids[]"
@@ -479,18 +479,13 @@
     const initialClub = @json((string) $selectedClubId);
     const initialSubcategory = @json((string) $selectedCategoryId);
     const hsCode = document.querySelector('[data-auto-hs-code]');
-    const placementCollections = Array.from(document.querySelectorAll('[data-placement-collection]'));
     const shopCategoryDropdown = document.querySelector('[data-shop-category-dropdown]');
     const shopCategorySummary = document.querySelector('[data-shop-category-summary]');
     const shopCategoryPath = document.querySelector('[data-shop-category-path]');
     const shopCategoryOptions = Array.from(document.querySelectorAll('[data-shop-category-option]'));
-    const collectionCategoryDropdown = document.querySelector('[data-collection-category-dropdown]');
-    const collectionCategorySummary = document.querySelector('[data-collection-category-summary]');
-    const collectionCategoryOptions = Array.from(document.querySelectorAll('[data-collection-category-option]'));
     const collectionDropdown = document.querySelector('[data-collection-dropdown]');
     const collectionSummary = document.querySelector('[data-collection-summary]');
     const collectionOptions = Array.from(document.querySelectorAll('[data-collection-option]'));
-    const collectionCategoryHint = document.querySelector('[data-collection-category-hint]');
     let hsCodeManuallyEdited = Boolean(hsCode?.value.trim());
     const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
     let clubRequestSerial = 0;
@@ -514,59 +509,14 @@
         }
     };
 
-    const syncCollectionCategories = () => {
-        const checked = collectionCategoryOptions.filter(option => option.checked);
-        if (collectionCategorySummary) {
-            collectionCategorySummary.textContent = checked.length === 0
-                ? 'Select categories'
-                : checked.length === 1
-                    ? checked[0].closest('label')?.innerText?.trim() || '1 selected'
-                    : checked.length + ' categories selected';
-        }
-    };
-
     const syncCollections = () => {
-        const selectedCategoryIds = collectionCategoryOptions
-            .filter(option => option.checked)
-            .map(option => String(option.value));
-        let visibleCount = 0;
-
-        placementCollections.forEach(label => {
-            const mainCategory = String(label.dataset.mainCategory || '');
-            const visible = selectedCategoryIds.length > 0
-                && (mainCategory === '' || selectedCategoryIds.includes(mainCategory));
-            if (visible) visibleCount++;
-            label.hidden = !visible;
-
-            const checkbox = label.querySelector('input[type="checkbox"]');
-            if (!checkbox) return;
-            checkbox.disabled = !visible;
-            if (!visible) checkbox.checked = false;
-        });
-
-        const checkedCollections = collectionOptions.filter(option => option.checked && !option.disabled);
+        const checkedCollections = collectionOptions.filter(option => option.checked);
         if (collectionSummary) {
             collectionSummary.textContent = checkedCollections.length === 0
                 ? 'Select collections'
                 : checkedCollections.length === 1
                     ? checkedCollections[0].closest('label')?.innerText?.trim() || '1 collection selected'
                     : checkedCollections.length + ' collections selected';
-        }
-
-        if (collectionDropdown) {
-            collectionDropdown.hidden = selectedCategoryIds.length === 0 || visibleCount === 0;
-        }
-
-        if (collectionCategoryHint) {
-            if (selectedCategoryIds.length === 0) {
-                collectionCategoryHint.hidden = false;
-                collectionCategoryHint.textContent = 'Select one or more categories to see matching collections.';
-            } else if (visibleCount === 0) {
-                collectionCategoryHint.hidden = false;
-                collectionCategoryHint.textContent = 'No collections are assigned to the selected categories yet.';
-            } else {
-                collectionCategoryHint.hidden = true;
-            }
         }
     };
 
@@ -756,16 +706,6 @@
         });
     });
 
-    collectionCategoryOptions.forEach(option => {
-        option.addEventListener('click', event => {
-            event.stopPropagation();
-        });
-        option.addEventListener('change', () => {
-            syncCollectionCategories();
-            syncCollections();
-            closePlacementDropdown(collectionCategoryDropdown);
-        });
-    });
 
     collectionOptions.forEach(option => {
         option.addEventListener('click', event => {
@@ -778,7 +718,7 @@
     });
 
     document.addEventListener('click', event => {
-        [shopCategoryDropdown, collectionCategoryDropdown, collectionDropdown].forEach(dropdown => {
+        [shopCategoryDropdown, collectionDropdown].forEach(dropdown => {
             if (dropdown?.open && !dropdown.contains(event.target)) {
                 dropdown.open = false;
             }
@@ -787,14 +727,13 @@
 
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
-        [shopCategoryDropdown, collectionCategoryDropdown, collectionDropdown].forEach(dropdown => {
+        [shopCategoryDropdown, collectionDropdown].forEach(dropdown => {
             if (dropdown) dropdown.open = false;
         });
     });
 
     syncSubcategories();
     syncCategoryPlacement();
-    syncCollectionCategories();
     syncCollections();
     syncCounties(true);
     void syncClubs(true);
