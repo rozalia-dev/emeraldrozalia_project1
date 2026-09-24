@@ -14,8 +14,7 @@ return new class extends Migration
                 ->nullable()
                 ->after('company_id')
                 ->constrained('categories')
-                ->nullOnDelete()
-                ->index();
+                ->nullOnDelete();
         });
 
         $heritageCategoryId = DB::table('categories')
