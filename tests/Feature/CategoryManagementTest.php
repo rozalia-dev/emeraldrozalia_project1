@@ -61,6 +61,33 @@ class CategoryManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'category.created', 'subject_id' => $child->id]);
     }
 
+    public function test_traditional_and_gift_for_her_render_as_visible_main_categories(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        foreach ([
+            ['name' => 'Traditional', 'slug' => 'traditional', 'sort_order' => 1, 'icon' => 'hat'],
+            ['name' => 'Gift for Her', 'slug' => 'gift', 'sort_order' => 7, 'icon' => 'gift'],
+        ] as $definition) {
+            Category::create([
+                ...$definition,
+                'parent_id' => null,
+                'status' => 'active',
+                'is_active' => true,
+                'is_visible' => true,
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.index', ['all' => 1, 'tree' => 'expanded']))
+            ->assertOk()
+            ->assertSeeText('Traditional')
+            ->assertSeeText('Gift for Her');
+
+        $this->get('/category/traditional')->assertOk();
+        $this->get('/category/gift')->assertOk();
+    }
+
     public function test_category_icon_must_use_the_approved_generic_icon_catalogue(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
