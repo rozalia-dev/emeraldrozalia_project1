@@ -353,13 +353,30 @@
                     </label>
                     <small class="ap-field-help ap-placement-help">Also controls the New Arrivals page and homepage New Arrivals products section.</small>
 
+                    <fieldset class="ap-placement-collections ap-placement-category">
+                        <legend>Shop by Category</legend>
+                        <small class="ap-field-help">This product is placed automatically under the selected Main Category and Subcategory.</small>
+                        <div class="ap-checklist">
+                            <label>
+                                <input type="checkbox" checked disabled>
+                                <span>
+                                    <x-icon name="check" size="13" />
+                                    <span>
+                                        <strong data-shop-category-main>Select a main category</strong>
+                                        <small data-shop-category-sub>Select a subcategory above. Public category placement follows this classification automatically.</small>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
+
                     <fieldset class="ap-placement-collections">
                         <legend>Shop by Collection</legend>
-                        <small class="ap-field-help">Select a collection to add this product to its public collection page. Best Sellers also feeds the homepage Bestsellers section.</small>
+                        <small class="ap-field-help">Collections are filtered by the selected main category. Collections marked for all main categories remain available everywhere.</small>
                         <input type="hidden" name="collection_ids_present" value="1">
                         <div class="ap-checklist">
                             @forelse($placementCollections as $collection)
-                                <label>
+                                <label data-placement-collection data-main-category="{{ $collection->main_category_id ?: '' }}">
                                     <input type="checkbox" name="collection_ids[]" value="{{ $collection->id }}" @checked(in_array((string) $collection->id, $selectedCollectionIds, true))>
                                     <span>
                                         <x-icon name="check" size="13" />
@@ -427,9 +444,37 @@
     const initialClub = @json((string) $selectedClubId);
     const initialSubcategory = @json((string) $selectedCategoryId);
     const hsCode = document.querySelector('[data-auto-hs-code]');
+    const placementCollections = Array.from(document.querySelectorAll('[data-placement-collection]'));
+    const shopCategoryMain = document.querySelector('[data-shop-category-main]');
+    const shopCategorySub = document.querySelector('[data-shop-category-sub]');
     let hsCodeManuallyEdited = Boolean(hsCode?.value.trim());
     const clubOptionsUrl = root.dataset.clubOptionsUrl || '';
     let clubRequestSerial = 0;
+
+    const syncCategoryPlacement = () => {
+        const mainLabel = category?.selectedOptions[0]?.textContent?.trim() || 'Select a main category';
+        const subLabel = subcategory?.selectedOptions[0]?.textContent?.trim() || 'Select a subcategory';
+        if (shopCategoryMain) shopCategoryMain.textContent = mainLabel;
+        if (shopCategorySub) {
+            shopCategorySub.textContent = category?.value && subcategory?.value
+                ? 'Public placement: ' + mainLabel + ' → ' + subLabel
+                : 'Select the Main Category and Subcategory above.';
+        }
+    };
+
+    const syncCollections = () => {
+        const selectedRoot = String(category?.value || '');
+        placementCollections.forEach(label => {
+            const mainCategory = String(label.dataset.mainCategory || '');
+            const visible = mainCategory === '' || (selectedRoot !== '' && mainCategory === selectedRoot);
+            label.hidden = !visible;
+
+            const checkbox = label.querySelector('input[type="checkbox"]');
+            if (!checkbox) return;
+            checkbox.disabled = !visible;
+            if (!visible) checkbox.checked = false;
+        });
+    };
 
     const syncSubcategories = () => {
         const selectedRoot = category?.value || '';
@@ -455,6 +500,8 @@
             subcategory.options[0].textContent = selectedRoot ? 'Select subcategory' : 'Select category first';
         }
         syncHsCode();
+        syncCategoryPlacement();
+        syncCollections();
     };
 
     const syncHsCode = () => {
@@ -593,9 +640,14 @@
         void syncClubs(false);
     });
     county?.addEventListener('change', () => void syncClubs(false));
-    subcategory?.addEventListener('change', syncHsCode);
+    subcategory?.addEventListener('change', () => {
+        syncHsCode();
+        syncCategoryPlacement();
+    });
 
     syncSubcategories();
+    syncCategoryPlacement();
+    syncCollections();
     syncCounties(true);
     void syncClubs(true);
 })();
