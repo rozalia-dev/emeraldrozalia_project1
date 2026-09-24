@@ -207,7 +207,7 @@
     const collectionForm = byId('collection-form');
     const collectionMethod = byId('collection-form-method');
     const collectionBase = @json(url('/admin/resource/collections'));
-    const fields = ['name','slug','type','season','description','image','status','visibility','sort_order','meta_title','meta_description','meta_image'];
+    const fields = ['name','slug','main_category_id','type','season','description','image','status','visibility','sort_order','meta_title','meta_description','meta_image'];
     const toast = message => { let el = document.querySelector('.collection-toast'); if (!el) { el = document.createElement('div'); el.className = 'collection-toast'; document.body.appendChild(el); } el.textContent = message; el.classList.add('is-visible'); window.setTimeout(() => el.classList.remove('is-visible'), 2800); };
     const openDialog = dialog => { if (!dialog) return; if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open',''); };
     const closeDialogs = () => dialogs.forEach(dialog => { if (dialog.open && dialog.close) dialog.close(); else dialog.removeAttribute('open'); });
