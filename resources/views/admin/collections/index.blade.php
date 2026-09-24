@@ -46,6 +46,7 @@
         'type' => $type,
         'status' => $status,
         'season' => $season,
+        'main_category_id' => $mainCategoryId ?: null,
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 
@@ -83,6 +84,7 @@
                 <form class="collections-filter-form" method="get" action="{{ route('admin.collections.index') }}" id="collection-filter-form">
                     <label class="collections-search"><x-icon name="search" size="15" /><input name="q" value="{{ $search }}" type="search" placeholder="Search collections..." aria-label="Search collections"><button type="submit" aria-label="Search"><x-icon name="arrow-right" size="13" /></button></label>
                     <details class="collections-filter-menu"><summary><x-icon name="filter" size="14" /> Filters <x-icon name="chevron-right" size="11" /></summary><div class="collection-filter-help"><span>Use the type, status and season controls beside this button. Filters are combined with search and tabs.</span><a href="{{ route('admin.collections.index') }}">Reset all filters</a></div></details>
+                    <select class="collections-quick-select" name="main_category_id" aria-label="Filter by main category" data-auto-filter><option value="">All Main Categories</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected($mainCategoryId === $category->id)>{{ $category->name }}</option>@endforeach</select>
                     <select class="collections-quick-select" name="type" aria-label="Filter by type" data-auto-filter><option value="">All Types</option>@foreach($collectionTypes as $option)<option value="{{ $option }}" @selected($type === $option)>{{ $typeLabels[$option] }}</option>@endforeach</select>
                     <select class="collections-quick-select" name="status" aria-label="Filter by status" data-auto-filter><option value="">All Statuses</option>@foreach($collectionStatuses as $option)<option value="{{ $option }}" @selected($status === $option)>{{ str($option)->headline() }}</option>@endforeach</select>
                     <select class="collections-quick-select" name="season" aria-label="Filter by season" data-auto-filter><option value="">All Seasons</option>@foreach($seasons as $option)<option value="{{ $option }}" @selected($season === $option)>{{ $option }}</option>@endforeach</select>
@@ -96,7 +98,7 @@
 
             <nav class="collections-tabs" aria-label="Collection views">
                 @foreach($tabs as $tabKey => $tabLabel)
-                    <a class="{{ $tab === $tabKey ? 'is-active' : '' }}" href="{{ route('admin.collections.index', array_filter(['tab' => $tabKey, 'q' => $search, 'type' => $type, 'status' => $status, 'season' => $season, 'per_page' => $perPage])) }}">{{ $tabLabel }}</a>
+                    <a class="{{ $tab === $tabKey ? 'is-active' : '' }}" href="{{ route('admin.collections.index', array_filter(['tab' => $tabKey, 'q' => $search, 'type' => $type, 'status' => $status, 'season' => $season, 'main_category_id' => $mainCategoryId ?: null, 'per_page' => $perPage])) }}">{{ $tabLabel }}</a>
                 @endforeach
             </nav>
 
@@ -108,7 +110,7 @@
                         @php $payload = $collectionPayload($collection); $thumb = $imageUrl($collection->image); @endphp
                         <tr class="{{ $selectedCollection?->id === $collection->id ? 'is-selected' : '' }}" data-collection-row>
                             <td><input type="checkbox" value="{{ $collection->id }}" data-collection-check aria-label="Select {{ $collection->name }}"></td>
-                            <td><a class="collection-name-cell" href="{{ route('admin.collections.index', array_filter(['selected' => $collection->id, 'tab' => $tab, 'q' => $search, 'type' => $type, 'status' => $status, 'season' => $season, 'per_page' => $perPage])) }}"><span class="collection-thumb collection-thumb--{{ $typeTones[$collection->type] ?? 'green' }}">@if($thumb)<img src="{{ $thumb }}" alt="">@else<x-icon name="package" size="22" />@endif</span><span><strong>{{ $collection->name }}</strong><small>{{ $collection->slug }}</small></span></a></td>
+                            <td><a class="collection-name-cell" href="{{ route('admin.collections.index', array_filter(['selected' => $collection->id, 'tab' => $tab, 'q' => $search, 'type' => $type, 'status' => $status, 'season' => $season, 'main_category_id' => $mainCategoryId ?: null, 'per_page' => $perPage])) }}"><span class="collection-thumb collection-thumb--{{ $typeTones[$collection->type] ?? 'green' }}">@if($thumb)<img src="{{ $thumb }}" alt="">@else<x-icon name="package" size="22" />@endif</span><span><strong>{{ $collection->name }}</strong><small>{{ $collection->slug }}</small></span></a></td>
                             <td>{{ $collection->mainCategory?->name ?: 'All Main Categories' }}</td>
                             <td><span class="collection-type-badge collection-type-badge--{{ $typeTones[$collection->type] ?? 'green' }}">{{ $typeLabels[$collection->type] ?? str($collection->type)->headline() }}</span></td>
                             <td>{{ $collection->season ?: 'All Season' }}</td>
@@ -128,7 +130,7 @@
                 <span>Showing {{ $collections->firstItem() ?: 0 }} to {{ $collections->lastItem() ?: 0 }} of {{ number_format($collections->total()) }} collections</span>
                 <div class="collections-pagination">{{ $collections->onEachSide(1)->links() }}</div>
                 <form method="get" action="{{ route('admin.collections.index') }}" class="collection-per-page-form">
-                    @foreach(['tab'=>$tab,'q'=>$search,'type'=>$type,'status'=>$status,'season'=>$season] as $key=>$value)@if($value !== '')<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach
+                    @foreach(['tab'=>$tab,'q'=>$search,'type'=>$type,'status'=>$status,'season'=>$season,'main_category_id'=>$mainCategoryId ?: null] as $key=>$value)@if($value !== '')<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach
                     <select name="per_page" onchange="this.form.submit()"><option value="10" @selected($perPage===10)>10 / page</option><option value="25" @selected($perPage===25)>25 / page</option><option value="50" @selected($perPage===50)>50 / page</option></select>
                 </form>
             </footer>
