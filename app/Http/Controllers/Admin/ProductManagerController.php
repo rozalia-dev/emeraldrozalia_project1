@@ -167,21 +167,34 @@ class ProductManagerController extends Controller
         $validated = $request->validate([
             'products' => ['required', 'array', 'min:1', 'max:500'],
             'products.*' => ['required', 'integer', 'distinct'],
-            'action' => ['required', 'in:publish,unpublish'],
+            'action' => ['required', 'in:approve,publish,unpublish'],
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $validated['products'])));
         $records = Product::query()->whereKey($ids)->orderBy('id')->get();
         abort_unless($records->count() === count($ids), 404);
 
-        $published = $validated['action'] === 'publish';
+        $action = $validated['action'];
         foreach ($records as $record) {
             abort_unless($request->user()?->can('update', $record), 403);
 
             $before = $record->toArray();
             $metadata = is_array($record->product_metadata) ? $record->product_metadata : [];
+            if ($action === 'approve') {
+                $metadata['approval_status'] = 'approved';
+                $metadata['approved_at'] = now()->toISOString();
+                $metadata['approved_by'] = $request->user()?->id;
+                $record->forceFill(['product_metadata' => $metadata])->save();
+                AuditTrail::record('product.approved', $record, $before, $record->fresh()->toArray());
+                continue;
+            }
+
+            $published = $action === 'publish';
             $metadata['published_website'] = $published;
             if ($published) {
+                $metadata['approval_status'] = 'approved';
+                $metadata['approved_at'] ??= now()->toISOString();
+                $metadata['approved_by'] ??= $request->user()?->id;
                 $metadata['available_for_sale'] = true;
             }
 
@@ -201,10 +214,13 @@ class ProductManagerController extends Controller
         }
 
         $count = $records->count();
-        $label = $published ? 'published for public website' : 'removed from public website';
+        $label = match ($action) {
+            'approve' => 'approved',
+            'publish' => 'published for public website',
+            default => 'removed from public website',
+        };
 
-        return redirect()
-            ->route('admin.product-manager.index')
+        return $this->redirectAfterProductAction($request)
             ->with('success', $count.' product'.($count === 1 ? '' : 's').' '.$label.'.');
     }
 
@@ -214,13 +230,28 @@ class ProductManagerController extends Controller
         abort_unless($request->user()?->can('update', $record), 403);
 
         $action = (string) $request->input('action', 'publish');
-        abort_unless(in_array($action, ['publish', 'unpublish'], true), 422, 'Invalid publishing action.');
+        abort_unless(in_array($action, ['approve', 'publish', 'unpublish'], true), 422, 'Invalid publishing action.');
 
-        $published = $action === 'publish';
         $before = $record->toArray();
         $metadata = is_array($record->product_metadata) ? $record->product_metadata : [];
+
+        if ($action === 'approve') {
+            $metadata['approval_status'] = 'approved';
+            $metadata['approved_at'] = now()->toISOString();
+            $metadata['approved_by'] = $request->user()?->id;
+            $record->forceFill(['product_metadata' => $metadata])->save();
+            AuditTrail::record('product.approved', $record, $before, $record->fresh()->toArray());
+
+            return $this->redirectAfterProductAction($request)
+                ->with('success', $record->name.' approved.');
+        }
+
+        $published = $action === 'publish';
         $metadata['published_website'] = $published;
         if ($published) {
+            $metadata['approval_status'] = 'approved';
+            $metadata['approved_at'] ??= now()->toISOString();
+            $metadata['approved_by'] ??= $request->user()?->id;
             $metadata['available_for_sale'] = true;
         }
 
@@ -238,8 +269,7 @@ class ProductManagerController extends Controller
             $record->fresh()->toArray(),
         );
 
-        return redirect()
-            ->route('admin.product-manager.index')
+        return $this->redirectAfterProductAction($request)
             ->with('success', $record->name.($published ? ' published for public website.' : ' removed from public website.'));
     }
 
@@ -286,8 +316,7 @@ class ProductManagerController extends Controller
                 ->with('warning', 'No products were available to delete.');
         }
 
-        return redirect()
-            ->route('admin.resource', ['module' => 'product-manager'])
+        return $this->redirectAfterProductAction($request)
             ->with('success', $deleted.' product'.($deleted === 1 ? '' : 's').' moved to Trash.');
     }
 
@@ -304,8 +333,7 @@ class ProductManagerController extends Controller
         $after['deleted_at'] = $record->deleted_at?->toISOString();
         AuditTrail::record('product.trashed', $record, $before, $after);
 
-        return redirect()
-            ->route('admin.resource', ['module' => 'product-manager'])
+        return $this->redirectAfterProductAction($request)
             ->with('success', $name.' moved to Trash.');
     }
 
@@ -337,6 +365,16 @@ class ProductManagerController extends Controller
         return redirect()
             ->route('admin.resource', ['module' => 'product-manager', 'tab' => 'trash'])
             ->with('success', $name.' permanently deleted.');
+    }
+
+    private function redirectAfterProductAction(Request $request): RedirectResponse
+    {
+        $categoryId = (int) $request->input('return_category_id', 0);
+        if ($categoryId > 0 && Category::query()->whereKey($categoryId)->exists()) {
+            return redirect()->route('admin.categories.products', ['category' => $categoryId]);
+        }
+
+        return redirect()->route('admin.product-manager.index');
     }
 
     private function authorizeDeletion(Request $request): void
