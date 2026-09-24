@@ -79,7 +79,7 @@
                         $approved = data_get($metadata, 'approval_status') === 'approved';
                         $published = $product->isPubliclyPublished();
                         $imageUrl = $product->image;
-                        if($imageUrl && !preg_match('#^(https?:)?/#',$imageUrl)) $imageUrl = IlluminateSupportFacadesStorage::url($imageUrl);
+                        if($imageUrl && !preg_match('#^(https?:)?/#',$imageUrl)) $imageUrl = \Illuminate\Support\Facades\Storage::url($imageUrl);
                     @endphp
                     <tr>
                         <td><input type="checkbox" value="{{ $product->id }}" data-cpm-select aria-label="Select {{ $product->name }}"></td>
