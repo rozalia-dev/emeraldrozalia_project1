@@ -6,7 +6,7 @@
     $isEditing = isset($product) && $product;
     $productMeta = $product?->product_metadata ?? [];
     $classification = is_array($productMeta['catalog_classification'] ?? null) ? $productMeta['catalog_classification'] : [];
-    $selectedCategoryId = old('category_id', $product?->category_id);
+    $selectedCategoryId = old('category_id', $product?->category_id ?? request()->integer('category_id'));
     $categoryById = $categories->keyBy('id');
     $selectedRootId = old('category_root_id', $classification['category_root_id'] ?? null);
     if (! $selectedRootId && $selectedCategoryId && $categoryById->has((int) $selectedCategoryId)) {

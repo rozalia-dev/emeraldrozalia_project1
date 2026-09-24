@@ -31,6 +31,7 @@ Route::prefix('admin/resource/categories')
         Route::patch('/clubs/{club}', [CatalogTaxonomyController::class, 'updateClub'])->name('clubs.update');
         Route::delete('/clubs/{club}', [CatalogTaxonomyController::class, 'destroyClub'])->name('clubs.destroy');
 
+        Route::get('/{category}/products', [CategoryController::class, 'products'])->name('products');
         Route::post('/{category}/visibility', [CategoryController::class, 'toggleVisibility'])->name('visibility');
         Route::get('/{category}/audit', [CategoryController::class, 'audit'])->name('audit');
         Route::patch('/{category}', [CategoryController::class, 'update'])->name('update');
