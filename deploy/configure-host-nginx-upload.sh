@@ -30,6 +30,7 @@ if [ "${#matches[@]}" -eq 0 ]; then
 fi
 
 declare -A seen=()
+declare -A backups=()
 updated=0
 
 for match in "${matches[@]}"; do
@@ -127,14 +128,24 @@ if not changed:
 Path(dst).write_text("".join(out))
 PY
 
+    if cmp -s "$target" "$tmp"; then
+        rm -f "$tmp"
+        continue
+    fi
+
     run_root cp -a "$target" "$backup"
+    backups["$target"]="$backup"
     run_root install -m 0644 "$tmp" "$target"
     rm -f "$tmp"
     updated=$((updated + 1))
 done
 
 if ! run_root nginx -t; then
-    echo "nginx configuration test failed after upload-limit update." >&2
+    echo "nginx configuration test failed after upload-limit update; restoring previous configuration." >&2
+    for target in "${!backups[@]}"; do
+        run_root cp -a "${backups[$target]}" "$target"
+    done
+    run_root nginx -t || true
     exit 1
 fi
 
