@@ -408,31 +408,8 @@
 
                     <fieldset class="ap-placement-collections">
                         <legend>Shop by Collection</legend>
-                        <small class="ap-field-help">First select one or more Main Categories, then choose the collections for this product.</small>
+                        <small class="ap-field-help">Choose one or more public collections. This list matches the public COLLECTIONS menu.</small>
                         <input type="hidden" name="collection_ids_present" value="1">
-
-                        <details class="ap-multi-select" data-collection-category-dropdown>
-                            <summary>
-                                <span data-collection-category-summary>
-                                    {{ count($selectedCollectionCategoryIds) ? count($selectedCollectionCategoryIds).' selected' : 'Select categories' }}
-                                </span>
-                                <x-icon name="chevron-down" size="13" />
-                            </summary>
-                            <div class="ap-multi-select-menu">
-                                @foreach($categoryRoots as $root)
-                                    <label>
-                                        <input type="checkbox"
-                                            name="collection_category_ids[]"
-                                            value="{{ $root->id }}"
-                                            @checked(in_array((string) $root->id, $selectedCollectionCategoryIds, true))
-                                            data-collection-category-option>
-                                        <span>{{ $root->name }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </details>
-
-                        <p class="ap-field-help" data-collection-category-hint>Select one or more categories to see matching collections.</p>
 
                         <details class="ap-multi-select" data-collection-dropdown>
                             <summary>
@@ -443,31 +420,23 @@
                             </summary>
                             <div class="ap-multi-select-menu">
                                 @forelse($placementCollections as $collection)
-                                    <label data-placement-collection data-main-category="{{ $collection->main_category_id ?: '' }}">
+                                    <label>
                                         <input type="checkbox"
                                             name="collection_ids[]"
                                             value="{{ $collection->id }}"
                                             @checked(in_array((string) $collection->id, $selectedCollectionIds, true))
                                             data-collection-option>
-                                        <span>
-                                            <strong>{{ $collection->name }}</strong>
-                                            @if($collection->slug === 'best-sellers')
-                                                <small> — Homepage Bestsellers</small>
-                                            @elseif($collection->slug === 'irish-heritage')
-                                                <small> — Irish Heritage Collection</small>
-                                            @endif
-                                        </span>
+                                        <span><strong>{{ $collection->name }}</strong></span>
                                     </label>
                                 @empty
-                                    <p class="ap-field-help">No collections are available yet.</p>
+                                    <p class="ap-field-help">No public collections are available yet.</p>
                                 @endforelse
                             </div>
                         </details>
 
-                        @error('collection_category_ids')<small class="ap-field-error">{{ $message }}</small>@enderror
                         @error('collection_ids')<small class="ap-field-error">{{ $message }}</small>@enderror
                         @foreach($errors->getMessages() as $field => $messages)
-                            @if(str_starts_with($field, 'collection_category_ids.') || str_starts_with($field, 'collection_ids.'))
+                            @if(str_starts_with($field, 'collection_ids.'))
                                 <small class="ap-field-error">{{ $messages[0] }}</small>
                             @endif
                         @endforeach
