@@ -80,7 +80,12 @@ class CollectionController extends Controller
             ->pluck('season');
 
         $products = Product::query()->with('category')->orderBy('name')->get();
-        $categories = Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+        $categories = Category::query()
+            ->whereNull('parent_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name']);
         $reorderCollections = ProductCollection::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'sort_order']);
 
         return view('admin.collections.index', compact(
@@ -487,7 +492,7 @@ class CollectionController extends Controller
 
     private function filteredQuery(Request $request, string $tab): Builder
     {
-        $query = ProductCollection::query();
+        $query = ProductCollection::query()->with('mainCategory');
         $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
         $search = trim((string) $request->query('q', ''));
         $type = (string) $request->query('type', '');
@@ -526,6 +531,7 @@ class CollectionController extends Controller
     private function collectionWithDetails(int $id): ?ProductCollection
     {
         return ProductCollection::query()->with([
+            'mainCategory',
             'products' => fn ($products) => $products->with('media')->orderByPivot('sort_order')->orderBy('products.name'),
             'creator',
             'updater',
@@ -537,6 +543,11 @@ class CollectionController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:180'],
             'slug' => ['nullable', 'string', 'max:180'],
+            'main_category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query->whereNull('parent_id')),
+            ],
             'type' => ['required', Rule::in(self::TYPES)],
             'season' => ['nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:5000'],
@@ -579,6 +590,7 @@ class CollectionController extends Controller
         return [
             'name' => $data['name'],
             'slug' => $data['slug'],
+            'main_category_id' => $data['main_category_id'] ?? null,
             'type' => $data['type'],
             'season' => $data['season'] ?? null,
             'description' => $data['description'] ?? null,
