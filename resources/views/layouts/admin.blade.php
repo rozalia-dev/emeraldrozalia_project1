@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>@yield('title','Dashboard') - Emerald Rozalia cPanel</title>
-    <link rel="stylesheet" href="/css/app.css?v=20260905-dashboard-reference-v5">
+    <link rel="stylesheet" href="/css/app.css?v=20260924-bulk-templates-v1">
     <link rel="stylesheet" href="/css/admin-actions.css?v=20260913-batch14">
     <link rel="stylesheet" href="/css/admin-topbar.css?v=20260916-profile-dropdown-v1">
     @stack('styles')
