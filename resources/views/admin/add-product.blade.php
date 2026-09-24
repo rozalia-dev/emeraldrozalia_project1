@@ -42,6 +42,19 @@
     $placementCollections = $collections->reject(static fn ($collection): bool => $collection->slug === 'new-arrivals')->values();
 @endphp
 
+@push('styles')
+<style>
+.ap-multi-select{position:relative;margin-top:10px}
+.ap-multi-select>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:9px 11px;border:1px solid #cfd9d2;border-radius:7px;background:#fff;color:#244333;font-weight:700;cursor:pointer;list-style:none}
+.ap-multi-select>summary::-webkit-details-marker{display:none}
+.ap-multi-select[open]>summary{border-color:#0b7139;box-shadow:0 0 0 2px rgba(11,113,57,.08)}
+.ap-multi-select-menu{position:absolute;z-index:30;top:calc(100% + 5px);left:0;right:0;max-height:260px;overflow:auto;padding:6px;border:1px solid #cfd9d2;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(20,55,35,.14)}
+.ap-multi-select-menu label{display:flex;align-items:center;gap:9px;padding:8px;border-radius:6px;cursor:pointer}
+.ap-multi-select-menu label:hover{background:#f2f8f4}
+.ap-multi-select-menu input{width:16px;height:16px;accent-color:#0b7139}
+</style>
+@endpush
+
 @section('content')
 <div class="ap-page">
     <div class="ap-page-heading">
