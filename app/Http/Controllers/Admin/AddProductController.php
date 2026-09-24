@@ -291,15 +291,20 @@ class AddProductController extends Controller
         }
 
         if ($data['collection_ids'] !== []) {
+            $rootCategoryId = (int) ($rootCategory?->id ?? 0);
             $availableCollectionIds = $this->collections()
                 ->whereIn('id', $data['collection_ids'])
+                ->filter(static fn ($collection): bool =>
+                    ! $collection->main_category_id
+                    || (int) $collection->main_category_id === $rootCategoryId
+                )
                 ->pluck('id')
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
 
             if (array_diff($data['collection_ids'], $availableCollectionIds) !== []) {
                 throw ValidationException::withMessages([
-                    'collection_ids' => 'Select only collections available to your company.',
+                    'collection_ids' => 'Select only collections assigned to this main category or available to all main categories.',
                 ]);
             }
         }
