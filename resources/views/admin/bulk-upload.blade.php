@@ -98,7 +98,7 @@
                 <div class="bu-primary-column">
                     <section class="bu-panel bu-upload-panel">
                         <div class="bu-panel-heading">
-                            <div><h2>1. Upload Product File + Images</h2><p>Products: CSV/XLS/XLSX · Images: optional ZIP</p></div>
+                            <div><h2>1. Upload Your File + Product Images ZIP</h2><p>Products: CSV/XLS/XLSX · Images: optional ZIP</p></div>
                             <x-icon name="upload" size="18" />
                         </div>
                         <label class="bu-dropzone" for="bulk-file" data-bu-dropzone>
