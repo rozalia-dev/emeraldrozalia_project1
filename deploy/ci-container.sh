@@ -12,6 +12,7 @@ cleanup() {
 trap cleanup EXIT
 
 bash -n deploy/docker-deploy.sh
+bash -n deploy/configure-host-nginx-upload.sh
 sh -n deploy/docker-entrypoint.sh
 cp .env.example .env
 printf '\nAPP_KEY=base64:%s\nDB_PASSWORD=ci-only-password\n' "$(openssl rand -base64 32)" >> .env
@@ -29,6 +30,9 @@ git ls-files -z | xargs -0 chmod go+rX
 docker compose up -d --no-build --wait --wait-timeout 180 db redis app
 docker compose exec -T --user www-data app php artisan migrate --force
 docker compose up -d --no-build --wait --wait-timeout 180 nginx
+docker compose exec -T nginx nginx -T 2>&1 | grep -q 'client_max_body_size 1100M;'
+docker compose exec -T nginx nginx -T 2>&1 | grep -q 'fastcgi_read_timeout 900s;'
+docker compose exec -T app php -r 'exit(ini_get("upload_max_filesize") === "1024M" && ini_get("post_max_size") === "1100M" ? 0 : 1);'
 DEPLOY_BACKUP_DIR="$RUNNER_TEMP/emerald-backups" DEPLOY_HEALTHCHECK_URL=http://127.0.0.1:8080/up bash deploy/docker-deploy.sh
 sleep 10
 for service in worker scheduler; do
