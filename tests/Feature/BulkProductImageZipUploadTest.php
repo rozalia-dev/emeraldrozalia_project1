@@ -183,7 +183,7 @@ class BulkProductImageZipUploadTest extends TestCase
             $this->assertSame(1, ProductMedia::query()->where('product_id', $product->id)->count());
             $this->assertSame(1, (int) session('result.images_imported'));
             $this->assertSame(1, (int) session('result.products_with_images'));
-            $this->assertDirectoryDoesNotExist(storage_path('app/private/bulk-product-upload/'.$admin->id.'/'.$token));
+            $this->assertFalse(is_dir(storage_path('app/private/bulk-product-upload/'.$admin->id.'/'.$token)));
         } finally {
             @unlink($zipPath);
             @unlink($csvPath);
