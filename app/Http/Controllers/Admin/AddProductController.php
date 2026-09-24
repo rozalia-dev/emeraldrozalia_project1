@@ -305,6 +305,12 @@ class AddProductController extends Controller
         }
 
         if ($data['collection_ids'] !== []) {
+            if ($data['collection_category_ids'] === []) {
+                throw ValidationException::withMessages([
+                    'collection_category_ids' => 'Select at least one Shop by Collection category before choosing collections.',
+                ]);
+            }
+
             $collectionCategoryIds = $data['collection_category_ids'];
             $availableCollectionIds = $this->collections()
                 ->whereIn('id', $data['collection_ids'])
