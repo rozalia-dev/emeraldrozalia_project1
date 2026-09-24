@@ -29,7 +29,6 @@ class ImageManagerController extends Controller
     public function index(Request $request)
     {
         $products = Product::query()
-            ->where('is_active', true)
             ->withCount('media')
             ->orderBy('name')
             ->get();
@@ -128,7 +127,13 @@ class ImageManagerController extends Controller
             'inactive' => $allImages->where('active', false)->count(),
         ];
         $selectedMediaId = (int) $request->query('selected_media_id', 0);
-        $selectedImage = $selectedMediaId ? $allImages->firstWhere('id', $selectedMediaId) : null;
+        $selectedImage = $selectedMediaId
+            ? ProductMedia::query()
+                ->with('product')
+                ->where('type', 'image')
+                ->whereKey($selectedMediaId)
+                ->first()
+            : null;
         $selectedImage ??= $filtered->first() ?: $allImages->first();
         $filterQuery = array_filter([
             'product_id' => $selectedProduct?->id,
@@ -171,7 +176,7 @@ class ImageManagerController extends Controller
             'image_role' => ['required', Rule::in(self::ROLES)],
             'alt_text' => 'nullable|string|max:255',
         ]);
-        $product = Product::query()->whereKey($data['product_id'])->where('is_active', true)->firstOrFail();
+        $product = Product::query()->whereKey($data['product_id'])->firstOrFail();
         $role = $data['image_role'];
         $nextOrder = ((int) ProductMedia::query()->where('product_id', $product->id)->where('type', 'image')->max('sort_order')) + 1;
         $created = [];

@@ -149,7 +149,7 @@
                             </td>
                             <td><input class="im-order-input" value="{{ $image->sort_order }}" readonly aria-label="Sort order for {{ $imageName }}"></td>
                             <td><div class="im-actions">
-                                <a class="im-icon-button" href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])) }}" aria-label="Preview {{ $imageName }}"><x-icon name="eye" size="13" /></a>
+                                <a class="im-icon-button" href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])).'#im-preview-panel' }}" aria-label="Preview {{ $imageName }}"><x-icon name="eye" size="13" /></a>
                                 <a class="im-icon-button" href="{{ route('admin.images.index', array_merge($filterQuery, ['tab' => $tab, 'selected_media_id' => $image->id])).'#im-edit-panel' }}" aria-label="Edit {{ $imageName }}"><x-icon name="pencil" size="13" /></a>
                                 <details class="im-row-menu">
                                     <summary aria-label="More actions for {{ $imageName }}"><x-icon name="dots" size="14" /></summary>
@@ -259,7 +259,7 @@
             <div class="im-performance-grid"><div><strong>{{ number_format($performance['views']) }}</strong><small>Total Views</small><em>+18.6%</em></div><div><strong>{{ number_format($performance['clicks']) }}</strong><small>Zoom / Clicks</small><em>+16.3%</em></div><div><strong>{{ number_format($performance['engagement'], 2) }}%</strong><small>Avg. Engagement</small><em>+12.7%</em></div></div>
             <a class="im-tool-link" href="{{ route('admin.resource', 'reports') }}">View Full Media Performance <x-icon name="arrow-right" size="11" /></a>
         </article>
-        <article class="im-tool-card im-preview-card">
+        <article class="im-tool-card im-preview-card" id="im-preview-panel">
             <div class="im-tool-heading"><h2>Image Preview</h2><x-icon name="eye" size="15" /></div>
             <div class="im-preview-frame" data-im-preview-frame>
                 @if($selectedUrl)<img src="{{ $selectedUrl }}" alt="{{ $selectedImage?->alt_text ?: 'Selected image' }}" data-im-preview-image>@else<div data-im-preview-empty><x-icon name="image" size="31" /><span>Select an image</span></div>@endif
