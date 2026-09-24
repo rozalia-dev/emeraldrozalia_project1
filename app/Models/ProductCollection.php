@@ -37,6 +37,11 @@ class ProductCollection extends Model
             ->withPivot('sort_order');
     }
 
+    public function mainCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'main_category_id');
+    }
+
     public function media(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'media_uuid', 'uuid');
