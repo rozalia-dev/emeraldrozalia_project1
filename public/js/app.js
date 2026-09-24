@@ -126,6 +126,9 @@ if(bulkUpload){
     const form=bulkUpload.querySelector('[data-bu-form]'),
         input=bulkUpload.querySelector('[data-bu-file-input]'),
         imagesInput=bulkUpload.querySelector('[data-bu-images-input]'),
+        imagesToken=bulkUpload.querySelector('[data-bu-images-token]'),
+        imagesStatus=bulkUpload.querySelector('[data-bu-images-status]'),
+        submitButtons=[...bulkUpload.querySelectorAll('[data-bu-submit]')],
         dropzone=bulkUpload.querySelector('[data-bu-dropzone]'),
         fileName=bulkUpload.querySelector('[data-bu-file-name]'),
         fileMeta=bulkUpload.querySelector('[data-bu-file-meta]'),
@@ -140,13 +143,29 @@ if(bulkUpload){
         previewBody=bulkUpload.querySelector('[data-bu-preview-body]'),
         previewNote=bulkUpload.querySelector('[data-bu-preview-note]'),
         previewUrl=bulkUpload.dataset.buPreviewUrl,
+        imageInitUrl=bulkUpload.dataset.buImageInitUrl,
+        imageChunkUrl=bulkUpload.dataset.buImageChunkUrl,
+        imageCompleteUrl=bulkUpload.dataset.buImageCompleteUrl,
         steps=[...bulkUpload.querySelectorAll('[data-bu-step]')],
         mapRows=[...bulkUpload.querySelectorAll('[data-bu-map-row]')],
         mapButtons=[...bulkUpload.querySelectorAll('[data-bu-reset-map]')],
         showUnmapped=bulkUpload.querySelector('[data-bu-show-unmapped]');
 
+    const csrfToken=form?.querySelector('input[name="_token"]')?.value||'';
     const formatSize=(bytes)=>{if(!bytes)return '—';const units=['B','KB','MB','GB'];let size=bytes,index=0;while(size>=1024&&index<units.length-1){size/=1024;index++}return `${size>=10||index===0?Math.round(size):size.toFixed(1)} ${units[index]}`};
     const key=(value)=>String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    const setImportDisabled=(disabled)=>submitButtons.forEach((button)=>{button.disabled=disabled;button.setAttribute('aria-disabled',String(disabled))});
+    const requestJson=async(url,body)=>{
+        const response=await fetch(url,{
+            method:'POST',
+            headers:{'Accept':'application/json','X-CSRF-TOKEN':csrfToken},
+            body,
+            credentials:'same-origin'
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.message||'The upload request failed.');
+        return data;
+    };
     const setPreviewMessage=(message,isError=false)=>{
         if(previewBody){
             previewBody.replaceChildren();
@@ -207,16 +226,8 @@ if(bulkUpload){
         if(summaryStatus)summaryStatus.textContent='Reading file';
         const body=new FormData();
         body.append('file',chosen);
-        const token=form.querySelector('input[name="_token"]')?.value||'';
         try{
-            const response=await fetch(previewUrl,{
-                method:'POST',
-                headers:{'Accept':'application/json','X-CSRF-TOKEN':token},
-                body,
-                credentials:'same-origin'
-            });
-            const data=await response.json().catch(()=>({}));
-            if(!response.ok)throw new Error(data.message||'The product file could not be previewed.');
+            const data=await requestJson(previewUrl,body);
             renderPreview(data);
             if(summaryStatus)summaryStatus.textContent='Preview ready';
         }catch(error){
@@ -254,11 +265,91 @@ if(bulkUpload){
         previewFile(chosen);
     };
 
+    let imageUploadGeneration=0;
+    const uploadImagesZip=async(chosen)=>{
+        const generation=++imageUploadGeneration;
+        if(imagesToken)imagesToken.value='';
+
+        if(!chosen){
+            if(summaryImages)summaryImages.textContent='Optional';
+            if(imagesStatus)imagesStatus.textContent='Large ZIP files are uploaded automatically in safe chunks.';
+            setImportDisabled(false);
+            return;
+        }
+
+        if(!/\.zip$/i.test(chosen.name)){
+            if(summaryImages)summaryImages.textContent='Invalid file';
+            if(imagesStatus)imagesStatus.textContent='Choose a ZIP file containing the product images.';
+            setImportDisabled(false);
+            return;
+        }
+
+        if(chosen.size>1073741824){
+            if(summaryImages)summaryImages.textContent='ZIP exceeds 1 GB';
+            if(imagesStatus)imagesStatus.textContent='The product-images ZIP must be 1 GB or smaller.';
+            setImportDisabled(false);
+            return;
+        }
+
+        if(!imageInitUrl||!imageChunkUrl||!imageCompleteUrl){
+            if(imagesStatus)imagesStatus.textContent='Chunked ZIP upload is unavailable. Refresh the page and try again.';
+            setImportDisabled(false);
+            return;
+        }
+
+        setImportDisabled(true);
+        if(summaryImages)summaryImages.textContent=`${chosen.name} · Preparing…`;
+        if(imagesStatus)imagesStatus.textContent=`Preparing ${formatSize(chosen.size)} ZIP for safe upload…`;
+        if(summaryStatus)summaryStatus.textContent='Uploading images';
+
+        try{
+            const initBody=new FormData();
+            initBody.append('filename',chosen.name);
+            initBody.append('size',String(chosen.size));
+            const init=await requestJson(imageInitUrl,initBody);
+            const token=String(init.token||'');
+            const chunkSize=Number(init.chunk_size||524288);
+            const totalChunks=Number(init.total_chunks||Math.ceil(chosen.size/chunkSize));
+
+            if(!token||!chunkSize||!totalChunks)throw new Error('The server did not initialize the ZIP upload.');
+
+            for(let index=0;index<totalChunks;index++){
+                if(generation!==imageUploadGeneration)return;
+                const start=index*chunkSize,end=Math.min(chosen.size,start+chunkSize);
+                const body=new FormData();
+                body.append('token',token);
+                body.append('index',String(index));
+                body.append('chunk',chosen.slice(start,end),`chunk-${String(index).padStart(6,'0')}.part`);
+                const uploaded=await requestJson(imageChunkUrl,body);
+                const progress=Math.min(99,Math.max(1,Number(uploaded.progress||Math.floor(((index+1)/totalChunks)*100))));
+                if(summaryImages)summaryImages.textContent=`${chosen.name} · ${progress}%`;
+                if(imagesStatus)imagesStatus.textContent=`Uploading product images safely: ${progress}% (${index+1}/${totalChunks} chunks)`;
+            }
+
+            if(generation!==imageUploadGeneration)return;
+
+            const completeBody=new FormData();
+            completeBody.append('token',token);
+            const completed=await requestJson(imageCompleteUrl,completeBody);
+
+            if(generation!==imageUploadGeneration)return;
+            if(imagesToken)imagesToken.value=String(completed.token||token);
+            if(summaryImages)summaryImages.textContent=`${chosen.name} · Ready`;
+            if(imagesStatus)imagesStatus.textContent=`ZIP uploaded successfully (${formatSize(Number(completed.size||chosen.size))}). It will be attached when you validate and import.`;
+            if(summaryStatus)summaryStatus.textContent='Images ready';
+            setImportDisabled(false);
+        }catch(error){
+            if(generation!==imageUploadGeneration)return;
+            if(imagesToken)imagesToken.value='';
+            if(summaryImages)summaryImages.textContent=`${chosen.name} · Upload failed`;
+            if(imagesStatus)imagesStatus.textContent=error?.message||'The ZIP upload failed. Choose the file again to retry.';
+            if(summaryStatus)summaryStatus.textContent='Image upload error';
+            setImportDisabled(false);
+        }
+    };
+
     input?.addEventListener('change',()=>setFile(input.files));
-    imagesInput?.addEventListener('change',()=>{
-        const chosen=imagesInput.files?.[0];
-        if(summaryImages)summaryImages.textContent=chosen?chosen.name:'Optional';
-    });
+    imagesInput?.addEventListener('change',()=>uploadImagesZip(imagesInput.files?.[0]));
     ['dragenter','dragover'].forEach((eventName)=>dropzone?.addEventListener(eventName,(event)=>{event.preventDefault();dropzone.classList.add('is-dragging')}));
     ['dragleave','drop'].forEach((eventName)=>dropzone?.addEventListener(eventName,(event)=>{event.preventDefault();dropzone.classList.remove('is-dragging')}));
     dropzone?.addEventListener('drop',(event)=>setFile(event.dataTransfer?.files));
@@ -274,7 +365,22 @@ if(bulkUpload){
     bulkUpload.querySelectorAll('[data-bu-save-mapping]').forEach((button)=>button.addEventListener('click',()=>{const mapping=mapRows.map((row)=>row.querySelector('[data-bu-map-select]')?.value||'Unmapped');try{localStorage.setItem('emerald-rozalia-bulk-mapping',JSON.stringify(mapping))}catch(error){}const original=button.innerHTML;button.textContent='Mapping Template Saved';setTimeout(()=>{button.innerHTML=original},1800)}));
     bulkUpload.querySelector('[data-bu-download-sample]')?.addEventListener('click',()=>{const csv='Product Name,SKU,Category,Collection,Price (EUR),Compare Price,Stock,Description,Images,Status,Weight (kg),Tags,GTIN\nEmerald Signature Cap,ERCAP-GRN-001,Caps,Men\'s Collection,29.90,39.90,245,Premium quality cap.,cap1.jpg,Published,0.25,green|premium,8901122334457\n';const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));link.download='emerald-rozalia-product-upload-template.csv';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),1000)});
     bulkUpload.querySelector('[data-bu-back]')?.addEventListener('click',()=>bulkUpload.scrollIntoView({behavior:'smooth',block:'start'}));
-    form?.addEventListener('submit',()=>{if(fileState&&!input?.files?.length){fileState.textContent='Choose a file before importing';fileState.classList.remove('is-success')}});
+    form?.addEventListener('submit',(event)=>{
+        if(fileState&&!input?.files?.length){
+            event.preventDefault();
+            fileState.textContent='Choose a product file before importing';
+            fileState.classList.remove('is-success');
+            return;
+        }
+        if(imagesInput?.files?.length&&!imagesToken?.value){
+            event.preventDefault();
+            if(imagesStatus)imagesStatus.textContent='Wait for the product-images ZIP to finish uploading, or choose the ZIP again if it failed.';
+            if(summaryStatus)summaryStatus.textContent='Waiting for images';
+            return;
+        }
+        setImportDisabled(true);
+        if(summaryStatus)summaryStatus.textContent='Importing products';
+    });
 }
 
 const mediaManager=document.querySelector('[data-media-manager]');
