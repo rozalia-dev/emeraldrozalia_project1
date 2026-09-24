@@ -775,19 +775,59 @@
         syncHsCode();
         syncCategoryPlacement();
     });
-    shopCategoryOptions.forEach(option => option.addEventListener('change', () => {
-        syncCategoryPlacement();
-        if (shopCategoryDropdown) shopCategoryDropdown.open = false;
-    }));
-    collectionCategoryOptions.forEach(option => option.addEventListener('change', () => {
-        syncCollectionCategories();
-        syncCollections();
-        if (collectionCategoryDropdown) collectionCategoryDropdown.open = false;
-    }));
-    collectionOptions.forEach(option => option.addEventListener('change', () => {
-        syncCollections();
-        if (collectionDropdown) collectionDropdown.open = false;
-    }));
+    const closePlacementDropdown = dropdown => {
+        if (!dropdown) return;
+        window.setTimeout(() => {
+            dropdown.open = false;
+            dropdown.removeAttribute('open');
+        }, 0);
+    };
+
+    shopCategoryOptions.forEach(option => {
+        option.addEventListener('click', event => {
+            event.stopPropagation();
+        });
+        option.addEventListener('change', () => {
+            syncCategoryPlacement();
+            closePlacementDropdown(shopCategoryDropdown);
+        });
+    });
+
+    collectionCategoryOptions.forEach(option => {
+        option.addEventListener('click', event => {
+            event.stopPropagation();
+        });
+        option.addEventListener('change', () => {
+            syncCollectionCategories();
+            syncCollections();
+            closePlacementDropdown(collectionCategoryDropdown);
+        });
+    });
+
+    collectionOptions.forEach(option => {
+        option.addEventListener('click', event => {
+            event.stopPropagation();
+        });
+        option.addEventListener('change', () => {
+            syncCollections();
+            closePlacementDropdown(collectionDropdown);
+        });
+    });
+
+    document.addEventListener('click', event => {
+        [shopCategoryDropdown, collectionCategoryDropdown, collectionDropdown].forEach(dropdown => {
+            if (dropdown?.open && !dropdown.contains(event.target)) {
+                dropdown.open = false;
+            }
+        });
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        [shopCategoryDropdown, collectionCategoryDropdown, collectionDropdown].forEach(dropdown => {
+            if (dropdown) dropdown.open = false;
+        });
+    });
 
     syncSubcategories();
     syncCategoryPlacement();
