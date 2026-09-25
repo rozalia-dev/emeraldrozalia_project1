@@ -42,6 +42,10 @@ class ProductManagerController extends Controller
             ->withCount('reviews')
             ->withAvg('reviews', 'rating');
 
+        if ($request->user()?->is_admin) {
+            $query->withoutGlobalScope('tenant');
+        }
+
         if ($tab !== 'trash') {
             switch ($tab) {
                 case 'published':
@@ -187,24 +191,32 @@ class ProductManagerController extends Controller
 
         $products = $query->orderBy('name')->orderBy('id')->paginate(10)->withQueryString();
 
-        $totalProducts = (int) Product::query()->count();
-        $draftCount = (int) Product::query()->whereIn('status', ['draft', 'planned'])->count();
-        $hiddenCount = (int) Product::query()->where('is_active', false)->whereNotIn('status', ['draft', 'planned'])->count();
+        $statsProductQuery = fn () => $request->user()?->is_admin
+            ? Product::query()->withoutGlobalScope('tenant')
+            : Product::query();
+
+        $totalProducts = (int) $statsProductQuery()->count();
+        $draftCount = (int) $statsProductQuery()->whereIn('status', ['draft', 'planned'])->count();
+        $hiddenCount = (int) $statsProductQuery()->where('is_active', false)->whereNotIn('status', ['draft', 'planned'])->count();
         $stats = [
             'total' => $totalProducts,
-            'published' => (int) Product::query()->where('is_active', true)->whereIn('status', ['active', 'published'])->count(),
+            'published' => (int) $statsProductQuery()->where('is_active', true)->whereIn('status', ['active', 'published'])->count(),
             'hidden_draft' => $draftCount + $hiddenCount,
             'draft' => $draftCount,
             'hidden' => $hiddenCount,
-            'out_of_stock' => (int) Product::query()->where('stock', '<=', 0)->count(),
-            'total_value' => (float) (Product::query()->selectRaw('COALESCE(SUM(price * stock), 0) AS aggregate')->value('aggregate') ?? 0),
+            'out_of_stock' => (int) $statsProductQuery()->where('stock', '<=', 0)->count(),
+            'total_value' => (float) ($statsProductQuery()->selectRaw('COALESCE(SUM(price * stock), 0) AS aggregate')->value('aggregate') ?? 0),
             'average_rating' => (float) (Review::query()->approved()->whereHas('product')->avg('rating') ?? 0),
             'trash' => $trashCount,
         ];
 
         $categories = $allCategories;
 
-        $categoryProductCounts = Product::query()
+        $categoryProductCountsQuery = $request->user()?->is_admin
+            ? Product::query()->withoutGlobalScope('tenant')
+            : Product::query();
+
+        $categoryProductCounts = $categoryProductCountsQuery
             ->selectRaw('category_id, COUNT(*) AS aggregate')
             ->whereNotNull('category_id')
             ->groupBy('category_id')
