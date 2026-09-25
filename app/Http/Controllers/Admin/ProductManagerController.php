@@ -526,6 +526,69 @@ class ProductManagerController extends Controller
             ->with('success', $name.' permanently deleted.');
     }
 
+    private function exportQuery(Request $request)
+    {
+        $query = Product::query();
+
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(fn ($products) => $products
+                ->where('name', 'like', '%'.$search.'%')
+                ->orWhere('sku', 'like', '%'.$search.'%')
+                ->orWhere('brand', 'like', '%'.$search.'%'));
+        }
+
+        $rootCategoryId = (int) $request->query('root_category_id', 0);
+        if ($rootCategoryId > 0) {
+            $all = Category::query()->get(['id', 'parent_id']);
+            $children = $all->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
+            $descendants = function (int $id) use (&$descendants, $children): array {
+                $ids = [$id];
+                foreach ($children->get($id, collect()) as $child) {
+                    $ids = array_merge($ids, $descendants((int) $child->id));
+                }
+
+                return array_values(array_unique($ids));
+            };
+
+            $query->whereIn('category_id', $descendants($rootCategoryId));
+        }
+
+        $categoryId = (int) $request->query('category_id', 0);
+        if ($categoryId > 0) {
+            $query->where('category_id', $categoryId);
+        }
+
+        switch ((string) $request->query('product_status', '')) {
+            case 'published':
+                $query->where('is_active', true)->whereIn('status', ['active', 'published']);
+                break;
+            case 'draft':
+                $query->whereIn('status', ['draft', 'planned']);
+                break;
+            case 'hidden':
+                $query->where('is_active', false);
+                break;
+            case 'inactive':
+                $query->where('is_active', false)->where('status', 'inactive');
+                break;
+        }
+
+        switch ((string) $request->query('stock_status', '')) {
+            case 'in_stock':
+                $query->where('stock', '>', 10);
+                break;
+            case 'low_stock':
+                $query->whereBetween('stock', [1, 10]);
+                break;
+            case 'out_of_stock':
+                $query->where('stock', '<=', 0);
+                break;
+        }
+
+        return $query;
+    }
+
     private function redirectAfterProductAction(Request $request): RedirectResponse
     {
         $categoryId = (int) $request->input('return_category_id', 0);
