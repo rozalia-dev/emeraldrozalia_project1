@@ -385,7 +385,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @forelse($products as $product)
+                    @if($products->isEmpty())
+                        <tr><td colspan="9" class="pm-empty"><x-icon name="package" size="28" /><strong>No products match these filters.</strong><a href="{{ route('admin.resource','product-manager') }}">Clear filters</a></td></tr>
+                    @else
+                    @foreach($products as $product)
                         @php
                             $isPublished=$product->is_active && in_array($product->status,['active','published'],true);
                             $isDraft=in_array($product->status,['draft','planned'],true);
@@ -453,9 +456,8 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr><td colspan="9" class="pm-empty"><x-icon name="package" size="28" /><strong>No products match these filters.</strong><a href="{{ route('admin.resource','product-manager') }}">Clear filters</a></td></tr>
-                    @endforelse
+                    @endforeach
+                    @endif
                     </tbody>
                 </table>
             </div>
