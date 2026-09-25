@@ -17,6 +17,11 @@
 .pm-category-card strong{display:inline-flex;min-width:30px;height:30px;padding:0 8px;align-items:center;justify-content:center;border-radius:999px;background:#eaf5ee;color:#087c3f}
 .pm-category-card:hover,.pm-category-card.is-active{border-color:#087c3f;background:#eef8f1}
 .pm-category-card.is-active span{color:#087c3f}
+.pm-category-dropdowns{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.pm-category-dropdowns label{display:grid;gap:3px}
+.pm-category-dropdowns label>span{font-size:10px;font-weight:800;color:#66756c;text-transform:uppercase;letter-spacing:.03em}
+.pm-category-dropdowns select{height:38px;min-width:165px;max-width:220px;border:1px solid #d5ded8;border-radius:7px;background:#fff;color:#17231b;padding:0 30px 0 10px;font-weight:600}
+@media(max-width:900px){.pm-category-dropdowns{width:100%}.pm-category-dropdowns label{flex:1 1 180px}.pm-category-dropdowns select{width:100%;max-width:none}}
 </style>
 @endpush
 
@@ -124,6 +129,35 @@
                         <label class="sr-only" for="product-manager-search">Search products</label>
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
+                    </form>
+                    <form class="pm-category-dropdowns" method="get" action="{{ route('admin.resource','product-manager') }}" data-pm-category-filter>
+                        <input type="hidden" name="tab" value="{{ $tab }}">
+                        @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
+                        <label>
+                            <span>Main Category</span>
+                            <select name="root_category_id" data-main-category-filter>
+                                <option value="">All Main Categories</option>
+                                @foreach($rootCategorySummaries as $categorySummary)
+                                    <option value="{{ $categorySummary['id'] }}" @selected($rootCategoryId===$categorySummary['id'])>
+                                        {{ $categorySummary['name'] }} ({{ number_format($categorySummary['count']) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>
+                            <span>Subcategory</span>
+                            <select name="category_id" data-subcategory-filter>
+                                <option value="">{{ $rootCategoryId ? 'All Subcategories' : 'Select main category first' }}</option>
+                                @foreach($categories as $category)
+                                    @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                                    @if($category->parent_id && (!$rootCategoryId || (($rootForOption['id'] ?? 0) === $rootCategoryId)))
+                                        <option value="{{ $category->id }}" @selected($categoryId===$category->id)>
+                                            {{ $category->name }}
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </label>
                     </form>
                     @if($tab !== 'trash' && auth()->user()?->hasPermission('website.products.edit'))
                         <div class="pm-publish-controls" data-product-bulk-publish>
@@ -320,6 +354,23 @@
         <span><x-icon name="globe" size="13" /> {{ config('app.brand_contact.location') }}</span>
     </footer>
 </div>
+
+@push('scripts')
+<script>
+(() => {
+    const form = document.querySelector('[data-pm-category-filter]');
+    if (!form) return;
+    const main = form.querySelector('[data-main-category-filter]');
+    const sub = form.querySelector('[data-subcategory-filter]');
+
+    main?.addEventListener('change', () => {
+        if (sub) sub.value = '';
+        form.submit();
+    });
+    sub?.addEventListener('change', () => form.submit());
+})();
+</script>
+@endpush
 
 @include('admin.partials.product-manager-delete-actions')
 @endsection
