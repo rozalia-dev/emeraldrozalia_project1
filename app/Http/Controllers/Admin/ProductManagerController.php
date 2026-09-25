@@ -275,7 +275,7 @@ class ProductManagerController extends Controller
         ));
     }
 
-    public function print(Request $request): View
+    public function printView(Request $request): View
     {
         $products = $this->exportQuery($request)
             ->with('category')
