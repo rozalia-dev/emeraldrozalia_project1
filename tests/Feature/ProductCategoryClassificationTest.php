@@ -161,6 +161,75 @@ class ProductCategoryClassificationTest extends TestCase
             ->assertSessionHasErrors('catalog_club_id');
     }
 
+    public function test_fifa_product_can_select_country_wide_national_team_without_county(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $germany = CatalogCountry::query()->where('code', 'DE')->firstOrFail();
+
+        $fifa = Category::create([
+            'name' => 'FIFA',
+            'slug' => 'fifa-national-test',
+            'taxonomy_type' => 'fifa',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $caps = Category::create([
+            'parent_id' => $fifa->id,
+            'name' => 'Caps',
+            'slug' => 'fifa-national-test-caps',
+            'taxonomy_type' => 'fifa',
+            'product_type' => 'caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+            'sort_order' => 1,
+        ]);
+
+        $team = CatalogClub::create([
+            'catalog_country_id' => $germany->id,
+            'catalog_county_code' => null,
+            'governing_body' => 'fifa',
+            'name' => 'Germany National Team',
+            'slug' => 'germany-national-team-product-test',
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.add-product.store'), [
+                'name' => 'Germany National Team Baseball Cap',
+                'short_description' => 'Germany national team cap.',
+                'slug' => 'germany-national-team-baseball-cap',
+                'sku' => 'ER-FIFA-DE-NT-001',
+                'category_root_id' => $fifa->id,
+                'category_id' => $caps->id,
+                'catalog_country_id' => $germany->id,
+                'catalog_county_code' => '',
+                'catalog_club_id' => $team->id,
+                'catalog_style' => 'baseball-cap',
+                'brand' => 'Emerald Rozalia',
+                'product_type' => 'simple',
+                'tax_class' => 'standard',
+                'description' => 'Germany national team baseball cap.',
+                'price' => 49.00,
+                'vat_rate' => 23,
+                'currency' => 'EUR',
+                'stock' => 10,
+                'status' => 'active',
+                'save_action' => 'save',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('admin.resource', 'product-manager'));
+
+        $product = Product::query()->where('sku', 'ER-FIFA-DE-NT-001')->firstOrFail();
+        $this->assertSame($germany->id, data_get($product->product_metadata, 'catalog_classification.catalog_country_id'));
+        $this->assertNull(data_get($product->product_metadata, 'catalog_classification.catalog_county_code'));
+        $this->assertSame($team->id, data_get($product->product_metadata, 'catalog_classification.catalog_club_id'));
+    }
+
     public function test_subcategory_must_belong_to_selected_category(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

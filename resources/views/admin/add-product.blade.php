@@ -563,23 +563,31 @@
         if (!country || !county) return;
         const taxonomy = selectedTaxonomy();
         const requiresCounty = countyRequired.includes(taxonomy);
+        const fifaOptionalCounty = taxonomy === 'fifa';
+        const usesCounty = requiresCounty || fifaOptionalCounty;
         const countryCode = country.selectedOptions[0]?.dataset.code || '';
         const selected = preserve ? (county.value || initialCounty) : '';
 
-        if (countyField) countyField.hidden = !requiresCounty;
+        if (countyField) countyField.hidden = !usesCounty;
         county.required = requiresCounty;
-        county.disabled = !requiresCounty;
+        county.disabled = !usesCounty;
 
         if (countyLabel) {
-            countyLabel.innerHTML = requiresCounty ? 'County <em>*</em>' : 'County';
+            countyLabel.innerHTML = requiresCounty
+                ? 'County <em>*</em>'
+                : (fifaOptionalCounty ? 'County / Region <small>(optional for national team)</small>' : 'County');
         }
 
         county.replaceChildren(new Option(
-            !requiresCounty ? 'Not required for this category' : (countryCode ? 'Select county' : 'Select country first'),
+            !usesCounty
+                ? 'Not required for this category'
+                : (countryCode
+                    ? (fifaOptionalCounty ? 'No county — national team' : 'Select county')
+                    : 'Select country first'),
             ''
         ));
 
-        if (requiresCounty && countryCode) {
+        if (usesCounty && countryCode) {
             for (const row of (counties[countryCode] || [])) {
                 county.add(new Option(row.name, row.code, false, row.code === selected));
             }
@@ -616,24 +624,36 @@
                 : 'Club / City / Town';
         }
 
+        const allowsCountryWideTeam = taxonomy === 'fifa';
+        const locationReady = allowsCountryWideTeam ? Boolean(selectedCountry) : Boolean(selectedCountry && selectedCounty);
         const placeholderText = !requiresClub
             ? 'Not required for this category'
             : !selectedCountry
-                ? `Select country before ${organizationLabel} club`
-                : !selectedCounty
+                ? `Select country before ${organizationLabel} team / club`
+                : !selectedCounty && !allowsCountryWideTeam
                     ? `Select county before ${organizationLabel} club`
-                    : `Loading ${organizationLabel} clubs...`;
+                    : `Loading ${organizationLabel} teams / clubs...`;
 
         club.replaceChildren(new Option(placeholderText, ''));
-        club.disabled = !requiresClub || !selectedCountry || !selectedCounty;
+        club.disabled = !requiresClub || !locationReady;
+
+        if (clubLabel) {
+            clubLabel.innerHTML = requiresClub
+                ? (allowsCountryWideTeam
+                    ? `${organizationLabel} National Team / Club <em>*</em>`
+                    : `${organizationLabel} Club / City / Town <em>*</em>`)
+                : 'Club / City / Town';
+        }
 
         if (clubHelp) {
             clubHelp.firstChild.textContent = requiresClub
-                ? `Select a ${organizationLabel} club matching the chosen country and county. `
+                ? (allowsCountryWideTeam
+                    ? 'Leave County / Region empty to choose the country national team, or select a region for a FIFA club. '
+                    : `Select a ${organizationLabel} club matching the chosen country and county. `)
                 : 'GAA, English, UEFA and FIFA products require a matching club / city / town. ';
         }
 
-        if (!requiresClub || !selectedCountry || !selectedCounty || !clubOptionsUrl) {
+        if (!requiresClub || !locationReady || !clubOptionsUrl) {
             return;
         }
 
@@ -641,8 +661,10 @@
             const params = new URLSearchParams({
                 governing_body: taxonomy,
                 catalog_country_id: selectedCountry,
-                catalog_county_code: selectedCounty,
             });
+            if (selectedCounty) {
+                params.set('catalog_county_code', selectedCounty);
+            }
             const response = await fetch(`${clubOptionsUrl}?${params.toString()}`, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
@@ -653,7 +675,9 @@
 
             const rows = Array.isArray(payload.clubs) ? payload.clubs : [];
             club.replaceChildren(new Option(
-                rows.length ? `Select ${organizationLabel} club / city / town` : `No ${organizationLabel} clubs found — add in Club Master`,
+                rows.length
+                    ? (allowsCountryWideTeam && !selectedCounty ? `Select ${organizationLabel} national team` : `Select ${organizationLabel} club / city / town`)
+                    : (allowsCountryWideTeam && !selectedCounty ? `No ${organizationLabel} national team found — add in Club Master` : `No ${organizationLabel} clubs found — add in Club Master`),
                 ''
             ));
 
