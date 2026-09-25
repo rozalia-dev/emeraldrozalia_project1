@@ -16,7 +16,7 @@ class ProductManagerServiceProvider extends ServiceProvider
                 ->name('admin.product-manager.')
                 ->group(function (): void {
                     Route::get('/', [ProductManagerController::class, 'index'])->name('index');
-                    Route::get('/print', [ProductManagerController::class, 'print'])->name('print');
+                    Route::get('/print', [ProductManagerController::class, 'printView'])->name('print');
                     Route::get('/download', [ProductManagerController::class, 'download'])->name('download');
                     Route::post('/bulk-publish', [ProductManagerController::class, 'bulkPublish'])->name('bulk-publish');
                     Route::post('/{product}/publish', [ProductManagerController::class, 'publish'])->whereNumber('product')->name('publish');
