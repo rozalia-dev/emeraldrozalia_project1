@@ -338,11 +338,15 @@
                 <label>
                     <span>Subcategory</span>
                     <select name="category_id" data-essential-sub>
-                        <option value="">All Subcategories</option>
+                        <option value="">{{ $rootCategoryId ? 'All Subcategories' : 'Select Main Category First' }}</option>
                         @foreach($categories as $category)
                             @php($rootForEssential = $categoryRootMap[$category->id] ?? null)
-                            @if($category->parent_id && $rootForEssential && (!$rootCategoryId || (($rootForEssential['id'] ?? 0)===$rootCategoryId)))
-                                <option value="{{ $category->id }}" @selected($categoryId===$category->id)>{{ $category->name }}</option>
+                            @if($category->parent_id && $rootForEssential)
+                                <option value="{{ $category->id }}"
+                                        data-root="{{ $rootForEssential['id'] }}"
+                                        @selected($categoryId===$category->id)>
+                                    {{ $category->name }}
+                                </option>
                             @endif
                         @endforeach
                     </select>
@@ -365,6 +369,7 @@
                         <option value="out_of_stock" @selected($stockStatus==='out_of_stock')>Out of Stock</option>
                     </select>
                 </label>
+                <button class="pm-hierarchy-apply" type="submit"><x-icon name="filter" size="14" /> Apply</button>
                 <a class="pm-essential-reset" href="{{ route('admin.product-manager.index') }}">Reset</a>
             </form>
 
@@ -630,14 +635,26 @@
     if (essential) {
         const essentialMain = essential.querySelector('[data-essential-main]');
         const essentialSub = essential.querySelector('[data-essential-sub]');
-        essentialMain?.addEventListener('change', () => {
-            if (essentialSub) essentialSub.value = '';
-            essential.submit();
-        });
-        essentialSub?.addEventListener('change', () => essential.submit());
-        essential.querySelectorAll('[data-essential-auto]').forEach(select => {
-            select.addEventListener('change', () => essential.submit());
-        });
+
+        const syncEssentialSubcategories = (clearSelection = false) => {
+            if (!essentialMain || !essentialSub) return;
+            const rootId = essentialMain.value || '';
+            if (clearSelection) essentialSub.value = '';
+
+            [...essentialSub.options].forEach((option, index) => {
+                if (index === 0) return;
+                option.hidden = !rootId || option.dataset.root !== rootId;
+            });
+
+            essentialSub.disabled = !rootId;
+            essentialSub.options[0].textContent = rootId ? 'All Subcategories' : 'Select Main Category First';
+
+            const selected = essentialSub.selectedOptions[0];
+            if (selected?.hidden) essentialSub.value = '';
+        };
+
+        essentialMain?.addEventListener('change', () => syncEssentialSubcategories(true));
+        syncEssentialSubcategories(false);
     }
 })();
 </script>
