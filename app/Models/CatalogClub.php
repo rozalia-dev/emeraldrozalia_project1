@@ -33,11 +33,17 @@ class CatalogClub extends Model
         static::creating(function (self $club): void {
             $club->public_uuid ??= (string) Str::uuid();
             $club->governing_body = strtolower(trim((string) $club->governing_body));
+            $club->catalog_county_code = filled($club->catalog_county_code)
+                ? strtoupper(trim((string) $club->catalog_county_code))
+                : null;
             $club->slug = Str::slug(filled($club->slug) ? $club->slug : $club->name);
         });
 
         static::saving(function (self $club): void {
             $club->governing_body = strtolower(trim((string) $club->governing_body));
+            $club->catalog_county_code = filled($club->catalog_county_code)
+                ? strtoupper(trim((string) $club->catalog_county_code))
+                : null;
             $club->slug = Str::slug(filled($club->slug) ? $club->slug : $club->name);
         });
     }
