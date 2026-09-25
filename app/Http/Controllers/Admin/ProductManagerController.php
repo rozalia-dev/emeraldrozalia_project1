@@ -72,6 +72,40 @@ class ProductManagerController extends Controller
                 ->orWhere('brand', 'like', '%'.$search.'%'));
         }
 
+        $allCategories = Category::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name']);
+
+        $childrenByParent = $allCategories->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
+        $descendantIds = function (int $rootId) use (&$descendantIds, $childrenByParent): array {
+            $ids = [$rootId];
+            foreach ($childrenByParent->get($rootId, collect()) as $child) {
+                $ids = array_merge($ids, $descendantIds((int) $child->id));
+            }
+            return array_values(array_unique($ids));
+        };
+
+        $rootCategories = $allCategories
+            ->filter(fn (Category $category) => ! $category->parent_id)
+            ->values();
+
+        $categoryRootMap = [];
+        foreach ($rootCategories as $rootCategory) {
+            foreach ($descendantIds((int) $rootCategory->id) as $descendantId) {
+                $categoryRootMap[$descendantId] = [
+                    'id' => (int) $rootCategory->id,
+                    'name' => $rootCategory->name,
+                ];
+            }
+        }
+
+        $rootCategoryId = (int) $request->query('root_category_id', 0);
+        if ($rootCategoryId > 0 && $rootCategories->contains('id', $rootCategoryId)) {
+            $query->whereIn('category_id', $descendantIds($rootCategoryId));
+        }
+
         $categoryId = (int) $request->query('category_id', 0);
         if ($categoryId > 0) {
             $query->where('category_id', $categoryId);
@@ -141,11 +175,28 @@ class ProductManagerController extends Controller
             'trash' => $trashCount,
         ];
 
-        $categories = Category::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $categories = $allCategories;
+
+        $categoryProductCounts = Product::query()
+            ->selectRaw('category_id, COUNT(*) AS aggregate')
+            ->whereNotNull('category_id')
+            ->groupBy('category_id')
+            ->pluck('aggregate', 'category_id');
+
+        $rootCategorySummaries = $rootCategories
+            ->map(function (Category $rootCategory) use ($descendantIds, $categoryProductCounts): array {
+                $ids = $descendantIds((int) $rootCategory->id);
+                $count = collect($ids)->sum(fn (int $id): int => (int) ($categoryProductCounts[$id] ?? 0));
+
+                return [
+                    'id' => (int) $rootCategory->id,
+                    'name' => $rootCategory->name,
+                    'count' => $count,
+                ];
+            })
+            ->filter(fn (array $row): bool => $row['count'] > 0)
+            ->sortBy(fn (array $row): string => strtolower($row['name']))
+            ->values();
 
         return view('admin.product-manager.index', compact(
             'products',
@@ -155,6 +206,9 @@ class ProductManagerController extends Controller
             'tab',
             'search',
             'categoryId',
+            'rootCategoryId',
+            'rootCategorySummaries',
+            'categoryRootMap',
             'minPrice',
             'maxPrice',
             'rating',
