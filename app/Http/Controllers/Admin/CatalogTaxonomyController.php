@@ -426,20 +426,27 @@ class CatalogTaxonomyController extends Controller
         $data = $request->validate([
             'governing_body' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
             'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
-            'catalog_county_code' => ['required', 'string', 'max:16'],
+            'catalog_county_code' => ['nullable', 'string', 'max:16'],
         ]);
 
         $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
-        $countyCode = strtoupper(trim((string) $data['catalog_county_code']));
+        $taxonomy = strtolower((string) $data['governing_body']);
+        $countyCode = strtoupper(trim((string) ($data['catalog_county_code'] ?? '')));
 
-        if (! CatalogCounty::query()->active()->where('catalog_country_id', $country->id)->where('code', $countyCode)->exists()) {
+        if ($countyCode !== '' && ! CatalogCounty::query()->active()->where('catalog_country_id', $country->id)->where('code', $countyCode)->exists()) {
             throw ValidationException::withMessages([
                 'catalog_county_code' => 'The selected county / subdivision does not belong to the selected country.',
             ]);
         }
 
+        if ($countyCode === '' && $taxonomy !== 'fifa') {
+            throw ValidationException::withMessages([
+                'catalog_county_code' => 'Select a county / subdivision for this club.',
+            ]);
+        }
+
         $clubs = $this->clubOptionQuery(
-            strtolower((string) $data['governing_body']),
+            $taxonomy,
             (int) $country->id,
             $countyCode,
         )->get(['id', 'name', 'slug', 'catalog_county_code']);
@@ -560,6 +567,13 @@ class CatalogTaxonomyController extends Controller
             ->forOrganization($taxonomy)
             ->where('catalog_country_id', $countryId);
 
+        if ($taxonomy === 'fifa' && $countyCode === '') {
+            return $base
+                ->where(fn ($query) => $query->whereNull('catalog_county_code')->orWhere('catalog_county_code', ''))
+                ->orderBy('sort_order')
+                ->orderBy('name');
+        }
+
         return $base
             ->where('catalog_county_code', $countyCode)
             ->orderBy('sort_order')
@@ -609,7 +623,7 @@ class CatalogTaxonomyController extends Controller
     {
         $data = $request->validate([
             'catalog_country_id' => ['required', 'integer', Rule::exists('catalog_countries', 'id')->where('is_active', true)],
-            'catalog_county_code' => ['required', 'string', 'max:16'],
+            'catalog_county_code' => ['nullable', 'string', 'max:16'],
             'organizations' => ['nullable', 'array'],
             'organizations.*' => ['required', Rule::in(self::CLUB_TAXONOMIES)],
             'governing_body' => ['nullable', Rule::in(self::CLUB_TAXONOMIES)],
@@ -638,12 +652,22 @@ class CatalogTaxonomyController extends Controller
         $data['governing_body'] = $data['organizations'][0];
 
         $country = CatalogCountry::query()->active()->findOrFail((int) $data['catalog_country_id']);
-        $data['catalog_county_code'] = strtoupper(trim((string) $data['catalog_county_code']));
-        if (! CatalogCounty::query()->active()->where('catalog_country_id', $country->id)->where('code', $data['catalog_county_code'])->exists()) {
+        $data['catalog_county_code'] = strtoupper(trim((string) ($data['catalog_county_code'] ?? '')));
+        $allowsCountryWide = in_array('fifa', $data['organizations'], true);
+
+        if ($data['catalog_county_code'] === '' && ! $allowsCountryWide) {
             throw ValidationException::withMessages([
                 'catalog_county_code' => 'Select a county that belongs to the selected country.',
             ]);
         }
+
+        if ($data['catalog_county_code'] !== '' && ! CatalogCounty::query()->active()->where('catalog_country_id', $country->id)->where('code', $data['catalog_county_code'])->exists()) {
+            throw ValidationException::withMessages([
+                'catalog_county_code' => 'Select a county that belongs to the selected country.',
+            ]);
+        }
+
+        $data['catalog_county_code'] = $data['catalog_county_code'] !== '' ? $data['catalog_county_code'] : null;
 
         $data['slug'] = Str::slug(filled($data['slug'] ?? null) ? $data['slug'] : $data['name']);
         if ($club) {
