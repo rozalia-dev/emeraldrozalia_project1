@@ -70,10 +70,13 @@ class ProductManagerController extends Controller
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
-            $query->where(fn ($products) => $products
-                ->where('name', 'like', '%'.$search.'%')
-                ->orWhere('sku', 'like', '%'.$search.'%')
-                ->orWhere('brand', 'like', '%'.$search.'%'));
+            $needle = '%'.mb_strtolower($search).'%';
+            $query->where(function ($products) use ($needle): void {
+                $products
+                    ->whereRaw('LOWER(name) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(sku) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(COALESCE(brand, \'\')) LIKE ?', [$needle]);
+            });
         }
 
         $allCategories = Category::query()
