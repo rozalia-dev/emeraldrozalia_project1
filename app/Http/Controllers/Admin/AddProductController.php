@@ -26,7 +26,7 @@ class AddProductController extends Controller
     private const CHANNELS = ['website', 'franchise', 'franchise_retail', 'corporate_bulk', 'buyer'];
     private const ORDER_CATEGORIES = ['online', 'corporate', 'bulk', 'franchise', 'franchise_retail', 'buyer'];
     private const REQUIRED_CLUB_TAXONOMIES = ['gaa', 'english', 'uefa', 'fifa'];
-    private const REQUIRED_COUNTY_TAXONOMIES = ['gaa', 'english', 'uefa', 'fifa'];
+    private const REQUIRED_COUNTY_TAXONOMIES = ['gaa', 'english', 'uefa'];
 
     public function create(): View
     {
@@ -295,9 +295,18 @@ class AddProductController extends Controller
             $clubCounty = strtoupper((string) $club?->catalog_county_code);
             $selectedCounty = strtoupper((string) ($data['catalog_county_code'] ?? ''));
             $countryWideFifaClub = $rootTaxonomy === 'fifa' && $clubCounty === '';
-            $wrongCounty = $selectedCounty !== ''
+            $fifaCountyMissingForRegionalClub = $rootTaxonomy === 'fifa'
                 && ! $countryWideFifaClub
+                && $selectedCounty === '';
+            $wrongCounty = ! $countryWideFifaClub
+                && $selectedCounty !== ''
                 && $clubCounty !== $selectedCounty;
+
+            if ($fifaCountyMissingForRegionalClub) {
+                throw ValidationException::withMessages([
+                    'catalog_county_code' => 'Select the county / region for this FIFA club, or choose the country-wide national team.',
+                ]);
+            }
 
             if (! $club || $wrongCountry || $wrongOrganization || $wrongCounty) {
                 throw ValidationException::withMessages([
