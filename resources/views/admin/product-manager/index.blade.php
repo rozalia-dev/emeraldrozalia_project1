@@ -17,6 +17,19 @@
 .pm-category-card strong{display:inline-flex;min-width:30px;height:30px;padding:0 8px;align-items:center;justify-content:center;border-radius:999px;background:#eaf5ee;color:#087c3f}
 .pm-category-card:hover,.pm-category-card.is-active{border-color:#087c3f;background:#eef8f1}
 .pm-category-card.is-active span{color:#087c3f}
+.pm-hierarchy-filter{margin:0 0 18px;padding:16px;background:#fff;border:1px solid #dce5df;border-radius:12px}
+.pm-hierarchy-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
+.pm-hierarchy-head h2{margin:0;font-size:18px}
+.pm-hierarchy-head p{margin:4px 0 0;color:#6a786f;font-size:12px}
+.pm-hierarchy-head>a{font-weight:700;color:#087c3f;text-decoration:none}
+.pm-hierarchy-form{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:10px;align-items:end}
+.pm-hierarchy-form label{display:grid;gap:4px;min-width:0}
+.pm-hierarchy-form label>span{font-size:10px;font-weight:800;color:#66756c;text-transform:uppercase;letter-spacing:.03em}
+.pm-hierarchy-form select{width:100%;height:40px;min-width:0;border:1px solid #d5ded8;border-radius:7px;background:#fff;color:#17231b;padding:0 30px 0 10px;font-weight:600}
+.pm-hierarchy-apply{height:40px;border:0;border-radius:7px;background:#087c3f;color:#fff;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+@media(max-width:1300px){.pm-hierarchy-form{grid-template-columns:repeat(3,minmax(160px,1fr))}}
+@media(max-width:900px){.pm-hierarchy-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.pm-hierarchy-form{grid-template-columns:1fr}}
 .pm-category-dropdowns{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
 .pm-category-dropdowns label{display:grid;gap:3px}
 .pm-category-dropdowns label>span{font-size:10px;font-weight:800;color:#66756c;text-transform:uppercase;letter-spacing:.03em}
@@ -114,6 +127,138 @@
         </div>
     </section>
 
+    @php
+        $activeRootModel = $rootCategoryId ? $categories->firstWhere('id', $rootCategoryId) : null;
+        $activeTaxonomy = strtolower((string) ($activeRootModel?->taxonomy_type ?? $activeRootModel?->slug ?? ''));
+    @endphp
+    <section class="pm-hierarchy-filter" aria-label="Catalogue hierarchy filters">
+        <div class="pm-hierarchy-head">
+            <div>
+                <h2>Find Products</h2>
+                <p>Main Category → Subcategory → Country → County/Region → Club/National Team → Collection → Status → Stock Status</p>
+            </div>
+            <a href="{{ route('admin.resource','product-manager') }}">Clear all filters</a>
+        </div>
+        <form method="get" action="{{ route('admin.resource','product-manager') }}" class="pm-hierarchy-form" data-product-hierarchy-filter>
+            <input type="hidden" name="tab" value="{{ $tab }}">
+            @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
+
+            <label>
+                <span>1. Main Category</span>
+                <select name="root_category_id" data-h-main>
+                    <option value="">All Main Categories</option>
+                    @foreach($rootCategorySummaries as $categorySummary)
+                        @php($rootModel = $categories->firstWhere('id', $categorySummary['id']))
+                        <option value="{{ $categorySummary['id'] }}"
+                                data-taxonomy="{{ strtolower((string)($rootModel?->taxonomy_type ?? $rootModel?->slug ?? '')) }}"
+                                @selected($rootCategoryId===$categorySummary['id'])>
+                            {{ $categorySummary['name'] }} ({{ number_format($categorySummary['count']) }})
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span>2. Subcategory</span>
+                <select name="category_id" data-h-sub>
+                    <option value="">All Subcategories</option>
+                    @foreach($categories as $category)
+                        @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                        @if($category->parent_id && $rootForOption)
+                            <option value="{{ $category->id }}"
+                                    data-root="{{ $rootForOption['id'] }}"
+                                    @selected($categoryId===$category->id)>
+                                {{ $category->name }}
+                            </option>
+                        @endif
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span>3. Country</span>
+                <select name="catalog_country_id" data-h-country>
+                    <option value="">All Countries</option>
+                    @foreach($catalogCountries as $country)
+                        <option value="{{ $country->id }}" data-code="{{ $country->code }}" @selected($countryId===$country->id)>
+                            {{ $country->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span>4. County / Region</span>
+                <select name="catalog_county_code" data-h-county>
+                    <option value="">All Counties / Regions</option>
+                    @foreach($catalogCounties as $county)
+                        <option value="{{ $county->code }}"
+                                data-country="{{ $county->catalog_country_id }}"
+                                @selected($countyCode===$county->code)>
+                            {{ $county->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span>5. Club / National Team</span>
+                <select name="catalog_club_id" data-h-club>
+                    <option value="">All Clubs / National Teams</option>
+                    @foreach($catalogClubs as $club)
+                        @php($clubOrgs = $club->organizations->pluck('taxonomy_type')->push($club->governing_body)->filter()->unique()->implode(','))
+                        <option value="{{ $club->id }}"
+                                data-country="{{ $club->catalog_country_id }}"
+                                data-county="{{ strtoupper((string)$club->catalog_county_code) }}"
+                                data-orgs="{{ $clubOrgs }}"
+                                @selected($clubId===$club->id)>
+                            {{ $club->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span>6. Collection</span>
+                <select name="collection_id" data-h-collection>
+                    <option value="">All Collections</option>
+                    @foreach($collections as $collection)
+                        <option value="{{ $collection->id }}"
+                                data-root="{{ (int)($collection->main_category_id ?? 0) }}"
+                                @selected($collectionId===$collection->id)>
+                            {{ $collection->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span>7. Published / Hidden / Draft</span>
+                <select name="product_status">
+                    <option value="">All Statuses</option>
+                    <option value="published" @selected($productStatus==='published')>Published</option>
+                    <option value="hidden" @selected($productStatus==='hidden')>Hidden</option>
+                    <option value="draft" @selected($productStatus==='draft')>Draft</option>
+                    <option value="inactive" @selected($productStatus==='inactive')>Inactive</option>
+                </select>
+            </label>
+
+            <label>
+                <span>8. Stock Status</span>
+                <select name="stock_status">
+                    <option value="">All Stock Statuses</option>
+                    <option value="in_stock" @selected($stockStatus==='in_stock')>In Stock</option>
+                    <option value="low_stock" @selected($stockStatus==='low_stock')>Low Stock</option>
+                    <option value="out_of_stock" @selected($stockStatus==='out_of_stock')>Out of Stock</option>
+                </select>
+            </label>
+
+            <button class="pm-hierarchy-apply" type="submit">
+                <x-icon name="filter" size="15" /> Find Products
+            </button>
+        </form>
+    </section>
+
     <div class="pm-workspace">
         <section class="pm-catalog" aria-labelledby="catalogue-heading">
             <h2 class="sr-only" id="catalogue-heading">Product catalogue</h2>
@@ -130,35 +275,7 @@
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
                     </form>
-                    <form class="pm-category-dropdowns" method="get" action="{{ route('admin.resource','product-manager') }}" data-pm-category-filter>
-                        <input type="hidden" name="tab" value="{{ $tab }}">
-                        @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
-                        <label>
-                            <span>Main Category</span>
-                            <select name="root_category_id" data-main-category-filter>
-                                <option value="">All Main Categories</option>
-                                @foreach($rootCategorySummaries as $categorySummary)
-                                    <option value="{{ $categorySummary['id'] }}" @selected($rootCategoryId===$categorySummary['id'])>
-                                        {{ $categorySummary['name'] }} ({{ number_format($categorySummary['count']) }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label>
-                            <span>Subcategory</span>
-                            <select name="category_id" data-subcategory-filter>
-                                <option value="">{{ $rootCategoryId ? 'All Subcategories' : 'Select main category first' }}</option>
-                                @foreach($categories as $category)
-                                    @php($rootForOption = $categoryRootMap[$category->id] ?? null)
-                                    @if($category->parent_id && (!$rootCategoryId || (($rootForOption['id'] ?? 0) === $rootCategoryId)))
-                                        <option value="{{ $category->id }}" @selected($categoryId===$category->id)>
-                                            {{ $category->name }}
-                                        </option>
-                                    @endif
-                                @endforeach
-                            </select>
-                        </label>
-                    </form>
+
                     @if($tab !== 'trash' && auth()->user()?->hasPermission('website.products.edit'))
                         <div class="pm-publish-controls" data-product-bulk-publish>
                             <label class="sr-only" for="product-publish-action">Bulk product publishing action</label>
@@ -358,16 +475,81 @@
 @push('scripts')
 <script>
 (() => {
-    const form = document.querySelector('[data-pm-category-filter]');
+    const form = document.querySelector('[data-product-hierarchy-filter]');
     if (!form) return;
-    const main = form.querySelector('[data-main-category-filter]');
-    const sub = form.querySelector('[data-subcategory-filter]');
 
-    main?.addEventListener('change', () => {
-        if (sub) sub.value = '';
-        form.submit();
-    });
-    sub?.addEventListener('change', () => form.submit());
+    const main = form.querySelector('[data-h-main]');
+    const sub = form.querySelector('[data-h-sub]');
+    const country = form.querySelector('[data-h-country]');
+    const county = form.querySelector('[data-h-county]');
+    const club = form.querySelector('[data-h-club]');
+    const collection = form.querySelector('[data-h-collection]');
+
+    const filterOptions = (select, predicate, placeholder) => {
+        if (!select) return;
+        const current = select.value;
+        [...select.options].forEach((option, index) => {
+            if (index === 0) return;
+            option.hidden = !predicate(option);
+        });
+        const selected = select.selectedOptions[0];
+        if (selected?.hidden) select.value = '';
+        if (select.options[0]) select.options[0].textContent = placeholder;
+        if (current && [...select.options].some(o => o.value === current && !o.hidden)) {
+            select.value = current;
+        }
+    };
+
+    const sync = (changed = '') => {
+        const rootId = main?.value || '';
+        const taxonomy = main?.selectedOptions[0]?.dataset.taxonomy || '';
+        const countryId = country?.value || '';
+        const countyCode = county?.value || '';
+
+        if (changed === 'main' && sub) sub.value = '';
+        if ((changed === 'main' || changed === 'country') && county) county.value = '';
+        if (['main','country','county'].includes(changed) && club) club.value = '';
+        if (changed === 'main' && collection) collection.value = '';
+
+        filterOptions(
+            sub,
+            option => !rootId || option.dataset.root === rootId,
+            rootId ? 'All Subcategories' : 'Select main category first'
+        );
+
+        filterOptions(
+            county,
+            option => !countryId || option.dataset.country === countryId,
+            countryId ? 'All Counties / Regions' : 'Select country first'
+        );
+
+        filterOptions(
+            club,
+            option => {
+                if (countryId && option.dataset.country !== countryId) return false;
+                if (taxonomy) {
+                    const orgs = (option.dataset.orgs || '').split(',').filter(Boolean);
+                    if (orgs.length && !orgs.includes(taxonomy)) return false;
+                }
+                if (countyCode) return option.dataset.county === countyCode;
+                return !countryId || option.dataset.county === '' || taxonomy !== 'fifa';
+            },
+            countryId
+                ? (countyCode ? 'All matching clubs' : (taxonomy === 'fifa' ? 'National team / country-wide club' : 'All clubs'))
+                : 'Select country first'
+        );
+
+        filterOptions(
+            collection,
+            option => !rootId || option.dataset.root === '0' || option.dataset.root === rootId,
+            rootId ? 'All matching collections' : 'All Collections'
+        );
+    };
+
+    main?.addEventListener('change', () => sync('main'));
+    country?.addEventListener('change', () => sync('country'));
+    county?.addEventListener('change', () => sync('county'));
+    sync();
 })();
 </script>
 @endpush
