@@ -141,7 +141,7 @@
                             $stockClass=$stock<=0?'out':($stock<=10?'low':'in');
                             $rating=$product->reviews_avg_rating===null?null:(float)$product->reviews_avg_rating;
                             $filledStars=$rating===null?0:(int)round($rating);
-                            $imageUrl=$product->image;
+                            $imageUrl=$product->image ?: optional($product->previewMedia->first())->path;
                             if($imageUrl && !preg_match('#^(https?:)?/#',$imageUrl))$imageUrl=\Illuminate\Support\Facades\Storage::url($imageUrl);
                         @endphp
                         <tr id="product-{{ $product->id }}" data-product-published="{{ $isPublished ? '1' : '0' }}">

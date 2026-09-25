@@ -34,7 +34,7 @@ class ProductManagerController extends Controller
         }
 
         $query = ($tab === 'trash' ? Product::onlyTrashed() : Product::query())
-            ->with('category')
+            ->with(['category', 'previewMedia'])
             ->withCount('reviews')
             ->withAvg('reviews', 'rating');
 
