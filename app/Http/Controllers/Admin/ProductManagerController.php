@@ -237,10 +237,11 @@ class ProductManagerController extends Controller
 
         $catalogClubs = CatalogClub::query()
             ->active()
+            ->with('organizations:catalog_club_id,taxonomy_type')
             ->orderBy('catalog_country_id')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'catalog_country_id', 'catalog_county_code', 'name']);
+            ->get(['id', 'catalog_country_id', 'catalog_county_code', 'governing_body', 'name']);
 
         $collections = ProductCollection::query()
             ->where('status', 'active')
