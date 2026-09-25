@@ -17,6 +17,18 @@
 .pm-category-card strong{display:inline-flex;min-width:30px;height:30px;padding:0 8px;align-items:center;justify-content:center;border-radius:999px;background:#eaf5ee;color:#087c3f}
 .pm-category-card:hover,.pm-category-card.is-active{border-color:#087c3f;background:#eef8f1}
 .pm-category-card.is-active span{color:#087c3f}
+.pm-essential-bar{display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid #edf1ee;border-bottom:1px solid #edf1ee;background:#fbfcfb}
+.pm-essential-bar label{display:grid;gap:3px;min-width:150px;flex:1 1 165px}
+.pm-essential-bar label>span{font-size:10px;font-weight:800;color:#66756c;text-transform:uppercase;letter-spacing:.03em}
+.pm-essential-bar select{height:38px;width:100%;min-width:0;border:1px solid #d4ddd7;border-radius:7px;background:#fff;color:#17231b;padding:0 30px 0 10px;font-weight:600}
+.pm-essential-reset{height:38px;display:inline-flex;align-items:center;padding:0 12px;border:1px solid #d4ddd7;border-radius:7px;background:#fff;color:#17231b;text-decoration:none;font-weight:700}
+.pm-toolbar-direct{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 11px;border:1px solid #d5ded8;border-radius:7px;background:#fff;color:#17231b;text-decoration:none;font-weight:700;white-space:nowrap}
+.pm-toolbar-direct.primary{background:#087c3f;border-color:#087c3f;color:#fff}
+.pm-row-actions{flex-wrap:wrap}
+.pm-row-actions .pm-text-action{width:auto!important;padding:0 7px!important;font-size:11px;font-weight:700}
+.pm-row-actions form{display:inline-flex;margin:0}
+.pm-row-actions .danger{color:#a12620!important;border-color:#efc9c7!important}
+@media(max-width:900px){.pm-essential-bar label{flex:1 1 45%}}
 .pm-hierarchy-filter{margin:0 0 18px;padding:16px;background:#fff;border:1px solid #dce5df;border-radius:12px}
 .pm-hierarchy-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
 .pm-hierarchy-head h2{margin:0;font-size:18px}
@@ -275,14 +287,17 @@
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
                     </form>
+                    <a class="pm-toolbar-direct primary" href="{{ route('admin.resource','add-product') }}">+ Add Product</a>
+                    <a class="pm-toolbar-direct" target="_blank" href="{{ route('admin.product-manager.print', request()->query()) }}">Print</a>
+                    <a class="pm-toolbar-direct" href="{{ route('admin.product-manager.download', request()->query()) }}">Download CSV</a>
 
                     @if($tab !== 'trash' && auth()->user()?->hasPermission('website.products.edit'))
                         <div class="pm-publish-controls" data-product-bulk-publish>
                             <label class="sr-only" for="product-publish-action">Bulk product publishing action</label>
                             <select id="product-publish-action" data-publish-action>
                                 <option value="">Bulk Actions</option>
-                                <option value="publish">Approve selected for public</option>
-                                <option value="unpublish">Unpublish selected</option>
+                                <option value="publish">Publish selected</option>
+                                <option value="unpublish">Hide / Remove selected</option>
                             </select>
                             <button type="button" data-publish-selected disabled>Apply <span data-publish-selected-count></span></button>
                         </div>
@@ -307,6 +322,51 @@
                     </details>
                 </div>
             </div>
+
+            <form class="pm-essential-bar" method="get" action="{{ route('admin.product-manager.index') }}" data-pm-essential-filter>
+                <input type="hidden" name="tab" value="{{ $tab }}">
+                @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
+                <label>
+                    <span>Main Category</span>
+                    <select name="root_category_id" data-essential-main>
+                        <option value="">All Main Categories</option>
+                        @foreach($rootCategorySummaries as $categorySummary)
+                            <option value="{{ $categorySummary['id'] }}" @selected($rootCategoryId===$categorySummary['id'])>{{ $categorySummary['name'] }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    <span>Subcategory</span>
+                    <select name="category_id" data-essential-sub>
+                        <option value="">All Subcategories</option>
+                        @foreach($categories as $category)
+                            @php($rootForEssential = $categoryRootMap[$category->id] ?? null)
+                            @if($category->parent_id && $rootForEssential && (!$rootCategoryId || (($rootForEssential['id'] ?? 0)===$rootCategoryId)))
+                                <option value="{{ $category->id }}" @selected($categoryId===$category->id)>{{ $category->name }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    <span>Published / Hidden / Draft</span>
+                    <select name="product_status" data-essential-auto>
+                        <option value="">All Statuses</option>
+                        <option value="published" @selected($productStatus==='published')>Published</option>
+                        <option value="hidden" @selected($productStatus==='hidden')>Hidden</option>
+                        <option value="draft" @selected($productStatus==='draft')>Draft</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Stock Status</span>
+                    <select name="stock_status" data-essential-auto>
+                        <option value="">All Stock Statuses</option>
+                        <option value="in_stock" @selected($stockStatus==='in_stock')>In Stock</option>
+                        <option value="low_stock" @selected($stockStatus==='low_stock')>Low Stock</option>
+                        <option value="out_of_stock" @selected($stockStatus==='out_of_stock')>Out of Stock</option>
+                    </select>
+                </label>
+                <a class="pm-essential-reset" href="{{ route('admin.product-manager.index') }}">Reset</a>
+            </form>
 
             <div class="pm-table-wrap">
                 <table class="pm-table">
@@ -375,8 +435,21 @@
                             <td>
                                 <div class="pm-row-actions">
                                     <a href="{{ route('product',['product'=>$product->slug]) }}" title="View {{ $product->name }}" aria-label="View {{ $product->name }}"><x-icon name="eye" size="15" /></a>
-                                    <a href="{{ route('admin.product.edit', $product) }}" title="Edit {{ $product->name }}" aria-label="Edit {{ $product->name }}"><x-icon name="pencil" size="15" /></a>
-                                    <button type="button" title="More product actions" aria-label="More actions for {{ $product->name }}"><x-icon name="dots" size="15" /></button>
+                                    <a class="pm-text-action" href="{{ route('admin.product.edit', $product) }}" title="Edit {{ $product->name }}">Edit</a>
+                                    @if(auth()->user()?->hasPermission('website.products.edit'))
+                                        <form method="post" action="{{ route('admin.product-manager.publish', $product->id) }}">
+                                            @csrf
+                                            <input type="hidden" name="action" value="{{ $isPublished ? 'unpublish' : 'publish' }}">
+                                            <button class="pm-text-action" type="submit">{{ $isPublished ? 'Hide' : 'Publish' }}</button>
+                                        </form>
+                                    @endif
+                                    @if(auth()->user()?->hasPermission('products.delete'))
+                                        <form method="post" action="{{ route('admin.product-manager.destroy', $product->id) }}" onsubmit="return confirm('Delete {{ addslashes($product->name) }}? This moves it to Trash.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="pm-text-action danger" type="submit">Delete</button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -550,6 +623,20 @@
     country?.addEventListener('change', () => sync('country'));
     county?.addEventListener('change', () => sync('county'));
     sync();
+
+    const essential = document.querySelector('[data-pm-essential-filter]');
+    if (essential) {
+        const essentialMain = essential.querySelector('[data-essential-main]');
+        const essentialSub = essential.querySelector('[data-essential-sub]');
+        essentialMain?.addEventListener('change', () => {
+            if (essentialSub) essentialSub.value = '';
+            essential.submit();
+        });
+        essentialSub?.addEventListener('change', () => essential.submit());
+        essential.querySelectorAll('[data-essential-auto]').forEach(select => {
+            select.addEventListener('change', () => essential.submit());
+        });
+    }
 })();
 </script>
 @endpush

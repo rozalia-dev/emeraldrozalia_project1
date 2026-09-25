@@ -275,6 +275,52 @@ class ProductManagerController extends Controller
         ));
     }
 
+    public function printView(Request $request): View
+    {
+        $products = $this->exportQuery($request)
+            ->with('category')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->limit(1000)
+            ->get();
+
+        return view('admin.product-manager.print', [
+            'products' => $products,
+            'filters' => $request->query(),
+            'generatedAt' => now(),
+        ]);
+    }
+
+    public function download(Request $request)
+    {
+        $filename = 'products-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($request): void {
+            $stream = fopen('php://output', 'wb');
+            fputcsv($stream, ['Product ID', 'Name', 'SKU', 'Category', 'Price', 'Stock', 'Status', 'Published']);
+
+            $this->exportQuery($request)
+                ->with('category')
+                ->orderBy('id')
+                ->chunkById(500, function ($products) use ($stream): void {
+                    foreach ($products as $product) {
+                        fputcsv($stream, [
+                            $product->id,
+                            $product->name,
+                            $product->sku,
+                            $product->category?->name,
+                            $product->price,
+                            $product->stock,
+                            $product->status,
+                            $product->isPubliclyPublished() ? 'Yes' : 'No',
+                        ]);
+                    }
+                });
+
+            fclose($stream);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
     public function bulkPublish(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -478,6 +524,69 @@ class ProductManagerController extends Controller
         return redirect()
             ->route('admin.resource', ['module' => 'product-manager', 'tab' => 'trash'])
             ->with('success', $name.' permanently deleted.');
+    }
+
+    private function exportQuery(Request $request)
+    {
+        $query = Product::query();
+
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(fn ($products) => $products
+                ->where('name', 'like', '%'.$search.'%')
+                ->orWhere('sku', 'like', '%'.$search.'%')
+                ->orWhere('brand', 'like', '%'.$search.'%'));
+        }
+
+        $rootCategoryId = (int) $request->query('root_category_id', 0);
+        if ($rootCategoryId > 0) {
+            $all = Category::query()->get(['id', 'parent_id']);
+            $children = $all->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
+            $descendants = function (int $id) use (&$descendants, $children): array {
+                $ids = [$id];
+                foreach ($children->get($id, collect()) as $child) {
+                    $ids = array_merge($ids, $descendants((int) $child->id));
+                }
+
+                return array_values(array_unique($ids));
+            };
+
+            $query->whereIn('category_id', $descendants($rootCategoryId));
+        }
+
+        $categoryId = (int) $request->query('category_id', 0);
+        if ($categoryId > 0) {
+            $query->where('category_id', $categoryId);
+        }
+
+        switch ((string) $request->query('product_status', '')) {
+            case 'published':
+                $query->where('is_active', true)->whereIn('status', ['active', 'published']);
+                break;
+            case 'draft':
+                $query->whereIn('status', ['draft', 'planned']);
+                break;
+            case 'hidden':
+                $query->where('is_active', false);
+                break;
+            case 'inactive':
+                $query->where('is_active', false)->where('status', 'inactive');
+                break;
+        }
+
+        switch ((string) $request->query('stock_status', '')) {
+            case 'in_stock':
+                $query->where('stock', '>', 10);
+                break;
+            case 'low_stock':
+                $query->whereBetween('stock', [1, 10]);
+                break;
+            case 'out_of_stock':
+                $query->where('stock', '<=', 0);
+                break;
+        }
+
+        return $query;
     }
 
     private function redirectAfterProductAction(Request $request): RedirectResponse
