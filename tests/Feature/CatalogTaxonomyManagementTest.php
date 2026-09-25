@@ -131,6 +131,44 @@ class CatalogTaxonomyManagementTest extends TestCase
             ->assertJsonFragment(['id' => $existing->id, 'name' => 'Celtic FC']);
     }
 
+    public function test_fifa_national_team_can_be_country_wide_without_county(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $germany = CatalogCountry::query()->where('code', 'DE')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.clubs.store'), [
+                'organizations' => ['fifa'],
+                'catalog_country_id' => $germany->id,
+                'catalog_county_code' => '',
+                'name' => 'Germany National Team',
+                'slug' => 'germany-national-team',
+                'is_active' => 1,
+                'sort_order' => 0,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $team = CatalogClub::query()
+            ->where('catalog_country_id', $germany->id)
+            ->where('slug', 'germany-national-team')
+            ->firstOrFail();
+
+        $this->assertNull($team->catalog_county_code);
+        $this->assertTrue($team->belongsToOrganization('fifa'));
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.categories.clubs.options', [
+                'governing_body' => 'fifa',
+                'catalog_country_id' => $germany->id,
+            ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $team->id,
+                'name' => 'Germany National Team',
+                'scope' => 'country',
+            ]);
+    }
+
     public function test_one_club_can_belong_to_english_and_uefa(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
