@@ -180,7 +180,8 @@ class MediaManagerController extends Controller
 
     public function destroy(ProductMedia $media)
     {
-        $productId=$media->product_id; $before=$media->toArray(); AuditTrail::record('media.deleted',$media,$before,null); $media->delete();
+        $productId=$media->product_id; $product=$media->product; $before=$media->toArray(); AuditTrail::record('media.deleted',$media,$before,null); $media->delete();
+        $product?->syncPrimaryImageFromMedia();
         return redirect()->route('admin.media.index',['product_id'=>$productId])->with('success','Media removed.');
     }
 
@@ -194,6 +195,7 @@ class MediaManagerController extends Controller
             'active' => true,
         ]);
         AuditTrail::record('media.approved', $media, $before, $media->fresh()->toArray());
+        $media->product?->syncPrimaryImageFromMedia();
 
         return back()->with('success', 'Product media approved for public delivery.');
     }
@@ -208,6 +210,7 @@ class MediaManagerController extends Controller
             'active' => false,
         ]);
         AuditTrail::record('media.rejected', $media, $before, $media->fresh()->toArray());
+        $media->product?->syncPrimaryImageFromMedia();
 
         return back()->with('success', 'Product media rejected and removed from public delivery.');
     }
