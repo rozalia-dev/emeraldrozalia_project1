@@ -243,6 +243,7 @@ class ImageManagerController extends Controller
             'metadata' => $metadata,
         ]);
         AuditTrail::record('image.updated', $media, $before, $media->fresh()->toArray());
+        $media->product?->syncPrimaryImageFromMedia();
 
         return redirect()->route('admin.images.index', [
             'product_id' => $media->product_id,
@@ -262,8 +263,10 @@ class ImageManagerController extends Controller
         foreach ($images as $image) {
             $before = $image->toArray();
             if ($data['action'] === 'delete') {
+                $product = $image->product;
                 AuditTrail::record('image.deleted', $image, $before, null);
                 $image->delete();
+                $product?->syncPrimaryImageFromMedia();
                 continue;
             }
 
@@ -286,6 +289,7 @@ class ImageManagerController extends Controller
 
             $image->update($attributes);
             AuditTrail::record('image.'.$data['action'], $image, $before, $image->fresh()->toArray());
+            $image->product?->syncPrimaryImageFromMedia();
         }
 
         return back()->with('success', count($images).' selected image'.(count($images) === 1 ? '' : 's').' updated.');
@@ -295,12 +299,14 @@ class ImageManagerController extends Controller
     {
         abort_unless($media->type === 'image', 404);
         $productId = $media->product_id;
+        $product = $media->product;
         $before = $media->toArray();
         AuditTrail::record('image.deleted', $media, $before, null);
         if ($media->disk === 'public' && Storage::disk($media->disk)->exists($media->path)) {
             Storage::disk($media->disk)->delete($media->path);
         }
         $media->delete();
+        $product?->syncPrimaryImageFromMedia();
 
         return redirect()->route('admin.images.index', ['product_id' => $productId])->with('success', 'Image removed.');
     }
