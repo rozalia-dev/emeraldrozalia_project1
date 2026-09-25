@@ -291,7 +291,7 @@
                     <a class="pm-toolbar-direct" target="_blank" href="{{ route('admin.product-manager.print', request()->query()) }}">Print</a>
                     <a class="pm-toolbar-direct" href="{{ route('admin.product-manager.download', request()->query()) }}">Download CSV</a>
 
-                    @if($tab !== 'trash' && auth()->user()?->hasPermission('website.products.edit'))
+                    @if($tab !== 'trash')
                         <div class="pm-publish-controls" data-product-bulk-publish>
                             <label class="sr-only" for="product-publish-action">Bulk product publishing action</label>
                             <select id="product-publish-action" data-publish-action>
@@ -302,7 +302,7 @@
                             <button type="button" data-publish-selected disabled>Apply <span data-publish-selected-count></span></button>
                         </div>
                     @endif
-                    @if($tab !== 'trash' && auth()->user()?->hasPermission('products.delete'))
+                    @if($tab !== 'trash')
                         <details class="pm-delete-menu" data-product-bulk-delete>
                             <summary>Delete <span aria-hidden="true">▾</span></summary>
                             <div>

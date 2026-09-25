@@ -37,14 +37,19 @@ class ProductManagerController extends Controller
             $tab = 'all';
         }
 
-        $query = ($tab === 'trash' ? Product::onlyTrashed() : Product::query())
+        $isSuperAdmin = (bool) $request->user()?->is_admin;
+        $query = $tab === 'trash'
+            ? Product::onlyTrashed()
+            : Product::query();
+
+        if ($isSuperAdmin) {
+            $query = $query->withoutGlobalScope('tenant');
+        }
+
+        $query
             ->with(['category', 'previewMedia'])
             ->withCount('reviews')
             ->withAvg('reviews', 'rating');
-
-        if ($request->user()?->is_admin) {
-            $query->withoutGlobalScope('tenant');
-        }
 
         if ($tab !== 'trash') {
             switch ($tab) {
@@ -74,12 +79,20 @@ class ProductManagerController extends Controller
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
-            $needle = '%'.mb_strtolower($search).'%';
+            $needle = '%'.$search.'%';
             $query->where(function ($products) use ($needle): void {
+                if ($products->getConnection()->getDriverName() === 'pgsql') {
+                    $products
+                        ->whereRaw('name ILIKE ?', [$needle])
+                        ->orWhereRaw('sku ILIKE ?', [$needle])
+                        ->orWhereRaw("COALESCE(brand, '') ILIKE ?", [$needle]);
+                    return;
+                }
+
                 $products
-                    ->whereRaw('LOWER(name) LIKE ?', [$needle])
-                    ->orWhereRaw('LOWER(sku) LIKE ?', [$needle])
-                    ->orWhereRaw('LOWER(COALESCE(brand, \'\')) LIKE ?', [$needle]);
+                    ->where('name', 'like', $needle)
+                    ->orWhere('sku', 'like', $needle)
+                    ->orWhere('brand', 'like', $needle);
             });
         }
 
