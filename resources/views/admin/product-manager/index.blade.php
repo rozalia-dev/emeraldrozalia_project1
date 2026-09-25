@@ -291,7 +291,7 @@
                     <a class="pm-toolbar-direct" target="_blank" href="{{ route('admin.product-manager.print', request()->query()) }}">Print</a>
                     <a class="pm-toolbar-direct" href="{{ route('admin.product-manager.download', request()->query()) }}">Download CSV</a>
 
-                    @if($tab !== 'trash' && (auth()->user()?->is_admin || auth()->user()?->hasPermission('website.products.edit')))
+                    @if($tab !== 'trash' && auth()->user()?->hasPermission('website.products.edit'))
                         <div class="pm-publish-controls" data-product-bulk-publish>
                             <label class="sr-only" for="product-publish-action">Bulk product publishing action</label>
                             <select id="product-publish-action" data-publish-action>
@@ -302,7 +302,7 @@
                             <button type="button" data-publish-selected disabled>Apply <span data-publish-selected-count></span></button>
                         </div>
                     @endif
-                    @if($tab !== 'trash' && (auth()->user()?->is_admin || auth()->user()?->hasPermission('products.delete')))
+                    @if($tab !== 'trash' && auth()->user()?->hasPermission('products.delete'))
                         <details class="pm-delete-menu" data-product-bulk-delete>
                             <summary>Delete <span aria-hidden="true">▾</span></summary>
                             <div>
@@ -444,14 +444,14 @@
                                 <div class="pm-row-actions">
                                     <a href="{{ route('product',['product'=>$product->slug]) }}" title="View {{ $product->name }}" aria-label="View {{ $product->name }}"><x-icon name="eye" size="15" /></a>
                                     <a class="pm-text-action" href="{{ route('admin.product.edit', $product) }}" title="Edit {{ $product->name }}">Edit</a>
-                                    @if(auth()->user()?->is_admin || auth()->user()?->hasPermission('website.products.edit'))
+                                    @if(auth()->user()?->hasPermission('website.products.edit'))
                                         <form method="post" action="{{ route('admin.product-manager.publish', $product->id) }}">
                                             @csrf
                                             <input type="hidden" name="action" value="{{ $isPublished ? 'unpublish' : 'publish' }}">
                                             <button class="pm-text-action" type="submit">{{ $isPublished ? 'Hide' : 'Publish' }}</button>
                                         </form>
                                     @endif
-                                    @if(auth()->user()?->is_admin || auth()->user()?->hasPermission('products.delete'))
+                                    @if(auth()->user()?->hasPermission('products.delete'))
                                         <form method="post" action="{{ route('admin.product-manager.destroy', $product->id) }}" onsubmit="return confirm('Delete {{ addslashes($product->name) }}? This moves it to Trash.')">
                                             @csrf
                                             @method('DELETE')
