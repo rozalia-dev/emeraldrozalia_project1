@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogClub;
+use App\Models\CatalogCountry;
+use App\Models\CatalogCounty;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductCollection;
 use App\Models\Review;
 use App\Services\AuditTrail;
 use Illuminate\Http\RedirectResponse;
@@ -111,6 +115,26 @@ class ProductManagerController extends Controller
             $query->where('category_id', $categoryId);
         }
 
+        $countryId = (int) $request->query('catalog_country_id', 0);
+        if ($countryId > 0) {
+            $query->where('product_metadata->catalog_classification->catalog_country_id', $countryId);
+        }
+
+        $countyCode = strtoupper(trim((string) $request->query('catalog_county_code', '')));
+        if ($countyCode !== '') {
+            $query->where('product_metadata->catalog_classification->catalog_county_code', $countyCode);
+        }
+
+        $clubId = (int) $request->query('catalog_club_id', 0);
+        if ($clubId > 0) {
+            $query->where('product_metadata->catalog_classification->catalog_club_id', $clubId);
+        }
+
+        $collectionId = (int) $request->query('collection_id', 0);
+        if ($collectionId > 0) {
+            $query->whereHas('collections', fn ($collections) => $collections->where('product_collections.id', $collectionId));
+        }
+
         $minPrice = $request->query('min_price');
         if (is_numeric($minPrice)) {
             $query->where('price', '>=', (float) $minPrice);
@@ -198,6 +222,32 @@ class ProductManagerController extends Controller
             ->sortBy(fn (array $row): string => strtolower($row['name']))
             ->values();
 
+        $catalogCountries = CatalogCountry::query()
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
+        $catalogCounties = CatalogCounty::query()
+            ->active()
+            ->orderBy('catalog_country_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['catalog_country_id', 'code', 'name']);
+
+        $catalogClubs = CatalogClub::query()
+            ->active()
+            ->orderBy('catalog_country_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'catalog_country_id', 'catalog_county_code', 'name']);
+
+        $collections = ProductCollection::query()
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'main_category_id']);
+
         return view('admin.product-manager.index', compact(
             'products',
             'categories',
@@ -213,6 +263,14 @@ class ProductManagerController extends Controller
             'maxPrice',
             'rating',
             'featured',
+            'countryId',
+            'countyCode',
+            'clubId',
+            'collectionId',
+            'catalogCountries',
+            'catalogCounties',
+            'catalogClubs',
+            'collections',
         ));
     }
 
