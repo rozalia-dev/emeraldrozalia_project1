@@ -275,6 +275,22 @@ class ProductManagerController extends Controller
         ));
     }
 
+    public function print(Request $request): View
+    {
+        $products = $this->exportQuery($request)
+            ->with('category')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->limit(1000)
+            ->get();
+
+        return view('admin.product-manager.print', [
+            'products' => $products,
+            'filters' => $request->query(),
+            'generatedAt' => now(),
+        ]);
+    }
+
     public function bulkPublish(Request $request): RedirectResponse
     {
         $validated = $request->validate([
