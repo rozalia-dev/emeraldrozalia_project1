@@ -3,6 +3,23 @@
 @section('title','Product Manager')
 
 @section('content')
+
+@push('styles')
+<style>
+.pm-category-browser{margin:0 0 18px;padding:16px;background:#fff;border:1px solid #dce5df;border-radius:12px}
+.pm-category-browser-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.pm-category-browser-head h2{margin:0;font-size:18px}
+.pm-category-browser-head p{margin:4px 0 0;color:#6a786f;font-size:12px}
+.pm-category-browser-head>a{font-weight:700;color:#087c3f;text-decoration:none}
+.pm-category-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.pm-category-card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;padding:10px 12px;border:1px solid #d7e0da;border-radius:9px;background:#fbfdfb;color:#183024;text-decoration:none}
+.pm-category-card span{font-weight:700}
+.pm-category-card strong{display:inline-flex;min-width:30px;height:30px;padding:0 8px;align-items:center;justify-content:center;border-radius:999px;background:#eaf5ee;color:#087c3f}
+.pm-category-card:hover,.pm-category-card.is-active{border-color:#087c3f;background:#eef8f1}
+.pm-category-card.is-active span{color:#087c3f}
+</style>
+@endpush
+
 @php
     $stockStatus=(string)request()->query('stock_status','');
     $productStatus=(string)request()->query('product_status','');
@@ -14,6 +31,7 @@
     $outOfStockPercent=min(100,($stats['out_of_stock']/$summaryTotal)*100);
     $money=fn($value)=>'€'.number_format((float)$value,2);
     $percent=fn($value)=>number_format(($value/$summaryTotal)*100,1).'%';
+    $activeRootCategory = collect($rootCategorySummaries)->firstWhere('id', $rootCategoryId);
 @endphp
 
 <div class="pm-page">
@@ -63,6 +81,32 @@
             <span class="pm-kpi-icon pm-kpi-violet"><x-icon name="star" size="20" /></span>
             <small>Avg. Rating</small><strong>{{ number_format($stats['average_rating'],1) }} / 5</strong><em>Approved reviews</em>
         </article>
+    </section>
+
+    <section class="pm-category-browser" aria-label="Products by main category">
+        <div class="pm-category-browser-head">
+            <div>
+                <h2>Products by Category</h2>
+                <p>View every added product grouped by its main category, then add, edit, publish or delete within that category.</p>
+            </div>
+            @if($activeRootCategory)
+                <a href="{{ request()->fullUrlWithQuery(['root_category_id'=>null,'category_id'=>null,'page'=>null]) }}">Show all products</a>
+            @endif
+        </div>
+        <div class="pm-category-grid">
+            <a class="pm-category-card {{ $rootCategoryId===0?'is-active':'' }}"
+               href="{{ request()->fullUrlWithQuery(['root_category_id'=>null,'category_id'=>null,'page'=>null]) }}">
+                <span>All Products</span>
+                <strong>{{ number_format($stats['total']) }}</strong>
+            </a>
+            @foreach($rootCategorySummaries as $categorySummary)
+                <a class="pm-category-card {{ $rootCategoryId===$categorySummary['id']?'is-active':'' }}"
+                   href="{{ request()->fullUrlWithQuery(['root_category_id'=>$categorySummary['id'],'category_id'=>null,'page'=>null]) }}">
+                    <span>{{ $categorySummary['name'] }}</span>
+                    <strong>{{ number_format($categorySummary['count']) }}</strong>
+                </a>
+            @endforeach
+        </div>
     </section>
 
     <div class="pm-workspace">
@@ -155,7 +199,17 @@
                                 </div>
                             </td>
                             <td><span class="pm-code">{{ $product->sku }}</span><small class="pm-muted">Product ID #{{ $product->id }}</small></td>
-                            <td><strong class="pm-category">{{ $product->category?->name ?: 'Uncategorised' }}</strong><small class="pm-muted">{{ $product->material ?: 'Product range' }}</small></td>
+                            @php($rootCategory = $categoryRootMap[$product->category_id] ?? null)
+                            <td>
+                                <strong class="pm-category">{{ $rootCategory['name'] ?? ($product->category?->name ?: 'Uncategorised') }}</strong>
+                                <small class="pm-muted">
+                                    @if($rootCategory && $product->category && $product->category->name !== $rootCategory['name'])
+                                        {{ $product->category->name }}
+                                    @else
+                                        {{ $product->material ?: 'Product range' }}
+                                    @endif
+                                </small>
+                            </td>
                             <td><strong class="pm-price">{{ $money($product->price) }}</strong>@if($product->compare_price && (float)$product->compare_price>(float)$product->price)<del>{{ $money($product->compare_price) }}</del>@endif</td>
                             <td><strong>{{ number_format($stock) }}</strong><small class="pm-stock {{ $stockClass }}">{{ $stockLabel }}</small></td>
                             <td><span class="pm-status {{ $statusClass }}">{{ $statusLabel }}</span></td>
@@ -202,8 +256,21 @@
                 <div class="pm-rail-heading"><h2>Filters</h2><a href="{{ route('admin.resource','product-manager') }}">Reset</a></div>
                 <form method="get" action="{{ route('admin.resource','product-manager') }}" class="pm-filter-form">
                     <input type="hidden" name="tab" value="{{ $tab }}">
+                    @if($rootCategoryId>0)<input type="hidden" name="root_category_id" value="{{ $rootCategoryId }}">@endif
                     <label>Search<input name="q" value="{{ $search }}" type="search" placeholder="Product name, SKU, barcode..."></label>
-                    <label>Category<select name="category_id"><option value="">All Categories</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected($categoryId===$category->id)>{{ $category->name }}</option>@endforeach</select></label>
+                    <label>Subcategory / Product Category
+                        <select name="category_id">
+                            <option value="">{{ $activeRootCategory ? 'All '.$activeRootCategory['name'].' products' : 'All Categories' }}</option>
+                            @foreach($categories as $category)
+                                @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                                @if(!$rootCategoryId || (($rootForOption['id'] ?? 0) === $rootCategoryId))
+                                    <option value="{{ $category->id }}" @selected($categoryId===$category->id)>
+                                        {{ $rootForOption && $category->name !== $rootForOption['name'] ? $rootForOption['name'].' → '.$category->name : $category->name }}
+                                    </option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </label>
                     <fieldset><legend>Price Range (EUR)</legend><div class="pm-price-fields"><input name="min_price" value="{{ $minPrice }}" type="number" min="0" step="0.01" placeholder="Min"><span>—</span><input name="max_price" value="{{ $maxPrice }}" type="number" min="0" step="0.01" placeholder="Max"></div></fieldset>
                     <label>Stock Status<select name="stock_status"><option value="">All Stock Statuses</option><option value="in_stock" @selected($stockStatus==='in_stock')>In Stock</option><option value="low_stock" @selected($stockStatus==='low_stock')>Low Stock</option><option value="out_of_stock" @selected($stockStatus==='out_of_stock')>Out of Stock</option></select></label>
                     <label>Product Status<select name="product_status"><option value="">All Statuses</option><option value="published" @selected($productStatus==='published')>Published</option><option value="draft" @selected($productStatus==='draft')>Draft</option><option value="hidden" @selected($productStatus==='hidden')>Hidden</option><option value="inactive" @selected($productStatus==='inactive')>Inactive</option></select></label>
