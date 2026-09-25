@@ -392,7 +392,7 @@
                     <tbody>
                     @if($products->isEmpty())
                         <tr><td colspan="9" class="pm-empty"><x-icon name="package" size="28" /><strong>No products match these filters.</strong><a href="{{ route('admin.resource','product-manager') }}">Clear filters</a></td></tr>
-                    @else
+                    @endif
                     @foreach($products as $product)
                         @php
                             $isPublished=$product->is_active && in_array($product->status,['active','published'],true);
@@ -462,7 +462,6 @@
                             </td>
                         </tr>
                     @endforeach
-                    @endif
                     </tbody>
                 </table>
             </div>
