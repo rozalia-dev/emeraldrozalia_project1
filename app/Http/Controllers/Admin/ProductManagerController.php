@@ -291,6 +291,36 @@ class ProductManagerController extends Controller
         ]);
     }
 
+    public function download(Request $request)
+    {
+        $filename = 'products-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($request): void {
+            $stream = fopen('php://output', 'wb');
+            fputcsv($stream, ['Product ID', 'Name', 'SKU', 'Category', 'Price', 'Stock', 'Status', 'Published']);
+
+            $this->exportQuery($request)
+                ->with('category')
+                ->orderBy('id')
+                ->chunkById(500, function ($products) use ($stream): void {
+                    foreach ($products as $product) {
+                        fputcsv($stream, [
+                            $product->id,
+                            $product->name,
+                            $product->sku,
+                            $product->category?->name,
+                            $product->price,
+                            $product->stock,
+                            $product->status,
+                            $product->isPubliclyPublished() ? 'Yes' : 'No',
+                        ]);
+                    }
+                });
+
+            fclose($stream);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
     public function bulkPublish(Request $request): RedirectResponse
     {
         $validated = $request->validate([
