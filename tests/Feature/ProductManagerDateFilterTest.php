@@ -25,6 +25,18 @@ class ProductManagerDateFilterTest extends TestCase
             'to' => '2026-09-20',
         ]));
 
+        $viewPath = resource_path('views/admin/product-manager/index.blade.php');
+        $compiledPath = app('blade.compiler')->getCompiledPath($viewPath);
+        $html = $response->getContent();
+        $debug = [
+            'source_has_from_date' => str_contains(file_get_contents($viewPath), 'type="date" name="from"'),
+            'compiled_has_from_date' => is_file($compiledPath) && str_contains(file_get_contents($compiledPath), 'type="date"'),
+            'html_has_from_date' => str_contains($html, 'type="date" name="from"'),
+            'html_from_position' => strpos($html, 'name="from"'),
+            'html_date_position' => strpos($html, 'type="date"'),
+        ];
+        fwrite(STDERR, '[PMDATEDEBUG] '.json_encode($debug)."\n");
+
         $response->assertOk()
             ->assertSee('type="date" name="from"', false)
             ->assertSee('type="date" name="to"', false)
