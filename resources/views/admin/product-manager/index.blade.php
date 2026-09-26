@@ -157,6 +157,10 @@
         <form method="get" action="{{ route('admin.resource','product-manager') }}" class="pm-hierarchy-form" data-product-hierarchy-filter>
             <input type="hidden" name="tab" value="{{ $tab }}">
             @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
+            @foreach(['min_price' => $minPrice, 'max_price' => $maxPrice, 'rating' => $rating] as $filterName => $filterValue)
+                @if($filterValue !== null && $filterValue !== '')<input type="hidden" name="{{ $filterName }}" value="{{ $filterValue }}">@endif
+            @endforeach
+            @if($featured)<input type="hidden" name="featured" value="1">@endif
 
             <label>
                 <span>1. Main Category</span>
