@@ -55,7 +55,8 @@ class OrderMasterOverviewTest extends TestCase
                 'Online Orders','Corporate Orders','Bulk Orders','Franchise Orders','Franchise Retail Orders','Buyer Orders',
                 'Pending Approval / Payment','ORDER MASTER SUMMARY','QUICK ACTIONS','ORDER NOTIFICATIONS',
                 'Orders by Category','Top Selling Products','Order Value by Category','Order Status Overview',
-                '/css/order-master.css?v=20260910-order-master-v1','/js/order-master.js?v=20260910-order-master-v1',
+                '/css/order-master.css?v=20260927-responsive-v1','/js/order-master.js?v=20260910-order-master-v1',
+                'data-label="Order #"','data-label="Customer / company"','data-label="Fulfilment"',
             ], false)
             ->assertSee($order->number, false)
             ->assertSee('Emerald Signature Cap', false);

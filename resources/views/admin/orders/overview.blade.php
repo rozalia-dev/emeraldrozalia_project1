@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 @section('title','Order Master Overview')
 @push('styles')
-<link rel="stylesheet" href="/css/order-master.css?v=20260910-order-master-v1">
+<link rel="stylesheet" href="/css/order-master.css?v=20260927-responsive-v1">
 @endpush
 
 @php
@@ -67,16 +67,16 @@
                 @forelse($orders as $order)
                     @php $meta=$typeMeta[$order->order_type] ?? $typeMeta['online']; @endphp
                     <tr>
-                        <td class="om-check"><input type="checkbox" name="order_ids[]" value="{{ $order->id }}"></td>
-                        <td><a class="om-order-number" href="{{ route('admin.order-master.show',[$order->order_type,$order]) }}">{{ $order->number }}</a></td>
-                        <td><span class="om-category om-category--{{ $meta['tone'] }}"><x-icon name="{{ $meta['icon'] }}" size="13" />{{ $meta['label'] }}</span></td>
-                        <td><strong class="om-customer">{{ $customerName($order) }}</strong><small>{{ $order->email ?: 'No email' }}</small><small>{{ $order->phone ?: 'No phone' }}</small></td>
-                        <td><span>{{ optional($order->created_at)->format('d M Y') }}</span><small>{{ optional($order->created_at)->format('g:i A') }}</small></td>
-                        <td><strong>{{ $money($order->total) }}</strong><small>{{ number_format((int)$order->items->sum('quantity')) }} items</small></td>
-                        <td><span>{{ $statusLabel($order->payment_method ?: 'Not set') }}</span><small class="om-payment om-payment--{{ $order->payment_status }}">{{ $statusLabel($order->payment_status) }}</small></td>
-                        <td><span class="om-status om-status--{{ $order->status }}">{{ $statusLabel($order->status) }}</span></td>
-                        <td><span class="om-fulfil om-fulfil--{{ $order->fulfillment_status ?: 'pending' }}">{{ $statusLabel($order->fulfillment_status ?: 'pending') }}</span></td>
-                        <td><div class="om-row-actions"><a title="View order" href="{{ route('admin.order-master.show',[$order->order_type,$order]) }}"><x-icon name="eye" size="14" /></a><a title="Edit order" href="{{ route('admin.order-master.show',[$order->order_type,$order]) }}"><x-icon name="pencil" size="14" /></a><a title="Invoice" href="{{ route('admin.order-master.invoice',[$order->order_type,$order]) }}"><x-icon name="dots" size="14" /></a></div></td>
+                        <td class="om-check"><input type="checkbox" name="order_ids[]" value="{{ $order->id }}" aria-label="Select order {{ $order->number }}"></td>
+                        <td data-label="Order #"><a class="om-order-number" href="{{ route('admin.order-master.show',[$order->order_type,$order]) }}">{{ $order->number }}</a></td>
+                        <td data-label="Order category"><div class="om-cell-value"><span class="om-category om-category--{{ $meta['tone'] }}"><x-icon name="{{ $meta['icon'] }}" size="13" />{{ $meta['label'] }}</span></div></td>
+                        <td data-label="Customer / company"><div class="om-cell-value"><strong class="om-customer">{{ $customerName($order) }}</strong><small>{{ $order->email ?: 'No email' }}</small><small>{{ $order->phone ?: 'No phone' }}</small></div></td>
+                        <td data-label="Date &amp; time"><div class="om-cell-value"><span>{{ optional($order->created_at)->format('d M Y') }}</span><small>{{ optional($order->created_at)->format('g:i A') }}</small></div></td>
+                        <td data-label="Total"><div class="om-cell-value"><strong>{{ $money($order->total) }}</strong><small>{{ number_format((int)$order->items->sum('quantity')) }} items</small></div></td>
+                        <td data-label="Payment"><div class="om-cell-value"><span>{{ $statusLabel($order->payment_method ?: 'Not set') }}</span><small class="om-payment om-payment--{{ $order->payment_status }}">{{ $statusLabel($order->payment_status) }}</small></div></td>
+                        <td data-label="Status"><div class="om-cell-value"><span class="om-status om-status--{{ $order->status }}">{{ $statusLabel($order->status) }}</span></div></td>
+                        <td data-label="Fulfilment"><div class="om-cell-value"><span class="om-fulfil om-fulfil--{{ $order->fulfillment_status ?: 'pending' }}">{{ $statusLabel($order->fulfillment_status ?: 'pending') }}</span></div></td>
+                        <td data-label="Actions"><div class="om-row-actions"><a title="View order" aria-label="View order {{ $order->number }}" href="{{ route('admin.order-master.show',[$order->order_type,$order]) }}"><x-icon name="eye" size="14" /></a><a title="Edit order" aria-label="Edit order {{ $order->number }}" href="{{ route('admin.order-master.show',[$order->order_type,$order]) }}"><x-icon name="pencil" size="14" /></a><a title="Invoice" aria-label="Invoice for order {{ $order->number }}" href="{{ route('admin.order-master.invoice',[$order->order_type,$order]) }}"><x-icon name="dots" size="14" /></a></div></td>
                     </tr>
                 @empty
                     <tr><td class="om-empty" colspan="10"><x-icon name="shopping-bag" size="28" /><strong>No orders found</strong><span>Adjust the filters or create a new order.</span></td></tr>
