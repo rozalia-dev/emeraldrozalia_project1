@@ -23,7 +23,9 @@ Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])-
     Route::patch('/communication-center/email/drafts/{conversation:uuid}', [EmailMailboxController::class, 'updateDraft'])->name('draft.update');
     Route::post('/communication-center/email/drafts/{conversation:uuid}/send', [EmailMailboxController::class, 'sendDraft'])->name('draft.send');
     Route::post('/communication-center/email/{conversation:uuid}/reply-mailbox', [EmailMailboxController::class, 'reply'])->name('reply');
-    Route::get('/communication-center/email/{conversationUuid}/download', [EmailMailboxController::class, 'downloadThread'])->name('download');
+    Route::get('/communication-center/email/{conversationUuid}/download/{format?}', [EmailMailboxController::class, 'downloadThread'])
+        ->where('format', 'txt|pdf|csv|docx')
+        ->name('download');
     Route::get('/communication-center/email/{conversationUuid}/draft-attachments/{attachmentId}', [EmailMailboxController::class, 'downloadDraftAttachment'])->where('attachmentId', '[A-Za-z0-9-]+')->name('draft-attachment.download');
     Route::get('/communication-center/email/{conversationUuid}/messages/{messageUuid}/attachments/{attachmentId}', [EmailMailboxController::class, 'downloadMessageAttachment'])->where('attachmentId', '[A-Za-z0-9-]+')->name('attachment.download');
     Route::post('/communication-center/email/{conversation:uuid}/trash', [EmailMailboxController::class, 'trash'])->name('trash');

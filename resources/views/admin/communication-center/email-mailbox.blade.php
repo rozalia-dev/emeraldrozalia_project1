@@ -85,7 +85,9 @@
                 @if($selected)
                     <div class="email-pane-head"><div><h2>{{ $selected->subject ?: '(no subject)' }}</h2><div class="email-meta">{{ $selected->contact }} · {{ strtoupper($selected->status) }} · {{ $selected->uuid }}</div></div><div class="email-actions">
                         <button class="email-action" type="button" onclick="window.print()">Print</button>
-                        <a class="email-action" href="{{ route('admin.email-mailbox.download', ['conversationUuid' => $selected->uuid]) }}">Download thread (.txt)</a>
+                        @foreach(['txt' => 'TXT', 'pdf' => 'PDF', 'csv' => 'CSV', 'docx' => 'Word (.docx)'] as $exportFormat => $exportLabel)
+                            <a class="email-action" href="{{ route('admin.email-mailbox.download', ['conversationUuid' => $selected->uuid, 'format' => $exportFormat]) }}">Download {{ $exportLabel }}</a>
+                        @endforeach
                         @if($folder === 'trash')
                             <form method="POST" action="{{ route('admin.email-mailbox.restore',$selected->uuid) }}">@csrf<button class="email-action">Restore</button></form>
                             <form method="POST" action="{{ route('admin.email-mailbox.destroy',$selected->uuid) }}" onsubmit="return confirm('Permanently delete this email thread?')">@csrf @method('DELETE')<button class="email-action danger">Delete Permanently</button></form>
