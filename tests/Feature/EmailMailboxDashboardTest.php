@@ -10,6 +10,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class EmailMailboxDashboardTest extends TestCase
@@ -65,8 +67,54 @@ class EmailMailboxDashboardTest extends TestCase
         Queue::assertPushed(DeliverCommunicationMessage::class, fn ($job) => $job->messageId === $message->id);
     }
 
+    public function test_email_mailbox_supports_private_attachments_thread_download_and_print_controls(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+        $admin = User::factory()->create(['is_admin' => true, 'status' => 'active']);
+
+        $this->actingAs($admin)->post(route('admin.email-mailbox.compose'), [
+            'to' => 'customer@example.test',
+            'subject' => 'Order documents',
+            'body' => 'The requested document is attached.',
+            'action' => 'send',
+            'attachments' => [UploadedFile::fake()->create('order-details.pdf', 24, 'application/pdf')],
+        ])->assertRedirect();
+
+        $conversation = Conversation::query()->where('channel', 'email')->where('contact', 'customer@example.test')->firstOrFail();
+        $message = ConversationMessage::query()->where('conversation_id', $conversation->id)->firstOrFail();
+        $attachments = (array) data_get($message->payload, 'attachments', []);
+        $this->assertCount(1, $attachments);
+        $attachment = $attachments[0];
+        Storage::disk('local')->assertExists($attachment['path']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.email-mailbox.attachment.download', [
+                'conversationUuid' => $conversation->uuid,
+                'messageUuid' => $message->uuid,
+                'attachmentId' => $attachment['id'],
+            ]))
+            ->assertOk()
+            ->assertHeader('Content-Disposition');
+
+        $this->get(route('admin.email-mailbox.download', ['conversationUuid' => $conversation->uuid]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->assertSee('The requested document is attached.');
+
+        $this->get('/admin/resource/email?folder=sent&conversation='.$conversation->uuid)
+            ->assertOk()
+            ->assertSee('Print')
+            ->assertSee('Download thread')
+            ->assertSee('Attachments')
+            ->assertSee('Download order-details.pdf');
+
+        Queue::assertPushed(DeliverCommunicationMessage::class, fn ($job) => $job->messageId === $message->id);
+    }
+
     public function test_mailbox_can_save_a_draft_without_sending_it(): void
     {
+        Storage::fake('local');
         Queue::fake();
         $admin = User::factory()->create(['is_admin' => true, 'status' => 'active']);
 
@@ -75,11 +123,15 @@ class EmailMailboxDashboardTest extends TestCase
             'subject' => 'Draft subject',
             'body' => 'Not sent yet',
             'action' => 'draft',
+            'attachments' => [UploadedFile::fake()->create('draft-brief.pdf', 12, 'application/pdf')],
         ])->assertRedirect();
 
         $draft = Conversation::query()->where('contact', 'draft@example.test')->firstOrFail();
         $this->assertSame('draft', $draft->status);
         $this->assertSame('Not sent yet', data_get($draft->metadata, 'draft_body'));
+        $draftAttachments = (array) data_get($draft->metadata, 'draft_attachments', []);
+        $this->assertCount(1, $draftAttachments);
+        Storage::disk('local')->assertExists($draftAttachments[0]['path']);
         $this->assertSame(0, $draft->messages()->count());
         Queue::assertNothingPushed();
 

@@ -45,3 +45,9 @@ Local PHP, Composer and Docker are unavailable in this workspace. `git diff --ch
 - Approval Center, Alerts & Notifications, Action / Follow-ups, communication reports and analytics still need their durable contracts/read models and policy/MFA coverage.
 - Exact Archive 063 screenshot comparison, responsive browser journeys, keyboard/accessibility checks and the ordered 167-reference evidence archive remain incomplete.
 - MySQL lifecycle evidence, an independent backup/restore drill and the broader guide completion gate remain open.
+
+## Mailbox attachment and print follow-up
+
+The current working tree adds optional private file uploads to compose, draft and reply forms, with a five-file cap and 10 MB per-file validation. Sent messages store attachment metadata in the existing message payload, and the mail provider reads those files from private storage when delivering the message. The browser can download each attachment, print the selected conversation, or download its text transcript; draft attachments can also be downloaded and are carried forward when the draft is sent.
+
+`EmailMailboxDashboardTest` now covers compose attachment storage/download, thread transcript download, the print/download controls and draft attachment persistence. These changes are prepared in the email mailbox branch but are **not yet deployed**. This workspace does not have PHP, Composer or Docker installed, so the new PHP tests have not been run here; the existing `git diff --check` static check is available, and the runtime gate still needs CI.

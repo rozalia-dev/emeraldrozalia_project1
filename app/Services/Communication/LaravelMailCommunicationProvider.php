@@ -35,24 +35,48 @@ final class LaravelMailCommunicationProvider implements CommunicationProvider
             $body = rtrim($body)."\n\n{$label}:\n".(string) $attachment['url'];
         }
 
-        $filePath = null;
-        if (in_array($mode, ['file', 'file_and_link'], true)) {
-            $storedPath = app(CommunicationTemplateAttachmentService::class)->assertStoredFileAvailable($attachment);
-            $filePath = Storage::disk('local')->path($storedPath);
+        $fileAttachments = [];
+        foreach ((array) data_get($message->payload, 'attachments', []) as $uploadedAttachment) {
+            if (! is_array($uploadedAttachment)) {
+                continue;
+            }
+
+            $storedPath = (string) ($uploadedAttachment['path'] ?? '');
+            if (! str_starts_with($storedPath, 'communication/mailbox/'.(string) $conversation?->uuid.'/')
+                || ! Storage::disk('local')->exists($storedPath)) {
+                throw ValidationException::withMessages([
+                    'attachment_file' => 'An email attachment is missing or has an invalid storage path.',
+                ]);
+            }
+
+            $fileAttachments[] = [
+                'path' => Storage::disk('local')->path($storedPath),
+                'name' => (string) ($uploadedAttachment['name'] ?? ''),
+                'mime_type' => (string) ($uploadedAttachment['mime_type'] ?? ''),
+            ];
         }
 
-        Mail::raw($body, function ($mail) use ($recipient, $subject, $attachment, $filePath): void {
+        if (in_array($mode, ['file', 'file_and_link'], true)) {
+            $storedPath = app(CommunicationTemplateAttachmentService::class)->assertStoredFileAvailable($attachment);
+            $fileAttachments[] = [
+                'path' => Storage::disk('local')->path($storedPath),
+                'name' => (string) ($attachment['file_name'] ?? ''),
+                'mime_type' => (string) ($attachment['mime_type'] ?? ''),
+            ];
+        }
+
+        Mail::raw($body, function ($mail) use ($recipient, $subject, $fileAttachments): void {
             $mail->to($recipient)->subject($subject);
 
-            if ($filePath) {
+            foreach ($fileAttachments as $fileAttachment) {
                 $options = [];
-                if (filled($attachment['file_name'] ?? null)) {
-                    $options['as'] = (string) $attachment['file_name'];
+                if (filled($fileAttachment['name'] ?? null)) {
+                    $options['as'] = (string) $fileAttachment['name'];
                 }
-                if (filled($attachment['mime_type'] ?? null)) {
-                    $options['mime'] = (string) $attachment['mime_type'];
+                if (filled($fileAttachment['mime_type'] ?? null)) {
+                    $options['mime'] = (string) $fileAttachment['mime_type'];
                 }
-                $mail->attach($filePath, $options);
+                $mail->attach((string) $fileAttachment['path'], $options);
             }
         });
 
