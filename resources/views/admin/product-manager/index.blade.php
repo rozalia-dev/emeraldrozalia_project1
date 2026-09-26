@@ -144,8 +144,7 @@
     </section>
 
     @php
-        $activeRootModel = $rootCategoryId ? $categories->firstWhere('id', $rootCategoryId) : null;
-        $activeTaxonomy = strtolower((string) ($activeRootModel?->taxonomy_type ?? $activeRootModel?->slug ?? ''));
+        $activeTaxonomy = $selectedTaxonomy;
     @endphp
     <section class="pm-hierarchy-filter" aria-label="Catalogue hierarchy filters">
         <div class="pm-hierarchy-head">
@@ -158,6 +157,10 @@
         <form method="get" action="{{ route('admin.resource','product-manager') }}" class="pm-hierarchy-form" data-product-hierarchy-filter>
             <input type="hidden" name="tab" value="{{ $tab }}">
             @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
+            @foreach(['min_price' => $minPrice, 'max_price' => $maxPrice, 'rating' => $rating] as $filterName => $filterValue)
+                @if($filterValue !== null && $filterValue !== '')<input type="hidden" name="{{ $filterName }}" value="{{ $filterValue }}">@endif
+            @endforeach
+            @if($featured)<input type="hidden" name="featured" value="1">@endif
 
             <label>
                 <span>1. Main Category</span>
@@ -209,7 +212,7 @@
 
             <label>
                 <span>4. County / Region</span>
-                <select name="catalog_county_code" data-h-county>
+                <select name="catalog_county_code" data-h-county @disabled(!$countryId)>
                     <option value="">All Counties / Regions</option>
                     @foreach($catalogCounties as $county)
                         <option value="{{ $county->code }}"
@@ -223,7 +226,7 @@
 
             <label>
                 <span>5. Club / National Team</span>
-                <select name="catalog_club_id" data-h-club>
+                <select name="catalog_club_id" data-h-club @disabled(!$countryId || (!$countyCode && $activeTaxonomy !== 'fifa'))>
                     <option value="">All Clubs / National Teams</option>
                     @foreach($catalogClubs as $club)
                         @php
@@ -635,9 +638,12 @@
                 return !countryId || option.dataset.county === '' || taxonomy !== 'fifa';
             },
             countryId
-                ? (countyCode ? 'All matching clubs' : (taxonomy === 'fifa' ? 'National team / country-wide club' : 'All clubs'))
+                ? (countyCode ? 'All matching clubs' : (taxonomy === 'fifa' ? 'Select a national team' : 'Select county / region first'))
                 : 'Select country first'
         );
+
+        if (county) county.disabled = !countryId;
+        if (club) club.disabled = !countryId || (!countyCode && taxonomy !== 'fifa');
 
         filterOptions(
             collection,
@@ -646,9 +652,23 @@
         );
     };
 
-    main?.addEventListener('change', () => sync('main'));
-    country?.addEventListener('change', () => sync('country'));
-    county?.addEventListener('change', () => sync('county'));
+    const reloadDependentOptions = () => {
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+    };
+
+    main?.addEventListener('change', () => {
+        sync('main');
+        reloadDependentOptions();
+    });
+    country?.addEventListener('change', () => {
+        sync('country');
+        reloadDependentOptions();
+    });
+    county?.addEventListener('change', () => {
+        sync('county');
+        reloadDependentOptions();
+    });
     sync();
 
     const essential = document.querySelector('[data-pm-essential-filter]');

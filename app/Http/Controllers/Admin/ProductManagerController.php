@@ -114,7 +114,7 @@ class ProductManagerController extends Controller
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'parent_id', 'name']);
+            ->get(['id', 'parent_id', 'name', 'slug', 'taxonomy_type']);
 
         $childrenByParent = $allCategories->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
         $descendantIds = function (int $rootId) use (&$descendantIds, $childrenByParent): array {
@@ -140,7 +140,14 @@ class ProductManagerController extends Controller
         }
 
         $rootCategoryId = (int) $request->query('root_category_id', 0);
-        if ($rootCategoryId > 0 && $rootCategories->contains('id', $rootCategoryId)) {
+        $activeRootCategory = $rootCategoryId > 0
+            ? $rootCategories->firstWhere('id', $rootCategoryId)
+            : null;
+        $selectedTaxonomy = strtolower(trim((string) (
+            $activeRootCategory?->taxonomy_type ?? $activeRootCategory?->slug ?? ''
+        )));
+
+        if ($activeRootCategory) {
             $query->whereIn('category_id', $descendantIds($rootCategoryId));
         }
 
@@ -270,20 +277,47 @@ class ProductManagerController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
-        $catalogCounties = CatalogCounty::query()
-            ->active()
-            ->orderBy('catalog_country_id')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['catalog_country_id', 'code', 'name']);
+        // The catalogue can contain many thousands of clubs. Loading the full
+        // registry (and every organization pivot) on every Product Manager
+        // request can exceed PHP-FPM's memory limit and creates a huge hidden
+        // <option> list. Load only the next useful level in the selected
+        // hierarchy: counties for the selected country, clubs for the selected
+        // county, and FIFA national teams when a FIFA category is selected.
+        $catalogCounties = collect();
+        $catalogClubs = collect();
 
-        $catalogClubs = CatalogClub::query()
-            ->active()
-            ->with('organizations:catalog_club_id,taxonomy_type')
-            ->orderBy('catalog_country_id')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'catalog_country_id', 'catalog_county_code', 'governing_body', 'name']);
+        if ($countryId > 0) {
+            $catalogCounties = CatalogCounty::query()
+                ->active()
+                ->where('catalog_country_id', $countryId)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['catalog_country_id', 'code', 'name']);
+
+            if ($countyCode !== '' || $selectedTaxonomy === 'fifa') {
+                $clubQuery = CatalogClub::query()
+                    ->active()
+                    ->where('catalog_country_id', $countryId)
+                    ->when(
+                        $countyCode !== '',
+                        fn ($clubs) => $clubs->where('catalog_county_code', $countyCode),
+                        fn ($clubs) => $clubs
+                            ->whereNull('catalog_county_code')
+                            ->forOrganization('fifa'),
+                    )
+                    ->with('organizations:catalog_club_id,taxonomy_type')
+                    ->orderBy('sort_order')
+                    ->orderBy('name');
+
+                $catalogClubs = $clubQuery->get([
+                    'id',
+                    'catalog_country_id',
+                    'catalog_county_code',
+                    'governing_body',
+                    'name',
+                ]);
+            }
+        }
 
         $collections = ProductCollection::query()
             ->where('status', 'active')
@@ -302,6 +336,7 @@ class ProductManagerController extends Controller
             'to',
             'categoryId',
             'rootCategoryId',
+            'selectedTaxonomy',
             'rootCategorySummaries',
             'categoryRootMap',
             'minPrice',
