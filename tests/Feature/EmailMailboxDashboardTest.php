@@ -102,10 +102,49 @@ class EmailMailboxDashboardTest extends TestCase
             ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
             ->assertSee('The requested document is attached.');
 
+        $pdf = $this->get(route('admin.email-mailbox.download', ['conversationUuid' => $conversation->uuid, 'format' => 'pdf']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('Content-Disposition', 'attachment; filename="email-thread-'.substr($conversation->uuid, 0, 8).'.pdf"')
+            ->assertSee('%PDF-1.4', false);
+        $pdfContent = $pdf->getContent();
+        $this->assertMatchesRegularExpression('/startxref\n(\d+)\n%%EOF$/', $pdfContent);
+        preg_match('/startxref\n(\d+)\n%%EOF$/', $pdfContent, $pdfXrefMatch);
+        $this->assertSame('xref', substr($pdfContent, (int) $pdfXrefMatch[1], 4));
+
+        $this->get(route('admin.email-mailbox.download', ['conversationUuid' => $conversation->uuid, 'format' => 'csv']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertHeader('Content-Disposition', 'attachment; filename="email-thread-'.substr($conversation->uuid, 0, 8).'.csv"')
+            ->assertSee('Subject,Contact,"Conversation ID"', false)
+            ->assertSee('The requested document is attached.', false);
+
+        $word = $this->get(route('admin.email-mailbox.download', ['conversationUuid' => $conversation->uuid, 'format' => 'docx']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            ->assertHeader('Content-Disposition', 'attachment; filename="email-thread-'.substr($conversation->uuid, 0, 8).'.docx"')
+            ->assertSee('PK', false);
+        $wordPath = tempnam(sys_get_temp_dir(), 'email-thread-test-');
+        $this->assertNotFalse($wordPath);
+        try {
+            file_put_contents($wordPath, $word->getContent());
+            $wordArchive = new \ZipArchive();
+            $this->assertNotSame(false, $wordArchive->open($wordPath));
+            $documentXml = $wordArchive->getFromName('word/document.xml');
+            $this->assertIsString($documentXml);
+            $this->assertStringContainsString('The requested document is attached.', $documentXml);
+            $wordArchive->close();
+        } finally {
+            @unlink($wordPath);
+        }
+
         $this->get('/admin/resource/email?folder=sent&conversation='.$conversation->uuid)
             ->assertOk()
             ->assertSee('Print')
-            ->assertSee('Download thread')
+            ->assertSee('Download TXT')
+            ->assertSee('Download PDF')
+            ->assertSee('Download CSV')
+            ->assertSee('Download Word (.docx)')
             ->assertSee('Attachments')
             ->assertSee('Download order-details.pdf');
 

@@ -12,6 +12,7 @@ use App\Services\CommunicationMailboxAttachmentService;
 use App\Services\CommunicationTemplateAttachmentService;
 use App\Services\CommunicationTemplateCatalogService;
 use App\Services\CommunicationTemplateRoleService;
+use App\Services\EmailThreadExportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,7 @@ class EmailMailboxController extends Controller
         private readonly CommunicationTemplateRoleService $templateRoles,
         private readonly CommunicationTemplateAttachmentService $templateAttachments,
         private readonly CommunicationMailboxAttachmentService $mailboxAttachments,
+        private readonly EmailThreadExportService $threadExports,
     ) {
     }
 
@@ -304,8 +306,11 @@ class EmailMailboxController extends Controller
         return back()->with('success', 'Test email sent successfully.');
     }
 
-    public function downloadThread(string $conversationUuid)
+    public function downloadThread(string $conversationUuid, string $format = 'txt')
     {
+        $format = strtolower($format);
+        abort_unless(in_array($format, ['txt', 'pdf', 'csv', 'docx'], true), 404);
+
         $conversation = $this->emailConversation($conversationUuid);
         $messages = $conversation->messages()->oldest('id')->get();
         $lines = [
@@ -314,48 +319,79 @@ class EmailMailboxController extends Controller
             'Conversation ID: '.$conversation->uuid,
             '',
         ];
+        $csvRows = [];
 
         if ($conversation->status === 'draft') {
+            $draftAttachments = [];
+            foreach ((array) data_get($conversation->metadata, 'draft_attachments', []) as $attachment) {
+                if (is_array($attachment) && filled($attachment['name'] ?? null)) {
+                    $draftAttachments[] = (string) $attachment['name'];
+                }
+            }
+
             $lines[] = 'DRAFT MESSAGE';
             $lines[] = '';
             $lines[] = (string) data_get($conversation->metadata, 'draft_body', '');
-            foreach ((array) data_get($conversation->metadata, 'draft_attachments', []) as $attachment) {
-                if (is_array($attachment) && filled($attachment['name'] ?? null)) {
-                    $lines[] = '[Attachment: '.(string) $attachment['name'].']';
-                }
+            foreach ($draftAttachments as $attachmentName) {
+                $lines[] = '[Attachment: '.$attachmentName.']';
             }
             $lines[] = '';
             $lines[] = str_repeat('-', 72);
             $lines[] = '';
+            $csvRows[] = [
+                $conversation->subject ?: '(no subject)',
+                $conversation->contact,
+                $conversation->uuid,
+                'draft',
+                'draft',
+                '',
+                'draft',
+                (string) data_get($conversation->metadata, 'draft_body', ''),
+                implode('; ', $draftAttachments),
+            ];
         }
 
         foreach ($messages as $message) {
+            $attachmentNames = [];
             $lines[] = strtoupper((string) $message->direction).' — '.optional($message->sent_at ?: $message->created_at)->format('d M Y H:i');
             $lines[] = 'Delivery status: '.$message->delivery_status;
             $lines[] = '';
             $lines[] = (string) $message->body;
             foreach ((array) data_get($message->payload, 'attachments', []) as $attachment) {
                 if (is_array($attachment) && filled($attachment['name'] ?? null)) {
-                    $lines[] = '[Attachment: '.(string) $attachment['name'].']';
+                    $attachmentNames[] = (string) $attachment['name'];
                 }
             }
             $templateAttachment = (array) data_get($message->payload, 'email_attachment', []);
             if (in_array((string) ($templateAttachment['mode'] ?? ''), ['file', 'file_and_link'], true)
                 && filled($templateAttachment['file_name'] ?? null)) {
-                $lines[] = '[Attachment: '.(string) $templateAttachment['file_name'].']';
+                $attachmentNames[] = (string) $templateAttachment['file_name'];
+            }
+            foreach ($attachmentNames as $attachmentName) {
+                $lines[] = '[Attachment: '.$attachmentName.']';
             }
             $lines[] = '';
             $lines[] = str_repeat('-', 72);
             $lines[] = '';
+            $csvRows[] = [
+                $conversation->subject ?: '(no subject)',
+                $conversation->contact,
+                $conversation->uuid,
+                $conversation->status,
+                $message->direction,
+                optional($message->sent_at ?: $message->created_at)->format('Y-m-d H:i:s'),
+                $message->delivery_status,
+                (string) $message->body,
+                implode('; ', $attachmentNames),
+            ];
         }
 
-        $filename = 'email-thread-'.substr($conversation->uuid, 0, 8).'.txt';
-
-        return response(implode("\n", $lines), 200, [
-            'Content-Type' => 'text/plain; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-            'Cache-Control' => 'private, no-store',
-        ]);
+        return $this->threadExports->download(
+            $format,
+            'email-thread-'.substr($conversation->uuid, 0, 8),
+            $lines,
+            $csvRows,
+        );
     }
 
     public function downloadMessageAttachment(string $conversationUuid, string $messageUuid, string $attachmentId)
