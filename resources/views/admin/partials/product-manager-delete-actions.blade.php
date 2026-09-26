@@ -355,6 +355,7 @@
         const viewHref = links[0]?.href || '';
         const editHref = links[1]?.href || '';
 
+        actions.classList.add('has-dropdown');
         trigger.setAttribute('aria-haspopup', 'menu');
         trigger.setAttribute('aria-expanded', 'false');
         trigger.title = `More actions for ${name}`;

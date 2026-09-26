@@ -19,6 +19,11 @@ class ProductManagerController extends Controller
 {
     public function index(Request $request): View
     {
+        $dateFilters = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+
         $trashCount = (int) Product::onlyTrashed()->count();
         $tabs = [
             'all' => 'All Products',
@@ -94,6 +99,15 @@ class ProductManagerController extends Controller
                     ->orWhere('sku', 'like', $needle)
                     ->orWhere('brand', 'like', $needle);
             });
+        }
+
+        $from = (string) ($dateFilters['from'] ?? '');
+        $to = (string) ($dateFilters['to'] ?? '');
+        if ($from !== '') {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to !== '') {
+            $query->whereDate('created_at', '<=', $to);
         }
 
         $allCategories = Category::query()
@@ -284,6 +298,8 @@ class ProductManagerController extends Controller
             'tabs',
             'tab',
             'search',
+            'from',
+            'to',
             'categoryId',
             'rootCategoryId',
             'rootCategorySummaries',
@@ -556,7 +572,19 @@ class ProductManagerController extends Controller
 
     private function exportQuery(Request $request)
     {
+        $dateFilters = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+
         $query = Product::query();
+
+        if (! empty($dateFilters['from'])) {
+            $query->whereDate('created_at', '>=', $dateFilters['from']);
+        }
+        if (! empty($dateFilters['to'])) {
+            $query->whereDate('created_at', '<=', $dateFilters['to']);
+        }
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {

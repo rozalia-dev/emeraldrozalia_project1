@@ -27,6 +27,9 @@
 .pm-row-actions{flex-wrap:wrap}
 .pm-row-actions .pm-text-action{width:auto!important;padding:0 7px!important;font-size:11px;font-weight:700}
 .pm-row-actions form{display:inline-flex;margin:0}
+.pm-row-actions .pm-action-dropdown{display:inline-flex;align-items:center;justify-content:center;gap:4px;width:auto;min-width:68px;height:30px;padding:0 8px;font:inherit;font-size:11px;font-weight:700;white-space:nowrap}
+.pm-row-actions.has-dropdown>a,.pm-row-actions.has-dropdown>form{display:none}
+.pm-action-dropdown .ui-icon{transform:rotate(90deg)}
 .pm-row-actions .danger{color:#a12620!important;border-color:#efc9c7!important}
 @media(max-width:900px){.pm-essential-bar label{flex:1 1 45%}}
 .pm-hierarchy-filter{margin:0 0 18px;padding:16px;background:#fff;border:1px solid #dce5df;border-radius:12px}
@@ -38,6 +41,7 @@
 .pm-hierarchy-form label{display:grid;gap:4px;min-width:0}
 .pm-hierarchy-form label>span{font-size:10px;font-weight:800;color:#66756c;text-transform:uppercase;letter-spacing:.03em}
 .pm-hierarchy-form select{width:100%;height:40px;min-width:0;border:1px solid #d5ded8;border-radius:7px;background:#fff;color:#17231b;padding:0 30px 0 10px;font-weight:600}
+.pm-hierarchy-form input[type=date]{width:100%;height:40px;min-width:0;border:1px solid #d5ded8;border-radius:7px;background:#fff;color:#17231b;padding:0 10px;font:inherit;font-weight:600}
 .pm-hierarchy-apply{height:40px;border:0;border-radius:7px;background:#087c3f;color:#fff;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
 @media(max-width:1300px){.pm-hierarchy-form{grid-template-columns:repeat(3,minmax(160px,1fr))}}
 @media(max-width:900px){.pm-hierarchy-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -160,7 +164,9 @@
                 <select name="root_category_id" data-h-main>
                     <option value="">All Main Categories</option>
                     @foreach($rootCategorySummaries as $categorySummary)
-                        @php($rootModel = $categories->firstWhere('id', $categorySummary['id']))
+                        @php
+                            $rootModel = $categories->firstWhere('id', $categorySummary['id']);
+                        @endphp
                         <option value="{{ $categorySummary['id'] }}"
                                 data-taxonomy="{{ strtolower((string)($rootModel?->taxonomy_type ?? $rootModel?->slug ?? '')) }}"
                                 @selected($rootCategoryId===$categorySummary['id'])>
@@ -175,7 +181,9 @@
                 <select name="category_id" data-h-sub>
                     <option value="">All Subcategories</option>
                     @foreach($categories as $category)
-                        @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                        @php
+                            $rootForOption = $categoryRootMap[$category->id] ?? null;
+                        @endphp
                         @if($category->parent_id && $rootForOption)
                             <option value="{{ $category->id }}"
                                     data-root="{{ $rootForOption['id'] }}"
@@ -218,7 +226,9 @@
                 <select name="catalog_club_id" data-h-club>
                     <option value="">All Clubs / National Teams</option>
                     @foreach($catalogClubs as $club)
-                        @php($clubOrgs = $club->organizations->pluck('taxonomy_type')->push($club->governing_body)->filter()->unique()->implode(','))
+                        @php
+                            $clubOrgs = $club->organizations->pluck('taxonomy_type')->push($club->governing_body)->filter()->unique()->implode(',');
+                        @endphp
                         <option value="{{ $club->id }}"
                                 data-country="{{ $club->catalog_country_id }}"
                                 data-county="{{ strtoupper((string)$club->catalog_county_code) }}"
@@ -265,6 +275,16 @@
                 </select>
             </label>
 
+            <label>
+                <span>From</span>
+                <input type="date" name="from" value="{{ $from }}" max="{{ $to }}" autocomplete="off">
+            </label>
+
+            <label>
+                <span>To</span>
+                <input type="date" name="to" value="{{ $to }}" min="{{ $from }}" autocomplete="off">
+            </label>
+
             <button class="pm-hierarchy-apply" type="submit">
                 <x-icon name="filter" size="15" /> Find Products
             </button>
@@ -283,6 +303,8 @@
                 <div class="pm-toolbar-actions">
                     <form class="pm-inline-search" method="get" action="{{ route('admin.resource','product-manager') }}">
                         <input type="hidden" name="tab" value="{{ $tab }}">
+                        @if($from !== '')<input type="hidden" name="from" value="{{ $from }}">@endif
+                        @if($to !== '')<input type="hidden" name="to" value="{{ $to }}">@endif
                         <label class="sr-only" for="product-manager-search">Search products</label>
                         <input id="product-manager-search" name="q" value="{{ $search }}" type="search" placeholder="Search by name, SKU, barcode...">
                         <button type="submit" aria-label="Search products"><x-icon name="search" size="16" /></button>
@@ -326,6 +348,8 @@
             <form class="pm-essential-bar" method="get" action="{{ route('admin.product-manager.index') }}" data-pm-essential-filter>
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 @if($search!=='')<input type="hidden" name="q" value="{{ $search }}">@endif
+                @if($from !== '')<input type="hidden" name="from" value="{{ $from }}">@endif
+                @if($to !== '')<input type="hidden" name="to" value="{{ $to }}">@endif
                 <label>
                     <span>Main Category</span>
                     <select name="root_category_id" data-essential-main>
@@ -340,7 +364,9 @@
                     <select name="category_id" data-essential-sub>
                         <option value="">{{ $rootCategoryId ? 'All Subcategories' : 'Select Main Category First' }}</option>
                         @foreach($categories as $category)
-                            @php($rootForEssential = $categoryRootMap[$category->id] ?? null)
+                            @php
+                                $rootForEssential = $categoryRootMap[$category->id] ?? null;
+                            @endphp
                             @if($category->parent_id && $rootForEssential)
                                 <option value="{{ $category->id }}"
                                         data-root="{{ $rootForEssential['id'] }}"
@@ -418,7 +444,9 @@
                                 </div>
                             </td>
                             <td><span class="pm-code">{{ $product->sku }}</span><small class="pm-muted">Product ID #{{ $product->id }}</small></td>
-                            @php($rootCategory = $categoryRootMap[$product->category_id] ?? null)
+                            @php
+                                $rootCategory = $categoryRootMap[$product->category_id] ?? null;
+                            @endphp
                             <td>
                                 <strong class="pm-category">{{ $rootCategory['name'] ?? ($product->category?->name ?: 'Uncategorised') }}</strong>
                                 <small class="pm-muted">
@@ -444,20 +472,9 @@
                                 <div class="pm-row-actions">
                                     <a href="{{ route('product',['product'=>$product->slug]) }}" title="View {{ $product->name }}" aria-label="View {{ $product->name }}"><x-icon name="eye" size="15" /></a>
                                     <a class="pm-text-action" href="{{ route('admin.product.edit', $product) }}" title="Edit {{ $product->name }}">Edit</a>
-                                    @if(auth()->user()?->hasPermission('website.products.edit'))
-                                        <form method="post" action="{{ route('admin.product-manager.publish', $product->id) }}">
-                                            @csrf
-                                            <input type="hidden" name="action" value="{{ $isPublished ? 'unpublish' : 'publish' }}">
-                                            <button class="pm-text-action" type="submit">{{ $isPublished ? 'Hide' : 'Publish' }}</button>
-                                        </form>
-                                    @endif
-                                    @if(auth()->user()?->hasPermission('products.delete'))
-                                        <form method="post" action="{{ route('admin.product-manager.destroy', $product->id) }}" onsubmit="return confirm('Delete {{ addslashes($product->name) }}? This moves it to Trash.')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="pm-text-action danger" type="submit">Delete</button>
-                                        </form>
-                                    @endif
+                                    <button class="pm-action-dropdown" type="button" title="More product actions" aria-label="More actions for {{ $product->name }}" aria-haspopup="menu" aria-expanded="false">
+                                        <span>Actions</span><x-icon name="chevron-right" size="12" />
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -487,12 +504,16 @@
                 <form method="get" action="{{ route('admin.resource','product-manager') }}" class="pm-filter-form">
                     <input type="hidden" name="tab" value="{{ $tab }}">
                     @if($rootCategoryId>0)<input type="hidden" name="root_category_id" value="{{ $rootCategoryId }}">@endif
+                    @if($from !== '')<input type="hidden" name="from" value="{{ $from }}">@endif
+                    @if($to !== '')<input type="hidden" name="to" value="{{ $to }}">@endif
                     <label>Search<input name="q" value="{{ $search }}" type="search" placeholder="Product name, SKU, barcode..."></label>
                     <label>Subcategory / Product Category
                         <select name="category_id">
                             <option value="">{{ $activeRootCategory ? 'All '.$activeRootCategory['name'].' products' : 'All Categories' }}</option>
                             @foreach($categories as $category)
-                                @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                                @php
+                                    $rootForOption = $categoryRootMap[$category->id] ?? null;
+                                @endphp
                                 @if(!$rootCategoryId || (($rootForOption['id'] ?? 0) === $rootCategoryId))
                                     <option value="{{ $category->id }}" @selected($categoryId===$category->id)>
                                         {{ $rootForOption && $category->name !== $rootForOption['name'] ? $rootForOption['name'].' → '.$category->name : $category->name }}
