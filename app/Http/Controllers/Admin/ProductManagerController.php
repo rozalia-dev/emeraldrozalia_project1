@@ -114,7 +114,7 @@ class ProductManagerController extends Controller
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'parent_id', 'name']);
+            ->get(['id', 'parent_id', 'name', 'slug', 'taxonomy_type']);
 
         $childrenByParent = $allCategories->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
         $descendantIds = function (int $rootId) use (&$descendantIds, $childrenByParent): array {
