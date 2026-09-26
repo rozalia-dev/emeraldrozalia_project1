@@ -164,7 +164,9 @@
                 <select name="root_category_id" data-h-main>
                     <option value="">All Main Categories</option>
                     @foreach($rootCategorySummaries as $categorySummary)
-                        @php($rootModel = $categories->firstWhere('id', $categorySummary['id']))
+                        @php
+                            $rootModel = $categories->firstWhere('id', $categorySummary['id']);
+                        @endphp
                         <option value="{{ $categorySummary['id'] }}"
                                 data-taxonomy="{{ strtolower((string)($rootModel?->taxonomy_type ?? $rootModel?->slug ?? '')) }}"
                                 @selected($rootCategoryId===$categorySummary['id'])>
@@ -179,7 +181,9 @@
                 <select name="category_id" data-h-sub>
                     <option value="">All Subcategories</option>
                     @foreach($categories as $category)
-                        @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                        @php
+                            $rootForOption = $categoryRootMap[$category->id] ?? null;
+                        @endphp
                         @if($category->parent_id && $rootForOption)
                             <option value="{{ $category->id }}"
                                     data-root="{{ $rootForOption['id'] }}"
@@ -222,7 +226,9 @@
                 <select name="catalog_club_id" data-h-club>
                     <option value="">All Clubs / National Teams</option>
                     @foreach($catalogClubs as $club)
-                        @php($clubOrgs = $club->organizations->pluck('taxonomy_type')->push($club->governing_body)->filter()->unique()->implode(','))
+                        @php
+                            $clubOrgs = $club->organizations->pluck('taxonomy_type')->push($club->governing_body)->filter()->unique()->implode(',');
+                        @endphp
                         <option value="{{ $club->id }}"
                                 data-country="{{ $club->catalog_country_id }}"
                                 data-county="{{ strtoupper((string)$club->catalog_county_code) }}"
@@ -358,7 +364,9 @@
                     <select name="category_id" data-essential-sub>
                         <option value="">{{ $rootCategoryId ? 'All Subcategories' : 'Select Main Category First' }}</option>
                         @foreach($categories as $category)
-                            @php($rootForEssential = $categoryRootMap[$category->id] ?? null)
+                            @php
+                                $rootForEssential = $categoryRootMap[$category->id] ?? null;
+                            @endphp
                             @if($category->parent_id && $rootForEssential)
                                 <option value="{{ $category->id }}"
                                         data-root="{{ $rootForEssential['id'] }}"
@@ -436,7 +444,9 @@
                                 </div>
                             </td>
                             <td><span class="pm-code">{{ $product->sku }}</span><small class="pm-muted">Product ID #{{ $product->id }}</small></td>
-                            @php($rootCategory = $categoryRootMap[$product->category_id] ?? null)
+                            @php
+                                $rootCategory = $categoryRootMap[$product->category_id] ?? null;
+                            @endphp
                             <td>
                                 <strong class="pm-category">{{ $rootCategory['name'] ?? ($product->category?->name ?: 'Uncategorised') }}</strong>
                                 <small class="pm-muted">
@@ -501,7 +511,9 @@
                         <select name="category_id">
                             <option value="">{{ $activeRootCategory ? 'All '.$activeRootCategory['name'].' products' : 'All Categories' }}</option>
                             @foreach($categories as $category)
-                                @php($rootForOption = $categoryRootMap[$category->id] ?? null)
+                                @php
+                                    $rootForOption = $categoryRootMap[$category->id] ?? null;
+                                @endphp
                                 @if(!$rootCategoryId || (($rootForOption['id'] ?? 0) === $rootCategoryId))
                                     <option value="{{ $category->id }}" @selected($categoryId===$category->id)>
                                         {{ $rootForOption && $category->name !== $rootForOption['name'] ? $rootForOption['name'].' → '.$category->name : $category->name }}
