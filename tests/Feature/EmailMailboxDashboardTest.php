@@ -116,7 +116,7 @@ class EmailMailboxDashboardTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
             ->assertHeader('Content-Disposition', 'attachment; filename="email-thread-'.substr($conversation->uuid, 0, 8).'.csv"')
-            ->assertSee('Subject,Contact,Conversation ID', false)
+            ->assertSee('Subject,Contact,"Conversation ID"', false)
             ->assertSee('The requested document is attached.', false);
 
         $word = $this->get(route('admin.email-mailbox.download', ['conversationUuid' => $conversation->uuid, 'format' => 'docx']))
