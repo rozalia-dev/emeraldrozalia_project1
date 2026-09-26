@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\EmailLog;
 use App\Services\CommunicationCenter;
+use App\Services\CommunicationMailboxAttachmentService;
 use App\Services\CommunicationTemplateAttachmentService;
 use App\Services\CommunicationTemplateCatalogService;
 use App\Services\CommunicationTemplateRoleService;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Throwable;
@@ -28,6 +30,7 @@ class EmailMailboxController extends Controller
         private readonly CommunicationTemplateCatalogService $catalog,
         private readonly CommunicationTemplateRoleService $templateRoles,
         private readonly CommunicationTemplateAttachmentService $templateAttachments,
+        private readonly CommunicationMailboxAttachmentService $mailboxAttachments,
     ) {
     }
 
@@ -100,13 +103,13 @@ class EmailMailboxController extends Controller
 
     public function compose(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'to' => ['required', 'email:rfc', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:100000'],
             'action' => ['nullable', 'in:send,draft'],
             'template_uuid' => ['nullable', 'uuid'],
-        ]);
+        ], $this->mailboxAttachments->validationRules()));
 
         $template = $this->resolveTemplate($request, $data['template_uuid'] ?? null);
         $draft = ($data['action'] ?? 'send') === 'draft';
@@ -124,8 +127,15 @@ class EmailMailboxController extends Controller
                 'draft_template_uuid' => $draft ? $template?->uuid : null,
             ],
         ]);
+        $attachments = $this->mailboxAttachments->store($request->file('attachments'), $conversation->uuid);
 
         if ($draft) {
+            if ($attachments !== []) {
+                $metadata = (array) $conversation->metadata;
+                $metadata['draft_attachments'] = $attachments;
+                $conversation->update(['metadata' => $metadata]);
+            }
+
             return redirect()->to('/admin/resource/email?folder=drafts&conversation='.$conversation->uuid)
                 ->with('success', 'Draft saved.');
         }
@@ -134,7 +144,7 @@ class EmailMailboxController extends Controller
             $conversation,
             $data['body'],
             'mailbox-compose-'.$conversation->uuid,
-            $this->deliveryContext($template),
+            $this->deliveryContext($template, $attachments),
         );
 
         return redirect()->to('/admin/resource/email?folder=sent&conversation='.$conversation->uuid)
@@ -145,18 +155,23 @@ class EmailMailboxController extends Controller
     {
         $this->assertEmail($conversation);
         abort_unless($conversation->status === 'draft', 409, 'Only drafts can be edited.');
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'to' => ['required', 'email:rfc', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:100000'],
             'template_uuid' => ['nullable', 'uuid'],
-        ]);
+        ], $this->mailboxAttachments->validationRules()));
         $template = $this->resolveTemplate($request, $data['template_uuid'] ?? null);
 
         $metadata = (array) $conversation->metadata;
         $metadata['draft_body'] = $data['body'];
         $metadata['mailbox_folder'] = 'drafts';
         $metadata['draft_template_uuid'] = $template?->uuid;
+        $existingAttachments = (array) ($metadata['draft_attachments'] ?? []);
+        $attachments = $this->mailboxAttachments->store($request->file('attachments'), $conversation->uuid, count($existingAttachments));
+        if ($attachments !== []) {
+            $metadata['draft_attachments'] = array_merge($existingAttachments, $attachments);
+        }
         $conversation->update([
             'contact' => strtolower($data['to']),
             'subject' => $data['subject'],
@@ -170,17 +185,23 @@ class EmailMailboxController extends Controller
     {
         $this->assertEmail($conversation);
         abort_unless($conversation->status === 'draft', 409, 'Only drafts can be sent.');
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'to' => ['required', 'email:rfc', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:100000'],
             'template_uuid' => ['nullable', 'uuid'],
-        ]);
+        ], $this->mailboxAttachments->validationRules()));
         $templateUuid = $data['template_uuid'] ?? data_get($conversation->metadata, 'draft_template_uuid');
         $template = $this->resolveTemplate($request, is_string($templateUuid) ? $templateUuid : null);
 
         $metadata = (array) $conversation->metadata;
+        $existingAttachments = (array) ($metadata['draft_attachments'] ?? []);
+        $attachments = array_merge(
+            $existingAttachments,
+            $this->mailboxAttachments->store($request->file('attachments'), $conversation->uuid, count($existingAttachments)),
+        );
         unset($metadata['draft_body'], $metadata['draft_template_uuid']);
+        unset($metadata['draft_attachments']);
         $metadata['mailbox_folder'] = 'sent';
         $conversation->update([
             'contact' => strtolower($data['to']),
@@ -192,7 +213,7 @@ class EmailMailboxController extends Controller
             $conversation,
             $data['body'],
             'mailbox-draft-'.$conversation->uuid,
-            $this->deliveryContext($template),
+            $this->deliveryContext($template, $attachments),
         );
 
         return redirect()->to('/admin/resource/email?folder=sent&conversation='.$conversation->uuid)
@@ -202,16 +223,17 @@ class EmailMailboxController extends Controller
     public function reply(Request $request, Conversation $conversation): RedirectResponse
     {
         $this->assertEmail($conversation);
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'body' => ['required', 'string', 'max:100000'],
             'template_uuid' => ['nullable', 'uuid'],
-        ]);
+        ], $this->mailboxAttachments->validationRules()));
         $template = $this->resolveTemplate($request, $data['template_uuid'] ?? null);
+        $attachments = $this->mailboxAttachments->store($request->file('attachments'), $conversation->uuid);
         $this->communication->sendReply(
             $conversation,
             $data['body'],
             'mailbox-reply-'.Str::uuid(),
-            $this->deliveryContext($template),
+            $this->deliveryContext($template, $attachments),
         );
 
         return back()->with('success', 'Reply queued for delivery.');
@@ -240,6 +262,7 @@ class EmailMailboxController extends Controller
         $conversation = Conversation::withTrashed()->where('uuid', $uuid)->firstOrFail();
         $this->assertEmail($conversation);
         abort_unless($conversation->trashed(), 409, 'Move the email to Trash before deleting permanently.');
+        $this->mailboxAttachments->deleteConversationFiles($conversation->messages()->get(), (array) $conversation->metadata);
         $conversation->forceDelete();
 
         return redirect()->to('/admin/resource/email?folder=trash')->with('success', 'Email permanently deleted.');
@@ -281,6 +304,95 @@ class EmailMailboxController extends Controller
         return back()->with('success', 'Test email sent successfully.');
     }
 
+    public function downloadThread(string $conversationUuid)
+    {
+        $conversation = $this->emailConversation($conversationUuid);
+        $messages = $conversation->messages()->oldest('id')->get();
+        $lines = [
+            'Subject: '.($conversation->subject ?: '(no subject)'),
+            'Contact: '.$conversation->contact,
+            'Conversation ID: '.$conversation->uuid,
+            '',
+        ];
+
+        if ($conversation->status === 'draft') {
+            $lines[] = 'DRAFT MESSAGE';
+            $lines[] = '';
+            $lines[] = (string) data_get($conversation->metadata, 'draft_body', '');
+            foreach ((array) data_get($conversation->metadata, 'draft_attachments', []) as $attachment) {
+                if (is_array($attachment) && filled($attachment['name'] ?? null)) {
+                    $lines[] = '[Attachment: '.(string) $attachment['name'].']';
+                }
+            }
+            $lines[] = '';
+            $lines[] = str_repeat('-', 72);
+            $lines[] = '';
+        }
+
+        foreach ($messages as $message) {
+            $lines[] = strtoupper((string) $message->direction).' — '.optional($message->sent_at ?: $message->created_at)->format('d M Y H:i');
+            $lines[] = 'Delivery status: '.$message->delivery_status;
+            $lines[] = '';
+            $lines[] = (string) $message->body;
+            foreach ((array) data_get($message->payload, 'attachments', []) as $attachment) {
+                if (is_array($attachment) && filled($attachment['name'] ?? null)) {
+                    $lines[] = '[Attachment: '.(string) $attachment['name'].']';
+                }
+            }
+            $templateAttachment = (array) data_get($message->payload, 'email_attachment', []);
+            if (in_array((string) ($templateAttachment['mode'] ?? ''), ['file', 'file_and_link'], true)
+                && filled($templateAttachment['file_name'] ?? null)) {
+                $lines[] = '[Attachment: '.(string) $templateAttachment['file_name'].']';
+            }
+            $lines[] = '';
+            $lines[] = str_repeat('-', 72);
+            $lines[] = '';
+        }
+
+        $filename = 'email-thread-'.substr($conversation->uuid, 0, 8).'.txt';
+
+        return response(implode("\n", $lines), 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    public function downloadMessageAttachment(string $conversationUuid, string $messageUuid, string $attachmentId)
+    {
+        $conversation = $this->emailConversation($conversationUuid);
+        $message = $conversation->messages()->where('uuid', $messageUuid)->firstOrFail();
+        $payload = (array) $message->payload;
+        $attachment = $this->mailboxAttachments->find((array) ($payload['attachments'] ?? []), $attachmentId, $conversation->uuid);
+
+        if (! $attachment && $attachmentId === 'template') {
+            $templateAttachment = (array) ($payload['email_attachment'] ?? []);
+            if (in_array((string) ($templateAttachment['mode'] ?? ''), ['file', 'file_and_link'], true)) {
+                $path = $this->templateAttachments->assertStoredFileAvailable($templateAttachment);
+                $attachment = [
+                    'path' => $path,
+                    'name' => (string) ($templateAttachment['file_name'] ?? 'email-attachment'),
+                    'mime_type' => (string) ($templateAttachment['mime_type'] ?? 'application/octet-stream'),
+                ];
+            }
+        }
+
+        abort_unless($attachment, 404);
+
+        return $this->downloadStoredAttachment($attachment);
+    }
+
+    public function downloadDraftAttachment(string $conversationUuid, string $attachmentId)
+    {
+        $conversation = $this->emailConversation($conversationUuid);
+        $metadata = (array) $conversation->metadata;
+        $attachment = $this->mailboxAttachments->find((array) ($metadata['draft_attachments'] ?? []), $attachmentId, $conversation->uuid);
+
+        abort_unless($attachment && $conversation->status === 'draft', 404);
+
+        return $this->downloadStoredAttachment($attachment);
+    }
+
     private function resolveTemplate(Request $request, ?string $uuid): ?CommunicationTemplate
     {
         $uuid = trim((string) $uuid);
@@ -299,22 +411,46 @@ class EmailMailboxController extends Controller
         return $template;
     }
 
-    private function deliveryContext(?CommunicationTemplate $template): array
+    private function deliveryContext(?CommunicationTemplate $template, array $attachments = []): array
     {
-        if (! $template) {
-            return [];
-        }
-
-        $context = [
-            'template_uuid' => $template->uuid,
-            'template_name' => $template->name,
-        ];
-        $attachment = $this->templateAttachments->forTemplate($template);
-        if ($attachment) {
-            $context['email_attachment'] = $attachment;
+        $context = ['attachments' => $attachments];
+        if ($template) {
+            $context['template_uuid'] = $template->uuid;
+            $context['template_name'] = $template->name;
+            $attachment = $this->templateAttachments->forTemplate($template);
+            if ($attachment) {
+                $context['email_attachment'] = $attachment;
+            }
         }
 
         return $context;
+    }
+
+    private function emailConversation(string $uuid): Conversation
+    {
+        $conversation = Conversation::withTrashed()
+            ->forCurrentCompany()
+            ->where('channel', 'email')
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+        $this->assertEmail($conversation);
+
+        return $conversation;
+    }
+
+    private function downloadStoredAttachment(array $attachment)
+    {
+        $path = (string) ($attachment['path'] ?? '');
+        abort_unless($path !== '' && Storage::disk('local')->exists($path), 404);
+
+        $name = basename(str_replace('\\', '/', (string) ($attachment['name'] ?? 'attachment')));
+        $name = trim(str_replace(["\r", "\n", '"'], '', $name)) ?: 'attachment';
+
+        return Storage::disk('local')->download($path, $name, [
+            'Content-Type' => (string) ($attachment['mime_type'] ?? 'application/octet-stream'),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     private function folderQuery(string $folder): Builder

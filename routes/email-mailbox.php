@@ -19,9 +19,13 @@ Route::prefix('admin')->middleware(['web', 'auth', 'communication.permission'])-
     Route::get('/communication-center/email/templates/available', [EmailTemplateUiController::class, 'available'])->name('templates.available');
     Route::get('/communication-center/email-templates/editor-options', [EmailTemplateUiController::class, 'editorOptions'])->name('templates.editor-options');
     Route::post('/communication-center/email/compose', [EmailMailboxController::class, 'compose'])->name('compose');
+    Route::post('/communication-center/email/drafts/{conversation:uuid}/update', [EmailMailboxController::class, 'updateDraft'])->name('draft.save');
     Route::patch('/communication-center/email/drafts/{conversation:uuid}', [EmailMailboxController::class, 'updateDraft'])->name('draft.update');
     Route::post('/communication-center/email/drafts/{conversation:uuid}/send', [EmailMailboxController::class, 'sendDraft'])->name('draft.send');
     Route::post('/communication-center/email/{conversation:uuid}/reply-mailbox', [EmailMailboxController::class, 'reply'])->name('reply');
+    Route::get('/communication-center/email/{conversationUuid}/download', [EmailMailboxController::class, 'downloadThread'])->name('download');
+    Route::get('/communication-center/email/{conversationUuid}/draft-attachments/{attachmentId}', [EmailMailboxController::class, 'downloadDraftAttachment'])->where('attachmentId', '[A-Za-z0-9-]+')->name('draft-attachment.download');
+    Route::get('/communication-center/email/{conversationUuid}/messages/{messageUuid}/attachments/{attachmentId}', [EmailMailboxController::class, 'downloadMessageAttachment'])->where('attachmentId', '[A-Za-z0-9-]+')->name('attachment.download');
     Route::post('/communication-center/email/{conversation:uuid}/trash', [EmailMailboxController::class, 'trash'])->name('trash');
     Route::post('/communication-center/email/trash/{uuid}/restore', [EmailMailboxController::class, 'restore'])->whereUuid('uuid')->name('restore');
     Route::delete('/communication-center/email/trash/{uuid}', [EmailMailboxController::class, 'destroy'])->whereUuid('uuid')->name('destroy');
