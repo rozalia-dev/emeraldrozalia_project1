@@ -25,12 +25,20 @@ class ProductManagerDateFilterTest extends TestCase
             'to' => '2026-09-20',
         ]));
 
-        $viewPath = resource_path('views/admin/product-manager/index.blade.php');
+        $viewPath = app('view')->getFinder()->find('admin.product-manager.index');
         $compiledPath = app('blade.compiler')->getCompiledPath($viewPath);
+        $compiled = file_get_contents($compiledPath);
+        $compiledDatePosition = strpos($compiled, 'type="date" name="from"');
         $html = $response->getContent();
+        $original = $response->getOriginalContent();
+        $viewData = $original instanceof \Illuminate\View\View ? $original->getData() : [];
         $debug = [
+            'resolved_view' => $viewPath,
+            'compiled_path' => $compiledPath,
             'source_has_from_date' => str_contains(file_get_contents($viewPath), 'type="date" name="from"'),
-            'compiled_has_from_date' => is_file($compiledPath) && str_contains(file_get_contents($compiledPath), 'type="date"'),
+            'compiled_has_from_date' => str_contains($compiled, 'type="date"'),
+            'compiled_date_context' => $compiledDatePosition === false ? null : substr($compiled, max(0, $compiledDatePosition - 900), 1800),
+            'view_tab' => $viewData['tab'] ?? null,
             'html_has_from_date' => str_contains($html, 'type="date" name="from"'),
             'html_from_position' => strpos($html, 'name="from"'),
             'html_date_position' => strpos($html, 'type="date"'),
