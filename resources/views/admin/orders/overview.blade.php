@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 @section('title','Order Master Overview')
 @push('styles')
-<link rel="stylesheet" href="/css/order-master.css?v=20260927-responsive-v1">
+<link rel="stylesheet" href="/css/order-master.css?v=20260927-css-repair-v1">
 @endpush
 
 @php

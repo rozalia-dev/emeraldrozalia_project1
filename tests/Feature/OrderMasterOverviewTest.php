@@ -55,11 +55,31 @@ class OrderMasterOverviewTest extends TestCase
                 'Online Orders','Corporate Orders','Bulk Orders','Franchise Orders','Franchise Retail Orders','Buyer Orders',
                 'Pending Approval / Payment','ORDER MASTER SUMMARY','QUICK ACTIONS','ORDER NOTIFICATIONS',
                 'Orders by Category','Top Selling Products','Order Value by Category','Order Status Overview',
-                '/css/order-master.css?v=20260927-responsive-v1','/js/order-master.js?v=20260910-order-master-v1',
+                '/css/order-master.css?v=20260927-css-repair-v1','/js/order-master.js?v=20260910-order-master-v1',
                 'data-label="Order #"','data-label="Customer / company"','data-label="Fulfilment"',
             ], false)
             ->assertSee($order->number, false)
             ->assertSee('Emerald Signature Cap', false);
+    }
+
+    public function test_order_master_stylesheet_keeps_base_and_mobile_rules(): void
+    {
+        $stylesheet = public_path('css/order-master.css');
+
+        $this->assertFileExists($stylesheet);
+
+        $css = file_get_contents($stylesheet);
+        $this->assertIsString($css);
+
+        foreach ([
+            '.om-title-row{display:flex',
+            '.om-kpi-grid{display:grid',
+            '.om-table{width:100%',
+            '@media (max-width: 640px)',
+            '.om-table td::before { content: attr(data-label);',
+        ] as $rule) {
+            $this->assertStringContainsString($rule, $css);
+        }
     }
 
     public function test_master_filters_category_payment_fulfillment_status_and_search(): void
