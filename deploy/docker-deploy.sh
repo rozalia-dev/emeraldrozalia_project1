@@ -44,14 +44,29 @@ fi
 (umask 077; compose exec -T db pg_dump -U emerald_rozalia -d emerald_rozalia -Fc > "$BACKUP/database.dump")
 test -s "$BACKUP/database.dump"
 compose exec -T db pg_restore --list < "$BACKUP/database.dump" >/dev/null
-(umask 077; compose run --rm --no-deps --entrypoint tar app -C storage/app/public -czf - . > "$BACKUP/uploads.tar.gz")
-test -s "$BACKUP/uploads.tar.gz"
-# Videos and managed 360° / Try-On assets use authorization-gated private storage in the persistent storage volume.
-(umask 077; compose run --rm --no-deps --entrypoint sh app -c 'mkdir -p storage/app/private && tar -C storage/app/private -czf - .' > "$BACKUP/private-uploads.tar.gz")
-test -s "$BACKUP/private-uploads.tar.gz"
 git rev-parse HEAD > "$BACKUP/target-commit.txt"
 printf '%s\n' "${DEPLOY_PREVIOUS_COMMIT:-unknown}" > "$BACKUP/previous-commit.txt"
-echo "Release backup saved in $BACKUP"
+echo "Database release backup saved in $BACKUP"
+
+# Keep release backups bounded so repeated deployments cannot exhaust the host disk.
+# The current release backup is retained, along with the four most recent older releases.
+BACKUP_KEEP_COUNT="${DEPLOY_BACKUP_KEEP_COUNT:-5}"
+case "$BACKUP_KEEP_COUNT" in
+    ''|*[!0-9]*) echo "DEPLOY_BACKUP_KEEP_COUNT must be a non-negative integer." >&2; exit 78 ;;
+esac
+if [ "$BACKUP_KEEP_COUNT" -gt 0 ]; then
+    find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+        | sort -nr \
+        | tail -n +"$((BACKUP_KEEP_COUNT + 1))" \
+        | cut -d' ' -f2- \
+        | while IFS= read -r old_backup; do
+            [ -n "$old_backup" ] || continue
+            case "$old_backup" in
+                "$BACKUP_DIR"/*) rm -rf -- "$old_backup" ;;
+                *) echo "Refusing to prune unexpected backup path: $old_backup" >&2; exit 78 ;;
+            esac
+          done
+fi
 
 compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 app
 compose exec -T --user root app sh -c 'mkdir -p storage/app/public storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache && chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache'
