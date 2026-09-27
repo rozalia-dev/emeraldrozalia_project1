@@ -74,19 +74,26 @@ class AiFashionModelController extends Controller
             'provider_payload'=>$response->json(),
         ]);
 
-        return response()->json([
+        $payload = [
             'id'=>$generation->id,
             'prediction_id'=>$predictionId,
             'status'=>'starting',
             'status_url'=>route('admin.ai-fashion-model.status',$generation),
             'message'=>'FASHN generation started for '.$product->name.'.',
-        ], 202);
+        ];
+
+        if ($request->expectsJson()) {
+            return response()->json($payload, 202);
+        }
+
+        return redirect()->route('admin.ai-fashion-model.index')
+            ->with('status', $payload['message'].' Use CHECK STATUS below while FASHN processes it.');
     }
 
-    public function status(AiFashionGeneration $generation)
+    public function status(Request $request, AiFashionGeneration $generation)
     {
         if (in_array($generation->status, ['completed','approved','published','failed'], true)) {
-            return response()->json($this->statusPayload($generation));
+            return $this->statusResponse($request, $generation);
         }
 
         $provider = config('services.fashion_ai');
@@ -103,7 +110,7 @@ class AiFashionModelController extends Controller
             $output = data_get($payload, 'output.0');
             if (!is_string($output) || $output === '') {
                 $generation->update(['status'=>'failed','provider_error'=>'FASHN completed without an output image.','provider_payload'=>$payload]);
-                return response()->json($this->statusPayload($generation->fresh()), 502);
+                return $this->statusResponse($request, $generation->fresh(), 502);
             }
             $download = Http::timeout(90)->get($output);
             $download->throw();
@@ -126,7 +133,7 @@ class AiFashionModelController extends Controller
             $generation->update(['status'=>$status,'provider_payload'=>$payload]);
         }
 
-        return response()->json($this->statusPayload($generation->fresh()));
+        return $this->statusResponse($request, $generation->fresh());
     }
 
     public function approve(AiFashionGeneration $generation)
@@ -196,6 +203,25 @@ class AiFashionModelController extends Controller
     {
         $base = preg_replace('~/run/?$~','',rtrim($runUrl,'/'));
         return $base.'/status/'.rawurlencode($predictionId);
+    }
+
+    private function statusResponse(Request $request, AiFashionGeneration $generation, int $code = 200)
+    {
+        $payload = $this->statusPayload($generation);
+        if ($request->expectsJson()) {
+            return response()->json($payload, $code);
+        }
+
+        $message = 'FASHN status: '.strtoupper($generation->status).'.';
+        if ($generation->status === 'completed') {
+            $message .= ' Preview is ready below. Review it, then approve.';
+        } elseif ($generation->status === 'failed') {
+            $message .= ' '.($generation->provider_error ?: 'Generation failed.');
+        } else {
+            $message .= ' FASHN is still processing. Check again shortly.';
+        }
+
+        return redirect()->route('admin.ai-fashion-model.index')->with('status', $message);
     }
 
     private function statusPayload(AiFashionGeneration $generation): array
