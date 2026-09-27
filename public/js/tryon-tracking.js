@@ -19,6 +19,12 @@ if(studio){
   const x=studio.querySelector('[data-hat-x]');
   const y=studio.querySelector('[data-hat-y]');
   const rotate=studio.querySelector('[data-hat-rotate]');
+  const resultActions=studio.querySelector('[data-try-result-actions]');
+  const downloadButton=studio.querySelector('[data-try-download]');
+  const shareButton=studio.querySelector('[data-try-share]');
+  const cartForm=studio.querySelector('[data-try-cart-form]');
+  const cartButton=studio.querySelector('[data-try-cart]');
+  const resultStatus=studio.querySelector('[data-try-result-status]');
   let mode='2d', landmarker=null, stream=null, raf=0, lastVideoTime=-1, startedAt=0, activeProduct='', lastSent=0;
 
   const setStatus=(message,state='')=>{if(status){status.textContent=message;status.dataset.state=state;}};
@@ -30,6 +36,28 @@ if(studio){
     try{await fetch(item.visit,{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':studio.dataset.csrf||''},body:JSON.stringify({device:device(),converted:false,session_seconds:seconds})});}catch{}
   };
   const begin=()=>{activeProduct=selector?.value||'';if(!activeProduct||!meta[activeProduct])return;if(!startedAt)startedAt=Date.now();send(true);};
+  const resultReady=()=>!!(selector?.value&&overlay?.src&&(stream||face?.src)&&!overlay.hidden);
+  const syncResultActions=()=>{
+    const ready=resultReady();
+    if(resultActions)resultActions.hidden=!ready;
+    if(cartForm&&selector?.value)cartForm.action='/cart/'+encodeURIComponent(selector.value);
+    if(cartButton)cartButton.disabled=!selector?.value;
+  };
+  const snapshot=async()=>{
+    if(!resultReady())throw new Error('Start the camera or upload a selfie and wait for the cap to be positioned.');
+    const source=stream?video:face,sw=source.videoWidth||source.naturalWidth,sh=source.videoHeight||source.naturalHeight;
+    if(!sw||!sh)throw new Error('Preview is not ready yet.');
+    const canvas=document.createElement('canvas');canvas.width=sw;canvas.height=sh;const ctx=canvas.getContext('2d');
+    if(stream){ctx.save();ctx.translate(sw,0);ctx.scale(-1,1);ctx.drawImage(source,0,0,sw,sh);ctx.restore();}else ctx.drawImage(source,0,0,sw,sh);
+    const box=source.getBoundingClientRect(),ob=overlay.getBoundingClientRect();
+    const sx=sw/box.width,sy=sh/box.height,cx=(ob.left-box.left+ob.width/2)*sx,cy=(ob.top-box.top+ob.height/2)*sy;
+    const angle=(Number(rotate?.value||0))*Math.PI/180;ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);ctx.drawImage(overlay,-ob.width*sx/2,-ob.height*sy/2,ob.width*sx,ob.height*sy);ctx.restore();
+    return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create preview image.')),'image/png',.95));
+  };
+  const previewFile=async()=>new File([await snapshot()],'emerald-rozalia-try-on.png',{type:'image/png'});
+  downloadButton?.addEventListener('click',async()=>{try{const file=await previewFile(),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);if(resultStatus)resultStatus.textContent='Preview downloaded.';}catch(e){if(resultStatus)resultStatus.textContent=e.message;}});
+  shareButton?.addEventListener('click',async()=>{try{const file=await previewFile();if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'Emerald Rozalia Try-On',text:'My Emerald Rozalia virtual try-on',files:[file]});if(resultStatus)resultStatus.textContent='Preview shared.';}else{const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);if(resultStatus)resultStatus.textContent='Sharing is unavailable in this browser, so the preview was downloaded.';}}catch(e){if(e?.name!=='AbortError'&&resultStatus)resultStatus.textContent=e.message;}});
+  cartForm?.addEventListener('submit',()=>send(true));
 
   const renderMode=()=>{
     const is3d=mode==='3d'&&!!modelViewer?.getAttribute('src');
@@ -67,6 +95,7 @@ if(studio){
     if(size)size.value=Math.round(Math.max(30,Math.min(160,width)));if(x)x.value=Math.round(centerX);if(y)y.value=Math.round(Math.max(0,Math.min(100,top)));if(rotate)rotate.value=Math.round(Math.max(-30,Math.min(30,angle)));
     studio.querySelector('[data-hat-size-value]')?.replaceChildren(document.createTextNode(Math.round(width)+'%'));
     studio.querySelector('[data-hat-rotate-value]')?.replaceChildren(document.createTextNode(Math.round(angle)+'°'));
+    syncResultActions();
     return true;
   };
 
@@ -82,7 +111,7 @@ if(studio){
     raf=requestAnimationFrame(liveLoop);
   };
   const stopCamera=()=>{
-    if(raf)cancelAnimationFrame(raf);raf=0;stream?.getTracks().forEach(t=>t.stop());stream=null;if(video){video.srcObject=null;video.hidden=true;}if(cameraStart)cameraStart.hidden=false;if(cameraStop)cameraStop.hidden=true;renderMode();
+    if(raf)cancelAnimationFrame(raf);raf=0;stream?.getTracks().forEach(t=>t.stop());stream=null;if(video){video.srcObject=null;video.hidden=true;}if(cameraStart)cameraStart.hidden=false;if(cameraStop)cameraStop.hidden=true;renderMode();syncResultActions();
   };
   const startCamera=async()=>{
     if(!navigator.mediaDevices?.getUserMedia){setStatus('Live camera is not supported in this browser. Upload a photo instead.','warn');return;}
@@ -92,9 +121,9 @@ if(studio){
 
   cameraStart?.addEventListener('click',startCamera);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
   upload?.addEventListener('change',()=>{stopCamera();const f=upload.files?.[0];if(!f)return;begin();setStatus('Analyzing face landmarks…');if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});});
-  selector?.addEventListener('change',()=>{send(true);activeProduct=selector.value||'';startedAt=(stream||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();if(startedAt)send(true);});
+  selector?.addEventListener('change',()=>{send(true);activeProduct=selector.value||'';startedAt=(stream||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();syncResultActions();if(startedAt)send(true);});
   studio.querySelectorAll('[data-try-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;mode=b.dataset.tryMode||'2d';renderMode();send(false);}));
   studio.querySelectorAll('[data-hat-size],[data-hat-x],[data-hat-y],[data-hat-rotate],[data-try-view]').forEach(c=>c.addEventListener('input',()=>send(false)));
   window.addEventListener('pagehide',()=>{send(true);stopCamera();});
-  syncModel();setInterval(()=>send(false),10000);
+  syncModel();syncResultActions();setInterval(()=>send(false),10000);
 }
