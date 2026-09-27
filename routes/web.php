@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 require __DIR__.'/spins.php';
 require __DIR__.'/tryons.php';
+require __DIR__.'/ai-fashion-model.php';
 require __DIR__.'/categories.php';
 Route::get('/',[SiteController::class,'home'])->name('home');
 Route::get('/shop',[SiteController::class,'shop'])->name('shop');
