@@ -51,3 +51,12 @@
   .try-studio[data-try-studio] .try-style-picker h2{margin-top:0}
   .try-canvas model-viewer[data-try-model]{height:48vh;min-height:300px}
 }
+
+.try-camera-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 12px}
+.try-vision-status{margin-top:10px;padding:9px 10px;border:1px solid #34563e;border-radius:7px;background:#0a1d12;color:#b9c9be;font-size:12px;line-height:1.4}
+.try-vision-status[data-state="ok"]{border-color:#64ad2d;color:#d9f4c7}
+.try-vision-status[data-state="warn"]{border-color:#9b7937;color:#f1d79d}
+.try-canvas video[data-camera-preview]{display:block;width:100%;height:auto;max-height:68vh;object-fit:contain;background:#07130c}
+.try-canvas video[data-camera-preview][hidden]{display:none}
+.try-canvas img[data-hat-overlay]{z-index:6;pointer-events:none;transform-origin:center center;will-change:left,top,width,transform}
+@media(max-width:700px){.try-canvas video[data-camera-preview]{max-height:56vh}.try-camera-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.try-camera-actions .btn{min-width:0;padding-inline:7px}}
