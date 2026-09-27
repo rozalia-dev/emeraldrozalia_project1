@@ -33,6 +33,26 @@ class AiFashionModelController extends Controller
         ]);
 
         $product = Product::with('previewMedia')->findOrFail($data['product_id']);
+
+        $pending = AiFashionGeneration::where('product_id', $product->id)
+            ->whereIn('status', ['starting','in_queue','processing'])
+            ->latest()
+            ->first();
+        if ($pending) {
+            $payload = [
+                'id'=>$pending->id,
+                'prediction_id'=>$pending->prediction_id,
+                'status'=>$pending->status,
+                'status_url'=>route('admin.ai-fashion-model.status',$pending),
+                'message'=>'A FASHN generation is already pending for '.$product->name.'. Continuing that job instead of charging for a duplicate.',
+            ];
+            if ($request->expectsJson()) {
+                return response()->json($payload, 200);
+            }
+            return redirect()->route('admin.ai-fashion-model.index')
+                ->with('status', $payload['message']);
+        }
+
         $source = $product->previewMedia->first()?->path ?: $product->getRawOriginal('image');
         abort_unless($source, 422, 'This product needs an approved reference image before AI Fashion Model generation.');
 
