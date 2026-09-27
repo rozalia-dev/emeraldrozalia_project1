@@ -66,6 +66,6 @@ f.addEventListener('submit',async e=>{e.preventDefault();const b=f.querySelector
 
 const pending=['starting','in_queue','processing'];
 document.querySelectorAll('[data-fashion-generation]').forEach(card=>{const state=(card.dataset.status||'').toLowerCase();if(!pending.includes(state))return;const label=card.querySelector('[data-generation-status]'),progress=card.querySelector('[data-generation-progress]');const check=async()=>{try{const r=await fetch(card.dataset.statusUrl,{headers:{Accept:'application/json'}}),d=await r.json();if(!r.ok)throw new Error(d.error||d.message||'Status check failed.');label.textContent=(d.status||'processing').replaceAll('_',' ').toUpperCase();if(d.status==='completed'){progress.textContent='Preview ready. Reloading…';setTimeout(()=>location.reload(),700);return;}if(d.status==='failed'){progress.textContent=d.error||'FASHN generation failed.';return;}progress.textContent='FASHN is '+(d.status||'processing').replaceAll('_',' ')+'. Checking automatically…';setTimeout(check,3000);}catch(e){progress.textContent=e.message+' Retrying…';setTimeout(check,6000);}};check();});
-});});
+});
 </script>
 @endsection
