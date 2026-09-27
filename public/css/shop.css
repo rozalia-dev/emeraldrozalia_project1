@@ -457,4 +457,9 @@
         font-size: 12px;
     }
 }
-
+/* Match the shop hero bleed to the responsive page gutter on tablet widths. */
+@media (min-width: 701px) and (max-width: 980px) {
+    .shop-reference-page .shop-page > .shop-hero {
+        margin-inline: calc(-1 * clamp(12px, 1.6vw, 24px));
+    }
+}
