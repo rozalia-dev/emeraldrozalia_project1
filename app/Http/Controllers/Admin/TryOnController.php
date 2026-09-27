@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\{AuditLog,Product,TryOnAsset,TryOnVisit};
 use App\Services\{AuditTrail,TryOnFiles};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{DB,Http,Storage};
+use Illuminate\Support\Facades\{DB,Storage};
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -202,88 +202,6 @@ class TryOnController extends Controller
             }
         });
         return back()->with('success','Selected virtual try-on assets updated.');
-    }
-
-    public function generate3d(TryOnAsset $tryon)
-    {
-        abort_unless(config('services.meshy.key'), 503, 'AI 3D generation is not configured. Add MESHY_API_KEY to the production environment.');
-        $preview = $tryon->previewPath();
-        abort_unless($preview && Storage::disk('local')->exists($preview), 422, 'Upload and save a product preview image before generating 3D.');
-
-        $bytes = Storage::disk('local')->get($preview);
-        $ext = strtolower(pathinfo($preview, PATHINFO_EXTENSION));
-        $mime = match ($ext) { 'jpg','jpeg'=>'image/jpeg', 'webp'=>'image/webp', default=>'image/png' };
-        $image = 'data:'.$mime.';base64,'.base64_encode($bytes);
-
-        $response = Http::withToken(config('services.meshy.key'))
-            ->acceptJson()->timeout(45)
-            ->post(rtrim(config('services.meshy.base_url'), '/').'/image-to-3d', [
-                'image_url'=>$image,
-                'ai_model'=>'latest',
-                'should_texture'=>true,
-                'image_enhancement'=>true,
-                'auto_size'=>true,
-                'origin_at'=>'center',
-                'target_formats'=>['glb'],
-            ]);
-        $response->throw();
-        $taskId = (string) $response->json('result');
-        abort_if($taskId === '', 502, 'AI 3D provider did not return a task ID.');
-
-        $settings = array_replace(TryOnAsset::DEFAULTS, $tryon->settings ?? [], [
-            'ai_3d_task_id'=>$taskId,
-            'ai_3d_status'=>'PENDING',
-            'ai_3d_started_at'=>now()->toIso8601String(),
-        ]);
-        $tryon->update(['settings'=>$settings,'updated_by'=>auth()->user()->name]);
-        AuditTrail::record('tryon.ai3d.started',$tryon,null,['task_id'=>$taskId]);
-        return response()->json(['status'=>'PENDING','message'=>'AI 3D generation started.']);
-    }
-
-    public function generate3dStatus(TryOnAsset $tryon)
-    {
-        abort_unless(config('services.meshy.key'), 503, 'AI 3D generation is not configured.');
-        $taskId = data_get($tryon->settings, 'ai_3d_task_id');
-        abort_unless(is_string($taskId) && $taskId !== '', 404, 'No AI 3D generation task exists for this asset.');
-
-        $response = Http::withToken(config('services.meshy.key'))->acceptJson()->timeout(30)
-            ->get(rtrim(config('services.meshy.base_url'), '/').'/image-to-3d/'.rawurlencode($taskId));
-        $response->throw();
-        $status = strtoupper((string) $response->json('status'));
-
-        if ($status === 'SUCCEEDED' && !$tryon->modelPath()) {
-            $url = $response->json('model_urls.glb');
-            abort_unless(is_string($url) && str_starts_with($url, 'https://'), 502, 'AI provider completed without a GLB model.');
-            $modelResponse = Http::timeout(90)->get($url);
-            $modelResponse->throw();
-            $stored = app(TryOnFiles::class)->storeGeneratedModel($modelResponse->body(), $tryon->uuid, 'glb');
-            $oldFiles = $tryon->files ?? [];
-            $oldModel = data_get($oldFiles, 'model');
-            $files = array_replace($oldFiles, ['model'=>$stored['path']]);
-            $settings = array_replace($tryon->settings ?? [], [
-                'ai_3d_status'=>'SUCCEEDED',
-                'ai_3d_completed_at'=>now()->toIso8601String(),
-                'model_scale'=>data_get($tryon->settings,'model_scale',1),
-                'model_y'=>data_get($tryon->settings,'model_y',0),
-                'model_rotation'=>data_get($tryon->settings,'model_rotation',0),
-            ]);
-            $tryon->update(['files'=>$files,'settings'=>$settings,'bytes'=>(int)$tryon->bytes+$stored['bytes'],'updated_by'=>auth()->user()->name]);
-            if (is_string($oldModel) && $oldModel !== $stored['path']) Storage::disk('local')->delete($oldModel);
-            AuditTrail::record('tryon.ai3d.completed',$tryon,null,['task_id'=>$taskId,'model'=>$stored['path']]);
-        } elseif (in_array($status, ['FAILED','CANCELED','EXPIRED'], true)) {
-            $settings = array_replace($tryon->settings ?? [], ['ai_3d_status'=>$status]);
-            $tryon->update(['settings'=>$settings,'updated_by'=>auth()->user()->name]);
-        } else {
-            $settings = array_replace($tryon->settings ?? [], ['ai_3d_status'=>$status ?: 'PROCESSING']);
-            $tryon->update(['settings'=>$settings]);
-        }
-
-        return response()->json([
-            'status'=>$status ?: 'PROCESSING',
-            'progress'=>(int) $response->json('progress',0),
-            'ready'=>$tryon->fresh()->modelPath() !== null,
-            'error'=>$response->json('task_error.message'),
-        ]);
     }
 
     public function audit(TryOnAsset $tryon)
