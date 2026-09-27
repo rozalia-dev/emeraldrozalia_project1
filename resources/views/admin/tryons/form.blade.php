@@ -33,23 +33,11 @@
         <label>3D Rotation Offset<input type="number" name="model_rotation" min="-180" max="180" step="1" value="{{ old('model_rotation',$record?->settings['model_rotation']??0) }}"></label>
     </div>
     @php($has3dModel = $editing && $record?->modelPath())
-    <div class="sd-3d-status" role="status" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px;margin:12px 0;border:1px solid {{ $has3dModel ? '#5f9f36' : '#8a6b2b' }};border-radius:10px;background:{{ $has3dModel ? 'rgba(95,159,54,.10)' : 'rgba(138,107,43,.10)' }};overflow:hidden;">
-        <span style="min-width:0;overflow-wrap:anywhere"><strong>3D MODEL</strong><br><small>{{ $has3dModel ? '3D READY — GLB/USDZ model is attached to this product.' : 'MODEL MISSING — generate it with AI below, or upload a GLB/ZIP manually.' }}</small></span>
-        <span style="white-space:nowrap;font-weight:800;">{{ $has3dModel ? 'READY' : 'MISSING' }}</span>
+    <div class="sd-3d-status" role="status" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px;margin:12px 0;border:1px solid {{ $has3dModel ? '#5f9f36' : '#87958b' }};border-radius:10px;background:{{ $has3dModel ? 'rgba(95,159,54,.10)' : 'rgba(135,149,139,.08)' }};overflow:hidden;">
+        <span style="min-width:0;overflow-wrap:anywhere"><strong>3D MODEL</strong><br><small>{{ $has3dModel ? '3D READY — GLB/USDZ model is attached to this product.' : 'OPTIONAL — no 3D model uploaded. Virtual Try-On continues to work with the approved product overlay and Vision AI head tracking.' }}</small></span>
+        <span style="white-space:nowrap;font-weight:800;">{{ $has3dModel ? 'READY' : 'OPTIONAL' }}</span>
     </div>
-    @if($editing)
-    @php($ai3dStatus = strtoupper((string) data_get($record?->settings, 'ai_3d_status', '')))
-    @php($ai3dPending = in_array($ai3dStatus, ['PENDING','IN_PROGRESS','PROCESSING'], true))
-    <div data-ai3d-panel data-start-url="{{ route('admin.tryons.generate-3d',$record) }}" data-status-url="{{ route('admin.tryons.generate-3d.status',$record) }}" data-ai3d-pending="{{ $ai3dPending ? '1' : '0' }}" style="display:grid;gap:10px;margin:10px 0 14px;padding:12px;border:1px solid #c9d2cb;border-radius:10px;background:#fff">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button type="button" class="sd-button" data-ai3d-generate @disabled($has3dModel || !$record?->previewPath() || $ai3dPending)>{{ $ai3dPending ? 'AI 3D GENERATING…' : 'GENERATE 3D WITH AI' }}</button>
-            @if(!$has3dModel)<span style="font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#f5ead1;color:#6d521b">{{ $ai3dPending ? $ai3dStatus : 'READY TO GENERATE' }}</span>@endif
-        </div>
-        <small data-ai3d-message style="display:block;overflow-wrap:anywhere">{{ $has3dModel ? '3D model ready for storefront.' : ($ai3dPending ? 'AI generation is already running. This page will keep checking the job.' : ($record?->previewPath() ? 'Generate a textured GLB automatically from the saved product preview. Progress appears here and the model attaches automatically when complete.' : 'Save a PNG/JPG/WebP preview first. AI generation requires a saved preview image.')) }}</small>
-        @if(!$record?->previewPath() && !$has3dModel)<small style="font-weight:700;color:#8a6b2b">Required first: upload and save a browser preview image above.</small>@endif
-    </div>
-    @endif
-    <small>Upload a GLB (or ZIP containing preview + GLB) for interactive browser 3D. USDZ remains available as an Apple AR asset. Calibrate scale, vertical offset and rotation per product.</small>
+    <small>Optional: upload a GLB (or ZIP containing preview + GLB) when a genuine product 3D model is available. USDZ can be included for Apple AR. 3D is not required for the browser Vision AI Try-On.</small>
     <small>Published + Public assets are automatically available in the storefront Virtual Try-On Studio for the linked active product.</small>
     @if($editing && $record?->status !== 'published')
         <div style="margin-top:12px;padding:12px 14px;border:1px solid #b9892d;border-radius:10px;background:rgba(185,137,45,.08);overflow-wrap:anywhere">
@@ -80,12 +68,3 @@
 @if(!$embedded)<div class="sd-save"><span data-upload-message role="status"></span><button class="sd-button" type="submit">{{ $editing?'Save Try-On Asset':'Create Try-On Asset' }}</button></div>@else<span class="sd-workbench-status" data-upload-message role="status"></span>@endif
 </form>
 
-@if($editing)
-<script>
-document.addEventListener('DOMContentLoaded',()=>{const p=document.querySelector('[data-ai3d-panel]');if(!p)return;const b=p.querySelector('[data-ai3d-generate]'),m=p.querySelector('[data-ai3d-message]');let timer;
-const poll=async()=>{try{const r=await fetch(p.dataset.statusUrl,{headers:{Accept:'application/json'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to check 3D generation.');m.textContent=(d.status||'PROCESSING')+(d.progress!=null?' · '+d.progress+'%':'');if(d.ready){m.textContent='3D READY — refreshing…';clearInterval(timer);location.reload();}else if(['FAILED','CANCELED','EXPIRED'].includes(d.status)){clearInterval(timer);b.disabled=false;m.textContent=d.error||('3D generation '+d.status.toLowerCase()+'.');}}catch(e){clearInterval(timer);b.disabled=false;m.textContent=e.message;}};
-b?.addEventListener('click',async()=>{b.disabled=true;b.textContent='AI 3D GENERATING…';m.textContent='Starting AI 3D generation…';try{const r=await fetch(p.dataset.startUrl,{method:'POST',headers:{Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'{{ csrf_token() }}'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to start AI 3D generation.');m.textContent=d.message;timer=setInterval(poll,5000);poll();}catch(e){b.disabled=false;b.textContent='GENERATE 3D WITH AI';m.textContent=e.message;}});
-if(p.dataset.ai3dPending==='1'){b.disabled=true;b.textContent='AI 3D GENERATING…';timer=setInterval(poll,5000);poll();}
-});
-</script>
-@endif
