@@ -36,7 +36,7 @@ if(studio){
     try{await fetch(item.visit,{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':studio.dataset.csrf||''},body:JSON.stringify({device:device(),converted:false,session_seconds:seconds})});}catch{}
   };
   const begin=()=>{activeProduct=selector?.value||'';if(!activeProduct||!meta[activeProduct])return;if(!startedAt)startedAt=Date.now();send(true);};
-  const resultReady=()=>!!(selector?.value&&overlay?.src&&(stream||face?.src)&&!overlay.hidden);
+  const resultReady=()=>!!(selector?.value&&overlay?.src&&overlay.complete&&overlay.naturalWidth>0&&(stream||face?.src)&&!overlay.hidden);
   const syncResultActions=()=>{
     const ready=resultReady();
     if(resultActions)resultActions.hidden=!ready;
@@ -125,5 +125,6 @@ if(studio){
   studio.querySelectorAll('[data-try-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;mode=b.dataset.tryMode||'2d';renderMode();send(false);}));
   studio.querySelectorAll('[data-hat-size],[data-hat-x],[data-hat-y],[data-hat-rotate],[data-try-view]').forEach(c=>c.addEventListener('input',()=>send(false)));
   window.addEventListener('pagehide',()=>{send(true);stopCamera();});
+  overlay?.addEventListener('load',syncResultActions);overlay?.addEventListener('error',()=>{syncResultActions();setStatus('Selected product Try-On image is unavailable. Please choose another product or ask an administrator to re-upload its overlay.','warn');});
   syncModel();syncResultActions();setInterval(()=>send(false),10000);
 }
