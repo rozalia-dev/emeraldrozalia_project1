@@ -50,7 +50,7 @@
 <tr @class(['sd-selected'=>$selected?->id===$asset->id])>
 <td><input type="checkbox" name="ids[]" value="{{ $asset->id }}" aria-label="Select {{ $asset->title }}"></td>
 <td><a href="{{ route('admin.tryons.index',array_merge(request()->query(),['edit'=>$asset->id])) }}#editor" class="sd-thumb to-thumb">@if($asset->previewPath())<img src="{{ route('tryons.asset',[$asset->uuid,'preview']) }}" alt="{{ $asset->seo['alt']??$asset->title }}" loading="lazy">@else<span>3D</span>@endif</a></td>
-<td><strong>{{ $asset->product->name }}</strong><small>SKU: {{ $asset->product->sku }}</small></td>
+<td>@if($asset->product)<strong>{{ $asset->product->name }}</strong><small>SKU: {{ $asset->product->sku }}</small>@else<strong>Product unavailable</strong><small>Product ID: {{ $asset->product_id }} · relink or delete this orphaned asset</small>@endif</td>
 <td><span class="sd-tag {{ $asset->type }}">{{ $types[$asset->type] }}</span></td>
 <td><strong>{{ $targets[$asset->target] }}</strong><small>{{ $asset->age_range ?: 'All Ages' }}</small></td>
 <td><span class="sd-tag {{ $asset->status }}">{{ $statuses[$asset->status] }}</span></td>
