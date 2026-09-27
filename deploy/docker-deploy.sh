@@ -44,14 +44,9 @@ fi
 (umask 077; compose exec -T db pg_dump -U emerald_rozalia -d emerald_rozalia -Fc > "$BACKUP/database.dump")
 test -s "$BACKUP/database.dump"
 compose exec -T db pg_restore --list < "$BACKUP/database.dump" >/dev/null
-(umask 077; compose run --rm --no-deps --entrypoint tar app -C storage/app/public -czf - . > "$BACKUP/uploads.tar.gz")
-test -s "$BACKUP/uploads.tar.gz"
-# Videos and managed 360° / Try-On assets use authorization-gated private storage in the persistent storage volume.
-(umask 077; compose run --rm --no-deps --entrypoint sh app -c 'mkdir -p storage/app/private && tar -C storage/app/private -czf - .' > "$BACKUP/private-uploads.tar.gz")
-test -s "$BACKUP/private-uploads.tar.gz"
 git rev-parse HEAD > "$BACKUP/target-commit.txt"
 printf '%s\n' "${DEPLOY_PREVIOUS_COMMIT:-unknown}" > "$BACKUP/previous-commit.txt"
-echo "Release backup saved in $BACKUP"
+echo "Database release backup saved in $BACKUP"
 
 # Keep release backups bounded so repeated deployments cannot exhaust the host disk.
 # The current release backup is retained, along with the four most recent older releases.
