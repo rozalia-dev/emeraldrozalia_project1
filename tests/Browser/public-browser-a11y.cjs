@@ -89,6 +89,7 @@ async function inspectPublicPage(page) {
             .filter(element => !(element.tagName === 'INPUT' && element.type === 'hidden'));
         const links = [...document.links].filter(visible);
         const scrollWidth = Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0);
+        const viewportWidth = document.documentElement.clientWidth;
 
         return {
             shell: document.documentElement.getAttribute('data-public-shell') || 'structured',
@@ -107,7 +108,9 @@ async function inspectPublicPage(page) {
                 .map(link => link.outerHTML.slice(0, 260)),
             directAssetImages: document.querySelectorAll('img[src^="/assets/"]').length,
             referenceRuntime: document.querySelectorAll('[data-approved-reference]').length,
-            overflow: scrollWidth > document.documentElement.clientWidth + 1,
+            overflow: scrollWidth > viewportWidth + 1,
+            viewportWidth,
+            scrollWidth,
             chatLauncher: (() => {
                 const button = document.querySelector('.chat24-launcher');
                 if (!button) return null;
@@ -251,7 +254,11 @@ async function assertPublicContract(page, url, viewport) {
     assert.deepEqual(audit.placeholderLinks, [], route + ' should not expose placeholder links');
     assert.equal(audit.directAssetImages, 0, route + ' should not expose storage asset paths');
     assert.equal(audit.referenceRuntime, 0, route + ' should not render guide reference runtime');
-    assert.equal(audit.overflow, false, route + ' ' + viewport + ' should not overflow horizontally');
+    assert.equal(
+        audit.overflow,
+        false,
+        route + ' ' + viewport + ' should not overflow horizontally (document=' + audit.scrollWidth + 'px, viewport=' + audit.viewportWidth + 'px)',
+    );
     assert.equal(audit.bodyError, false, route + ' should not render an application error');
 
     if (viewport.includes('mobile') && audit.chatLauncher) {
