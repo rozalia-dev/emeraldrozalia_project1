@@ -9,6 +9,8 @@ const { chromium } = loadPlaywright('playwright');
 const publicRoutes = [
     '/',
     '/shop',
+    '/product/emerald-signature-cap',
+    '/login',
     '/collections',
     '/new-arrivals',
     '/corporate-orders',
@@ -106,6 +108,17 @@ async function inspectPublicPage(page) {
             directAssetImages: document.querySelectorAll('img[src^="/assets/"]').length,
             referenceRuntime: document.querySelectorAll('[data-approved-reference]').length,
             overflow: scrollWidth > document.documentElement.clientWidth + 1,
+            chatLauncher: (() => {
+                const button = document.querySelector('.chat24-launcher');
+                if (!button) return null;
+                const rect = button.getBoundingClientRect();
+                return {
+                    name: accessibleName(button),
+                    width: Math.round(rect.width),
+                    height: Math.round(rect.height),
+                    iconVisible: visible(button.querySelector('.chat24-launcher-icon')),
+                };
+            })(),
             hasContactHeaderLink: Boolean(document.querySelector('[data-public-shell-region="header"] a[href$="/contact"]')),
             bodyError: /\b(server error|exception|syntax error|undefined variable)\b/i.test(document.body.innerText),
             focusableCount: document.querySelectorAll(selector).length,
@@ -241,6 +254,13 @@ async function assertPublicContract(page, url, viewport) {
     assert.equal(audit.overflow, false, route + ' ' + viewport + ' should not overflow horizontally');
     assert.equal(audit.bodyError, false, route + ' should not render an application error');
 
+    if (viewport.includes('mobile') && audit.chatLauncher) {
+        assert.match(audit.chatLauncher.name, /chat/i, route + ' chat control should keep an accessible name');
+        assert.ok(audit.chatLauncher.width >= 44 && audit.chatLauncher.width <= 56, route + ' mobile chat control should stay compact');
+        assert.ok(audit.chatLauncher.height >= 44 && audit.chatLauncher.height <= 56, route + ' mobile chat control should meet the touch target size');
+        assert.equal(audit.chatLauncher.iconVisible, true, route + ' mobile chat control should show its icon');
+    }
+
     if (sharedRoutes.includes(route)) {
         assert.equal(audit.shell, 'shared', route + ' should use the shared public shell');
         assert.ok(audit.canonical, route + ' should have a canonical URL');
@@ -296,6 +316,24 @@ async function runPublicBrowserEvidence() {
             manifest.routes.push({route, viewport: 'mobile', ...audit});
         }
 
+        for (const viewport of [
+            {name: 'small-mobile', width: 320, height: 740},
+            {name: 'tablet', width: 768, height: 1024},
+            {name: 'compact-desktop', width: 1024, height: 900},
+        ]) {
+            await page.setViewportSize({width: viewport.width, height: viewport.height});
+            for (const route of publicRoutes) {
+                const audit = await assertPublicContract(page, base + route, viewport.name);
+                manifest.routes.push({route, viewport: viewport.name, viewportWidth: viewport.width, ...audit});
+                if (viewport.name === 'small-mobile' && ['/', '/shop', '/contact'].includes(route)) {
+                    await page.screenshot({
+                        path: path.join(artifacts, 'public-' + (route === '/' ? 'home' : route.slice(1).replaceAll('/', '-')) + '-small-mobile.png'),
+                        fullPage: true,
+                    });
+                }
+            }
+        }
+
         for (const viewport of [{name: 'desktop', width: 1440, height: 1000}, {name: 'mobile', width: 390, height: 844}]) {
             await page.setViewportSize({width: viewport.width, height: viewport.height});
             for (const route of publicRoutes) {
@@ -331,7 +369,7 @@ async function runPublicBrowserEvidence() {
             path.join(artifacts, 'public-browser-a11y-manifest.json'),
             JSON.stringify(manifest, null, 2) + '\n',
         );
-        console.log('Public browser evidence passed: 17 routes, desktop/mobile structure and screenshots, keyboard focus, reduced motion, and JavaScript error checks.');
+        console.log('Public browser evidence passed: 19 routes at desktop, mobile, narrow-phone, and tablet sizes; keyboard focus, reduced motion, and JavaScript error checks.');
     } catch (error) {
         await page.screenshot({path: path.join(artifacts, 'public-browser-a11y-failure.png'), fullPage: true}).catch(() => {});
         throw error;

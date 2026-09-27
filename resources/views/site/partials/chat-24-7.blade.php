@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="/css/chat-24-7.css?v=20260916-visible-service-actions-1">
+<link rel="stylesheet" href="/css/chat-24-7-responsive.css?v=20260927-small-screen-launcher-v1">
 <div
     class="chat24"
     data-chat-24-7-widget
@@ -7,9 +8,10 @@
     data-csrf="{{ csrf_token() }}"
     data-product-slug="{{ $contextProductSlug }}"
 >
-    <button class="chat24-launcher" type="button" data-chat24-toggle aria-expanded="false" aria-controls="chat24-panel">
+    <button class="chat24-launcher" type="button" data-chat24-toggle aria-label="Open Chat 24/7 support" aria-expanded="false" aria-controls="chat24-panel">
         <span class="chat24-launcher-dot" aria-hidden="true"></span>
-        <span>Chat 24/7</span>
+        <x-icon name="message" size="20" class="chat24-launcher-icon" />
+        <span class="chat24-launcher-label">Chat 24/7</span>
     </button>
 
     <section class="chat24-panel" id="chat24-panel" hidden aria-label="Emerald Rozalia 24/7 product and business assistant">
