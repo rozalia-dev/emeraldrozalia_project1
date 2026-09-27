@@ -41,6 +41,9 @@ class TryOnAsset extends Model
         'occlusion' => true,
         'high_quality' => false,
         'mobile' => true,
+        'model_scale' => 1,
+        'model_y' => 0,
+        'model_rotation' => 0,
     ];
 
     protected static function booted(): void

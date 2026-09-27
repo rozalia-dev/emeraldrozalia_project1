@@ -27,6 +27,12 @@
     @foreach(['auto_fit'=>'Auto Fit to Head','face_detection'=>'Face Detection','realistic_lighting'=>'Realistic Lighting','shadow_rendering'=>'Shadow Rendering','occlusion'=>'Occlusion Handling','high_quality'=>'High Quality Mode','mobile'=>'Mobile Optimized'] as $key=>$label)
     <label class="sd-toggle"><span>{{ $label }}</span><input type="checkbox" role="switch" name="{{ $key }}" value="1" @checked(old($key,$record?->settings[$key]??\App\Models\TryOnAsset::DEFAULTS[$key]))></label>
     @endforeach
+    <div class="sd-core-fields">
+        <label>3D Model Scale<input type="number" name="model_scale" min="0.2" max="3" step="0.05" value="{{ old('model_scale',$record?->settings['model_scale']??1) }}"></label>
+        <label>3D Vertical Offset<input type="number" name="model_y" min="-2" max="2" step="0.05" value="{{ old('model_y',$record?->settings['model_y']??0) }}"></label>
+        <label>3D Rotation Offset<input type="number" name="model_rotation" min="-180" max="180" step="1" value="{{ old('model_rotation',$record?->settings['model_rotation']??0) }}"></label>
+    </div>
+    <small>Upload a GLB (or ZIP containing preview + GLB) for interactive browser 3D. USDZ remains available as an Apple AR asset. Calibrate scale, vertical offset and rotation per product.</small>
     <small>Published + Public assets are automatically available in the storefront Virtual Try-On Studio for the linked active product.</small>
     @if($embedded)<button class="sd-button sd-outline sd-card-action" type="submit">Manage Settings</button>@endif
 </section>
