@@ -250,7 +250,7 @@ class SiteController extends Controller
         $assetMap = $products->mapWithKeys(function ($product) use (&$assetMetaMap, $mediaResolver) {
             $assets = [];
             $managed = $product->tryOnAssets->first(fn ($asset) => $asset->isPublic());
-            if ($managed) {
+            if ($managed && $managed->previewPath() && \Illuminate\Support\Facades\Storage::disk('local')->exists($managed->previewPath())) {
                 $assets[] = $managed->previewUrl();
                 $assetMetaMap[$product->id] = $managed->viewerData();
                 return [$product->id => $assets];
