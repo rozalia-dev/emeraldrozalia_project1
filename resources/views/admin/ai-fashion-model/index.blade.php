@@ -31,6 +31,9 @@
 <div>@if($generation->result_path)<img src="{{ Storage::disk($generation->result_disk ?: 'public')->url($generation->result_path) }}" alt="AI fashion model preview" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px">@else<div style="min-height:120px;display:grid;place-items:center;background:#f4f4f4;border-radius:10px">Awaiting image</div>@endif</div>
 <div style="min-width:0"><strong>{{ $generation->product?->name ?? 'Product unavailable' }}</strong><p>FASHN · {{ str_replace('_',' ',$generation->pose) }} · {{ str_replace('_',' ',$generation->scene) }}</p><p>Status: <strong>{{ strtoupper($generation->status) }}</strong></p>
 @if($generation->provider_error)<p style="overflow-wrap:anywhere">{{ $generation->provider_error }}</p>@endif
+@if(!in_array($generation->status, ['completed','approved','published','failed'], true))
+<a class="sd-button" href="{{ route('admin.ai-fashion-model.status',$generation) }}">CHECK FASHN STATUS</a>
+@endif
 @if($generation->status === 'completed')
 <form method="post" action="{{ route('admin.ai-fashion-model.approve',$generation) }}">@csrf<button class="sd-button" type="submit">APPROVE</button></form>
 @elseif($generation->status === 'approved')
