@@ -30,8 +30,9 @@ git ls-files -z | xargs -0 chmod go+rX
 docker compose up -d --no-build --wait --wait-timeout 180 db redis app
 docker compose exec -T --user www-data app php artisan migrate --force
 docker compose up -d --no-build --wait --wait-timeout 180 nginx
-docker compose exec -T nginx nginx -T 2>&1 | grep -q 'client_max_body_size 1100M;'
-docker compose exec -T nginx nginx -T 2>&1 | grep -q 'fastcgi_read_timeout 900s;'
+nginx_config="$(docker compose exec -T nginx nginx -T 2>&1)"
+grep -Fq 'client_max_body_size 1100M;' <<<"$nginx_config"
+grep -Fq 'fastcgi_read_timeout 900s;' <<<"$nginx_config"
 docker compose exec -T app php -r 'exit(ini_get("upload_max_filesize") === "1024M" && ini_get("post_max_size") === "1100M" ? 0 : 1);'
 echo "::group::Release rehearsal"
 set +e
