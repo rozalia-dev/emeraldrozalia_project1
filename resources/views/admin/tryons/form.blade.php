@@ -38,9 +38,15 @@
         <span style="white-space:nowrap;font-weight:800;">{{ $has3dModel ? 'READY' : 'MISSING' }}</span>
     </div>
     @if($editing)
-    <div data-ai3d-panel data-start-url="{{ route('admin.tryons.generate-3d',$record) }}" data-status-url="{{ route('admin.tryons.generate-3d.status',$record) }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
-        <button type="button" class="sd-button sd-outline" data-ai3d-generate @disabled($has3dModel || !$record?->previewPath())>AI GENERATE 3D MODEL</button>
-        <small data-ai3d-message>{{ $has3dModel ? '3D model ready for storefront.' : ($record?->previewPath() ? 'Uses the saved product preview to generate a textured GLB automatically.' : 'Save a PNG/JPG/WebP preview first. AI generation requires a saved preview image.') }}</small>
+    @php($ai3dStatus = strtoupper((string) data_get($record?->settings, 'ai_3d_status', '')))
+    @php($ai3dPending = in_array($ai3dStatus, ['PENDING','IN_PROGRESS','PROCESSING'], true))
+    <div data-ai3d-panel data-start-url="{{ route('admin.tryons.generate-3d',$record) }}" data-status-url="{{ route('admin.tryons.generate-3d.status',$record) }}" data-ai3d-pending="{{ $ai3dPending ? '1' : '0' }}" style="display:grid;gap:10px;margin:10px 0 14px;padding:12px;border:1px solid #c9d2cb;border-radius:10px;background:#fff">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="sd-button" data-ai3d-generate @disabled($has3dModel || !$record?->previewPath() || $ai3dPending)>{{ $ai3dPending ? 'AI 3D GENERATING…' : 'GENERATE 3D WITH AI' }}</button>
+            @if(!$has3dModel)<span style="font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#f5ead1;color:#6d521b">{{ $ai3dPending ? $ai3dStatus : 'READY TO GENERATE' }}</span>@endif
+        </div>
+        <small data-ai3d-message style="display:block;overflow-wrap:anywhere">{{ $has3dModel ? '3D model ready for storefront.' : ($ai3dPending ? 'AI generation is already running. This page will keep checking the job.' : ($record?->previewPath() ? 'Generate a textured GLB automatically from the saved product preview. Progress appears here and the model attaches automatically when complete.' : 'Save a PNG/JPG/WebP preview first. AI generation requires a saved preview image.')) }}</small>
+        @if(!$record?->previewPath() && !$has3dModel)<small style="font-weight:700;color:#8a6b2b">Required first: upload and save a browser preview image above.</small>@endif
     </div>
     @endif
     <small>Upload a GLB (or ZIP containing preview + GLB) for interactive browser 3D. USDZ remains available as an Apple AR asset. Calibrate scale, vertical offset and rotation per product.</small>
@@ -78,7 +84,8 @@
 <script>
 document.addEventListener('DOMContentLoaded',()=>{const p=document.querySelector('[data-ai3d-panel]');if(!p)return;const b=p.querySelector('[data-ai3d-generate]'),m=p.querySelector('[data-ai3d-message]');let timer;
 const poll=async()=>{try{const r=await fetch(p.dataset.statusUrl,{headers:{Accept:'application/json'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to check 3D generation.');m.textContent=(d.status||'PROCESSING')+(d.progress!=null?' · '+d.progress+'%':'');if(d.ready){m.textContent='3D READY — refreshing…';clearInterval(timer);location.reload();}else if(['FAILED','CANCELED','EXPIRED'].includes(d.status)){clearInterval(timer);b.disabled=false;m.textContent=d.error||('3D generation '+d.status.toLowerCase()+'.');}}catch(e){clearInterval(timer);b.disabled=false;m.textContent=e.message;}};
-b?.addEventListener('click',async()=>{b.disabled=true;m.textContent='Starting AI 3D generation…';try{const r=await fetch(p.dataset.startUrl,{method:'POST',headers:{Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'{{ csrf_token() }}'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to start AI 3D generation.');m.textContent=d.message;timer=setInterval(poll,5000);poll();}catch(e){b.disabled=false;m.textContent=e.message;}});
+b?.addEventListener('click',async()=>{b.disabled=true;b.textContent='AI 3D GENERATING…';m.textContent='Starting AI 3D generation…';try{const r=await fetch(p.dataset.startUrl,{method:'POST',headers:{Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'{{ csrf_token() }}'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to start AI 3D generation.');m.textContent=d.message;timer=setInterval(poll,5000);poll();}catch(e){b.disabled=false;b.textContent='GENERATE 3D WITH AI';m.textContent=e.message;}});
+if(p.dataset.ai3dPending==='1'){b.disabled=true;b.textContent='AI 3D GENERATING…';timer=setInterval(poll,5000);poll();}
 });
 </script>
 @endif
