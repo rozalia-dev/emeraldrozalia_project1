@@ -126,6 +126,22 @@ class TryOnFiles
         return $path;
     }
 
+    public function storeGeneratedModel(string $data, string $uuid, string $extension = 'glb'): array
+    {
+        $extension = strtolower($extension);
+        if (!in_array($extension, self::MODEL_EXTENSIONS, true)) {
+            throw ValidationException::withMessages(['model'=>'Generated model format is not supported.']);
+        }
+        $directory = 'tryons/'.$uuid.'/ai-'.Str::lower(Str::random(12));
+        try {
+            $path = $this->storeModel($data, $directory, $extension);
+            return ['path'=>$path, 'bytes'=>Storage::disk('local')->size($path), 'directory'=>$directory];
+        } catch (\Throwable $e) {
+            Storage::disk('local')->deleteDirectory($directory);
+            throw $e;
+        }
+    }
+
     private function storeModel(string $data, string $directory, string $extension): string
     {
         if (strlen($data) < 32) throw ValidationException::withMessages(['asset'=>'The 3D try-on file is empty or invalid.']);

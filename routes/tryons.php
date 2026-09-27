@@ -17,4 +17,6 @@ Route::prefix('admin/resource/virtual-try-on')->middleware(['auth','admin'])->na
     Route::patch('/{tryon}', [TryOnController::class,'update'])->name('update');
     Route::delete('/{tryon}', [TryOnController::class,'destroy'])->name('destroy');
     Route::get('/{tryon}/audit', [TryOnController::class,'audit'])->name('audit');
+    Route::post('/{tryon}/generate-3d', [TryOnController::class,'generate3d'])->name('generate-3d');
+    Route::get('/{tryon}/generate-3d/status', [TryOnController::class,'generate3dStatus'])->name('generate-3d.status');
 });
