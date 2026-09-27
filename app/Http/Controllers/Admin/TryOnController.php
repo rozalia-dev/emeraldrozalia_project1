@@ -107,6 +107,9 @@ class TryOnController extends Controller
             'occlusion'=>'nullable|boolean',
             'high_quality'=>'nullable|boolean',
             'mobile'=>'nullable|boolean',
+            'model_scale'=>'nullable|numeric|between:0.2,3',
+            'model_y'=>'nullable|numeric|between:-2,2',
+            'model_rotation'=>'nullable|numeric|between:-180,180',
         ]);
         Product::findOrFail($data['product_id']);
 
@@ -125,7 +128,8 @@ class TryOnController extends Controller
                 }
 
                 $settings = [];
-                foreach (TryOnAsset::DEFAULTS as $key=>$default) $settings[$key] = $request->boolean($key);
+                foreach (TryOnAsset::DEFAULTS as $key=>$default) $settings[$key] = is_bool($default) ? $request->boolean($key) : $default;
+                foreach (['model_scale','model_y','model_rotation'] as $key) if ($request->filled($key)) $settings[$key] = (float) $request->input($key);
                 $tags = collect(explode(',', (string) ($data['tags'] ?? '')))->map(fn ($tag) => trim($tag))->filter()->unique()->take(20)->values()->all();
 
                 $asset->fill(array_intersect_key($data, array_flip(['product_id','title','type','target','age_range','status','visibility'])));
