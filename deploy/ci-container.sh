@@ -33,7 +33,16 @@ docker compose up -d --no-build --wait --wait-timeout 180 nginx
 docker compose exec -T nginx nginx -T 2>&1 | grep -q 'client_max_body_size 1100M;'
 docker compose exec -T nginx nginx -T 2>&1 | grep -q 'fastcgi_read_timeout 900s;'
 docker compose exec -T app php -r 'exit(ini_get("upload_max_filesize") === "1024M" && ini_get("post_max_size") === "1100M" ? 0 : 1);'
-DEPLOY_BACKUP_DIR="$RUNNER_TEMP/emerald-backups" DEPLOY_HEALTHCHECK_URL=http://127.0.0.1:8080/up bash deploy/docker-deploy.sh
+echo "::group::Release rehearsal"
+set +e
+DEPLOY_BACKUP_DIR="$RUNNER_TEMP/emerald-backups" DEPLOY_HEALTHCHECK_URL=http://127.0.0.1:8080/up bash -x deploy/docker-deploy.sh
+release_status=$?
+set -e
+echo "::endgroup::"
+if [ "$release_status" -ne 0 ]; then
+    echo "::error::Release rehearsal failed with status $release_status"
+    exit "$release_status"
+fi
 sleep 10
 for service in worker scheduler; do
     test -n "$(docker compose ps --status running -q "$service")"
