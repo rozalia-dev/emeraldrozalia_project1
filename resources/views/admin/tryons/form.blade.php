@@ -32,6 +32,11 @@
         <label>3D Vertical Offset<input type="number" name="model_y" min="-2" max="2" step="0.05" value="{{ old('model_y',$record?->settings['model_y']??0) }}"></label>
         <label>3D Rotation Offset<input type="number" name="model_rotation" min="-180" max="180" step="1" value="{{ old('model_rotation',$record?->settings['model_rotation']??0) }}"></label>
     </div>
+    @php($has3dModel = $editing && $record?->modelPath())
+    <div class="sd-3d-status" role="status" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:10px 0;border:1px solid {{ $has3dModel ? '#5f9f36' : '#8a6b2b' }};border-radius:10px;background:{{ $has3dModel ? 'rgba(95,159,54,.10)' : 'rgba(138,107,43,.10)' }};">
+        <span><strong>3D MODEL</strong><br><small>{{ $has3dModel ? '3D READY — GLB/USDZ model is attached to this product.' : 'MODEL MISSING — upload a GLB or a ZIP containing a GLB to enable the storefront 3D Model button.' }}</small></span>
+        <span style="white-space:nowrap;font-weight:800;">{{ $has3dModel ? 'READY' : 'MISSING' }}</span>
+    </div>
     <small>Upload a GLB (or ZIP containing preview + GLB) for interactive browser 3D. USDZ remains available as an Apple AR asset. Calibrate scale, vertical offset and rotation per product.</small>
     <small>Published + Public assets are automatically available in the storefront Virtual Try-On Studio for the linked active product.</small>
     @if($embedded)<button class="sd-button sd-outline sd-card-action" type="submit">Manage Settings</button>@endif
