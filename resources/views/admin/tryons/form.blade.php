@@ -19,7 +19,7 @@
     @if($embedded)<button class="sd-button sd-card-action" type="submit">{{ $editing?'Save Try-On Asset':'Create Try-On Asset' }}</button>@endif
 </section>
 
-<section class="sd-card sd-settings-card" data-settings-card>
+<section class="sd-card sd-settings-card" data-settings-card style="min-width:0">
     <h2>Try-On Settings <small>{{ $editing?'(Selected Asset)':'(Default)' }}</small></h2>
     <label>Type<select name="type">@foreach(\App\Models\TryOnAsset::TYPES as $key=>$label)<option value="{{ $key }}" @selected(old('type',$record?->type??'ar_ai')===$key)>{{ $label }}</option>@endforeach</select></label>
     <label>Status<select name="status">@foreach(\App\Models\TryOnAsset::STATUSES as $key=>$label)<option value="{{ $key }}" @selected(old('status',$record?->status??'draft')===$key)>{{ $label }}</option>@endforeach</select></label>
@@ -33,18 +33,23 @@
         <label>3D Rotation Offset<input type="number" name="model_rotation" min="-180" max="180" step="1" value="{{ old('model_rotation',$record?->settings['model_rotation']??0) }}"></label>
     </div>
     @php($has3dModel = $editing && $record?->modelPath())
-    <div class="sd-3d-status" role="status" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:10px 0;border:1px solid {{ $has3dModel ? '#5f9f36' : '#8a6b2b' }};border-radius:10px;background:{{ $has3dModel ? 'rgba(95,159,54,.10)' : 'rgba(138,107,43,.10)' }};">
-        <span><strong>3D MODEL</strong><br><small>{{ $has3dModel ? '3D READY — GLB/USDZ model is attached to this product.' : 'MODEL MISSING — upload a GLB or a ZIP containing a GLB to enable the storefront 3D Model button.' }}</small></span>
+    <div class="sd-3d-status" role="status" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px;margin:12px 0;border:1px solid {{ $has3dModel ? '#5f9f36' : '#8a6b2b' }};border-radius:10px;background:{{ $has3dModel ? 'rgba(95,159,54,.10)' : 'rgba(138,107,43,.10)' }};overflow:hidden;">
+        <span style="min-width:0;overflow-wrap:anywhere"><strong>3D MODEL</strong><br><small>{{ $has3dModel ? '3D READY — GLB/USDZ model is attached to this product.' : 'MODEL MISSING — generate it with AI below, or upload a GLB/ZIP manually.' }}</small></span>
         <span style="white-space:nowrap;font-weight:800;">{{ $has3dModel ? 'READY' : 'MISSING' }}</span>
     </div>
     @if($editing)
     <div data-ai3d-panel data-start-url="{{ route('admin.tryons.generate-3d',$record) }}" data-status-url="{{ route('admin.tryons.generate-3d.status',$record) }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
-        <button type="button" class="sd-button sd-outline" data-ai3d-generate @disabled($has3dModel)>AI GENERATE 3D MODEL</button>
-        <small data-ai3d-message>{{ $has3dModel ? '3D model ready for storefront.' : 'Uses the saved product preview to generate a textured GLB automatically.' }}</small>
+        <button type="button" class="sd-button sd-outline" data-ai3d-generate @disabled($has3dModel || !$record?->previewPath())>AI GENERATE 3D MODEL</button>
+        <small data-ai3d-message>{{ $has3dModel ? '3D model ready for storefront.' : ($record?->previewPath() ? 'Uses the saved product preview to generate a textured GLB automatically.' : 'Save a PNG/JPG/WebP preview first. AI generation requires a saved preview image.') }}</small>
     </div>
     @endif
     <small>Upload a GLB (or ZIP containing preview + GLB) for interactive browser 3D. USDZ remains available as an Apple AR asset. Calibrate scale, vertical offset and rotation per product.</small>
     <small>Published + Public assets are automatically available in the storefront Virtual Try-On Studio for the linked active product.</small>
+    @if($editing && $record?->status !== 'published')
+        <div style="margin-top:12px;padding:12px 14px;border:1px solid #b9892d;border-radius:10px;background:rgba(185,137,45,.08);overflow-wrap:anywhere">
+            <strong>STOREFRONT STATUS: NOT PUBLISHED</strong><br><small>Set Status to Published and Visibility to Public, then Save Try-On Asset. The public studio intentionally ignores Draft assets.</small>
+        </div>
+    @endif
     @if($embedded)<button class="sd-button sd-outline sd-card-action" type="submit">Manage Settings</button>@endif
 </section>
 
