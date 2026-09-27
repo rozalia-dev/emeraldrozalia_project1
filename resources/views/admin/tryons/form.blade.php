@@ -37,6 +37,12 @@
         <span><strong>3D MODEL</strong><br><small>{{ $has3dModel ? '3D READY — GLB/USDZ model is attached to this product.' : 'MODEL MISSING — upload a GLB or a ZIP containing a GLB to enable the storefront 3D Model button.' }}</small></span>
         <span style="white-space:nowrap;font-weight:800;">{{ $has3dModel ? 'READY' : 'MISSING' }}</span>
     </div>
+    @if($editing)
+    <div data-ai3d-panel data-start-url="{{ route('admin.tryons.generate-3d',$record) }}" data-status-url="{{ route('admin.tryons.generate-3d.status',$record) }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
+        <button type="button" class="sd-button sd-outline" data-ai3d-generate @disabled($has3dModel)>AI GENERATE 3D MODEL</button>
+        <small data-ai3d-message>{{ $has3dModel ? '3D model ready for storefront.' : 'Uses the saved product preview to generate a textured GLB automatically.' }}</small>
+    </div>
+    @endif
     <small>Upload a GLB (or ZIP containing preview + GLB) for interactive browser 3D. USDZ remains available as an Apple AR asset. Calibrate scale, vertical offset and rotation per product.</small>
     <small>Published + Public assets are automatically available in the storefront Virtual Try-On Studio for the linked active product.</small>
     @if($embedded)<button class="sd-button sd-outline sd-card-action" type="submit">Manage Settings</button>@endif
@@ -62,3 +68,12 @@
 </div>
 @if(!$embedded)<div class="sd-save"><span data-upload-message role="status"></span><button class="sd-button" type="submit">{{ $editing?'Save Try-On Asset':'Create Try-On Asset' }}</button></div>@else<span class="sd-workbench-status" data-upload-message role="status"></span>@endif
 </form>
+
+@if($editing)
+<script>
+document.addEventListener('DOMContentLoaded',()=>{const p=document.querySelector('[data-ai3d-panel]');if(!p)return;const b=p.querySelector('[data-ai3d-generate]'),m=p.querySelector('[data-ai3d-message]');let timer;
+const poll=async()=>{try{const r=await fetch(p.dataset.statusUrl,{headers:{Accept:'application/json'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to check 3D generation.');m.textContent=(d.status||'PROCESSING')+(d.progress!=null?' · '+d.progress+'%':'');if(d.ready){m.textContent='3D READY — refreshing…';clearInterval(timer);location.reload();}else if(['FAILED','CANCELED','EXPIRED'].includes(d.status)){clearInterval(timer);b.disabled=false;m.textContent=d.error||('3D generation '+d.status.toLowerCase()+'.');}}catch(e){clearInterval(timer);b.disabled=false;m.textContent=e.message;}};
+b?.addEventListener('click',async()=>{b.disabled=true;m.textContent='Starting AI 3D generation…';try{const r=await fetch(p.dataset.startUrl,{method:'POST',headers:{Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'{{ csrf_token() }}'}}),d=await r.json();if(!r.ok)throw new Error(d.message||'Unable to start AI 3D generation.');m.textContent=d.message;timer=setInterval(poll,5000);poll();}catch(e){b.disabled=false;m.textContent=e.message;}});
+});
+</script>
+@endif
