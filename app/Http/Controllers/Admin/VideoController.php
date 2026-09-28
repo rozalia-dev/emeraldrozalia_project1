@@ -14,6 +14,7 @@ use Illuminate\Validation\{Rule, ValidationException};
 
 class VideoController extends Controller
 {
+    private const MAX_VIDEO_KB = 512000; // 500 MB; infrastructure upload ceiling remains higher.
     private function filtered(Request $request): Builder
     {
         $query = ProductVideo::with('product')->withCount(['plays' => fn ($q) => $q->where('day', '>=', now()->subDays(29)->toDateString())])
@@ -78,7 +79,7 @@ class VideoController extends Controller
             'description'=>'nullable|string|max:3000', 'seo_title'=>'nullable|string|max:160',
             'tags'=>'nullable|string|max:500', 'gallery'=>'nullable|boolean', 'allow_download'=>'nullable|boolean',
             'external_url'=>'nullable|url:https|max:500',
-            'file'=>'nullable|file|max:20480|mimetypes:video/mp4,video/webm,video/quicktime',
+            'file'=>['nullable','file','max:'.self::MAX_VIDEO_KB,'mimetypes:video/mp4,video/webm,video/quicktime'],
             'poster'=>'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
             'captions'=>'nullable|file|max:512',
             'caption_language'=>['nullable',Rule::in(['en','ga','fr','de','es'])],
@@ -88,7 +89,7 @@ class VideoController extends Controller
         if (!Product::whereKey($data['product_id'])->exists()) throw ValidationException::withMessages(['product_id'=>'Choose a product in the current company.']);
         if ($data['status'] === 'scheduled' && !Carbon::parse($data['publish_at'])->isFuture()) throw ValidationException::withMessages(['publish_at'=>'Choose a future publication date and time.']);
         if ($data['platform'] === 'Website' && !$request->hasFile('file') && (!$video || $video->platform !== 'Website')) {
-            throw ValidationException::withMessages(['file'=>'Upload an MP4, WebM or MOV video (up to 20 MB).']);
+            throw ValidationException::withMessages(['file'=>'Upload an MP4, WebM or MOV video (up to 500 MB).']);
         }
         if ($data['platform'] !== 'Website') {
             $candidate = new ProductVideo(['path'=>$data['external_url'] ?? '', 'metadata'=>['platform'=>$data['platform']]]);
