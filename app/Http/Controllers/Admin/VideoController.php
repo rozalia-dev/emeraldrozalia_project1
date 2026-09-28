@@ -66,14 +66,11 @@ class VideoController extends Controller
         $rootCategories = $allCategories->whereNull('parent_id')->values();
         $categoryRootMap = [];
         $childrenByParent = $allCategories->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
-        $walk = function (int $rootId) use (&$walk, &$categoryRootMap, $childrenByParent): void {
-            $categoryRootMap[$rootId] = $rootId;
-            foreach ($childrenByParent->get($rootId, collect()) as $child) {
-                $categoryRootMap[(int) $child->id] = $rootId;
-                $walk((int) $child->id);
-            }
+        $walk = function (int $categoryId, int $rootId) use (&$walk, &$categoryRootMap, $childrenByParent): void {
+            $categoryRootMap[$categoryId] = $rootId;
+            foreach ($childrenByParent->get($categoryId, collect()) as $child) $walk((int) $child->id, $rootId);
         };
-        foreach ($rootCategories as $root) $walk((int) $root->id);
+        foreach ($rootCategories as $root) $walk((int) $root->id, (int) $root->id);
 
         $videoProductData = $products->map(function (Product $product) use ($categoryRootMap): array {
             $classification = data_get($product->product_metadata, 'catalog_classification', []);
