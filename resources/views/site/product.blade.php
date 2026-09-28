@@ -397,6 +397,14 @@
     let zoomed = false;
     let dragStart = null;
     let dragMoved = false;
+    let autoRotateTimer = 0;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const stopAutoRotate = () => { if (autoRotateTimer) window.clearInterval(autoRotateTimer); autoRotateTimer = 0; };
+    const startAutoRotate = () => {
+        stopAutoRotate();
+        if (mode !== 'spin' || spinFrames.length < 2 || prefersReducedMotion || document.hidden) return;
+        autoRotateTimer = window.setInterval(() => { if (mode === 'spin') step(1, false); }, 140);
+    };
     const frames = () => mode === 'spin' ? spinFrames : galleryFrames;
     const setLoading = (visible) => { if (loading) loading.classList.toggle('is-visible', visible); };
     const updateThumbs = () => page.querySelectorAll('[data-product-thumb]').forEach((button) => button.classList.toggle('is-active', Number(button.dataset.index) === index));
@@ -422,7 +430,8 @@
         if (announce && status) status.textContent = mode === 'spin' && list.length ? 'Showing angle ' + angle + ' degrees. Drag or swipe to rotate.' : 'Showing product image ' + (index + 1) + '.';
         updateThumbs();
     };
-    const step = (amount) => { const list = frames(); if (!list.length) return; index = (index + amount + list.length) % list.length; render(); };
+    const step = (amount, announce = true) => { const list = frames(); if (!list.length) return; index = (index + amount + list.length) % list.length; render(announce); };
+    const interactStep = (amount) => { stopAutoRotate(); step(amount); };
     const setMode = (nextMode) => {
         const richMode = ['video', 'tryon', 'reviews', 'aistudio'].includes(nextMode);
         if (richMode) {
@@ -448,6 +457,7 @@
             button.setAttribute('aria-selected', active ? 'true' : 'false');
         });
         render();
+        if (mode === 'spin') startAutoRotate(); else stopAutoRotate();
     };
     const syncColourGallery = (images, preferPhotos = false) => {
         const colourFrames = [...new Set((Array.isArray(images) ? images : []).map(normalize).filter(Boolean))].slice(0, 6);
@@ -498,15 +508,15 @@
         if (button.disabled) return;
         setMode(button.dataset.productMode);
     }));
-    page.querySelectorAll('[data-rotate-prev]').forEach((button) => button.addEventListener('click', () => step(-1)));
-    page.querySelectorAll('[data-rotate-next]').forEach((button) => button.addEventListener('click', () => step(1)));
+    page.querySelectorAll('[data-rotate-prev]').forEach((button) => button.addEventListener('click', () => interactStep(-1)));
+    page.querySelectorAll('[data-rotate-next]').forEach((button) => button.addEventListener('click', () => interactStep(1)));
     thumbnailRail?.addEventListener('click', (event) => { const button = event.target.closest?.('[data-product-thumb]'); if (!button || !thumbnailRail.contains(button)) return; index = Number(button.dataset.index) || 0; setMode('gallery'); });
-    slider?.addEventListener('input', (event) => { const list = frames(); if (!list.length) return; index = Math.round((Number(event.target.value) / 360) * list.length) % list.length; render(false); });
-    stage?.addEventListener('pointerdown', (event) => { dragStart = event.clientX; dragMoved = false; stage.classList.add('is-dragging'); stage.setPointerCapture?.(event.pointerId); });
-    stage?.addEventListener('pointermove', (event) => { if (dragStart === null || mode !== 'spin' || spinFrames.length < 2) return; const delta = event.clientX - dragStart; if (Math.abs(delta) > 8) { dragMoved = true; step(delta > 0 ? -1 : 1); dragStart = event.clientX; } });
+    slider?.addEventListener('input', (event) => { stopAutoRotate(); const list = frames(); if (!list.length) return; index = Math.round((Number(event.target.value) / 360) * list.length) % list.length; render(false); });
+    stage?.addEventListener('pointerdown', (event) => { stopAutoRotate(); dragStart = event.clientX; dragMoved = false; stage.classList.add('is-dragging'); stage.setPointerCapture?.(event.pointerId); });
+    stage?.addEventListener('pointermove', (event) => { if (dragStart === null || mode !== 'spin' || spinFrames.length < 2) return; const delta = event.clientX - dragStart; if (Math.abs(delta) > 8) { dragMoved = true; step(delta > 0 ? -1 : 1, false); dragStart = event.clientX; } });
     stage?.addEventListener('pointerup', (event) => { dragStart = null; stage.classList.remove('is-dragging'); stage.releasePointerCapture?.(event.pointerId); });
     stage?.addEventListener('pointercancel', () => { dragStart = null; stage.classList.remove('is-dragging'); });
-    stage?.addEventListener('keydown', (event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1); } if (event.key === 'ArrowRight') { event.preventDefault(); step(1); } if (event.key === 'Home') { index = 0; render(); } if (event.key === 'End') { index = Math.max(frames().length - 1, 0); render(); } if (event.key === 'Escape' && document.fullscreenElement) document.exitFullscreen?.(); });
+    stage?.addEventListener('keydown', (event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); interactStep(-1); } if (event.key === 'ArrowRight') { event.preventDefault(); interactStep(1); } if (event.key === 'Home') { index = 0; render(); } if (event.key === 'End') { index = Math.max(frames().length - 1, 0); render(); } if (event.key === 'Escape' && document.fullscreenElement) document.exitFullscreen?.(); });
     stage?.addEventListener('wheel', (event) => { if (event.ctrlKey || event.metaKey) { event.preventDefault(); zoomed = !zoomed; if (stageImage) stageImage.style.transform = zoomed ? 'scale(1.45)' : ''; } });
     page.querySelector('[data-media-zoom]')?.addEventListener('click', () => { zoomed = !zoomed; if (stageImage) stageImage.style.transform = zoomed ? 'scale(1.45)' : ''; status.textContent = zoomed ? 'Zoom enabled. Use the button again to reset.' : 'Zoom reset.'; });
     page.querySelector('[data-media-fullscreen]')?.addEventListener('click', () => { const shell = page.querySelector('.product-media-shell'); if (!document.fullscreenElement) shell?.requestFullscreen?.(); else document.exitFullscreen?.(); });
@@ -568,7 +578,10 @@
         reviewTab?.click();
         page.querySelector('[data-detail-panel="reviews"]')?.scrollIntoView({behavior:'smooth', block:'start'});
     });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopAutoRotate(); else if (mode === 'spin') startAutoRotate(); });
+    window.addEventListener('pagehide', stopAutoRotate);
     render(false); applyVariant(false, false);
+    if (spinFrames.length >= 2) setMode('spin');
 })();
 </script>
 @endpush
