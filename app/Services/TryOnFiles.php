@@ -113,7 +113,12 @@ class TryOnFiles
             throw ValidationException::withMessages(['asset'=>'The stored Try-On source is not a supported image. Upload PNG, JPG or WebP instead.']);
         }
         $directory = dirname($sourcePath);
-        $transparent = $this->hasUsefulTransparency($data) ? $data : $this->removeBackgroundWithFashn($data, $extension);
+        // Reprocess is an explicit repair action: always run background removal. Legacy PNGs can
+        // contain a few translucent pixels while still having an opaque rectangular background.
+        $transparent = $this->removeBackgroundWithFashn($data, $extension);
+        if (!$this->hasUsefulTransparency($transparent)) {
+            throw ValidationException::withMessages(['asset'=>'AI background removal returned an opaque image. The existing overlay was left unchanged; please retry or upload a transparent PNG.']);
+        }
         $preview = $this->storeImage($transparent, $directory, 'png');
         $oldPreview = data_get($files, 'preview');
         $files['preview'] = $preview;
@@ -191,10 +196,10 @@ class TryOnFiles
             $output = $status->json('output.0');
             if (!is_string($output) || !str_starts_with($output,'data:image/png;base64,')) break;
             $decoded = base64_decode(substr($output,strlen('data:image/png;base64,')), true);
-            if (is_string($decoded) && $decoded !== '') return $decoded;
+            if (is_string($decoded) && $decoded !== '' && $this->hasUsefulTransparency($decoded)) return $decoded;
             break;
         }
-        throw ValidationException::withMessages(['asset'=>'AI background removal timed out. Please retry or upload a transparent PNG overlay.']);
+        throw ValidationException::withMessages(['asset'=>'AI background removal did not return a transparent PNG before the timeout. Please retry or upload a transparent PNG overlay.']);
     }
 
     private function storeImage(string $data, string $directory, string $extension): string
