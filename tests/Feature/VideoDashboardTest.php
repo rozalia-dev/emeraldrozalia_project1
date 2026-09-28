@@ -98,7 +98,7 @@ class VideoDashboardTest extends TestCase
     {
         $product = $this->product(); $this->actingAs($this->admin());
         $this->postJson('/admin/resource/videos',$this->payload($product))->assertUnprocessable()->assertJsonValidationErrors('file');
-        $this->postJson('/admin/resource/videos',$this->payload($product,['file'=>UploadedFile::fake()->create('large.mp4',20481,'video/mp4')]))->assertUnprocessable()->assertJsonValidationErrors('file');
+        $this->postJson('/admin/resource/videos',$this->payload($product,['file'=>UploadedFile::fake()->create('large.mp4',512001,'video/mp4')]))->assertUnprocessable()->assertJsonValidationErrors('file');
         $this->postJson('/admin/resource/videos',$this->payload($product,['file'=>UploadedFile::fake()->create('bad.html',1,'text/html')]))->assertUnprocessable()->assertJsonValidationErrors('file');
         $this->postJson('/admin/resource/videos',$this->payload($product,['platform'=>'YouTube','external_url'=>'https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ']))->assertUnprocessable()->assertJsonValidationErrors('external_url');
         $this->postJson('/admin/resource/videos',$this->payload($product,['platform'=>'YouTube','external_url'=>'https://youtu.be/dQw4w9WgXcQ','captions'=>UploadedFile::fake()->createWithContent('bad.vtt','<script>alert(1)</script>')]))->assertUnprocessable()->assertJsonValidationErrors('captions');
