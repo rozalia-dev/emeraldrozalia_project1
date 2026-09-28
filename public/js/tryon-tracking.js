@@ -22,6 +22,8 @@ if(studio){
   const rotate=studio.querySelector('[data-hat-rotate]');
   const resultActions=studio.querySelector('[data-try-result-actions]');
   const downloadButton=studio.querySelector('[data-try-download]');
+  const previewSelfieButton=studio.querySelector('[data-try-preview-selfie]');
+  const printButton=studio.querySelector('[data-try-print]');
   const shareButton=studio.querySelector('[data-try-share]');
   const cartForm=studio.querySelector('[data-try-cart-form]');
   const cartButton=studio.querySelector('[data-try-cart]');
@@ -56,6 +58,9 @@ if(studio){
     return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create preview image.')),'image/png',.95));
   };
   const previewFile=async()=>new File([await snapshot()],'emerald-rozalia-try-on.png',{type:'image/png'});
+  const openSelfiePreview=async(print=false)=>{const file=await previewFile(),url=URL.createObjectURL(file),win=window.open('','_blank','noopener,noreferrer');if(!win){URL.revokeObjectURL(url);throw new Error('Preview window was blocked. Allow pop-ups and try again.');}win.document.write('<!doctype html><html><head><title>Emerald Rozalia Try-On Preview</title><style>body{margin:0;background:#fff;display:grid;place-items:center;min-height:100vh}img{max-width:100%;max-height:100vh;object-fit:contain}@media print{body{display:block}img{width:100%;height:auto}}</style></head><body><img src="'+url+'" alt="Emerald Rozalia Try-On selfie"></body></html>');win.document.close();if(print){win.onload=()=>{win.focus();win.print();};}setTimeout(()=>URL.revokeObjectURL(url),60000);};
+  previewSelfieButton?.addEventListener('click',async()=>{try{await openSelfiePreview(false);if(resultStatus)resultStatus.textContent='Selfie preview opened.';}catch(e){if(resultStatus)resultStatus.textContent=e.message;}});
+  printButton?.addEventListener('click',async()=>{try{await openSelfiePreview(true);if(resultStatus)resultStatus.textContent='Print preview opened.';}catch(e){if(resultStatus)resultStatus.textContent=e.message;}});
   downloadButton?.addEventListener('click',async()=>{try{const file=await previewFile(),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);if(resultStatus)resultStatus.textContent='Preview downloaded.';}catch(e){if(resultStatus)resultStatus.textContent=e.message;}});
   shareButton?.addEventListener('click',async()=>{try{const file=await previewFile();if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'Emerald Rozalia Try-On',text:'My Emerald Rozalia virtual try-on',files:[file]});if(resultStatus)resultStatus.textContent='Preview shared.';}else{const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);if(resultStatus)resultStatus.textContent='Sharing is unavailable in this browser, so the preview was downloaded.';}}catch(e){if(e?.name!=='AbortError'&&resultStatus)resultStatus.textContent=e.message;}});
   cartForm?.addEventListener('submit',()=>send(true));
