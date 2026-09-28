@@ -31,6 +31,15 @@ if(studio){
   const resultStatus=studio.querySelector('[data-try-result-status]');
   let mode='2d', landmarker=null, visionModule=null, stream=null, raf=0, lastVideoTime=-1, startedAt=0, activeProduct='', lastSent=0, capturedSelfieUrl='', visionSource='';
 
+  const fitReset=studio.querySelector('[data-fit-reset]'),undoButton=studio.querySelector('[data-try-undo]'),resetButton=studio.querySelector('[data-try-reset]'),compareButton=studio.querySelector('[data-try-compare]');
+  const fitState=()=>({size:size?.value||'85',x:x?.value||'50',y:y?.value||'15',rotate:rotate?.value||'0'});
+  let previousFit=fitState();
+  const applyFit=(state)=>{if(!state||!overlay)return;if(size)size.value=state.size;if(x)x.value=state.x;if(y)y.value=state.y;if(rotate)rotate.value=state.rotate;overlay.style.width=state.size+'%';overlay.style.left=(Number(state.x)-Number(state.size)/2)+'%';overlay.style.top=state.y+'%';overlay.style.transform='rotate('+state.rotate+'deg)';studio.querySelector('[data-hat-size-value]')?.replaceChildren(document.createTextNode(state.size+'%'));studio.querySelector('[data-hat-rotate-value]')?.replaceChildren(document.createTextNode(state.rotate+'°'));};
+  const resetFit=()=>{previousFit=fitState();applyFit({size:'85',x:'50',y:'15',rotate:'0'});};
+  fitReset?.addEventListener('click',resetFit);resetButton?.addEventListener('click',resetFit);undoButton?.addEventListener('click',()=>applyFit(previousFit));
+  studio.querySelectorAll('[data-product-view]').forEach(button=>button.addEventListener('click',()=>{studio.querySelectorAll('[data-product-view]').forEach(item=>item.classList.toggle('is-active',item===button));setStatus(button.dataset.productView==='front'?'Front view selected. Side/back Try-On views require matching published product assets.':button.textContent.trim()+' view requires a matching published product Try-On asset.','');}));
+  compareButton?.addEventListener('click',()=>setStatus('Select another cap or hat from Choose Your Style to compare it on the same face.','ok'));
+
   const setStatus=(message,state='')=>{if(status){status.textContent=message;status.dataset.state=state;}};
   const device=()=>/iPhone|iPad|iPod/i.test(navigator.userAgent||'')?'ios_app':/Android/i.test(navigator.userAgent||'')?'android_app':matchMedia?.('(max-width:760px)').matches?'mobile_ar':'desktop_web';
   const send=async(force=false)=>{
@@ -220,7 +229,7 @@ if(studio){
   upload?.addEventListener('change',()=>{stopCamera();const f=upload.files?.[0];if(!f)return;begin();setStatus('Analyzing face landmarks…');if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});});
   selector?.addEventListener('change',()=>{send(true);startedAt=(stream||face?.src||upload?.files?.[0])?Date.now():0;lastSent=0;syncVisualPicker();syncModel();applySelectedProduct();if(startedAt)send(true);});
   studio.querySelectorAll('[data-try-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;mode=b.dataset.tryMode||'2d';renderMode();send(false);}));
-  studio.querySelectorAll('[data-hat-size],[data-hat-x],[data-hat-y],[data-hat-rotate],[data-try-view]').forEach(c=>c.addEventListener('input',()=>send(false)));
+  studio.querySelectorAll('[data-hat-size],[data-hat-x],[data-hat-y],[data-hat-rotate],[data-try-view]').forEach(c=>c.addEventListener('input',()=>{previousFit=fitState();send(false);}));
   window.addEventListener('pagehide',()=>{send(true);stopCamera();});
   overlay?.addEventListener('load',syncResultActions);overlay?.addEventListener('error',()=>{syncResultActions();setStatus('Selected product Try-On image is unavailable. Please choose another product or ask an administrator to re-upload its overlay.','warn');});
   syncVisualPicker();syncModel();applySelectedProduct({detect:false});syncResultActions();setInterval(()=>send(false),10000);
