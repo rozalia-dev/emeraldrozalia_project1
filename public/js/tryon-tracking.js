@@ -73,6 +73,28 @@ if(studio){
     if(overlay&&is3d)overlay.hidden=true;if(empty)empty.hidden=is3d||!!stream||!!face?.src;
     studio.querySelectorAll('[data-try-mode]').forEach(b=>b.classList.toggle('is-active',b.dataset.tryMode===(is3d?'3d':'2d')));
   };
+  const applySelectedProduct=async({detect=true}={})=>{
+    const productId=selector?.value||'', assets=(()=>{try{return JSON.parse(studio.dataset.tryAssets||'{}')||{};}catch{return {};}})();
+    const selectedName=selector?.selectedOptions?.[0]?.text||'Selected product';
+    const selectedLabel=studio.querySelector('[data-try-selected]');
+    if(selectedLabel)selectedLabel.textContent=productId?selectedName:'No product selected';
+    activeProduct=productId;
+    const preview=productId?(assets[productId]?.[0]||meta[productId]?.preview||''):'';
+    if(!overlay)return;
+    overlay.hidden=true;
+    if(!preview){
+      overlay.removeAttribute('src');
+      studio.querySelector('[data-try-asset-missing]')?.removeAttribute('hidden');
+      setStatus(productId?'This product has no published transparent Try-On overlay yet.':'Choose a product first.','warn');
+      syncResultActions();return;
+    }
+    studio.querySelector('[data-try-asset-missing]')?.setAttribute('hidden','');
+    const same=overlay.getAttribute('src')===preview;
+    if(!same)overlay.src=preview;
+    const position=()=>{overlay.hidden=false;syncResultActions();if(!detect)return;if(stream&&landmarker)liveLoop();else if(face?.src)detectPhoto();};
+    if(same&&overlay.complete&&overlay.naturalWidth)position();else overlay.addEventListener('load',position,{once:true});
+  };
+
   const syncModel=()=>{
     const item=meta[selector?.value||'']||{}, model=item.model||'';
     studio.querySelectorAll('[data-try-mode="3d"]').forEach(b=>{b.disabled=!model;b.title=model?'Interactive 3D model':'No published 3D model for this product';});
@@ -179,11 +201,11 @@ if(studio){
   aiRemoveBackground?.addEventListener('click',async()=>{const productId=selector?.value;if(!productId){setStatus('Choose a product first.','warn');return;}const original=aiRemoveBackground.textContent;aiRemoveBackground.disabled=true;aiRemoveBackground.textContent='AI REMOVING BACKGROUND…';setStatus('AI is creating a transparent product overlay…');try{const response=await fetch(studio.dataset.aiBgUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':studio.dataset.csrf||''},body:JSON.stringify({product_id:Number(productId)})});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body?.message||body?.errors?.asset?.[0]||'AI background removal failed.');if(overlay&&body.preview){overlay.src=body.preview+(body.preview.includes('?')?'&':'?')+'v='+Date.now();overlay.hidden=false;}setStatus('Background removed — transparent product overlay ready.','ok');syncResultActions();}catch(e){setStatus(e.message||'AI background removal failed. Please retry.','warn');}finally{aiRemoveBackground.disabled=false;aiRemoveBackground.textContent=original;}});
   cameraStart?.addEventListener('click',startCamera);cameraCapture?.addEventListener('click',captureSelfie);cameraRetake?.addEventListener('click',retakeSelfie);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
   upload?.addEventListener('change',()=>{stopCamera();const f=upload.files?.[0];if(!f)return;begin();setStatus('Analyzing face landmarks…');if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});});
-  selector?.addEventListener('change',()=>{send(true);activeProduct=selector.value||'';startedAt=(stream||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();syncResultActions();if(startedAt)send(true);});
+  selector?.addEventListener('change',()=>{send(true);startedAt=(stream||face?.src||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();applySelectedProduct();if(startedAt)send(true);});
   studio.querySelectorAll('[data-try-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;mode=b.dataset.tryMode||'2d';renderMode();send(false);}));
   studio.querySelectorAll('[data-hat-size],[data-hat-x],[data-hat-y],[data-hat-rotate],[data-try-view]').forEach(c=>c.addEventListener('input',()=>send(false)));
   window.addEventListener('pagehide',()=>{send(true);stopCamera();});
   overlay?.addEventListener('load',syncResultActions);overlay?.addEventListener('error',()=>{syncResultActions();setStatus('Selected product Try-On image is unavailable. Please choose another product or ask an administrator to re-upload its overlay.','warn');});
-  syncModel();syncResultActions();setInterval(()=>send(false),10000);
+  syncModel();applySelectedProduct({detect:false});syncResultActions();setInterval(()=>send(false),10000);
   if(visionStart){visionStart.disabled=false;visionStart.textContent='START VISION AI';}
 }
