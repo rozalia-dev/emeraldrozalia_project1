@@ -13,6 +13,7 @@ if(studio){
   const cameraStop=studio.querySelector('[data-camera-stop]');
   const cameraCapture=studio.querySelector('[data-camera-capture]');
   const cameraRetake=studio.querySelector('[data-camera-retake]');
+  const aiRemoveBackground=studio.querySelector('[data-ai-remove-background]');
   const modelViewer=studio.querySelector('[data-try-model]');
   const modelNote=studio.querySelector('[data-try-model-note]');
   const size=studio.querySelector('[data-hat-size]');
@@ -151,6 +152,7 @@ if(studio){
     syncResultActions();
   };
   const retakeSelfie=()=>{if(face){face.removeAttribute('src');face.hidden=true;}if(capturedSelfieUrl){URL.revokeObjectURL(capturedSelfieUrl);capturedSelfieUrl='';}startCamera();};
+  aiRemoveBackground?.addEventListener('click',async()=>{const productId=selector?.value;if(!productId){setStatus('Choose a product first.','warn');return;}const original=aiRemoveBackground.textContent;aiRemoveBackground.disabled=true;aiRemoveBackground.textContent='AI REMOVING BACKGROUND…';setStatus('AI is creating a transparent product overlay…');try{const response=await fetch(studio.dataset.aiBgUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':studio.dataset.csrf||''},body:JSON.stringify({product_id:Number(productId)})});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body?.message||body?.errors?.asset?.[0]||'AI background removal failed.');if(overlay&&body.preview){overlay.src=body.preview+(body.preview.includes('?')?'&':'?')+'v='+Date.now();overlay.hidden=false;}setStatus('Background removed — transparent product overlay ready.','ok');syncResultActions();}catch(e){setStatus(e.message||'AI background removal failed. Please retry.','warn');}finally{aiRemoveBackground.disabled=false;aiRemoveBackground.textContent=original;}});
   cameraStart?.addEventListener('click',startCamera);cameraCapture?.addEventListener('click',captureSelfie);cameraRetake?.addEventListener('click',retakeSelfie);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
   upload?.addEventListener('change',()=>{stopCamera();const f=upload.files?.[0];if(!f)return;begin();setStatus('Analyzing face landmarks…');if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});});
   selector?.addEventListener('change',()=>{send(true);activeProduct=selector.value||'';startedAt=(stream||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();syncResultActions();if(startedAt)send(true);});
