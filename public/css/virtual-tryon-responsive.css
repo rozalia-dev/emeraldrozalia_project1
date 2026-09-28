@@ -62,3 +62,22 @@
 @media(max-width:700px){.try-canvas video[data-camera-preview]{max-height:56vh}.try-camera-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.try-camera-actions .btn{min-width:0;padding-inline:7px}}
 
 .try-result-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start;margin:14px 0;padding:14px;border:1px solid #34563e;border-radius:10px;background:#0a1d12}.try-result-actions[hidden]{display:none}.try-result-actions form{margin:0}.try-result-actions .btn{width:100%;min-height:44px}.try-result-actions .form-hint{grid-column:1/-1;margin:0;color:#b9c9be}@media(max-width:700px){.try-result-actions{grid-template-columns:1fr;margin:12px}.try-result-actions .form-hint{grid-column:1}}
+
+
+/* Keep the customer image/camera and fitted product in the same coordinate space. */
+.try-media-stage{position:relative;width:100%;min-height:420px;overflow:hidden;background:#07130c}
+.try-media-stage video[data-camera-preview],
+.try-media-stage img[data-face-preview]{position:relative!important;inset:auto!important;display:block;width:100%!important;height:auto!important;max-height:68vh;object-fit:contain;margin:0 auto}
+.try-media-stage video[data-camera-preview][hidden],
+.try-media-stage img[data-face-preview][hidden]{display:none!important}
+.try-media-stage img[data-hat-overlay]{position:absolute!important;z-index:6;max-width:none;pointer-events:none;transform-origin:center center}
+.try-media-stage .try-empty{z-index:2}
+.try-media-stage .try-asset-missing{z-index:7}
+.try-camera-actions [hidden]{display:none!important}
+@media(max-width:700px){
+  .try-media-stage{min-height:280px}
+  .try-media-stage video[data-camera-preview],
+  .try-media-stage img[data-face-preview]{max-height:62vh}
+  .try-studio[data-try-studio] .try-empty{min-height:280px}
+  .try-studio[data-try-studio] .try-asset-missing{position:absolute!important;left:12px!important;right:12px!important;bottom:12px!important;top:auto!important;margin:0!important}
+}
