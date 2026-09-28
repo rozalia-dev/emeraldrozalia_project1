@@ -159,6 +159,19 @@ class TryOnController extends Controller
         return redirect()->route('admin.tryons.index',['product_id'=>$asset->product_id,'edit'=>$asset->id])->with('success','Virtual try-on asset saved.');
     }
 
+    public function reprocess(TryOnAsset $tryon, TryOnFiles $files)
+    {
+        $before = $tryon->toArray();
+        $processed = $files->reprocessPreview($tryon);
+        $tryon->update([
+            'files'=>$processed['files'],
+            'bytes'=>$processed['bytes'],
+            'updated_by'=>auth()->user()->name,
+        ]);
+        AuditTrail::record('tryon.background_removed',$tryon,$before,$tryon->fresh()->toArray());
+        return back()->with('success','Try-On background removed. Review the transparent overlay, then keep the asset Published + Public.');
+    }
+
     public function store(Request $request) { return $this->save($request); }
     public function update(Request $request, TryOnAsset $tryon) { return $this->save($request, $tryon); }
 
