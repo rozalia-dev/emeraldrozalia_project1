@@ -64,7 +64,7 @@
                     <td><span class="vd-tag vd-status-{{ $detail['status'] }}">{{ ucfirst($detail['status']) }}</span>@if($detail['visibility']==='private')<small>Private</small>@endif</td>
                     <td>{{ $video->platform==='Website' ? number_format($video->plays_count) : '—' }}</td>
                     <td>{{ $video->created_at->format('d M Y') }}<small>{{ data_get($video->metadata,'added_by','Media library') }}</small></td>
-                    <td><div class="vd-row-actions"><button type="button" data-select-video="{{ $video->id }}" aria-label="Preview {{ $video->title }}"><x-icon name="eye" size="14" /></button><button type="button" data-edit-video="{{ $video->id }}" aria-label="Edit {{ $video->title }}"><x-icon name="edit" size="14" /></button><button type="button" data-delete-video="{{ $video->id }}" aria-label="Delete {{ $video->title }}"><x-icon name="trash" size="14" /></button></div></td>
+                    <td><div class="vd-row-actions"><button type="button" data-select-video="{{ $video->id }}" aria-label="Preview {{ $video->title }}"><x-icon name="eye" size="14" /></button><button type="button" data-edit-video="{{ $video->id }}" aria-label="Edit {{ $video->title }}"><x-icon name="edit" size="14" /></button>@if($detail['status'] === 'draft')<button type="button" data-video-status-action="publish" data-video-id="{{ $video->id }}" aria-label="Publish {{ $video->title }}" title="Publish"><x-icon name="check" size="14" /></button>@else<button type="button" data-video-status-action="draft" data-video-id="{{ $video->id }}" aria-label="Hide {{ $video->title }}" title="Hide / move to draft"><x-icon name="eye-off" size="14" /></button>@endif<button type="button" data-delete-video="{{ $video->id }}" aria-label="Delete {{ $video->title }}"><x-icon name="trash" size="14" /></button></div></td>
                 </tr>
                 @empty
                 <tr><td colspan="11"><div class="vd-empty"><span class="vd-empty-icon"><x-icon name="play" size="30" /></span><h3>{{ request()->hasAny(['q','category','status','platform','product_id']) ? 'No videos match your filters' : 'Your video library starts here' }}</h3><p>Upload your first product video or add a YouTube or Vimeo link.</p><button type="button" class="vd-button vd-primary" data-new-video>Add a video</button></div></td></tr>
@@ -89,7 +89,7 @@
             <section class="vd-panel vd-upload-card">
                 <h2>Upload Video</h2>
                 <div class="vd-dropzone" id="vd-quick-drop"><x-icon name="upload" size="32" /><strong>Drag &amp; drop video files here</strong><span>or</span><button type="button" class="vd-button vd-primary" data-new-video>Choose Files</button></div>
-                <p>MP4, WebM, MOV · Up to 20 MB per video.<br>For larger videos, add a YouTube or Vimeo link.</p>
+                <p>MP4, WebM, MOV · Up to 500 MB per video.<br>For larger videos, add a YouTube or Vimeo link.</p>
                 <button type="button" class="vd-text-button" data-guidelines>Upload Guidelines</button>
             </section>
             <section class="vd-panel" id="vd-settings">
@@ -160,7 +160,7 @@
                     <label id="vd-publish-field" hidden>Publish at (your local time)<input type="datetime-local" name="publish_at"></label>
                     <label id="vd-external-field" class="vd-wide" hidden>Video URL<input type="url" name="external_url" placeholder="https://www.youtube.com/watch?v=…"><small>Add an existing public video. This does not upload to the external platform.</small></label>
                     <div class="vd-wide" id="vd-upload-fields">
-                        <label class="vd-file-drop" id="vd-file-drop"><x-icon name="upload" size="26" /><strong>Choose videos or drop files here</strong><span>MP4, WebM, MOV · 20 MB per file · Up to 10 files</span><input type="file" name="file" id="vd-files" accept="video/mp4,video/webm,video/quicktime" multiple></label>
+                        <label class="vd-file-drop" id="vd-file-drop"><x-icon name="upload" size="26" /><strong>Choose videos or drop files here</strong><span>MP4, WebM, MOV · 500 MB per file · Up to 10 files</span><input type="file" name="file" id="vd-files" accept="video/mp4,video/webm,video/quicktime" multiple></label>
                         <div id="vd-file-list" class="vd-file-list"></div>
                         <label class="vd-toggle">Generate thumbnail from uploaded video<input type="checkbox" id="vd-auto-poster" checked role="switch"></label>
                     </div>
@@ -185,5 +185,5 @@
 </div>
 @endsection
 @push('scripts')
-<script src="/js/videos.js?v=20260908" defer></script>
+<script src="/js/videos.js?v=20260928-video-manager-v2" defer></script>
 @endpush
