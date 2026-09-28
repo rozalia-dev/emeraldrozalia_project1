@@ -16,6 +16,7 @@
     <small>Supports: ZIP, GLB, USDZ, JPG, PNG, WebP. Maximum upload size: 20 MB.</small>
     <small>For storefront publishing, upload the product image (PNG, JPG or WebP). If the image has a background, FASHN AI automatically removes it and stores a transparent PNG Try-On overlay; the original source is retained. ZIP may also contain one GLB/USDZ model.</small>
     <details class="sd-guide"><summary>Upload Guidelines</summary><p>Use a front-facing hat/cap image with the product centered and tightly cropped. Transparent PNGs are preserved; opaque images are automatically processed by FASHN Background Remove before becoming the storefront Try-On overlay. Review the result before publishing.</p></details>
+    @if($editing && $record?->previewPath())<button class="sd-button sd-outline" type="submit" form="tryon-reprocess-{{ $record->id }}">REMOVE BACKGROUND / REPROCESS EXISTING OVERLAY</button><small>Use this for older Try-On assets that still show a white or grey rectangle. The stored source/preview is processed through FASHN and replaced with a transparent PNG.</small>@endif
     @if($embedded)<button class="sd-button sd-card-action" type="submit">{{ $editing?'Save Try-On Asset':'Create Try-On Asset' }}</button>@endif
 </section>
 
@@ -68,3 +69,5 @@
 @if(!$embedded)<div class="sd-save"><span data-upload-message role="status"></span><button class="sd-button" type="submit">{{ $editing?'Save Try-On Asset':'Create Try-On Asset' }}</button></div>@else<span class="sd-workbench-status" data-upload-message role="status"></span>@endif
 </form>
 
+
+@if($editing && $record?->previewPath())<form id="tryon-reprocess-{{ $record->id }}" method="post" action="{{ route('admin.tryons.reprocess',$record) }}" hidden>@csrf</form>@endif
