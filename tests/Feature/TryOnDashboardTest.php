@@ -224,6 +224,7 @@ class TryOnDashboardTest extends TestCase
         $asset->refresh();
         $this->assertStringEndsWith('overlay.png',$asset->previewPath());
         Storage::disk('local')->assertExists($asset->previewPath());
+        Http::assertSent(fn ($request) => $request->url()==='https://api.fashn.ai/v1/run' && $request['model_name']==='background-remove' && $request['inputs']['return_base64']===true);
     }
 
 }
