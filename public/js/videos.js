@@ -5,6 +5,37 @@
     const $ = (selector, parent = root) => parent.querySelector(selector);
     const $$ = (selector, parent = root) => [...parent.querySelectorAll(selector)];
     const records = new Map(JSON.parse($('#vd-video-data').textContent).map(video => [String(video.id), video]));
+    const productRecords = JSON.parse($('#vd-product-data')?.textContent || '[]');
+    const mainCategoryFilter = $('#vd-main-category'), subcategoryFilter = $('#vd-subcategory');
+    const countryFilter = $('#vd-country'), countyFilter = $('#vd-county');
+    const productSelect = $('[data-scoped-product-select]'), productFilterCount = $('#vd-product-filter-count');
+    const originalProductOptions = productSelect ? Array.from(productSelect.options).map(option => option.cloneNode(true)) : [];
+    const originalSubcategoryOptions = subcategoryFilter ? Array.from(subcategoryFilter.options).map(option => option.cloneNode(true)) : [];
+    const originalCountyOptions = countyFilter ? Array.from(countyFilter.options).map(option => option.cloneNode(true)) : [];
+    const replaceOptions = (select, options, predicate) => {
+        if (!select) return;
+        const current = select.value;
+        select.replaceChildren(...options.filter(predicate).map(option => option.cloneNode(true)));
+        select.value = Array.from(select.options).some(option => option.value === current) ? current : '';
+    };
+    const filterVideoProducts = () => {
+        if (!productSelect) return;
+        const rootCategory = Number(mainCategoryFilter?.value || 0);
+        replaceOptions(subcategoryFilter, originalSubcategoryOptions, option => !option.value || !rootCategory || Number(option.dataset.parent) === rootCategory);
+        const country = Number(countryFilter?.value || 0);
+        replaceOptions(countyFilter, originalCountyOptions, option => !option.value || !country || Number(option.dataset.country) === country);
+        const category = Number(subcategoryFilter?.value || 0), county = String(countyFilter?.value || '').toUpperCase();
+        const allowed = new Set(productRecords.filter(product =>
+            (!rootCategory || product.root_category_id === rootCategory) &&
+            (!category || product.category_id === category) &&
+            (!country || product.country_id === country) &&
+            (!county || product.county_code === county)
+        ).map(product => String(product.id)));
+        replaceOptions(productSelect, originalProductOptions, option => !option.value || allowed.has(option.value));
+        if (productFilterCount) productFilterCount.textContent = allowed.size+' matching product'+(allowed.size === 1 ? '' : 's')+'.';
+    };
+    [mainCategoryFilter, subcategoryFilter, countryFilter, countyFilter].filter(Boolean).forEach(select => select.addEventListener('change', filterVideoProducts));
+
     const dialog = $('#vd-dialog'), form = $('#vd-form'), settings = $('#vd-settings-form'), infoDialog = $('#vd-info-dialog');
     const filesInput = $('#vd-files');
     let selected = null, editing = null, busy = false, queuedFiles = [], bulkNames = false;

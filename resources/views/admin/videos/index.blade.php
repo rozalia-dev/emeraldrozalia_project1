@@ -153,7 +153,11 @@
                 <div class="vd-form-errors" id="vd-form-errors" role="alert" hidden></div>
                 <div class="vd-form-grid">
                     <label class="vd-wide">Video title<input name="title" required maxlength="160" placeholder="Emerald Signature Cap — Product Overview"></label>
-                    <label>Product<select name="product_id" required data-scoped-product-select><option value="">Select product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((int) old('product_id',$scopedProductId ?? 0)===(int) $product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select></label>
+                    <label>Main Category<select id="vd-main-category"><option value="">All main categories</option>@foreach($rootCategories as $category)<option value="{{ $category->id }}">{{ $category->name }}</option>@endforeach</select></label>
+                    <label>Subcategory<select id="vd-subcategory"><option value="">All subcategories</option>@foreach($allCategories->whereNotNull('parent_id') as $category)<option value="{{ $category->id }}" data-parent="{{ $category->parent_id }}">{{ $category->name }}</option>@endforeach</select></label>
+                    <label>Country<select id="vd-country"><option value="">All countries</option>@foreach($catalogCountries as $country)<option value="{{ $country->id }}">{{ $country->name }}</option>@endforeach</select></label>
+                    <label>County / Region<select id="vd-county"><option value="">All counties / regions</option>@foreach($catalogCounties as $county)<option value="{{ $county->code }}" data-country="{{ $county->catalog_country_id }}">{{ $county->name }}</option>@endforeach</select></label>
+                    <label class="vd-wide">Product<select name="product_id" required data-scoped-product-select><option value="">Select product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((int) old('product_id',$scopedProductId ?? 0)===(int) $product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select><small id="vd-product-filter-count">Choose catalogue filters to narrow the product list.</small></label>
                     <label>Video category<select name="category">@foreach($categories as $key=>$label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
                     <label>Platform<select name="platform" id="vd-platform"><option>Website</option><option>YouTube</option><option>Vimeo</option></select></label>
                     <label>Publication status<select name="status" id="vd-status"><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
@@ -182,8 +186,9 @@
     </dialog>
     <dialog id="vd-info-dialog" class="vd-dialog vd-info-dialog" aria-labelledby="vd-info-title"><header><h2 id="vd-info-title">Video information</h2><button type="button" data-close-info aria-label="Close dialog">×</button></header><div id="vd-info-body" class="vd-form-body"></div><footer><button type="button" class="vd-button" data-close-info>Close</button></footer></dialog>
     <script type="application/json" id="vd-video-data">{!! json_encode($videoData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+    <script type="application/json" id="vd-product-data">{!! json_encode($videoProductData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 </div>
 @endsection
 @push('scripts')
-<script src="/js/videos.js?v=20260928-video-manager-v3" defer></script>
+<script src="/js/videos.js?v=20260928-product-taxonomy-v1" defer></script>
 @endpush
