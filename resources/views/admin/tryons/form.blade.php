@@ -14,8 +14,8 @@
     </div>
     <label class="sd-drop"><x-icon name="upload" size="28" /><strong>{{ $editing?'Replace Try-On files':'Drag & drop try-on files here' }}</strong><span>or</span><input type="file" name="asset" accept=".zip,.png,.jpg,.jpeg,.webp,.glb,.usdz" @required(!$editing)><span data-file-note>Choose Files</span></label>
     <small>Supports: ZIP, GLB, USDZ, JPG, PNG, WebP. Maximum upload size: 20 MB.</small>
-    <small>For storefront publishing, include a browser preview overlay (PNG, JPG or WebP). ZIP may also contain one GLB/USDZ model.</small>
-    <details class="sd-guide"><summary>Upload Guidelines</summary><p>Use a transparent front-facing hat/cap overlay for best fitting results. Keep the product centered, tightly cropped and free of unrelated logos or backgrounds. A published asset must include a browser preview overlay.</p></details>
+    <small>For storefront publishing, upload the product image (PNG, JPG or WebP). If the image has a background, FASHN AI automatically removes it and stores a transparent PNG Try-On overlay; the original source is retained. ZIP may also contain one GLB/USDZ model.</small>
+    <details class="sd-guide"><summary>Upload Guidelines</summary><p>Use a front-facing hat/cap image with the product centered and tightly cropped. Transparent PNGs are preserved; opaque images are automatically processed by FASHN Background Remove before becoming the storefront Try-On overlay. Review the result before publishing.</p></details>
     @if($embedded)<button class="sd-button sd-card-action" type="submit">{{ $editing?'Save Try-On Asset':'Create Try-On Asset' }}</button>@endif
 </section>
 

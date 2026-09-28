@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\{Product,TryOnAsset,TryOnVisit,User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\{Auth,Storage};
+use Illuminate\Support\Facades\{Auth,Http,Storage};
 use Tests\TestCase;
 use ZipArchive;
 
@@ -17,6 +17,23 @@ class TryOnDashboardTest extends TestCase
     {
         parent::setUp();
         Storage::fake('local');
+        config(['services.fashion_ai.key'=>'test-key','services.fashion_ai.url'=>'https://api.fashn.ai/v1/run']);
+        Http::fake([
+            'https://api.fashn.ai/v1/run'=>Http::response(['id'=>'bg-test'],200),
+            'https://api.fashn.ai/v1/status/bg-test'=>Http::response(['status'=>'completed','output'=>['data:image/png;base64,'.base64_encode($this->transparentPng())]],200),
+        ]);
+    }
+
+
+    private function transparentPng(): string
+    {
+        $image=imagecreatetruecolor(64,64);
+        imagealphablending($image,false);
+        imagesavealpha($image,true);
+        $transparent=imagecolorallocatealpha($image,0,0,0,127);
+        imagefill($image,0,0,$transparent);
+        ob_start();imagepng($image);$data=ob_get_clean();imagedestroy($image);
+        return $data;
     }
 
     private function product(array $extra=[]): Product

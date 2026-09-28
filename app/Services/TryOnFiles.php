@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\{Http,Storage};
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
@@ -41,7 +41,7 @@ class TryOnFiles
         }
         $files = [];
         if (in_array($extension, self::IMAGE_EXTENSIONS, true)) {
-            $files['preview'] = $this->storeImage($data, $directory, $extension);
+            $files = array_merge($files, $this->storeTryOnImage($data, $directory, $extension));
         } else {
             $files['model'] = $this->storeModel($data, $directory, $extension);
         }
@@ -82,7 +82,9 @@ class TryOnFiles
                     throw ValidationException::withMessages(['asset'=>'A ZIP entry could not be read.']);
                 }
                 if (in_array($ext, self::IMAGE_EXTENSIONS, true) && !$preview) {
-                    $preview = $this->storeImage($data, $directory, $ext);
+                    $imageFiles = $this->storeTryOnImage($data, $directory, $ext);
+                    $preview = $imageFiles['preview'];
+                    $source = $imageFiles['source'] ?? null;
                 } elseif (in_array($ext, self::MODEL_EXTENSIONS, true) && !$model) {
                     $model = $this->storeModel($data, $directory, $ext);
                 }
@@ -90,11 +92,86 @@ class TryOnFiles
             if (!$preview && !$model) {
                 throw ValidationException::withMessages(['asset'=>'The ZIP did not contain a usable try-on asset.']);
             }
-            $files = array_filter(['preview'=>$preview,'model'=>$model]);
+            $files = array_filter(['preview'=>$preview,'source'=>$source ?? null,'model'=>$model]);
             return ['files'=>$files,'bytes'=>$this->sizeOf($files),'directory'=>$directory];
         } finally {
             $zip->close();
         }
+    }
+
+    private function storeTryOnImage(string $data, string $directory, string $extension): array
+    {
+        $sourceExt = $extension === 'jpeg' ? 'jpg' : $extension;
+        $sourcePath = $directory.'/source.'.$sourceExt;
+        Storage::disk('local')->put($sourcePath, $data);
+
+        if ($this->hasUsefulTransparency($data)) {
+            return ['source'=>$sourcePath,'preview'=>$this->storeImage($data, $directory, $extension)];
+        }
+
+        $transparent = $this->removeBackgroundWithFashn($data, $extension);
+        return ['source'=>$sourcePath,'preview'=>$this->storeImage($transparent, $directory, 'png')];
+    }
+
+    private function hasUsefulTransparency(string $data): bool
+    {
+        $image = @imagecreatefromstring($data);
+        if (!$image) return false;
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $stepX = max(1, intdiv($width, 40));
+        $stepY = max(1, intdiv($height, 40));
+        for ($y=0; $y<$height; $y+=$stepY) {
+            for ($x=0; $x<$width; $x+=$stepX) {
+                if ((imagecolorat($image,$x,$y) & 0x7F000000) >> 24 > 8) {
+                    imagedestroy($image);
+                    return true;
+                }
+            }
+        }
+        imagedestroy($image);
+        return false;
+    }
+
+    private function removeBackgroundWithFashn(string $data, string $extension): string
+    {
+        $key = (string) config('services.fashion_ai.key');
+        $runUrl = rtrim((string) config('services.fashion_ai.url', 'https://api.fashn.ai/v1/run'), '/');
+        if ($key === '') {
+            throw ValidationException::withMessages(['asset'=>'AI background removal is not configured. Configure the existing FASHN API key, or upload a transparent PNG overlay.']);
+        }
+        $mime = match ($extension) {
+            'jpg','jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => 'image/png',
+        };
+        $response = Http::withToken($key)->acceptJson()->timeout(30)->post($runUrl, [
+            'model_name'=>'background-remove',
+            'inputs'=>[
+                'image'=>'data:'.$mime.';base64,'.base64_encode($data),
+                'return_base64'=>true,
+            ],
+        ]);
+        if (!$response->successful() || !$response->json('id')) {
+            throw ValidationException::withMessages(['asset'=>'AI background removal could not start. Please retry or upload a transparent PNG overlay.']);
+        }
+        $predictionId = (string) $response->json('id');
+        $statusUrl = preg_replace('~/run/?$~','/status/'.$predictionId,$runUrl);
+        for ($attempt=0; $attempt<12; $attempt++) {
+            usleep(500000);
+            $status = Http::withToken($key)->acceptJson()->timeout(20)->get($statusUrl);
+            if (!$status->successful()) continue;
+            if ($status->json('status') === 'failed') {
+                throw ValidationException::withMessages(['asset'=>'AI background removal failed. Please retry or upload a transparent PNG overlay.']);
+            }
+            if ($status->json('status') !== 'completed') continue;
+            $output = $status->json('output.0');
+            if (!is_string($output) || !str_starts_with($output,'data:image/png;base64,')) break;
+            $decoded = base64_decode(substr($output,strlen('data:image/png;base64,')), true);
+            if (is_string($decoded) && $decoded !== '') return $decoded;
+            break;
+        }
+        throw ValidationException::withMessages(['asset'=>'AI background removal timed out. Please retry or upload a transparent PNG overlay.']);
     }
 
     private function storeImage(string $data, string $directory, string $extension): string
