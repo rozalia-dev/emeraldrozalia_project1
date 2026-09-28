@@ -185,5 +185,5 @@
 </div>
 @endsection
 @push('scripts')
-<script src="/js/videos.js?v=20260928-video-manager-v2" defer></script>
+<script src="/js/videos.js?v=20260928-video-manager-v3" defer></script>
 @endpush
