@@ -45,13 +45,13 @@
     };
     const xhrUpload = (url, data, onProgress) => new Promise((resolve,reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST',url); xhr.timeout = 180000;
+        xhr.open('POST',url); xhr.timeout = 900000;
         xhr.setRequestHeader('Accept','application/json');
         xhr.setRequestHeader('X-CSRF-TOKEN',root.dataset.csrf);
         xhr.upload.onprogress = event => { if (event.lengthComputable) onProgress(event.loaded/event.total*100); };
         xhr.onload = () => {
             let result;
-            try { result = JSON.parse(xhr.responseText); } catch (_) { reject(new Error('The server could not accept this upload. Check your session and the 20 MB file limit.')); return; }
+            try { result = JSON.parse(xhr.responseText); } catch (_) { reject(new Error('The server could not accept this upload. Check your session and the 500 MB file limit.')); return; }
             if (xhr.status >= 200 && xhr.status < 300) resolve(result);
             else reject(new Error(result.errors ? Object.values(result.errors).flat().join('\n') : result.message || 'Upload failed.'));
         };
@@ -116,8 +116,8 @@
     const setFiles = incoming => {
         const accepted = [...incoming];
         if (accepted.length > (editing ? 1 : 10)) { formError(editing ? 'Choose one replacement video.' : 'Choose up to 10 files per batch.'); return; }
-        const invalid = accepted.find(file => file.size > 20*1024*1024 || !/\.(mp4|webm|mov)$/i.test(file.name));
-        if (invalid) { formError(invalid.name+': use an MP4, WebM or MOV file up to 20 MB.'); queuedFiles = []; filesInput.value = ''; platformFields(); return; }
+        const invalid = accepted.find(file => file.size > 500*1024*1024 || !/\.(mp4|webm|mov)$/i.test(file.name));
+        if (invalid) { formError(invalid.name+': use an MP4, WebM or MOV file up to 500 MB.'); queuedFiles = []; filesInput.value = ''; platformFields(); return; }
         queuedFiles = accepted; bulkNames = accepted.length > 1; formError('');
         const listing = $('#vd-file-list'); listing.replaceChildren();
         queuedFiles.forEach(file => listing.append(element('div',file.name+' · '+(file.size/1048576).toFixed(1)+' MB')));
@@ -291,7 +291,8 @@
         finally { busy = false; }
     };
     $$('[data-bulk-action]').forEach(button => button.addEventListener('click',() => bulkAction(button.dataset.bulkAction,checkedIds())));
-    $$('[data-delete-video]').forEach(button => button.addEventListener('click',() => bulkAction('delete',[button.dataset.deleteVideo])));
+    $('[data-delete-video]').forEach(button => button.addEventListener('click',() => bulkAction('delete',[button.dataset.deleteVideo])));
+    $('[data-video-status-action]').forEach(button => button.addEventListener('click',() => bulkAction(button.dataset.videoStatusAction,[button.dataset.videoId])));
     $('[data-page-size]').addEventListener('change',() => $('#vd-filters').requestSubmit());
     $('#vd-fullscreen').addEventListener('click',async () => {
         try { if (!document.fullscreenElement) await $('#vd-preview').requestFullscreen(); else await document.exitFullscreen(); }
@@ -306,7 +307,7 @@
     $$('[data-close-info]').forEach(button => button.addEventListener('click',() => infoDialog.close()));
     $$('[data-guidelines]').forEach(button => button.addEventListener('click',() => showInfo('Upload Guidelines',[
         element('h3','Files and browser support'),
-        element('p','Upload MP4, WebM or MOV files up to 20 MB each. H.264 MP4 gives the broadest browser support. MOV playback depends on the browser and codec. Choose up to 10 files for a sequential bulk upload.'),
+        element('p','Upload MP4, WebM or MOV files up to 500 MB each. H.264 MP4 gives the broadest browser support. MOV playback depends on the browser and codec. Choose up to 10 files for a sequential bulk upload.'),
         element('h3','Larger videos and external platforms'),
         element('p','Add an existing public YouTube or Vimeo URL for larger videos. Embedding does not upload to those platforms or change their privacy settings. External view counts and watch time are not connected.'),
         element('h3','Thumbnails and captions'),
