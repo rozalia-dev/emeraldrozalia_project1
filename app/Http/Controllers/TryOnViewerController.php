@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{TryOnAsset,TryOnVisit};
+use App\Models\{Product,TryOnAsset,TryOnVisit};
+use App\Services\TryOnFiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +39,17 @@ class TryOnViewerController extends Controller
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'; sandbox",
         ]);
+    }
+
+    public function removeBackground(Request $request, TryOnFiles $files)
+    {
+        $data = $request->validate(['product_id'=>'required|integer|exists:products,id']);
+        $product = Product::published()->with(['tryOnAssets'=>fn($q)=>$q->where('status','published')->where('visibility','public')->latest('updated_at')])->findOrFail($data['product_id']);
+        $asset = $product->tryOnAssets->first(fn($item)=>$item->isPublic());
+        abort_unless($asset, 404);
+        $processed = $files->reprocessPreview($asset);
+        $asset->update(['files'=>$processed['files'],'bytes'=>$processed['bytes']]);
+        return response()->json(['preview'=>$asset->fresh()->previewUrl()]);
     }
 
     public function visit(Request $request, TryOnAsset $tryon)
