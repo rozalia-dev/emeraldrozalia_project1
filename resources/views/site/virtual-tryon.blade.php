@@ -1,6 +1,6 @@
 @extends('layouts.site')
 @section('title','Virtual Try-On Studio — Emerald Rozalia')
-@push('scripts')<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"></script><script type="module" src="/js/tryon-tracking.js?v=20260928-preview-print-v1"></script>@endpush
+@push('scripts')<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"></script><script type="module" src="/js/tryon-tracking.js?v=20260928-vision-runtime-v1"></script>@endpush
 @push('styles')<link rel="stylesheet" href="/css/virtual-tryon-responsive.css?v=20260928-mobile-stage-v1">@endpush
 @section('content')
 <section class="try-hero"><div><p class="eyebrow">EMERALD ROZALIA LIMITED</p><h1>VIRTUAL <em>TRY-ON</em> STUDIO</h1><p>See how it looks on you. Find your perfect fit.</p></div><div class="try-hero-benefits"><span><b>REALISTIC PREVIEW</b>True-to-life try-on experience</span><span><b>ADJUST &amp; PERFECT</b>Move, rotate &amp; resize</span><span><b>COMPARE STYLES</b>Try multiple looks</span><span><b>100% PRIVATE</b>Your photo stays in your browser</span></div></section>
