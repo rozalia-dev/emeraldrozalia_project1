@@ -190,7 +190,10 @@ class VideoController extends Controller
     public function store(Request $request)
     {
         $video = $this->save($request);
-        if ($request->expectsJson()) return response()->json(['message'=>'Video saved.', 'video'=>$video->details()],201);
+        if ($request->expectsJson()) {
+            $request->session()->flash('success','1 video saved successfully.');
+            return response()->json(['message'=>'Video saved.', 'video'=>$video->details()],201);
+        }
         return redirect()->route('admin.videos.index',['product_id'=>$video->product_id])->with('success','Video saved.');
     }
 
