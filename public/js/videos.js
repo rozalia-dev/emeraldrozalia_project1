@@ -291,8 +291,8 @@
         finally { busy = false; }
     };
     $$('[data-bulk-action]').forEach(button => button.addEventListener('click',() => bulkAction(button.dataset.bulkAction,checkedIds())));
-    $('[data-delete-video]').forEach(button => button.addEventListener('click',() => bulkAction('delete',[button.dataset.deleteVideo])));
-    $('[data-video-status-action]').forEach(button => button.addEventListener('click',() => bulkAction(button.dataset.videoStatusAction,[button.dataset.videoId])));
+    $$('[data-delete-video]').forEach(button => button.addEventListener('click',() => bulkAction('delete',[button.dataset.deleteVideo])));
+    $$('[data-video-status-action]').forEach(button => button.addEventListener('click',() => bulkAction(button.dataset.videoStatusAction,[button.dataset.videoId])));
     $('[data-page-size]').addEventListener('change',() => $('#vd-filters').requestSubmit());
     $('#vd-fullscreen').addEventListener('click',async () => {
         try { if (!document.fullscreenElement) await $('#vd-preview').requestFullscreen(); else await document.exitFullscreen(); }
