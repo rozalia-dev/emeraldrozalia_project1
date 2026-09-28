@@ -27,7 +27,7 @@ class TryOnDashboardTest extends TestCase
 
     private function transparentPng(): string
     {
-        $image=imagecreatetruecolor(8,8);
+        $image=imagecreatetruecolor(64,64);
         imagealphablending($image,false);
         imagesavealpha($image,true);
         $transparent=imagecolorallocatealpha($image,0,0,0,127);
