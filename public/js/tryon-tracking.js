@@ -9,6 +9,7 @@ if(studio){
   const overlay=studio.querySelector('[data-hat-overlay]');
   const empty=studio.querySelector('[data-try-empty]');
   const status=studio.querySelector('[data-vision-status]');
+  const visionStart=studio.querySelector('[data-vision-start]');
   const cameraStart=studio.querySelector('[data-camera-start]');
   const cameraStop=studio.querySelector('[data-camera-stop]');
   const cameraCapture=studio.querySelector('[data-camera-capture]');
@@ -101,6 +102,24 @@ if(studio){
     return landmarker;
   };
 
+  const initializeVision=async()=>{
+    if(visionStart){visionStart.disabled=true;visionStart.textContent='LOADING VISION AI…';}
+    try{
+      await ensureVision(stream?'VIDEO':'IMAGE');
+      setStatus('Vision AI loaded — face landmark detection is ready.','ok');
+      if(visionStart){visionStart.textContent='VISION AI READY';visionStart.dataset.state='ok';}
+      if(stream){setStatus('Camera active — Vision AI loaded. Finding face landmarks…','ok');liveLoop();}
+      else if(face?.src)detectPhoto();
+      return true;
+    }catch(e){
+      console.error('Vision AI manual initialization failed',e);
+      setStatus('Vision AI failed to load ('+(e?.message||'runtime error')+'). Tap RETRY VISION AI.','warn');
+      if(visionStart){visionStart.disabled=false;visionStart.textContent='RETRY VISION AI';visionStart.dataset.state='warn';}
+      return false;
+    }
+  };
+  visionStart?.addEventListener('click',initializeVision);
+
   const applyLandmarks=(marks)=>{
     if(!marks?.length||!overlay?.src)return false;
     const left=marks[234],right=marks[454],eyeL=marks[33],eyeR=marks[263],forehead=marks[10];
@@ -166,4 +185,5 @@ if(studio){
   window.addEventListener('pagehide',()=>{send(true);stopCamera();});
   overlay?.addEventListener('load',syncResultActions);overlay?.addEventListener('error',()=>{syncResultActions();setStatus('Selected product Try-On image is unavailable. Please choose another product or ask an administrator to re-upload its overlay.','warn');});
   syncModel();syncResultActions();setInterval(()=>send(false),10000);
+  if(visionStart){visionStart.disabled=false;visionStart.textContent='START VISION AI';}
 }
