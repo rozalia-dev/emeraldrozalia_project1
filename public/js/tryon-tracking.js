@@ -74,9 +74,21 @@ if(studio){
   const ensureVision=async(runningMode='IMAGE')=>{
     setStatus('Loading Vision AI…');
     if(!landmarker){
-      visionModule ||= await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
-      const vision=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
-      landmarker=await visionModule.FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',delegate:'GPU'},runningMode,numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false});
+      if(!visionModule){
+        let lastError=null;
+        for(const url of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm','https://esm.run/@mediapipe/tasks-vision@0.10.22']){
+          try{visionModule=await import(url);break;}catch(error){lastError=error;}
+        }
+        if(!visionModule)throw lastError||new Error('Vision AI module could not load.');
+      }
+      let vision=null,lastWasmError=null;
+      for(const wasmRoot of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm','https://unpkg.com/@mediapipe/tasks-vision@0.10.22/wasm']){
+        try{vision=await visionModule.FilesetResolver.forVisionTasks(wasmRoot);break;}catch(error){lastWasmError=error;}
+      }
+      if(!vision)throw lastWasmError||new Error('Vision AI runtime could not load.');
+      const options={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',delegate:'GPU'},runningMode,numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false};
+      try{landmarker=await visionModule.FaceLandmarker.createFromOptions(vision,options);}
+      catch(error){options.baseOptions.delegate='CPU';landmarker=await visionModule.FaceLandmarker.createFromOptions(vision,options);}
     }else await landmarker.setOptions({runningMode});
     return landmarker;
   };
@@ -119,7 +131,7 @@ if(studio){
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});
       video.srcObject=stream;await video.play();video.hidden=false;if(face)face.hidden=true;if(empty)empty.hidden=true;if(cameraStart)cameraStart.hidden=true;if(cameraStop)cameraStop.hidden=false;begin();syncResultActions();
       try{landmarker=await ensureVision('VIDEO');setStatus('Camera active — finding face landmarks…');liveLoop();}
-      catch(e){setStatus('Camera active. Vision AI could not load, so manual fit controls remain available.','warn');}
+      catch(e){console.error('Vision AI initialization failed',e);setStatus('Camera active. Vision AI could not load; trying manual fit mode. Refresh once if tracking is required.','warn');}
     }
     catch(e){stopCamera();const denied=e?.name==='NotAllowedError'||e?.name==='SecurityError';setStatus(denied?'Camera permission was blocked. Allow camera access in your browser, then try again.':'Camera could not start. Check that another app is not using it, then try again.','warn');}
   };
