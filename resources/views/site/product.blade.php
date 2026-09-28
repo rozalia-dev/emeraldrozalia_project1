@@ -403,7 +403,7 @@
     const startAutoRotate = () => {
         stopAutoRotate();
         if (mode !== 'spin' || spinFrames.length < 2 || prefersReducedMotion || document.hidden) return;
-        autoRotateTimer = window.setInterval(() => { if (mode === 'spin') step(1, false); }, 140);
+        autoRotateTimer = window.setInterval(() => { if (mode === 'spin') step(1, false); }, 650);
     };
     const frames = () => mode === 'spin' ? spinFrames : galleryFrames;
     const setLoading = (visible) => { if (loading) loading.classList.toggle('is-visible', visible); };
@@ -508,8 +508,20 @@
         if (button.disabled) return;
         setMode(button.dataset.productMode);
     }));
-    page.querySelectorAll('[data-rotate-prev]').forEach((button) => button.addEventListener('click', () => interactStep(-1)));
-    page.querySelectorAll('[data-rotate-next]').forEach((button) => button.addEventListener('click', () => interactStep(1)));
+    const bindRotationButton = (button, amount) => {
+        if (!button) return;
+        const rotate = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            interactStep(amount);
+        };
+        button.addEventListener('click', rotate);
+        button.addEventListener('pointerup', (event) => {
+            if (event.pointerType === 'touch') rotate(event);
+        });
+    };
+    page.querySelectorAll('[data-rotate-prev]').forEach((button) => bindRotationButton(button, -1));
+    page.querySelectorAll('[data-rotate-next]').forEach((button) => bindRotationButton(button, 1));
     thumbnailRail?.addEventListener('click', (event) => { const button = event.target.closest?.('[data-product-thumb]'); if (!button || !thumbnailRail.contains(button)) return; index = Number(button.dataset.index) || 0; setMode('gallery'); });
     slider?.addEventListener('input', (event) => { stopAutoRotate(); const list = frames(); if (!list.length) return; index = Math.round((Number(event.target.value) / 360) * list.length) % list.length; render(false); });
     stage?.addEventListener('pointerdown', (event) => { stopAutoRotate(); dragStart = event.clientX; dragMoved = false; stage.classList.add('is-dragging'); stage.setPointerCapture?.(event.pointerId); });
