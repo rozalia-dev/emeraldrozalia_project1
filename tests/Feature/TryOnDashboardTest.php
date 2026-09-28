@@ -218,7 +218,7 @@ class TryOnDashboardTest extends TestCase
         ]);
         $product=$this->product();
         $opaque=UploadedFile::fake()->image('legacy.jpg',120,120);
-        $this->post(route('admin.tryons.store'),$this->payload($product,['asset'=>$opaque,'status'=>'draft']))->assertRedirect();
+        $this->actingAs($this->admin())->post(route('admin.tryons.store'),$this->payload($product,['asset'=>$opaque,'status'=>'draft']))->assertRedirect();
         $asset=TryOnAsset::firstOrFail();
         $this->post(route('admin.tryons.reprocess',$asset))->assertRedirect();
         $asset->refresh();
