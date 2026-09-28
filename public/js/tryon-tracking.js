@@ -11,6 +11,8 @@ if(studio){
   const status=studio.querySelector('[data-vision-status]');
   const cameraStart=studio.querySelector('[data-camera-start]');
   const cameraStop=studio.querySelector('[data-camera-stop]');
+  const cameraCapture=studio.querySelector('[data-camera-capture]');
+  const cameraRetake=studio.querySelector('[data-camera-retake]');
   const modelViewer=studio.querySelector('[data-try-model]');
   const modelNote=studio.querySelector('[data-try-model-note]');
   const size=studio.querySelector('[data-hat-size]');
@@ -23,7 +25,7 @@ if(studio){
   const cartForm=studio.querySelector('[data-try-cart-form]');
   const cartButton=studio.querySelector('[data-try-cart]');
   const resultStatus=studio.querySelector('[data-try-result-status]');
-  let mode='2d', landmarker=null, visionModule=null, stream=null, raf=0, lastVideoTime=-1, startedAt=0, activeProduct='', lastSent=0;
+  let mode='2d', landmarker=null, visionModule=null, stream=null, raf=0, lastVideoTime=-1, startedAt=0, activeProduct='', lastSent=0, capturedSelfieUrl='';
 
   const setStatus=(message,state='')=>{if(status){status.textContent=message;status.dataset.state=state;}};
   const device=()=>/iPhone|iPad|iPod/i.test(navigator.userAgent||'')?'ios_app':/Android/i.test(navigator.userAgent||'')?'android_app':matchMedia?.('(max-width:760px)').matches?'mobile_ar':'desktop_web';
@@ -76,13 +78,13 @@ if(studio){
     if(!landmarker){
       if(!visionModule){
         let lastError=null;
-        for(const url of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm','https://esm.run/@mediapipe/tasks-vision@0.10.22']){
+        for(const url of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm','https://esm.sh/@mediapipe/tasks-vision@0.10.22','https://esm.run/@mediapipe/tasks-vision@0.10.22']){
           try{visionModule=await import(url);break;}catch(error){lastError=error;}
         }
         if(!visionModule)throw lastError||new Error('Vision AI module could not load.');
       }
       let vision=null,lastWasmError=null;
-      for(const wasmRoot of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm','https://unpkg.com/@mediapipe/tasks-vision@0.10.22/wasm']){
+      for(const wasmRoot of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm','https://unpkg.com/@mediapipe/tasks-vision@0.10.22/wasm','https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm/']){
         try{vision=await visionModule.FilesetResolver.forVisionTasks(wasmRoot);break;}catch(error){lastWasmError=error;}
       }
       if(!vision)throw lastWasmError||new Error('Vision AI runtime could not load.');
@@ -122,21 +124,34 @@ if(studio){
     raf=requestAnimationFrame(liveLoop);
   };
   const stopCamera=()=>{
-    if(raf)cancelAnimationFrame(raf);raf=0;stream?.getTracks().forEach(t=>t.stop());stream=null;if(video){video.srcObject=null;video.hidden=true;}if(cameraStart)cameraStart.hidden=false;if(cameraStop)cameraStop.hidden=true;renderMode();syncResultActions();
+    if(raf)cancelAnimationFrame(raf);raf=0;stream?.getTracks().forEach(t=>t.stop());stream=null;if(video){video.srcObject=null;video.hidden=true;}if(cameraStart)cameraStart.hidden=false;if(cameraStop)cameraStop.hidden=true;if(cameraCapture)cameraCapture.hidden=true;if(cameraRetake)cameraRetake.hidden=!(face?.src);renderMode();syncResultActions();
   };
   const startCamera=async()=>{
     if(!navigator.mediaDevices?.getUserMedia){setStatus('Live camera is not supported in this browser. Upload a photo instead.','warn');return;}
     try{
       stopCamera();setStatus('Requesting camera permission…');
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});
-      video.srcObject=stream;await video.play();video.hidden=false;if(face)face.hidden=true;if(empty)empty.hidden=true;if(cameraStart)cameraStart.hidden=true;if(cameraStop)cameraStop.hidden=false;begin();syncResultActions();
+      video.srcObject=stream;await video.play();video.hidden=false;if(face)face.hidden=true;if(empty)empty.hidden=true;if(cameraStart)cameraStart.hidden=true;if(cameraStop)cameraStop.hidden=false;if(cameraCapture)cameraCapture.hidden=false;if(cameraRetake)cameraRetake.hidden=true;begin();syncResultActions();
       try{landmarker=await ensureVision('VIDEO');setStatus('Camera active — finding face landmarks…');liveLoop();}
       catch(e){console.error('Vision AI initialization failed',e);setStatus('Camera active. Vision AI could not load; trying manual fit mode. Refresh once if tracking is required.','warn');}
     }
     catch(e){stopCamera();const denied=e?.name==='NotAllowedError'||e?.name==='SecurityError';setStatus(denied?'Camera permission was blocked. Allow camera access in your browser, then try again.':'Camera could not start. Check that another app is not using it, then try again.','warn');}
   };
 
-  cameraStart?.addEventListener('click',startCamera);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
+  const captureSelfie=async()=>{
+    if(!stream||!video?.videoWidth||!video?.videoHeight){setStatus('Camera is not ready yet.','warn');return;}
+    const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.94));if(!blob){setStatus('Could not capture selfie. Please try again.','warn');return;}
+    if(capturedSelfieUrl)URL.revokeObjectURL(capturedSelfieUrl);capturedSelfieUrl=URL.createObjectURL(blob);
+    if(face){face.src=capturedSelfieUrl;face.hidden=false;}
+    stopCamera();if(cameraRetake)cameraRetake.hidden=false;if(cameraStart)cameraStart.hidden=true;if(empty)empty.hidden=true;
+    setStatus('Selfie captured — fitting your selected product…');begin();
+    if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});
+    syncResultActions();
+  };
+  const retakeSelfie=()=>{if(face){face.removeAttribute('src');face.hidden=true;}if(capturedSelfieUrl){URL.revokeObjectURL(capturedSelfieUrl);capturedSelfieUrl='';}startCamera();};
+  cameraStart?.addEventListener('click',startCamera);cameraCapture?.addEventListener('click',captureSelfie);cameraRetake?.addEventListener('click',retakeSelfie);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
   upload?.addEventListener('change',()=>{stopCamera();const f=upload.files?.[0];if(!f)return;begin();setStatus('Analyzing face landmarks…');if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});});
   selector?.addEventListener('change',()=>{send(true);activeProduct=selector.value||'';startedAt=(stream||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();syncResultActions();if(startedAt)send(true);});
   studio.querySelectorAll('[data-try-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;mode=b.dataset.tryMode||'2d';renderMode();send(false);}));
