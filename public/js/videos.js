@@ -249,21 +249,7 @@
                 latestId = response.video.id; saved++;
                 if (file) queuedFiles = queuedFiles.filter(queued => queued !== file);
             }
-            notice(saved+' video'+(saved===1?'':'s')+' saved successfully.');
-            if (latestId) sessionStorage.setItem('vd-selected',String(latestId));
-            sessionStorage.setItem('vd-message',saved+' video'+(saved===1?'':'s')+' saved successfully.');
-            if (!editing) {
-                history.replaceState(null,'',root.dataset.storeUrl);
-            }
-            const fresh = await fetch(window.location.href,{credentials:'same-origin',headers:{'Accept':'text/html'}).then(response => response.text());
-            const documentNext = new DOMParser().parseFromString(fresh,'text/html');
-            const dataNext = documentNext.querySelector('#vd-video-data');
-            const tableNext = documentNext.querySelector('.vd-table');
-            if (dataNext && tableNext) {
-                $('#vd-video-data').textContent = dataNext.textContent;
-                $('.vd-table').replaceWith(tableNext);
-            }
-            window.location.reload();
+            refresh(latestId,saved+' video'+(saved===1?'':'s')+' saved successfully.',!editing);
         } catch (error) {
             formError((saved ? saved+' videos were saved. Only the remaining files will be retried.\n' : '')+error.message);
             if (saved) {
