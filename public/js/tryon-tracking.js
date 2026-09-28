@@ -1,5 +1,3 @@
-import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
-
 const studio=document.querySelector('[data-try-studio]');
 if(studio){
   let meta={};
@@ -25,7 +23,7 @@ if(studio){
   const cartForm=studio.querySelector('[data-try-cart-form]');
   const cartButton=studio.querySelector('[data-try-cart]');
   const resultStatus=studio.querySelector('[data-try-result-status]');
-  let mode='2d', landmarker=null, stream=null, raf=0, lastVideoTime=-1, startedAt=0, activeProduct='', lastSent=0;
+  let mode='2d', landmarker=null, visionModule=null, stream=null, raf=0, lastVideoTime=-1, startedAt=0, activeProduct='', lastSent=0;
 
   const setStatus=(message,state='')=>{if(status){status.textContent=message;status.dataset.state=state;}};
   const device=()=>/iPhone|iPad|iPod/i.test(navigator.userAgent||'')?'ios_app':/Android/i.test(navigator.userAgent||'')?'android_app':matchMedia?.('(max-width:760px)').matches?'mobile_ar':'desktop_web';
@@ -76,8 +74,9 @@ if(studio){
   const ensureVision=async(runningMode='IMAGE')=>{
     setStatus('Loading Vision AI…');
     if(!landmarker){
-      const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
-      landmarker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',delegate:'GPU'},runningMode,numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false});
+      visionModule ||= await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
+      const vision=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
+      landmarker=await visionModule.FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',delegate:'GPU'},runningMode,numFaces:1,outputFaceBlendshapes:false,outputFacialTransformationMatrixes:false});
     }else await landmarker.setOptions({runningMode});
     return landmarker;
   };
@@ -115,8 +114,14 @@ if(studio){
   };
   const startCamera=async()=>{
     if(!navigator.mediaDevices?.getUserMedia){setStatus('Live camera is not supported in this browser. Upload a photo instead.','warn');return;}
-    try{stopCamera();const detector=await ensureVision('VIDEO');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=stream;await video.play();video.hidden=false;if(face)face.hidden=true;if(empty)empty.hidden=true;if(cameraStart)cameraStart.hidden=true;if(cameraStop)cameraStop.hidden=false;begin();setStatus('Camera active — finding face landmarks…');landmarker=detector;liveLoop();}
-    catch(e){stopCamera();setStatus('Camera permission was unavailable. Upload a photo or use manual controls.','warn');}
+    try{
+      stopCamera();setStatus('Requesting camera permission…');
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});
+      video.srcObject=stream;await video.play();video.hidden=false;if(face)face.hidden=true;if(empty)empty.hidden=true;if(cameraStart)cameraStart.hidden=true;if(cameraStop)cameraStop.hidden=false;begin();syncResultActions();
+      try{landmarker=await ensureVision('VIDEO');setStatus('Camera active — finding face landmarks…');liveLoop();}
+      catch(e){setStatus('Camera active. Vision AI could not load, so manual fit controls remain available.','warn');}
+    }
+    catch(e){stopCamera();const denied=e?.name==='NotAllowedError'||e?.name==='SecurityError';setStatus(denied?'Camera permission was blocked. Allow camera access in your browser, then try again.':'Camera could not start. Check that another app is not using it, then try again.','warn');}
   };
 
   cameraStart?.addEventListener('click',startCamera);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
