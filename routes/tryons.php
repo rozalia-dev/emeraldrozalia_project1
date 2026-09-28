@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/try-on/{tryon:uuid}/assets/{asset}', [TryOnViewerController::class,'asset'])
     ->where('asset','preview|model')->name('tryons.asset');
+Route::post('/try-on/remove-background', [TryOnViewerController::class,'removeBackground'])->middleware('throttle:5,1')->name('tryons.remove-background');
 Route::post('/try-on/{tryon:uuid}/visit', [TryOnViewerController::class,'visit'])
     ->middleware('throttle:30,1')->name('tryons.visit');
 
