@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{AuditLog, Product, ProductMedia, ProductVideo, VideoPlay};
+use App\Models\{AuditLog, CatalogCountry, CatalogCounty, Category, Product, ProductMedia, ProductVideo, VideoPlay};
 use App\Services\AuditTrail;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,10 +61,36 @@ class VideoController extends Controller
         ];
         $types = collect(ProductVideo::CATEGORIES)->map(fn ($label, $key) => $all->filter(fn ($v) => data_get($v->metadata, 'category', 'product') === $key)->count());
         $top = ProductVideo::with('product')->withCount(['plays' => fn ($q) => $q->where('day', '>=', now()->subDays(29)->toDateString())])->orderByDesc('plays_count')->limit(5)->get();
-        $products = Product::orderBy('name')->get(['id','name','sku']);
+        $products = Product::with('category:id,parent_id,name')->orderBy('name')->get(['id','name','sku','category_id','product_metadata']);
+        $allCategories = Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id','parent_id','name']);
+        $rootCategories = $allCategories->whereNull('parent_id')->values();
+        $categoryRootMap = [];
+        $childrenByParent = $allCategories->groupBy(fn (Category $category) => (int) ($category->parent_id ?? 0));
+        $walk = function (int $rootId) use (&$walk, &$categoryRootMap, $childrenByParent): void {
+            $categoryRootMap[$rootId] = $rootId;
+            foreach ($childrenByParent->get($rootId, collect()) as $child) {
+                $categoryRootMap[(int) $child->id] = $rootId;
+                $walk((int) $child->id);
+            }
+        };
+        foreach ($rootCategories as $root) $walk((int) $root->id);
+
+        $videoProductData = $products->map(function (Product $product) use ($categoryRootMap): array {
+            $classification = data_get($product->product_metadata, 'catalog_classification', []);
+            return [
+                'id'=>(int) $product->id, 'name'=>$product->name, 'sku'=>$product->sku,
+                'category_id'=>(int) ($product->category_id ?? 0),
+                'root_category_id'=>(int) ($categoryRootMap[(int) ($product->category_id ?? 0)] ?? 0),
+                'country_id'=>(int) data_get($classification, 'catalog_country_id', 0),
+                'county_code'=>strtoupper((string) data_get($classification, 'catalog_county_code', '')),
+            ];
+        })->values();
+
+        $catalogCountries = CatalogCountry::query()->active()->orderBy('sort_order')->orderBy('name')->get(['id','code','name']);
+        $catalogCounties = CatalogCounty::query()->active()->orderBy('sort_order')->orderBy('name')->get(['catalog_country_id','code','name']);
         $scopedProductId = $request->filled('product_id') ? $request->integer('product_id') : null;
         $scopedProduct = $scopedProductId ? $products->firstWhere('id', $scopedProductId) : null;
-        return view('admin.videos.index', compact('videos','stats','types','top','products','scopedProductId','scopedProduct'));
+        return view('admin.videos.index', compact('videos','stats','types','top','products','scopedProductId','scopedProduct','allCategories','rootCategories','videoProductData','catalogCountries','catalogCounties'));
     }
 
     private function validated(Request $request, ?ProductVideo $video = null): array
