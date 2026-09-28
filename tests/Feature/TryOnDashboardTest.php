@@ -208,4 +208,22 @@ class TryOnDashboardTest extends TestCase
         $this->actingAs($this->admin())->postJson($url,['device'=>'desktop_web','converted'=>true,'session_seconds'=>30])->assertNoContent();
         $this->assertDatabaseCount('try_on_visits',1);
     }
+
+    public function test_admin_can_reprocess_existing_opaque_tryon_overlay(): void
+    {
+        config(['services.fashion_ai.key'=>'test-key','services.fashion_ai.url'=>'https://api.fashn.ai/v1/run']);
+        Http::fake([
+            'https://api.fashn.ai/v1/run'=>Http::response(['id'=>'legacy-bg'],200),
+            'https://api.fashn.ai/v1/status/legacy-bg'=>Http::response(['status'=>'completed','output'=>['data:image/png;base64,'.base64_encode($this->transparentPng())]],200),
+        ]);
+        $product=$this->product();
+        $opaque=UploadedFile::fake()->image('legacy.jpg',120,120);
+        $this->post(route('admin.tryons.store'),$this->payload($product,['asset'=>$opaque,'status'=>'draft']))->assertRedirect();
+        $asset=TryOnAsset::firstOrFail();
+        $this->post(route('admin.tryons.reprocess',$asset))->assertRedirect();
+        $asset->refresh();
+        $this->assertStringEndsWith('overlay.png',$asset->previewPath());
+        Storage::disk('local')->assertExists($asset->previewPath());
+    }
+
 }
