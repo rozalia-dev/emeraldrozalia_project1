@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\TryOnAsset;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\{Http,Storage};
 use Illuminate\Support\Str;
@@ -97,6 +98,28 @@ class TryOnFiles
         } finally {
             $zip->close();
         }
+    }
+
+    public function reprocessPreview(TryOnAsset $asset): array
+    {
+        $files = $asset->files ?? [];
+        $sourcePath = data_get($files, 'source') ?: data_get($files, 'preview');
+        if (!is_string($sourcePath) || !Storage::disk('local')->exists($sourcePath)) {
+            throw ValidationException::withMessages(['asset'=>'The original Try-On image is unavailable. Upload the product image again to rebuild the transparent overlay.']);
+        }
+        $data = Storage::disk('local')->get($sourcePath);
+        $extension = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+        if (!in_array($extension, self::IMAGE_EXTENSIONS, true)) {
+            throw ValidationException::withMessages(['asset'=>'The stored Try-On source is not a supported image. Upload PNG, JPG or WebP instead.']);
+        }
+        $directory = dirname($sourcePath);
+        $transparent = $this->hasUsefulTransparency($data) ? $data : $this->removeBackgroundWithFashn($data, $extension);
+        $preview = $this->storeImage($transparent, $directory, 'png');
+        $oldPreview = data_get($files, 'preview');
+        $files['preview'] = $preview;
+        if (!data_get($files, 'source')) $files['source'] = $sourcePath;
+        if (is_string($oldPreview) && $oldPreview !== $preview && $oldPreview !== $sourcePath) Storage::disk('local')->delete($oldPreview);
+        return ['files'=>$files,'bytes'=>$this->sizeOf($files)];
     }
 
     private function storeTryOnImage(string $data, string $directory, string $extension): array
