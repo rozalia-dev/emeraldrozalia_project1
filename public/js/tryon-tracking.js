@@ -95,6 +95,23 @@ if(studio){
     if(same&&overlay.complete&&overlay.naturalWidth)position();else overlay.addEventListener('load',position,{once:true});
   };
 
+  const syncVisualPicker=()=>{
+    const value=selector?.value||'';
+    studio.querySelectorAll('[data-try-product-card]').forEach(card=>card.classList.toggle('is-selected',card.dataset.tryProductCard===value));
+    const toolbar=studio.querySelector('.try-canvas-toolbar > span');
+    if(toolbar)toolbar.textContent=selector?.selectedOptions?.[0]?.text||'Choose a product';
+  };
+  studio.querySelectorAll('[data-try-product-card]').forEach(card=>card.addEventListener('click',()=>{
+    if(card.disabled||!selector)return;
+    selector.value=card.dataset.tryProductCard||'';
+    selector.dispatchEvent(new Event('change',{bubbles:true}));
+  }));
+  studio.querySelectorAll('[data-style-filter]').forEach(tab=>tab.addEventListener('click',()=>{
+    const filter=tab.dataset.styleFilter||'all';
+    studio.querySelectorAll('[data-style-filter]').forEach(item=>item.classList.toggle('is-active',item===tab));
+    studio.querySelectorAll('[data-try-product-card]').forEach(card=>card.hidden=filter!=='all'&&card.dataset.style!==filter);
+  }));
+
   const syncModel=()=>{
     const item=meta[selector?.value||'']||{}, model=item.model||'';
     studio.querySelectorAll('[data-try-mode="3d"]').forEach(b=>{b.disabled=!model;b.title=model?'Interactive 3D model':'No published 3D model for this product';});
@@ -201,11 +218,11 @@ if(studio){
   aiRemoveBackground?.addEventListener('click',async()=>{const productId=selector?.value;if(!productId){setStatus('Choose a product first.','warn');return;}const original=aiRemoveBackground.textContent;aiRemoveBackground.disabled=true;aiRemoveBackground.textContent='AI REMOVING BACKGROUND…';setStatus('AI is creating a transparent product overlay…');try{const response=await fetch(studio.dataset.aiBgUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':studio.dataset.csrf||''},body:JSON.stringify({product_id:Number(productId)})});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body?.message||body?.errors?.asset?.[0]||'AI background removal failed.');if(overlay&&body.preview){overlay.src=body.preview+(body.preview.includes('?')?'&':'?')+'v='+Date.now();overlay.hidden=false;}setStatus('Background removed — transparent product overlay ready.','ok');syncResultActions();}catch(e){setStatus(e.message||'AI background removal failed. Please retry.','warn');}finally{aiRemoveBackground.disabled=false;aiRemoveBackground.textContent=original;}});
   cameraStart?.addEventListener('click',startCamera);cameraCapture?.addEventListener('click',captureSelfie);cameraRetake?.addEventListener('click',retakeSelfie);cameraStop?.addEventListener('click',()=>{stopCamera();setStatus('Camera stopped.');});
   upload?.addEventListener('change',()=>{stopCamera();const f=upload.files?.[0];if(!f)return;begin();setStatus('Analyzing face landmarks…');if(face?.complete&&face.naturalWidth)detectPhoto();else face?.addEventListener('load',detectPhoto,{once:true});});
-  selector?.addEventListener('change',()=>{send(true);startedAt=(stream||face?.src||upload?.files?.[0])?Date.now():0;lastSent=0;syncModel();applySelectedProduct();if(startedAt)send(true);});
+  selector?.addEventListener('change',()=>{send(true);startedAt=(stream||face?.src||upload?.files?.[0])?Date.now():0;lastSent=0;syncVisualPicker();syncModel();applySelectedProduct();if(startedAt)send(true);});
   studio.querySelectorAll('[data-try-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;mode=b.dataset.tryMode||'2d';renderMode();send(false);}));
   studio.querySelectorAll('[data-hat-size],[data-hat-x],[data-hat-y],[data-hat-rotate],[data-try-view]').forEach(c=>c.addEventListener('input',()=>send(false)));
   window.addEventListener('pagehide',()=>{send(true);stopCamera();});
   overlay?.addEventListener('load',syncResultActions);overlay?.addEventListener('error',()=>{syncResultActions();setStatus('Selected product Try-On image is unavailable. Please choose another product or ask an administrator to re-upload its overlay.','warn');});
-  syncModel();applySelectedProduct({detect:false});syncResultActions();setInterval(()=>send(false),10000);
+  syncVisualPicker();syncModel();applySelectedProduct({detect:false});syncResultActions();setInterval(()=>send(false),10000);
   if(visionStart){visionStart.disabled=false;visionStart.textContent='START VISION AI';}
 }
