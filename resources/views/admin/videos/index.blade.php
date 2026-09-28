@@ -15,7 +15,7 @@
         <div><p class="vd-breadcrumb">Website &amp; Products <span>›</span> Product Media Manager <span>›</span> Videos</p><h1>Videos</h1><p>Manage product videos to showcase features, usage and lifestyle. Support for multiple formats and platforms.</p></div>
         <a class="vd-button vd-quiet" href="{{ route('admin.media.index') }}"><x-icon name="arrow-left" size="15" /> Media overview</a>
     </header>
-    <div class="vd-notice" role="status" aria-live="polite" id="vd-notice" hidden></div>
+    <div class="vd-notice" role="status" aria-live="polite" id="vd-notice" @if(!session('success')) hidden @endif>{{ session('success') }}</div>
     <div class="vd-layout">
     <div class="vd-main">
         <section class="vd-kpis" aria-label="Video metrics">
