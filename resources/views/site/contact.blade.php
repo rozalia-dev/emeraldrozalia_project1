@@ -179,7 +179,7 @@
         <p class="contact-section-kicker">NEED TO KNOW</p>
         <h2 id="contact-faq-title">FREQUENTLY ASKED QUESTIONS</h2>
         <div class="contact-faq-grid">
-            <details name="contact-faq" open><summary>How long does delivery take?</summary><p>Delivery timing depends on the product and destination. We’ll confirm the expected delivery date with your order.</p></details>
+            <details name="contact-faq" open><summary>How long does delivery take?</summary><p>Our standard estimated delivery times are: Ireland — up to 5 working days; EU countries — 5–10 working days; USA &amp; Canada — up to 10 working days; rest of the world — up to 30 days. Customs, carriers, public holidays and remote destinations may affect delivery times.</p></details>
             <details name="contact-faq"><summary>Can I return or exchange an item?</summary><p>Yes. Contact our team with your order details and we’ll guide you through the available return or exchange options.</p></details>
             <details name="contact-faq"><summary>Do you offer bulk or corporate orders?</summary><p>Yes. Visit our Corporate Order or Bulk Order page and send us your requirements for a tailored response.</p></details>
             <details name="contact-faq"><summary>Do you ship internationally?</summary><p>We deliver worldwide. Delivery options and costs are shown for your destination during the order process.</p></details>
