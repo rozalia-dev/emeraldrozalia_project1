@@ -47,7 +47,7 @@
         <aside class="summary-card cart-summary">
             <h2>Order Summary</h2>
             <p><span>Items ({{ array_sum(array_column($items, 'quantity')) }})</span><strong>€{{ number_format($subtotal, 2) }}</strong></p>
-            <p><span>Shipping</span><small>Calculated at checkout</small></p>
+            <p><span>Shipping</span><small>Calculated at checkout · Ireland up to 5 working days · EU 5–10 · USA/Canada up to 10 · Rest of world up to 30 days</small></p>
             <hr>
             <p class="summary-total"><span>Subtotal</span><strong>€{{ number_format($subtotal, 2) }}</strong></p>
             @if($items)
