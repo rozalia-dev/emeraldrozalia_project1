@@ -31,6 +31,7 @@ Route::get('/careers',[SiteController::class,'careers'])->name('careers');
 Route::get('/global-network',[SiteController::class,'globalNetwork'])->name('global.network');
 Route::get('/contact',[SiteController::class,'contact'])->name('contact');
 Route::get('/page/{page}',[SiteController::class,'page'])->name('page');
+Route::view('/returns-refunds', 'site.returns-refunds')->name('returns-refunds');
 Route::permanentRedirect('/product/flat-cap', '/product/emerald-flat-cap');
 Route::get('/product/{product:slug}',[SiteController::class,'product'])->name('product');
 Route::get('/category/{category:slug}',[SiteController::class,'category'])->name('category');
