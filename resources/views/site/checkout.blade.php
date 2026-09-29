@@ -53,7 +53,7 @@
                         </option>
                     @endforeach
                 </select>
-                <p class="form-hint">Delivery is free when the configured order threshold is met.</p>
+                <p class="form-hint">Delivery is free when the configured order threshold is met. Standard estimated delivery: Ireland up to 5 working days; EU countries 5–10 working days; USA &amp; Canada up to 10 working days; rest of the world up to 30 days. Customs, carriers, public holidays and remote destinations may affect delivery times.</p>
             </fieldset>
 
             <fieldset class="checkout-fieldset">
