@@ -1,6 +1,15 @@
 @extends('layouts.site')
 @section('title', 'Our Story - Emerald Rozalia Headwear Limited')
 @section('content')
+<style>
+.our-story-page,.our-story-page h1,.our-story-page h2,.our-story-page p,.our-story-page strong,.our-story-page em{color:#f2f5f2}
+.our-story-page .page-hero>p:not(.eyebrow){color:#d7e1da}
+.our-story-page .eyebrow{color:#e0a04a}
+.our-story-page .managed-page-body{color:#d7e1da}
+.our-story-page .managed-page-body h2{color:#f2f5f2}
+.our-story-page .managed-page-body p{color:#d7e1da}
+</style>
+<div class="our-story-page">
 <section class="page-hero"><p class="eyebrow">EMERALD ROZALIA HEADWEAR LIMITED</p><h1>Our Story</h1><p>Irish Heritage. Modern Craftsmanship. Made to Be Remembered.</p></section>
 <section class="section managed-page-content"><div class="managed-page-body">
 <h2>Rooted in Ireland</h2>
@@ -23,4 +32,5 @@
 <p>We are building Emerald Rozalia one collection at a time, with respect for where we come from and confidence about where we are going.</p>
 <p><strong>Emerald Rozalia Headwear Limited</strong><br><em>Rooted in Ireland. Designed for the world.</em></p>
 </div></section>
+</div>
 @endsection
