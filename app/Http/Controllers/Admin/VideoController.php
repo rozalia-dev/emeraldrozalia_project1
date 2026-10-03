@@ -110,6 +110,12 @@ class VideoController extends Controller
             'resolution'=>['nullable','regex:/^[0-9]{2,5} x [0-9]{2,5}$/'],
         ]);
         if (!Product::whereKey($data['product_id'])->exists()) throw ValidationException::withMessages(['product_id'=>'Choose a product in the current company.']);
+        if ($data['category'] === 'hero' && $data['platform'] !== 'Website') {
+            throw ValidationException::withMessages(['platform'=>'Homepage hero videos must be uploaded directly to the Website platform.']);
+        }
+        if ($data['category'] === 'hero' && $data['status'] === 'published' && $data['visibility'] !== 'public') {
+            throw ValidationException::withMessages(['visibility'=>'A published homepage hero video must be Public.']);
+        }
         if ($data['status'] === 'scheduled' && !Carbon::parse($data['publish_at'])->isFuture()) throw ValidationException::withMessages(['publish_at'=>'Choose a future publication date and time.']);
         if ($data['platform'] === 'Website' && !$request->hasFile('file') && (!$video || $video->platform !== 'Website')) {
             throw ValidationException::withMessages(['file'=>'Upload an MP4, WebM or MOV video (up to 500 MB).']);
@@ -148,7 +154,8 @@ class VideoController extends Controller
                     $meta[$key] = $data[$key] ?? ($meta[$key] ?? null);
                 }
                 $meta['publish_at'] = $data['status'] === 'scheduled' ? Carbon::parse($data['publish_at'])->utc()->toIso8601String() : null;
-                $meta['gallery'] = $request->boolean('gallery');
+                $meta['gallery'] = $data['category'] === 'hero' ? false : $request->boolean('gallery');
+                $meta['homepage_hero'] = $data['category'] === 'hero';
                 $meta['allow_download'] = $request->boolean('allow_download');
                 $meta['managed_video'] = true;
                 $meta['added_by'] ??= $request->user()->name;
