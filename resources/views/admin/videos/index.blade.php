@@ -8,7 +8,7 @@
     $categories = \App\Models\ProductVideo::CATEGORIES;
     $duration = fn ($seconds) => sprintf('%02d:%02d', floor((float)$seconds / 60), (int)$seconds % 60);
     $videoData = $videos->getCollection()->map(fn ($video) => $video->details())->values();
-    $colors = ['#005b32','#0066db','#ff9d00','#fb4b26','#8c4bb4','#55969a'];
+    $colors = ['#005b32','#2f8f3a','#0066db','#ff9d00','#fb4b26','#8c4bb4','#55969a'];
 @endphp
 <div class="vd" data-video-dashboard data-store-url="{{ route('admin.videos.store') }}" data-bulk-url="{{ route('admin.videos.bulk') }}" data-csrf="{{ csrf_token() }}">
     <header class="vd-heading">
@@ -158,8 +158,12 @@
                     <label>Country<select id="vd-country"><option value="">All countries</option>@foreach($catalogCountries as $country)<option value="{{ $country->id }}">{{ $country->name }}</option>@endforeach</select></label>
                     <label>County / Region<select id="vd-county"><option value="">All counties / regions</option>@foreach($catalogCounties as $county)<option value="{{ $county->code }}" data-country="{{ $county->catalog_country_id }}">{{ $county->name }}</option>@endforeach</select></label>
                     <label class="vd-wide">Product<select name="product_id" required data-scoped-product-select><option value="">Select product</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((int) old('product_id',$scopedProductId ?? 0)===(int) $product->id)>{{ $product->name }} · {{ $product->sku }}</option>@endforeach</select><small id="vd-product-filter-count">Choose catalogue filters to narrow the product list.</small></label>
-                    <label>Video category<select name="category">@foreach($categories as $key=>$label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
+                    <label>Video category<select name="category" id="vd-category">@foreach($categories as $key=>$label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
                     <label>Platform<select name="platform" id="vd-platform"><option>Website</option><option>YouTube</option><option>Vimeo</option></select></label>
+                    <div class="vd-wide vd-hero-help" id="vd-hero-field" hidden>
+                        <strong>Homepage Hero / Model Video</strong>
+                        <span>Upload an MP4, WebM or MOV to Website. When this video is Published + Public, it automatically replaces the homepage hero image as the full-width background. The newest published hero video is used.</span>
+                    </div>
                     <label>Publication status<select name="status" id="vd-status"><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
                     <label id="vd-publish-field" hidden>Publish at (your local time)<input type="datetime-local" name="publish_at"></label>
                     <label id="vd-external-field" class="vd-wide" hidden>Video URL<input type="url" name="external_url" placeholder="https://www.youtube.com/watch?v=…"><small>Add an existing public video. This does not upload to the external platform.</small></label>
@@ -178,7 +182,7 @@
                     <label class="vd-wide">Description<textarea name="description" rows="3" maxlength="3000"></textarea></label>
                     <label class="vd-wide">Tags<input name="tags" maxlength="500" placeholder="Comma-separated tags"></label>
                 </div>
-                <p class="vd-form-note">New uploads are stored privately. Public videos appear on the product page when published and “Add to product gallery” is enabled. External links retain the provider’s own privacy settings.</p>
+                <p class="vd-form-note">New uploads are stored privately. Product videos appear on the product page when published and “Add to product gallery” is enabled. Homepage Hero / Model Video uses the newest Published + Public Website upload automatically in the homepage hero.</p>
                 <progress id="vd-progress" value="0" max="100" hidden></progress><p id="vd-upload-status" role="status" aria-live="polite"></p>
             </div>
             <footer><button type="button" class="vd-button" data-close-dialog>Cancel</button><button type="submit" class="vd-button vd-primary" id="vd-submit">Save Video</button></footer>
@@ -190,5 +194,5 @@
 </div>
 @endsection
 @push('scripts')
-<script src="/js/videos.js?v=20260928-product-taxonomy-v1" defer></script>
+<script src="/js/videos.js?v=20261003-homepage-hero-video-v1" defer></script>
 @endpush

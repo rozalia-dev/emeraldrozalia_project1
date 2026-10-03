@@ -54,7 +54,7 @@ class VideoDashboardTest extends TestCase
         $this->get('/admin/resource/videos')->assertRedirect('/login');
         $this->actingAs(User::factory()->create(['is_admin'=>false]))->get('/admin/resource/videos')->assertForbidden();
         $this->actingAs($this->admin())->get('/admin/resource/videos')->assertOk()
-            ->assertSee(['Videos','Your video library starts here','Video Summary','UUID Traceability','SEO &amp; Accessibility','/js/videos.js','/css/videos.css'],false)
+            ->assertSee(['Videos','Your video library starts here','Video Summary','UUID Traceability','SEO &amp; Accessibility','Homepage Hero / Model Video','/js/videos.js','/css/videos.css'],false)
             ->assertDontSee('Add Record',false);
         $this->actingAs(User::factory()->create(['is_admin'=>false]))->postJson('/admin/resource/videos',[])->assertForbidden();
     }
@@ -92,6 +92,55 @@ class VideoDashboardTest extends TestCase
         $this->assertDatabaseHas('audit_logs',['action'=>'video.created','subject_id'=>(string)$video->id]);
         $response->assertJsonPath('video.title','Signature Cap Overview');
         $this->get('/admin/resource/media-manager?product_id='.$product->id)->assertOk()->assertSee('Signature Cap Overview');
+    }
+
+    public function test_homepage_hero_model_video_can_be_uploaded_from_video_manager(): void
+    {
+        $product = $this->product();
+
+        $response = $this->actingAs($this->admin())->postJson(
+            '/admin/resource/videos',
+            $this->payload($product, [
+                'title' => 'Homepage Model Hero',
+                'category' => 'hero',
+                'file' => UploadedFile::fake()->create('homepage-model.mp4', 20, 'video/mp4'),
+                'status' => 'published',
+                'visibility' => 'public',
+                'gallery' => '1',
+            ])
+        );
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('video.category', 'hero')
+            ->assertJsonPath('video.status', 'published')
+            ->assertJsonPath('video.visibility', 'public');
+
+        $video = ProductVideo::firstOrFail();
+        $this->assertSame('hero', data_get($video->metadata, 'category'));
+        $this->assertTrue((bool) data_get($video->metadata, 'homepage_hero'));
+        $this->assertFalse((bool) data_get($video->metadata, 'gallery'));
+        $this->assertSame('Website', $video->platform);
+    }
+
+    public function test_published_homepage_hero_rejects_external_or_private_delivery(): void
+    {
+        $product = $this->product();
+        $this->actingAs($this->admin());
+
+        $this->postJson('/admin/resource/videos', $this->payload($product, [
+            'category' => 'hero',
+            'platform' => 'YouTube',
+            'external_url' => 'https://youtu.be/dQw4w9WgXcQ',
+            'status' => 'published',
+        ]))->assertUnprocessable()->assertJsonValidationErrors('platform');
+
+        $this->postJson('/admin/resource/videos', $this->payload($product, [
+            'category' => 'hero',
+            'file' => UploadedFile::fake()->create('private-hero.mp4', 20, 'video/mp4'),
+            'status' => 'published',
+            'visibility' => 'private',
+        ]))->assertUnprocessable()->assertJsonValidationErrors('visibility');
     }
 
     public function test_invalid_uploads_links_captions_and_schedules_are_rejected_without_partial_records(): void

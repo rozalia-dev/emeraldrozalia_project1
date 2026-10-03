@@ -133,6 +133,25 @@
         sessionStorage.setItem('vd-selected',String(id));
     };
     const platformFields = () => {
+        const hero = form.elements.category?.value === 'hero';
+        const platform = form.elements.platform;
+        const visibility = form.elements.visibility;
+        const gallery = form.elements.gallery;
+        if (platform) {
+            [...platform.options].forEach(option => { option.disabled = hero && option.value !== 'Website'; });
+            if (hero) platform.value = 'Website';
+        }
+        if (visibility) {
+            [...visibility.options].forEach(option => { option.disabled = hero && option.value !== 'public'; });
+            if (hero) visibility.value = 'public';
+        }
+        if (gallery) {
+            gallery.disabled = hero;
+            if (hero) gallery.checked = false;
+        }
+        const heroHelp = $('#vd-hero-field');
+        if (heroHelp) heroHelp.hidden = !hero;
+
         const external = form.elements.platform.value !== 'Website';
         $('#vd-upload-fields').hidden = external;
         filesInput.disabled = external;
@@ -180,6 +199,7 @@
     $$('[data-close-dialog]').forEach(button => button.addEventListener('click',() => { if (!busy) dialog.close(); }));
     dialog.addEventListener('cancel',event => { if (busy) event.preventDefault(); });
     $('#vd-platform').addEventListener('change',platformFields);
+    $('#vd-category')?.addEventListener('change',platformFields);
     $('#vd-status').addEventListener('change',platformFields);
     filesInput.addEventListener('change',() => setFiles(filesInput.files));
     [$('#vd-file-drop'),$('#vd-quick-drop')].forEach(zone => {

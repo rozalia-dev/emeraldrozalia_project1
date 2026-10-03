@@ -67,6 +67,29 @@ class SiteController extends Controller
             ->limit(8)
             ->get();
 
+        // The newest published/public Website video in the dedicated hero
+        // category becomes the homepage background automatically. Keeping this
+        // in Product Media Manager lets merchandising teams swap model videos
+        // without editing the homepage section or deployment code.
+        $homeHeroVideoRecord = ProductVideo::query()
+            ->where('metadata->category', 'hero')
+            ->where('metadata->platform', 'Website')
+            ->where('metadata->visibility', 'public')
+            ->where('active', true)
+            ->latest('updated_at')
+            ->limit(20)
+            ->get()
+            ->first(fn (ProductVideo $video): bool => $video->isPubliclyPlayable());
+
+        $homeHeroVideo = $homeHeroVideoRecord ? [
+            'uuid' => $homeHeroVideoRecord->uuid,
+            'url' => route('videos.asset', [$homeHeroVideoRecord->uuid, 'video']),
+            'poster' => data_get($homeHeroVideoRecord->metadata, 'poster')
+                ? route('videos.asset', [$homeHeroVideoRecord->uuid, 'poster'])
+                : null,
+            'title' => $homeHeroVideoRecord->title,
+        ] : null;
+
         $banners = Banner::query()
             ->with('media')
             ->publishedFor('Home - Main Slider')
@@ -153,6 +176,7 @@ class SiteController extends Controller
             'homeProducts' => $homeProducts,
             'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
+            'homeHeroVideo' => $homeHeroVideo,
             'newProducts' => $homeProducts,
             'banners' => $banners,
             'homepage' => $homepage,
