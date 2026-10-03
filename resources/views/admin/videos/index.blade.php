@@ -182,7 +182,7 @@
                     <label class="vd-wide">Description<textarea name="description" rows="3" maxlength="3000"></textarea></label>
                     <label class="vd-wide">Tags<input name="tags" maxlength="500" placeholder="Comma-separated tags"></label>
                 </div>
-                <p class="vd-form-note">New uploads are stored privately. Product videos appear on the product page when published and “Add to product gallery” is enabled. Homepage Hero / Model Video uses the newest Published + Public Website upload automatically in the homepage hero.</p>
+                <p class="vd-form-note">New uploads are stored privately. Product videos require a product and appear on the product page when published and “Add to product gallery” is enabled. Homepage Hero / Model Video does not require a product; the newest Published + Public Website upload is used automatically in the homepage hero.</p>
                 <progress id="vd-progress" value="0" max="100" hidden></progress><p id="vd-upload-status" role="status" aria-live="polite"></p>
             </div>
             <footer><button type="button" class="vd-button" data-close-dialog>Cancel</button><button type="submit" class="vd-button vd-primary" id="vd-submit">Save Video</button></footer>
