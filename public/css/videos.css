@@ -162,6 +162,9 @@
 .vd-file-list>div{padding:4px 0}
 .vd-file-drop.is-dragging,.vd-dropzone.is-dragging{background:#e0f2e6;border-color:#278c48}
 .vd-form-note{font-size:11px;color:#738877;margin:18px 0!important}
+.vd-hero-help{display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid #b9dcc4;border-radius:6px;background:#f0f9f3;color:#365741;font-size:11px;line-height:1.45}
+.vd-hero-help strong{color:#0b7139;font-size:12px}
+.vd-hero-help[hidden]{display:none!important}
 .vd-form-errors{padding:12px;border:1px solid #e6bdb2;background:#fff2ee;color:#a63123;border-radius:5px;margin-bottom:14px;white-space:pre-line}
 .vd progress{width:100%;accent-color:#007434}
 .vd-info-dialog{width:min(650px,94vw)}
