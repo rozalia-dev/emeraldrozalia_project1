@@ -3,7 +3,7 @@
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
     <link rel="stylesheet" href="/css/home-collections.css?v=20260922-category-products">
-    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-full-model-v2">
+    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-full-width-model-v3">
 @endpush
 @section('content')
     @php
@@ -65,6 +65,7 @@
         @if($heroSection)
             <section id="{{ $heroId }}" class="home-hero home-hero--structured{{ ($heroBackgroundUrl || $heroBackgroundVideoUrl) ? ' home-hero--has-background' : '' }}{{ $heroBackgroundVideoUrl ? ' home-hero--has-video' : '' }}" @if($heroBackgroundUrl) style="--home-hero-background-image: url('{{ $heroBackgroundUrl }}');" @endif data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" @if($heroBackgroundVideoUrl) data-home-hero-video="{{ $heroVideo['uuid'] ?? '' }}" @endif aria-labelledby="{{ $heroId }}-title">
                 @if($heroBackgroundVideoUrl)
+                    <video class="home-hero-background-fill" src="{{ $heroBackgroundVideoUrl }}" @if($heroBackgroundVideoPoster) poster="{{ $heroBackgroundVideoPoster }}" @endif autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
                     <video class="home-hero-background-video" src="{{ $heroBackgroundVideoUrl }}" @if($heroBackgroundVideoPoster) poster="{{ $heroBackgroundVideoPoster }}" @endif autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
                 @endif
                 <div class="home-hero-structured-grid">
