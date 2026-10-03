@@ -31,7 +31,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'SHOP BY COLLECTION',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260922-category-products',
-                '/css/home-hero-layout.css?v=20261003-hero-video-v1',
+                '/css/home-hero-layout.css?v=20261003-full-model-v2',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
