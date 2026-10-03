@@ -3,7 +3,7 @@
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
     <link rel="stylesheet" href="/css/home-collections.css?v=20260922-category-products">
-    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-hero-video-v1">
+    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-full-model-v2">
 @endpush
 @section('content')
     @php
