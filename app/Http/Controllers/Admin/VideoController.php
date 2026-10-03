@@ -52,7 +52,7 @@ class VideoController extends Controller
         $all = ProductVideo::with('product')->get();
         $plays = VideoPlay::whereIn('product_media_id', $all->modelKeys())->where('day', '>=', now()->subDays(29)->toDateString());
         $stats = [
-            'total' => $all->count(), 'products' => $all->pluck('product_id')->unique()->count(),
+            'total' => $all->count(), 'products' => $all->pluck('product_id')->filter()->unique()->count(),
             'views' => (clone $plays)->count(), 'seconds' => (int) (clone $plays)->sum('seconds'),
             'bytes' => $all->sum(fn ($v) => (int) data_get($v->metadata, 'bytes', 0)),
             'published' => $all->filter(fn ($v) => $v->video_status === 'published')->count(),
@@ -93,7 +93,12 @@ class VideoController extends Controller
     private function validated(Request $request, ?ProductVideo $video = null): array
     {
         $data = $request->validate([
-            'title'=>'required|string|max:160', 'product_id'=>'required|integer',
+            'title'=>'required|string|max:160',
+            'product_id'=>[
+                'nullable',
+                'integer',
+                Rule::requiredIf(fn (): bool => $request->input('category') !== 'hero'),
+            ],
             'category'=>['required',Rule::in(array_keys(ProductVideo::CATEGORIES))],
             'platform'=>['required',Rule::in(['Website','YouTube','Vimeo'])],
             'status'=>['required',Rule::in(['draft','published','scheduled'])],
@@ -109,7 +114,12 @@ class VideoController extends Controller
             'duration'=>'nullable|numeric|min:0|max:86400',
             'resolution'=>['nullable','regex:/^[0-9]{2,5} x [0-9]{2,5}$/'],
         ]);
-        if (!Product::whereKey($data['product_id'])->exists()) throw ValidationException::withMessages(['product_id'=>'Choose a product in the current company.']);
+        if ($data['category'] !== 'hero' && !Product::whereKey($data['product_id'] ?? null)->exists()) {
+            throw ValidationException::withMessages(['product_id'=>'Choose a product in the current company.']);
+        }
+        if ($data['category'] === 'hero') {
+            $data['product_id'] = null;
+        }
         if ($data['category'] === 'hero' && $data['platform'] !== 'Website') {
             throw ValidationException::withMessages(['platform'=>'Homepage hero videos must be uploaded directly to the Website platform.']);
         }
@@ -198,7 +208,7 @@ class VideoController extends Controller
                     $meta[$asset] = $path;
                 }
                 if ($existing && $oldPath !== $video->path && !str_starts_with($oldPath, 'https://')) $oldPaths[] = [$oldDisk,$oldPath];
-                $video->fill(['product_id'=>$data['product_id'], 'alt_text'=>$data['title'], 'active'=>$data['status'] !== 'draft', 'metadata'=>$meta]);
+                $video->fill(['product_id'=>$data['product_id'] ?? null, 'alt_text'=>$data['title'], 'active'=>$data['status'] !== 'draft', 'metadata'=>$meta]);
                 $video->save();
                 AuditTrail::record($existing ? 'video.updated' : 'video.created', $video, $before, $video->fresh()->toArray());
                 DB::afterCommit(function () use (&$oldPaths): void { foreach ($oldPaths as [$disk,$path]) $this->removeUnreferencedFile($disk,$path); });
@@ -224,14 +234,14 @@ class VideoController extends Controller
             $request->session()->flash('success','1 video saved successfully.');
             return response()->json(['message'=>'Video saved.', 'video'=>$video->details()],201);
         }
-        return redirect()->route('admin.videos.index',['product_id'=>$video->product_id])->with('success','Video saved.');
+        return redirect()->route('admin.videos.index', $video->product_id ? ['product_id'=>$video->product_id] : ['category'=>'hero'])->with('success','Video saved.');
     }
 
     public function update(Request $request, ProductVideo $video)
     {
         $video = $this->save($request, $video);
         if ($request->expectsJson()) return response()->json(['message'=>'Video updated.', 'video'=>$video->details()]);
-        return redirect()->route('admin.videos.index',['product_id'=>$video->product_id])->with('success','Video updated.');
+        return redirect()->route('admin.videos.index', $video->product_id ? ['product_id'=>$video->product_id] : ['category'=>'hero'])->with('success','Video updated.');
     }
 
     public function bulk(Request $request)
