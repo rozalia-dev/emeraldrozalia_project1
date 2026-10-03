@@ -26,26 +26,32 @@
     background-image: none;
 }
 
+.home-page .home-hero-background-fill,
 .home-page .home-hero-background-video {
     position: absolute;
-    z-index: -2;
     inset: 0;
     display: block;
     width: 100%;
     height: 100%;
     min-height: 100%;
-    object-fit: cover;
-    object-position: center;
-    background: #020a07;
     pointer-events: none;
 }
 
-/* Hero/model uploads are commonly portrait videos. Keep the complete model in
-   frame instead of cropping the head or feet to fill a landscape hero. The
-   unused area remains part of the dark branded hero and sits behind the copy. */
-.home-page .home-hero--has-video .home-hero-background-video {
+.home-page .home-hero-background-fill {
+    z-index: -3;
+    object-fit: cover;
+    object-position: center;
+    opacity: .72;
+    filter: blur(7px) saturate(.9);
+    transform: scale(1.035);
+}
+
+/* Keep the full portrait model visible on top of the moving full-width fill. */
+.home-page .home-hero-background-video {
+    z-index: -2;
     object-fit: contain;
     object-position: right center;
+    background: transparent;
 }
 
 
@@ -344,6 +350,10 @@
 @media (max-width: 760px) {
     .home-page .home-hero--structured {
         padding: 30px 16px 34px;
+    }
+
+    .home-page .home-hero-background-video {
+        object-position: center;
     }
 
     .home-page .home-hero-structured-grid {

@@ -31,7 +31,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'SHOP BY COLLECTION',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260922-category-products',
-                '/css/home-hero-layout.css?v=20261003-full-model-v2',
+                '/css/home-hero-layout.css?v=20261003-full-width-model-v3',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
@@ -88,6 +88,7 @@ class HomeCollectionsReferenceTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('data-home-hero-video="'.$video->uuid.'"', false)
+            ->assertSee('class="home-hero-background-fill"', false)
             ->assertSee('class="home-hero-background-video"', false)
             ->assertSee(route('videos.asset', [$video->uuid, 'video']), false)
             ->assertSee('autoplay muted loop playsinline', false)
