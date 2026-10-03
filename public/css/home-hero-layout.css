@@ -40,6 +40,15 @@
     pointer-events: none;
 }
 
+/* Hero/model uploads are commonly portrait videos. Keep the complete model in
+   frame instead of cropping the head or feet to fill a landscape hero. The
+   unused area remains part of the dark branded hero and sits behind the copy. */
+.home-page .home-hero--has-video .home-hero-background-video {
+    object-fit: contain;
+    object-position: right center;
+}
+
+
 .home-page .home-hero--structured::after {
     position: absolute;
     z-index: -1;
