@@ -8,7 +8,7 @@
     $categories = \App\Models\ProductVideo::CATEGORIES;
     $duration = fn ($seconds) => sprintf('%02d:%02d', floor((float)$seconds / 60), (int)$seconds % 60);
     $videoData = $videos->getCollection()->map(fn ($video) => $video->details())->values();
-    $colors = ['#005b32','#0066db','#ff9d00','#fb4b26','#8c4bb4','#55969a'];
+    $colors = ['#005b32','#2f8f3a','#0066db','#ff9d00','#fb4b26','#8c4bb4','#55969a'];
 @endphp
 <div class="vd" data-video-dashboard data-store-url="{{ route('admin.videos.store') }}" data-bulk-url="{{ route('admin.videos.bulk') }}" data-csrf="{{ csrf_token() }}">
     <header class="vd-heading">
