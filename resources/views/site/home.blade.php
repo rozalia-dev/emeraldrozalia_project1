@@ -3,7 +3,7 @@
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
     <link rel="stylesheet" href="/css/home-collections.css?v=20260922-category-products">
-    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-full-width-model-v3">
+    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-two-videos-v4">
 @endpush
 @section('content')
     @php
@@ -27,11 +27,18 @@
         $heroMedia = $heroSection && is_array($homeMedia ?? null) && filled($heroSection->media_uuid)
             ? ($homeMedia[$heroSection->media_uuid] ?? null)
             : null;
-        $heroVideo = is_array($homeHeroVideo ?? null) && filled($homeHeroVideo['url'] ?? null)
-            ? $homeHeroVideo
-            : null;
-        $heroBackgroundVideoUrl = $heroVideo['url'] ?? null;
-        $heroBackgroundVideoPoster = $heroVideo['poster'] ?? null;
+        $heroVideos = collect(is_array($homeHeroVideos ?? null) ? $homeHeroVideos : [])
+            ->filter(fn ($video) => is_array($video) && filled($video['url'] ?? null))
+            ->values();
+        if ($heroVideos->isEmpty() && is_array($homeHeroVideo ?? null) && filled($homeHeroVideo['url'] ?? null)) {
+            $heroVideos = collect([$homeHeroVideo]);
+        }
+        // Newest upload is shown on the right; the previous upload is shown on the left.
+        $heroRightVideo = $heroVideos->get(0);
+        $heroLeftVideo = $heroVideos->get(1);
+        $heroBackgroundVideoUrl = $heroRightVideo['url'] ?? null;
+        $heroBackgroundVideoPoster = $heroRightVideo['poster'] ?? null;
+        $hasDualHeroVideos = is_array($heroLeftVideo) && filled($heroLeftVideo['url'] ?? null);
         $heroBackgroundUrl = ! $heroBackgroundVideoUrl
             && is_array($heroMedia)
             && str_starts_with((string) ($heroMedia['mime_type'] ?? ''), 'image/')
@@ -63,10 +70,14 @@
         @endif
 
         @if($heroSection)
-            <section id="{{ $heroId }}" class="home-hero home-hero--structured{{ ($heroBackgroundUrl || $heroBackgroundVideoUrl) ? ' home-hero--has-background' : '' }}{{ $heroBackgroundVideoUrl ? ' home-hero--has-video' : '' }}" @if($heroBackgroundUrl) style="--home-hero-background-image: url('{{ $heroBackgroundUrl }}');" @endif data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" @if($heroBackgroundVideoUrl) data-home-hero-video="{{ $heroVideo['uuid'] ?? '' }}" @endif aria-labelledby="{{ $heroId }}-title">
+            <section id="{{ $heroId }}" class="home-hero home-hero--structured{{ ($heroBackgroundUrl || $heroBackgroundVideoUrl) ? ' home-hero--has-background' : '' }}{{ $heroBackgroundVideoUrl ? ' home-hero--has-video' : '' }}{{ $hasDualHeroVideos ? ' home-hero--has-two-videos' : '' }}" @if($heroBackgroundUrl) style="--home-hero-background-image: url('{{ $heroBackgroundUrl }}');" @endif data-home-section="hero" data-home-section-uuid="{{ $heroSection->uuid }}" data-home-animation="{{ $heroAnimation }}" data-home-devices="{{ $heroDeviceValue }}" @if($heroBackgroundVideoUrl) data-home-hero-video="{{ $heroRightVideo['uuid'] ?? '' }}" @endif @if($hasDualHeroVideos) data-home-hero-video-left="{{ $heroLeftVideo['uuid'] ?? '' }}" @endif aria-labelledby="{{ $heroId }}-title">
                 @if($heroBackgroundVideoUrl)
-                    <video class="home-hero-background-fill" src="{{ $heroBackgroundVideoUrl }}" @if($heroBackgroundVideoPoster) poster="{{ $heroBackgroundVideoPoster }}" @endif autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
-                    <video class="home-hero-background-video" src="{{ $heroBackgroundVideoUrl }}" @if($heroBackgroundVideoPoster) poster="{{ $heroBackgroundVideoPoster }}" @endif autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
+                    <div class="home-hero-video-stage{{ $hasDualHeroVideos ? ' home-hero-video-stage--dual' : ' home-hero-video-stage--single' }}" aria-hidden="true">
+                        @if($hasDualHeroVideos)
+                            <video class="home-hero-side-video home-hero-side-video--left" src="{{ $heroLeftVideo['url'] }}" @if(filled($heroLeftVideo['poster'] ?? null)) poster="{{ $heroLeftVideo['poster'] }}" @endif autoplay muted loop playsinline preload="metadata" tabindex="-1"></video>
+                        @endif
+                        <video class="home-hero-side-video home-hero-side-video--right" src="{{ $heroBackgroundVideoUrl }}" @if($heroBackgroundVideoPoster) poster="{{ $heroBackgroundVideoPoster }}" @endif autoplay muted loop playsinline preload="metadata" tabindex="-1"></video>
+                    </div>
                 @endif
                 <div class="home-hero-structured-grid">
                     <div class="home-hero-structured-copy">
