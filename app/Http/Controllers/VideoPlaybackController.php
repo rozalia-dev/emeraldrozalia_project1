@@ -10,7 +10,7 @@ class VideoPlaybackController extends Controller
 {
     private function authorizeVideo(ProductVideo $video): void
     {
-        abort_unless((auth()->user()?->is_admin && $video->product) || $video->isPubliclyPlayable(),404);
+        abort_unless(auth()->user()?->is_admin || $video->isPubliclyPlayable(),404);
     }
 
     public function watch(ProductVideo $video)

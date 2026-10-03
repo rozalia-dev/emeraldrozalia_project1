@@ -94,33 +94,52 @@ class VideoDashboardTest extends TestCase
         $this->get('/admin/resource/media-manager?product_id='.$product->id)->assertOk()->assertSee('Signature Cap Overview');
     }
 
-    public function test_homepage_hero_model_video_can_be_uploaded_from_video_manager(): void
+    public function test_homepage_hero_model_video_can_be_uploaded_without_selecting_a_product(): void
     {
         $product = $this->product();
+        $payload = $this->payload($product, [
+            'title' => 'Homepage Model Hero',
+            'category' => 'hero',
+            'file' => UploadedFile::fake()->create('homepage-model.mp4', 20, 'video/mp4'),
+            'status' => 'published',
+            'visibility' => 'public',
+            'gallery' => '1',
+        ]);
+        unset($payload['product_id']);
 
-        $response = $this->actingAs($this->admin())->postJson(
-            '/admin/resource/videos',
-            $this->payload($product, [
-                'title' => 'Homepage Model Hero',
-                'category' => 'hero',
-                'file' => UploadedFile::fake()->create('homepage-model.mp4', 20, 'video/mp4'),
-                'status' => 'published',
-                'visibility' => 'public',
-                'gallery' => '1',
-            ])
-        );
+        $response = $this->actingAs($this->admin())->postJson('/admin/resource/videos', $payload);
 
         $response
             ->assertCreated()
             ->assertJsonPath('video.category', 'hero')
             ->assertJsonPath('video.status', 'published')
-            ->assertJsonPath('video.visibility', 'public');
+            ->assertJsonPath('video.visibility', 'public')
+            ->assertJsonPath('video.product_id', null);
 
         $video = ProductVideo::firstOrFail();
+        $this->assertNull($video->product_id);
         $this->assertSame('hero', data_get($video->metadata, 'category'));
         $this->assertTrue((bool) data_get($video->metadata, 'homepage_hero'));
         $this->assertFalse((bool) data_get($video->metadata, 'gallery'));
         $this->assertSame('Website', $video->platform);
+        $this->assertTrue($video->isPubliclyPlayable());
+        $this->get(route('videos.asset', [$video->uuid, 'video']))->assertOk();
+    }
+
+    public function test_product_video_still_requires_a_product(): void
+    {
+        $product = $this->product();
+        $payload = $this->payload($product, [
+            'file' => UploadedFile::fake()->create('product-video.mp4', 20, 'video/mp4'),
+        ]);
+        unset($payload['product_id']);
+
+        $this->actingAs($this->admin())
+            ->postJson('/admin/resource/videos', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('product_id');
+
+        $this->assertDatabaseCount('product_media', 0);
     }
 
     public function test_published_homepage_hero_rejects_external_or_private_delivery(): void
