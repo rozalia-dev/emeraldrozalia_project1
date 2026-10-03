@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductCollection;
+use App\Models\ProductVideo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class HomeCollectionsReferenceTest extends TestCase
@@ -29,7 +31,7 @@ class HomeCollectionsReferenceTest extends TestCase
                 'SHOP BY COLLECTION',
                 'BESTSELLERS',
                 '/css/home-collections.css?v=20260922-category-products',
-                '/css/home-hero-layout.css?v=20260914-side-overlay-gradient',
+                '/css/home-hero-layout.css?v=20261003-hero-video-v1',
                 'data-home-carousel-track',
                 'data-home-carousel-prev',
                 'data-home-carousel-next',
@@ -50,6 +52,46 @@ class HomeCollectionsReferenceTest extends TestCase
 
         $this->get('/')->assertDontSee('<select name="product_id"', false)->assertDontSeeText('Select a product');
         $this->get('/')->assertDontSee('home-collections-reference', false)->assertDontSee('home-page-reference', false);
+    }
+
+    public function test_homepage_uses_latest_published_public_website_hero_video_as_background(): void
+    {
+        Storage::fake('local');
+
+        $product = Product::create([
+            'name' => 'Homepage Hero Model Cap',
+            'slug' => 'homepage-hero-model-cap',
+            'sku' => 'HOME-HERO-001',
+            'price' => 79,
+            'stock' => 10,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        Storage::disk('local')->put('videos/files/home-hero.mp4', 'hero-video-content');
+
+        $video = ProductVideo::create([
+            'product_id' => $product->id,
+            'disk' => 'local',
+            'path' => 'videos/files/home-hero.mp4',
+            'active' => true,
+            'metadata' => [
+                'title' => 'Homepage Model Hero',
+                'category' => 'hero',
+                'homepage_hero' => true,
+                'platform' => 'Website',
+                'visibility' => 'public',
+                'gallery' => false,
+            ],
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('data-home-hero-video="'.$video->uuid.'"', false)
+            ->assertSee('class="home-hero-background-video"', false)
+            ->assertSee(route('videos.asset', [$video->uuid, 'video']), false)
+            ->assertSee('autoplay muted loop playsinline', false)
+            ->assertSee('published-hero-video', false);
     }
 
     public function test_homepage_shows_every_public_root_category_and_every_public_collection(): void
