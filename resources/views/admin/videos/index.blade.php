@@ -194,5 +194,5 @@
 </div>
 @endsection
 @push('scripts')
-<script src="/js/videos.js?v=20261003-homepage-hero-video-v1" defer></script>
+<script src="/js/videos.js?v=20261003-homepage-hero-no-product-v2" defer></script>
 @endpush
