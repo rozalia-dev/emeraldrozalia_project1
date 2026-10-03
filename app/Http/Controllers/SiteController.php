@@ -67,11 +67,10 @@ class SiteController extends Controller
             ->limit(8)
             ->get();
 
-        // The newest published/public Website video in the dedicated hero
-        // category becomes the homepage background automatically. Keeping this
-        // in Product Media Manager lets merchandising teams swap model videos
-        // without editing the homepage section or deployment code.
-        $homeHeroVideoRecord = ProductVideo::query()
+        // Use the two newest published/public Website hero videos as a split
+        // homepage stage: previous upload on the left, newest upload on the right.
+        // A single available video still works as a one-video fallback.
+        $homeHeroVideoRecords = ProductVideo::query()
             ->where('metadata->category', 'hero')
             ->where('metadata->platform', 'Website')
             ->where('metadata->visibility', 'public')
@@ -79,16 +78,24 @@ class SiteController extends Controller
             ->latest('updated_at')
             ->limit(20)
             ->get()
-            ->first(fn (ProductVideo $video): bool => $video->isPubliclyPlayable());
+            ->filter(fn (ProductVideo $video): bool => $video->isPubliclyPlayable())
+            ->take(2)
+            ->values();
 
-        $homeHeroVideo = $homeHeroVideoRecord ? [
-            'uuid' => $homeHeroVideoRecord->uuid,
-            'url' => route('videos.asset', [$homeHeroVideoRecord->uuid, 'video']),
-            'poster' => data_get($homeHeroVideoRecord->metadata, 'poster')
-                ? route('videos.asset', [$homeHeroVideoRecord->uuid, 'poster'])
-                : null,
-            'title' => $homeHeroVideoRecord->title,
-        ] : null;
+        $homeHeroVideos = $homeHeroVideoRecords
+            ->map(fn (ProductVideo $video): array => [
+                'uuid' => $video->uuid,
+                'url' => route('videos.asset', [$video->uuid, 'video']),
+                'poster' => data_get($video->metadata, 'poster')
+                    ? route('videos.asset', [$video->uuid, 'poster'])
+                    : null,
+                'title' => $video->title,
+            ])
+            ->values()
+            ->all();
+
+        // Keep the legacy single-video key for callers that still expect it.
+        $homeHeroVideo = $homeHeroVideos[0] ?? null;
 
         $banners = Banner::query()
             ->with('media')
@@ -177,6 +184,7 @@ class SiteController extends Controller
             'homeBestsellers' => $homeBestsellers,
             'homeLatestProducts' => $homeLatestProducts,
             'homeHeroVideo' => $homeHeroVideo,
+            'homeHeroVideos' => $homeHeroVideos,
             'newProducts' => $homeProducts,
             'banners' => $banners,
             'homepage' => $homepage,

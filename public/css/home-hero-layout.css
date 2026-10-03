@@ -26,32 +26,40 @@
     background-image: none;
 }
 
-.home-page .home-hero-background-fill,
-.home-page .home-hero-background-video {
+.home-page .home-hero-video-stage {
     position: absolute;
+    z-index: -2;
     inset: 0;
-    display: block;
+    display: grid;
     width: 100%;
     height: 100%;
     min-height: 100%;
+    overflow: hidden;
+    background: #020a07;
     pointer-events: none;
 }
 
-.home-page .home-hero-background-fill {
-    z-index: -3;
-    object-fit: cover;
-    object-position: center;
-    opacity: .72;
-    filter: blur(7px) saturate(.9);
-    transform: scale(1.035);
+.home-page .home-hero-video-stage--dual {
+    grid-template-columns: 1fr 1fr;
 }
 
-/* Keep the full portrait model visible on top of the moving full-width fill. */
-.home-page .home-hero-background-video {
-    z-index: -2;
+.home-page .home-hero-video-stage--single {
+    grid-template-columns: 1fr;
+}
+
+.home-page .home-hero-side-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 100%;
     object-fit: contain;
+    object-position: center;
+    background: #020a07;
+}
+
+.home-page .home-hero-video-stage--single .home-hero-side-video--right {
     object-position: right center;
-    background: transparent;
 }
 
 
@@ -352,7 +360,12 @@
         padding: 30px 16px 34px;
     }
 
-    .home-page .home-hero-background-video {
+    .home-page .home-hero-video-stage--dual {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .home-page .home-hero-side-video,
+    .home-page .home-hero-video-stage--single .home-hero-side-video--right {
         object-position: center;
     }
 
