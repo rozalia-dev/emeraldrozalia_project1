@@ -149,6 +149,13 @@
             gallery.disabled = hero;
             if (hero) gallery.checked = false;
         }
+        $('[data-product-only-field]', form).forEach(field => {
+            field.hidden = hero;
+            field.querySelectorAll('select,input').forEach(input => { input.disabled = hero; });
+        });
+        if (productSelect) productSelect.required = !hero;
+        if (!hero) filterVideoProducts();
+
         const heroHelp = $('#vd-hero-field');
         if (heroHelp) heroHelp.hidden = !hero;
 
@@ -190,7 +197,10 @@
         }
         if (incoming) setFiles(incoming);
         platformFields(); dialog.showModal();
-        if (incoming?.length) form.elements.product_id.focus();
+        if (incoming?.length) {
+            const focusTarget = form.elements.category.value === 'hero' ? form.elements.title : form.elements.product_id;
+            focusTarget?.focus();
+        }
     };
     $$('[data-new-video]').forEach(button => button.addEventListener('click',() => openEditor()));
     $$('[data-select-video]').forEach(button => button.addEventListener('click',() => { selectVideo(button.dataset.selectVideo); $('#vd-preview').scrollIntoView({behavior:'smooth',block:'center'}); }));
