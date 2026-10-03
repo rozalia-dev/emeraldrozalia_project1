@@ -21,7 +21,7 @@ class ProductVideo extends ProductMedia
 
     protected static function booted(): void
     {
-        static::addGlobalScope('videos', fn (Builder $query) => $query->where('type', 'video')->whereHas('product'));
+        static::addGlobalScope('videos', fn (Builder $query) => $query->where('type', 'video'));
         static::creating(function (self $video): void {
             $video->type = 'video';
             $video->uuid ??= (string) Str::uuid();
@@ -69,9 +69,11 @@ class ProductVideo extends ProductMedia
 
     public function isPubliclyPlayable(): bool
     {
+        $isHomepageHero = data_get($this->metadata, 'category', 'product') === 'hero';
+
         return $this->video_status === 'published'
             && data_get($this->metadata, 'visibility', $this->disk === 'public' ? 'public' : 'private') === 'public'
-            && (bool) $this->product?->isPubliclyPublished();
+            && ($isHomepageHero || (bool) $this->product?->isPubliclyPublished());
     }
 
     public function details(): array
