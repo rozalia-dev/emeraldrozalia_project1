@@ -149,7 +149,7 @@
             gallery.disabled = hero;
             if (hero) gallery.checked = false;
         }
-        $('[data-product-only-field]', form).forEach(field => {
+        $$('[data-product-only-field]', form).forEach(field => {
             field.hidden = hero;
             field.querySelectorAll('select,input').forEach(input => { input.disabled = hero; });
         });
