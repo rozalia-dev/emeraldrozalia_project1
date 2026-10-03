@@ -11,6 +11,7 @@ class ProductVideo extends ProductMedia
 
     public const CATEGORIES = [
         'product' => 'Product Videos',
+        'hero' => 'Homepage Hero / Model Video',
         'lifestyle' => 'Lifestyle Videos',
         'how-to' => 'How-To / Tutorial',
         'promotional' => 'Promotional',
