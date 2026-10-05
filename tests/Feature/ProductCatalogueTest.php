@@ -157,12 +157,20 @@ class ProductCatalogueTest extends TestCase
             ->assertSeeText('Current Emerald Catalogue Cap')
             ->assertSeeText('Generated Baseball Caps')
             ->assertSeeText('SAVE CURRENT CATALOGUE AS PDF')
+            ->assertSeeText('SKU CAT-LIVE-001')
+            ->assertSeeText('Product image coming soon.')
+            ->assertDontSeeText('Product UUID')
+            ->assertDontSeeText('Barcode')
             ->assertDontSeeText('Hidden Draft Catalogue Cap')
             ->assertSee('>CATALOGUE</a>', false);
 
         $this->withSession(['company_id' => $company->id])->get(route('catalogue.print'))
             ->assertOk()
             ->assertSeeText('Current Emerald Catalogue Cap')
+            ->assertSeeText('SKU CAT-LIVE-001')
+            ->assertSeeText('Product image coming soon')
+            ->assertDontSeeText('Product UUID')
+            ->assertDontSeeText('Barcode')
             ->assertDontSeeText('Hidden Draft Catalogue Cap')
             ->assertSeeText('Print / Save PDF');
 
