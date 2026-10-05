@@ -16,6 +16,7 @@ require __DIR__.'/ai-fashion-model.php';
 require __DIR__.'/categories.php';
 Route::get('/',[SiteController::class,'home'])->name('home');
 Route::get('/shop',[SiteController::class,'shop'])->name('shop');
+Route::get('/product-catalogue',[SiteController::class,'shop'])->name('product.catalogue');
 Route::get('/collections',[SiteController::class,'collections'])->name('collections');
 Route::get('/new-arrivals',[SiteController::class,'newArrivals'])->name('new.arrivals');
 Route::get('/virtual-tryon',[SiteController::class,'virtualTryOn'])->name('virtual-tryon');
