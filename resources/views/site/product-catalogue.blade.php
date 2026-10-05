@@ -41,7 +41,8 @@
 .product-catalogue-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(6,48,32,.16)}
 .product-catalogue-card>a{display:flex;height:100%;flex-direction:column;color:var(--site-text);text-decoration:none}
 .product-catalogue-media{width:100%;aspect-ratio:1/1;background:var(--site-surface-muted);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.product-catalogue-media img{display:block;width:100%;height:100%;object-fit:cover}
+.product-catalogue-media--image{padding:12px;background:#fff}
+.product-catalogue-media--image img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
 .product-catalogue-media-empty{padding:18px;text-align:center;color:var(--site-text-muted);font-size:.9rem;line-height:1.45}
 .product-catalogue-info{display:flex;flex:1;min-width:0;flex-direction:column;padding:clamp(14px,1.6vw,19px)}
 .product-catalogue-info .category{display:block;margin-bottom:8px;color:var(--site-brand-primary);font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;font-weight:850}
@@ -130,7 +131,7 @@
                             @php($image = $productMedia[$catalogueProduct->id] ?? null)
                             <article class="product-catalogue-card">
                                 <a href="{{ route('product',['product'=>$catalogueProduct->slug]) }}">
-                                    <div class="product-catalogue-media">
+                                    <div class="product-catalogue-media{{ $image ? ' product-catalogue-media--image' : '' }}">
                                         @if($image)
                                             <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="(max-width:560px) 100vw,(max-width:1020px) 50vw,25vw" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
                                         @else
