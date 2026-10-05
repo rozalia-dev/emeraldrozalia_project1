@@ -42,15 +42,21 @@ class PublicContentContractTest extends TestCase
     }
 
 
-    public function test_public_head_contains_google_site_verification_tag(): void
+    public function test_public_head_contains_google_site_verification_tags(): void
     {
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $headEnd = strpos($html, '</head>');
-        $tag = '<meta name="google-site-verification" content="SbbNSASQSrhT26NkbKd3pbF9cBEBqAAMgt9rbG1Q7Ss">';
+        $head = substr($html, 0, $headEnd ?: 0);
+        $tags = [
+            '<meta name="google-site-verification" content="SbbNSASQSrhT26NkbKd3pbF9cBEBqAAMgt9rbG1Q7Ss">',
+            '<meta name="google-site-verification" content="6swWwbqrWrkTEhOx6rrHwNoHdui2rKKafUgAEfi3h0k">',
+        ];
 
         $this->assertNotFalse($headEnd);
-        $this->assertStringContainsString($tag, substr($html, 0, $headEnd));
+        foreach ($tags as $tag) {
+            $this->assertStringContainsString($tag, $head);
+        }
     }
 
     public function test_contact_and_homepage_render_the_same_shared_public_header_and_footer_regions(): void
