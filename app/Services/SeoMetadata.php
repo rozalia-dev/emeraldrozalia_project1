@@ -27,6 +27,14 @@ final class SeoMetadata
         ?Category $category = null,
         ?ContentPage $managedPage = null,
     ): array {
+        // Blade view variables can persist across multiple requests in the same
+        // long-lived application/test process. Only treat a $product variable as
+        // SEO context on the actual public product route so category pages cannot
+        // inherit stale Product metadata/schema from a previous render.
+        if (! request()->routeIs('product')) {
+            $product = null;
+        }
+
         $isProductCatalogue = request()->routeIs('catalogue.show');
 
         if (! $product && ! $category && ! $managedPage && ! $isProductCatalogue) {
