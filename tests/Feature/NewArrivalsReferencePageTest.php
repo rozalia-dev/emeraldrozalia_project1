@@ -113,4 +113,56 @@ class NewArrivalsReferencePageTest extends TestCase
             ->assertDontSee('Premium Navy Baseball Cap', false)
             ->assertDontSee('Archive Flat Cap', false);
     }
+    public function test_new_arrivals_filter_uses_storefront_root_categories_and_matches_descendants(): void
+    {
+        $traditional = Category::create([
+            'name' => 'Traditional',
+            'slug' => 'traditional',
+            'description' => 'Traditional range',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $caps = Category::create([
+            'parent_id' => $traditional->id,
+            'name' => 'Caps',
+            'slug' => 'traditional-caps',
+            'description' => 'Traditional caps',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        Category::create([
+            'parent_id' => $caps->id,
+            'name' => 'Germany',
+            'slug' => 'traditional-germany',
+            'description' => 'Location taxonomy node',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $caps->id,
+            'name' => 'Traditional New Arrival Cap',
+            'slug' => 'traditional-new-arrival-cap',
+            'sku' => 'NEW-ROOT-001',
+            'price' => 59.00,
+            'stock' => 10,
+            'material' => 'Cotton',
+            'colours' => ['Green'],
+            'is_new' => true,
+            'is_active' => true,
+        ]);
+
+        $this->get('/new-arrivals')
+            ->assertOk()
+            ->assertSee('value="traditional"', false)
+            ->assertDontSee('value="traditional-caps"', false)
+            ->assertDontSee('value="traditional-germany"', false);
+
+        $this->get('/new-arrivals?'.http_build_query(['category' => ['traditional']]))
+            ->assertOk()
+            ->assertSeeText($product->name);
+    }
+
 }

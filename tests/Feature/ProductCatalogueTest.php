@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Company;
 use App\Models\Product;
 use App\Models\ProductCatalogue;
+use App\Models\ProductMedia;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -126,7 +127,7 @@ class ProductCatalogueTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        Product::create([
+        $product = Product::create([
             'company_id' => $company->id,
             'category_id' => $category->id,
             'name' => 'Current Emerald Catalogue Cap',
@@ -137,6 +138,34 @@ class ProductCatalogueTest extends TestCase
             'stock' => 25,
             'is_active' => true,
             'status' => 'active',
+        ]);
+
+        $additional = ProductMedia::create([
+            'company_id' => $company->id,
+            'product_id' => $product->id,
+            'type' => 'image',
+            'disk' => 'public',
+            'path' => 'product-media/catalogue/additional.jpg',
+            'alt_text' => 'Additional side image',
+            'sort_order' => 0,
+            'metadata' => ['image_role' => 'additional'],
+            'active' => true,
+            'approval_status' => 'approved',
+            'mime_type' => 'image/jpeg',
+        ]);
+
+        $primary = ProductMedia::create([
+            'company_id' => $company->id,
+            'product_id' => $product->id,
+            'type' => 'image',
+            'disk' => 'public',
+            'path' => 'product-media/catalogue/front.jpg',
+            'alt_text' => 'Primary front product image',
+            'sort_order' => 5,
+            'metadata' => ['image_role' => 'primary'],
+            'active' => true,
+            'approval_status' => 'approved',
+            'mime_type' => 'image/jpeg',
         ]);
 
         Product::create([
@@ -157,12 +186,24 @@ class ProductCatalogueTest extends TestCase
             ->assertSeeText('Current Emerald Catalogue Cap')
             ->assertSeeText('Generated Baseball Caps')
             ->assertSeeText('SAVE CURRENT CATALOGUE AS PDF')
+            ->assertSeeText('SKU CAT-LIVE-001')
+            ->assertSee(route('media.public', $primary->uuid), false)
+            ->assertDontSee(route('media.public', $additional->uuid), false)
+            ->assertSee('product-catalogue-media--image', false)
+            ->assertDontSeeText('Product UUID')
+            ->assertDontSeeText('Barcode')
             ->assertDontSeeText('Hidden Draft Catalogue Cap')
             ->assertSee('>CATALOGUE</a>', false);
 
         $this->withSession(['company_id' => $company->id])->get(route('catalogue.print'))
             ->assertOk()
             ->assertSeeText('Current Emerald Catalogue Cap')
+            ->assertSeeText('SKU CAT-LIVE-001')
+            ->assertSee(route('media.public', $primary->uuid), false)
+            ->assertDontSee(route('media.public', $additional->uuid), false)
+            ->assertSee('catalogue-print-media--image', false)
+            ->assertDontSeeText('Product UUID')
+            ->assertDontSeeText('Barcode')
             ->assertDontSeeText('Hidden Draft Catalogue Cap')
             ->assertSeeText('Print / Save PDF');
 

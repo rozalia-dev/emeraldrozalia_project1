@@ -12,10 +12,6 @@
 .product-catalogue-cover-fallback{display:flex;align-items:center;flex-direction:column;gap:22px;padding:clamp(20px,3vw,38px);text-align:center}
 .product-catalogue-cover .product-catalogue-cover-logo{display:block;width:min(100%,420px);height:auto;min-height:0;max-height:160px;object-fit:contain}
 .product-catalogue-cover-fallback span{font-size:.78rem;letter-spacing:.12em;line-height:1.6}
-.product-catalogue-identifiers{display:grid;gap:5px;margin:0 0 12px}
-.product-catalogue-identifier{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:start;gap:8px;color:var(--site-text-muted);font-size:.72rem;line-height:1.35}
-.product-catalogue-identifier span{font-weight:750}
-.product-catalogue-identifier code{min-width:0;overflow-wrap:anywhere;color:var(--site-text);font: .68rem/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
 .product-catalogue-copy{min-width:0}
 .product-catalogue-copy .eyebrow{font-size:.76rem;letter-spacing:.16em;font-weight:900;color:var(--site-brand-primary)}
 .product-catalogue-copy h1{font-family:var(--site-heading-family);font-size:clamp(2rem,4.5vw,4.1rem);line-height:1.04;margin:11px 0 18px;overflow-wrap:anywhere}
@@ -45,7 +41,8 @@
 .product-catalogue-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(6,48,32,.16)}
 .product-catalogue-card>a{display:flex;height:100%;flex-direction:column;color:var(--site-text);text-decoration:none}
 .product-catalogue-media{width:100%;aspect-ratio:1/1;background:var(--site-surface-muted);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.product-catalogue-media img{display:block;width:100%;height:100%;object-fit:cover}
+.product-catalogue-media--image{padding:12px;background:#fff}
+.product-catalogue-media--image img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
 .product-catalogue-media-empty{padding:18px;text-align:center;color:var(--site-text-muted);font-size:.9rem;line-height:1.45}
 .product-catalogue-info{display:flex;flex:1;min-width:0;flex-direction:column;padding:clamp(14px,1.6vw,19px)}
 .product-catalogue-info .category{display:block;margin-bottom:8px;color:var(--site-brand-primary);font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;font-weight:850}
@@ -134,21 +131,17 @@
                             @php($image = $productMedia[$catalogueProduct->id] ?? null)
                             <article class="product-catalogue-card">
                                 <a href="{{ route('product',['product'=>$catalogueProduct->slug]) }}">
-                                    <div class="product-catalogue-media">
+                                    <div class="product-catalogue-media{{ $image ? ' product-catalogue-media--image' : '' }}">
                                         @if($image)
                                             <img src="{{ $image['url'] }}" @if($image['srcset']) srcset="{{ $image['srcset'] }}" sizes="(max-width:560px) 100vw,(max-width:1020px) 50vw,25vw" @endif width="{{ $image['width'] ?: '' }}" height="{{ $image['height'] ?: '' }}" alt="{{ $image['alt'] }}" loading="lazy">
                                         @else
-                                            <div class="product-catalogue-media-empty">Approved product image not configured.</div>
+                                            <div class="product-catalogue-media-empty">Product image coming soon.</div>
                                         @endif
                                     </div>
                                     <div class="product-catalogue-info">
                                         <span class="category">{{ $categoryName }}</span>
                                         <h4>{{ $catalogueProduct->name }}</h4>
                                         @if($catalogueProduct->description)<p>{{ \Illuminate\Support\Str::limit(strip_tags((string)$catalogueProduct->description),95) }}</p>@endif
-                                        <div class="product-catalogue-identifiers">
-                                            <div class="product-catalogue-identifier"><span>Product UUID</span><code>{{ $catalogueProduct->public_uuid ?: 'Not assigned' }}</code></div>
-                                            <div class="product-catalogue-identifier"><span>Barcode</span><code>Not assigned</code></div>
-                                        </div>
                                         <div class="product-catalogue-card-foot"><small>SKU {{ $catalogueProduct->sku }}</small><strong>€{{ number_format((float)$catalogueProduct->price,2) }}</strong></div>
                                     </div>
                                 </a>

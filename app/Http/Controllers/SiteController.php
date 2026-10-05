@@ -245,8 +245,46 @@ class SiteController extends Controller
                 ->latest('updated_at'),
         ])->withCount('reviews')->withAvg('reviews', 'rating')->published()->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
-        $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
-        if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
+        $categoryTree = Category::query()
+            ->websiteVisible()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $categoryOptions = $categoryTree->whereNull('parent_id')->values();
+        $categoryOptionsBySlug = $categoryOptions->keyBy('slug');
+        $childrenByParent = $categoryTree->groupBy(fn (Category $category): int => (int) ($category->parent_id ?? 0));
+
+        $categories = array_values(array_unique(array_filter(
+            (array) $r->input('category', []),
+            fn ($value) => is_string($value) && trim($value) !== ''
+        )));
+        if ($categories) {
+            $selectedCategoryIds = [];
+            $selectedRootPlacementIds = [];
+
+            foreach ($categories as $slug) {
+                $category = $categoryOptionsBySlug->get($slug);
+                if (! $category) {
+                    throw ValidationException::withMessages(['category' => 'One or more selected categories are unavailable.']);
+                }
+
+                $selectedCategoryIds = array_merge(
+                    $selectedCategoryIds,
+                    $this->catalogDescendantIds($category, $childrenByParent)
+                );
+                $selectedRootPlacementIds[] = (int) $category->id;
+            }
+
+            $selectedCategoryIds = array_values(array_unique($selectedCategoryIds));
+            $selectedRootPlacementIds = array_values(array_unique($selectedRootPlacementIds));
+
+            $q->where(function ($categoryQuery) use ($selectedCategoryIds, $selectedRootPlacementIds): void {
+                $categoryQuery->whereIn('category_id', $selectedCategoryIds);
+                foreach ($selectedRootPlacementIds as $rootCategoryId) {
+                    $categoryQuery->orWhereJsonContains('product_metadata->shop_category_ids', $rootCategoryId);
+                }
+            });
+        }
         $materials = array_values(array_filter((array) $r->input('material', []), fn ($value) => is_string($value) && $value !== ''));
         if ($materials) $q->where(function ($materialQuery) use ($materials) { foreach ($materials as $material) $materialQuery->orWhereRaw('LOWER(material) LIKE ?', ['%'.strtolower($material).'%']); });
         $colours = array_values(array_filter((array) $r->input('colour', []), fn ($value) => is_string($value) && $value !== ''));
@@ -266,7 +304,7 @@ class SiteController extends Controller
 
         return view('site.new-arrivals', [
             'products' => $q->paginate(12)->withQueryString(),
-            'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+            'categories' => $categoryOptions,
             'priceCeiling' => max(1, $priceCeiling),
         ]);
     }
@@ -299,25 +337,58 @@ class SiteController extends Controller
 
     public function irishTraditional(CatalogFilterRequest $request)
     {
-        return $this->categoryLanding($request, 'irish-traditional-flat-caps', 'IRISH TRADITIONAL', 'FLAT CAPS', 'Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');
+        return $this->categoryLanding($request, 'traditional', 'IRISH TRADITIONAL', 'FLAT CAPS', 'Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');
     }
 
     public function irishHeritage(CatalogFilterRequest $request)
     {
-        return $this->categoryLanding($request, 'irish-heritage-hats', 'IRISH HERITAGE', 'HATS', 'Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');
+        return $this->categoryLanding($request, 'heritage', 'IRISH HERITAGE', 'HATS', 'Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');
     }
 
     private function categoryLanding(CatalogFilterRequest $request, string $slug, string $eyebrow, string $title, string $intro)
     {
-        $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
-        $query = $category->exists ? $category->products()->with(['category', 'media'])->published() : Product::whereRaw('1 = 0');
-        if ($request->filled('q')) $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('sku', 'like', '%'.$request->q.'%'));
+        $categoryTree = Category::query()
+            ->websiteVisible()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $category = $categoryTree->firstWhere('slug', $slug)
+            ?: new Category(['name' => trim($eyebrow.' '.$title)]);
+
+        if ($category->exists) {
+            $childrenByParent = $categoryTree->groupBy(
+                fn (Category $node): int => (int) ($node->parent_id ?? 0)
+            );
+            $categoryIds = $this->catalogDescendantIds($category, $childrenByParent);
+            $rootCategoryId = (int) $category->id;
+
+            $query = Product::query()
+                ->with(['category', 'media'])
+                ->published()
+                ->where(function ($productQuery) use ($categoryIds, $rootCategoryId): void {
+                    $productQuery->whereIn('category_id', $categoryIds)
+                        ->orWhereJsonContains('product_metadata->shop_category_ids', $rootCategoryId);
+                });
+        } else {
+            $query = Product::query()->whereRaw('1 = 0');
+        }
+
+        if ($request->filled('q')) {
+            $needle = '%'.strtolower(trim((string) $request->q)).'%';
+            $query->where(function ($searchQuery) use ($needle): void {
+                $searchQuery->whereRaw('LOWER(name) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(sku) LIKE ?', [$needle]);
+            });
+        }
+
         match ($request->input('sort')) {
             'price_low' => $query->orderBy('price'),
             'price_high' => $query->orderByDesc('price'),
             default => $query->latest(),
         };
+
         $products = $query->paginate(12)->withQueryString();
+
         return view('site.category-landing', compact('category', 'eyebrow', 'title', 'intro', 'products'));
     }
 
@@ -766,7 +837,7 @@ class SiteController extends Controller
 
     public function page(string $page)
     {
-        $allowed = ['collections', 'new-arrivals', 'corporate-orders', 'bulk-orders', 'franchise', 'careers', 'global-network', 'factory', 'contact', 'virtual-tryon', 'irish-traditional', 'irish-heritage'];
+        $allowed = ['collections', 'new-arrivals', 'corporate-orders', 'bulk-orders', 'franchise', 'careers', 'global-network', 'factory', 'contact', 'virtual-tryon', 'irish-traditional', 'irish-heritage', 'size-guide', 'shipping-delivery', 'privacy-policy', 'terms-conditions'];
         $managedPage = ContentPage::with('sections')
             ->where('slug', $page)
             ->where('locale', app()->getLocale())
