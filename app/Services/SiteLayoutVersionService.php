@@ -87,16 +87,16 @@ final class SiteLayoutVersionService
                 [
                     'title' => 'CUSTOMER CARE',
                     'links' => [
-                        ['label' => 'Size Guide', 'href' => '/factory'],
-                        ['label' => 'Shipping & Delivery', 'href' => '/factory'],
-                        ['label' => 'Returns & Refunds', 'href' => '/factory'],
+                        ['label' => 'Size Guide', 'href' => '/page/size-guide'],
+                        ['label' => 'Shipping & Delivery', 'href' => '/page/shipping-delivery'],
+                        ['label' => 'Returns & Refunds', 'href' => '/returns-refunds'],
                         ['label' => 'Contact Us', 'href' => '/contact'],
                     ],
                 ],
                 [
                     'title' => 'COMPANY',
                     'links' => [
-                        ['label' => 'Our Story', 'href' => '/factory'],
+                        ['label' => 'Our Story', 'href' => '/our-story'],
                         ['label' => 'Manufacturing', 'href' => '/factory'],
                         ['label' => 'Sustainability', 'href' => '/global-network'],
                         ['label' => 'Careers', 'href' => '/careers'],
@@ -112,8 +112,8 @@ final class SiteLayoutVersionService
                 'cta_label' => 'Submit email',
             ],
             'legal_links' => [
-                ['label' => 'Privacy Policy', 'href' => '/factory'],
-                ['label' => 'Terms & Conditions', 'href' => '/factory'],
+                ['label' => 'Privacy Policy', 'href' => '/page/privacy-policy'],
+                ['label' => 'Terms & Conditions', 'href' => '/page/terms-conditions'],
             ],
         ],
         'policy' => [
