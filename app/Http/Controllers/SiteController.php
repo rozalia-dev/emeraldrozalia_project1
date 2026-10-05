@@ -245,8 +245,46 @@ class SiteController extends Controller
                 ->latest('updated_at'),
         ])->withCount('reviews')->withAvg('reviews', 'rating')->published()->where('is_new', true);
         if ($r->filled('q')) $q->where(fn ($x) => $x->where('name', 'like', '%'.$r->q.'%')->orWhere('sku', 'like', '%'.$r->q.'%'));
-        $categories = array_values(array_filter((array) $r->input('category', []), fn ($value) => is_string($value) && $value !== ''));
-        if ($categories) $q->whereHas('category', fn ($c) => $c->whereIn('slug', $categories));
+        $categoryTree = Category::query()
+            ->websiteVisible()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $categoryOptions = $categoryTree->whereNull('parent_id')->values();
+        $categoryOptionsBySlug = $categoryOptions->keyBy('slug');
+        $childrenByParent = $categoryTree->groupBy(fn (Category $category): int => (int) ($category->parent_id ?? 0));
+
+        $categories = array_values(array_unique(array_filter(
+            (array) $r->input('category', []),
+            fn ($value) => is_string($value) && trim($value) !== ''
+        )));
+        if ($categories) {
+            $selectedCategoryIds = [];
+            $selectedRootPlacementIds = [];
+
+            foreach ($categories as $slug) {
+                $category = $categoryOptionsBySlug->get($slug);
+                if (! $category) {
+                    throw ValidationException::withMessages(['category' => 'One or more selected categories are unavailable.']);
+                }
+
+                $selectedCategoryIds = array_merge(
+                    $selectedCategoryIds,
+                    $this->catalogDescendantIds($category, $childrenByParent)
+                );
+                $selectedRootPlacementIds[] = (int) $category->id;
+            }
+
+            $selectedCategoryIds = array_values(array_unique($selectedCategoryIds));
+            $selectedRootPlacementIds = array_values(array_unique($selectedRootPlacementIds));
+
+            $q->where(function ($categoryQuery) use ($selectedCategoryIds, $selectedRootPlacementIds): void {
+                $categoryQuery->whereIn('category_id', $selectedCategoryIds);
+                foreach ($selectedRootPlacementIds as $rootCategoryId) {
+                    $categoryQuery->orWhereJsonContains('product_metadata->shop_category_ids', $rootCategoryId);
+                }
+            });
+        }
         $materials = array_values(array_filter((array) $r->input('material', []), fn ($value) => is_string($value) && $value !== ''));
         if ($materials) $q->where(function ($materialQuery) use ($materials) { foreach ($materials as $material) $materialQuery->orWhereRaw('LOWER(material) LIKE ?', ['%'.strtolower($material).'%']); });
         $colours = array_values(array_filter((array) $r->input('colour', []), fn ($value) => is_string($value) && $value !== ''));
@@ -266,7 +304,7 @@ class SiteController extends Controller
 
         return view('site.new-arrivals', [
             'products' => $q->paginate(12)->withQueryString(),
-            'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+            'categories' => $categoryOptions,
             'priceCeiling' => max(1, $priceCeiling),
         ]);
     }
@@ -766,7 +804,7 @@ class SiteController extends Controller
 
     public function page(string $page)
     {
-        $allowed = ['collections', 'new-arrivals', 'corporate-orders', 'bulk-orders', 'franchise', 'careers', 'global-network', 'factory', 'contact', 'virtual-tryon', 'irish-traditional', 'irish-heritage'];
+        $allowed = ['collections', 'new-arrivals', 'corporate-orders', 'bulk-orders', 'franchise', 'careers', 'global-network', 'factory', 'contact', 'virtual-tryon', 'irish-traditional', 'irish-heritage', 'size-guide', 'shipping-delivery', 'privacy-policy', 'terms-conditions'];
         $managedPage = ContentPage::with('sections')
             ->where('slug', $page)
             ->where('locale', app()->getLocale())
