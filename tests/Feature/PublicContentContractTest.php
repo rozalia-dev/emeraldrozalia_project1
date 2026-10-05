@@ -41,6 +41,18 @@ class PublicContentContractTest extends TestCase
         $this->assertStringContainsString('aria-label="Cart"', $html);
     }
 
+
+    public function test_public_head_contains_google_site_verification_tag(): void
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $headEnd = strpos($html, '</head>');
+        $tag = '<meta name="google-site-verification" content="SbbNSASQSrhT26NkbKd3pbF9cBEBqAAMgt9rbG1Q7Ss">';
+
+        $this->assertNotFalse($headEnd);
+        $this->assertStringContainsString($tag, substr($html, 0, $headEnd));
+    }
+
     public function test_contact_and_homepage_render_the_same_shared_public_header_and_footer_regions(): void
     {
         $home = $this->get(route('home'))->assertOk()->getContent();
