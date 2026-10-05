@@ -23,6 +23,12 @@ class PublicReferenceFooterTest extends TestCase
             ->assertSee('class="footer-bottom"', false)
             ->assertSee('class="footer-manufacturing"', false)
             ->assertSee('class="footer-legal"', false)
+            ->assertSee('href="/page/size-guide"', false)
+            ->assertSee('href="/page/shipping-delivery"', false)
+            ->assertSee('href="/returns-refunds"', false)
+            ->assertSee('href="/our-story"', false)
+            ->assertSee('href="/page/privacy-policy"', false)
+            ->assertSee('href="/page/terms-conditions"', false)
             ->assertDontSee('footer-bottom-details', false)
             ->assertDontSee('footer-bottom-contact', false)
             ->assertDontSee('footer-bottom-social', false);
@@ -124,4 +130,67 @@ class PublicReferenceFooterTest extends TestCase
         $this->assertSame('Designed & Manufactured in Limerick, Ireland', data_get($layout->regions, 'footer.manufacturing_text'));
         $this->assertTrue(array_key_exists('copyright_text', data_get($layout->regions, 'footer')));
     }
+    public function test_public_help_and_legal_fallback_pages_are_available(): void
+    {
+        $this->get('/page/size-guide')
+            ->assertOk()
+            ->assertSeeText('Find the right fit');
+
+        $this->get('/page/shipping-delivery')
+            ->assertOk()
+            ->assertSeeText('Ireland: up to 5 working days');
+
+        $this->get('/page/privacy-policy')
+            ->assertOk()
+            ->assertSeeText('Your privacy');
+
+        $this->get('/page/terms-conditions')
+            ->assertOk()
+            ->assertSeeText('Website and ordering terms');
+    }
+
+    public function test_footer_destination_migration_repairs_only_legacy_factory_placeholders(): void
+    {
+        $company = Company::create([
+            'name' => 'Legacy Footer Destination Tenant',
+            'code' => 'LEGACY-FOOTER-LINKS',
+            'active' => true,
+        ]);
+
+        $regions = SiteLayoutVersionService::DEFAULT_REGIONS;
+        $regions['footer']['columns'][2]['links'][0]['href'] = '/factory';
+        $regions['footer']['columns'][2]['links'][1]['href'] = '/factory';
+        $regions['footer']['columns'][2]['links'][2]['href'] = '/factory';
+        $regions['footer']['columns'][3]['links'][0]['href'] = '/factory';
+        $regions['footer']['columns'][3]['links'][] = ['label' => 'Custom Factory Link', 'href' => '/factory'];
+        $regions['footer']['legal_links'][0]['href'] = '/factory';
+        $regions['footer']['legal_links'][1]['href'] = '/factory';
+
+        $layout = SiteLayoutVersion::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'name' => 'Legacy Footer Destinations',
+            'scope' => 'public',
+            'environment' => 'production',
+            'locale' => 'en',
+            'version' => 1,
+            'status' => SiteLayoutVersion::STATUS_ACTIVE,
+            'regions' => $regions,
+            'activated_at' => now(),
+        ]);
+
+        $migration = require database_path('migrations/2026_10_05_140000_repair_public_footer_destinations.php');
+        $migration->up();
+
+        $layout->refresh();
+        $footer = data_get($layout->regions, 'footer');
+
+        $this->assertSame('/page/size-guide', data_get($footer, 'columns.2.links.0.href'));
+        $this->assertSame('/page/shipping-delivery', data_get($footer, 'columns.2.links.1.href'));
+        $this->assertSame('/returns-refunds', data_get($footer, 'columns.2.links.2.href'));
+        $this->assertSame('/our-story', data_get($footer, 'columns.3.links.0.href'));
+        $this->assertSame('/factory', data_get($footer, 'columns.3.links.4.href'));
+        $this->assertSame('/page/privacy-policy', data_get($footer, 'legal_links.0.href'));
+        $this->assertSame('/page/terms-conditions', data_get($footer, 'legal_links.1.href'));
+    }
+
 }
