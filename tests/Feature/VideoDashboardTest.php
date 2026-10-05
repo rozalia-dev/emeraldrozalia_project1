@@ -193,7 +193,7 @@ class VideoDashboardTest extends TestCase
         $draft=$this->video($product,[],false);
         $private=$this->video($product,['visibility'=>'private']);
         $scheduled=$this->video($product,['publish_at'=>now()->addHour()->toIso8601String()]);
-        $this->get(route('videos.asset',[$published->uuid,'video']))->assertOk()->assertHeader('Cache-Control','no-store, private');
+        $this->get(route('videos.asset',[$published->uuid,'video']))->assertOk()->assertHeader('Cache-Control','max-age=300, public');
         $this->get(route('videos.asset',[$published->uuid,'video']).'?download=1')->assertForbidden();
         foreach([$draft,$private,$scheduled] as $video) {
             $this->get(route('videos.asset',[$video->uuid,'video']))->assertNotFound();
@@ -207,17 +207,38 @@ class VideoDashboardTest extends TestCase
         $this->get(route('videos.asset',[$published->uuid,'video']))->assertNotFound();
     }
 
-    public function test_published_gallery_and_sitemap_hide_private_draft_and_disabled_gallery_entries(): void
+    public function test_published_gallery_and_sitemap_hide_private_draft_and_incomplete_entries(): void
     {
         $product=$this->product();
-        $visible=$this->video($product,['title'=>'Visible product video']);
+        Storage::disk('local')->put('videos/posters/visible.jpg','poster');
+        $visible=$this->video($product,[
+            'title'=>'Visible product video',
+            'poster'=>'videos/posters/visible.jpg',
+            'description'=>'Visible product video description.',
+            'duration'=>12,
+        ]);
+        $posterless=$this->video($product,['title'=>'Posterless product video']);
         $this->video($product,['title'=>'Private product video','visibility'=>'private']);
         $this->video($product,['title'=>'Draft product video'],false);
         $this->video($product,['title'=>'Standalone video','gallery'=>false]);
+
         $this->get('/product/'.$product->slug)->assertOk()->assertSee(['Visible product video','data-er-video'],false)
             ->assertDontSee('Private product video')->assertDontSee('Draft product video')->assertDontSee('Standalone video');
-        $this->get('/video-sitemap.xml')->assertOk()->assertSee($visible->uuid)->assertDontSee('Private product video');
-        $this->get(route('videos.watch',$visible->uuid))->assertOk()->assertSee(['Visible product video','/js/video-playback.js'],false);
+
+        $this->get('/video-sitemap.xml')
+            ->assertOk()
+            ->assertSee($visible->uuid)
+            ->assertSee('<video:video>', false)
+            ->assertSee('<video:thumbnail_loc>', false)
+            ->assertDontSee($posterless->uuid)
+            ->assertDontSee('Private product video');
+
+        $this->get(route('videos.watch',$visible->uuid))
+            ->assertOk()
+            ->assertSee(['Visible product video','/js/video-playback.js'],false)
+            ->assertSee('"@type":"VideoObject"', false)
+            ->assertSee('"thumbnailUrl"', false)
+            ->assertSee('"contentUrl"', false);
     }
 
     public function test_search_filters_pagination_and_export_report_saved_data(): void
