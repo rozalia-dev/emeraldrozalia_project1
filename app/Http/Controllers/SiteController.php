@@ -337,25 +337,58 @@ class SiteController extends Controller
 
     public function irishTraditional(CatalogFilterRequest $request)
     {
-        return $this->categoryLanding($request, 'irish-traditional-flat-caps', 'IRISH TRADITIONAL', 'FLAT CAPS', 'Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');
+        return $this->categoryLanding($request, 'traditional', 'IRISH TRADITIONAL', 'FLAT CAPS', 'Authentic Irish flat caps crafted from premium tweed. Timeless style. Made in Limerick, Ireland.');
     }
 
     public function irishHeritage(CatalogFilterRequest $request)
     {
-        return $this->categoryLanding($request, 'irish-heritage-hats', 'IRISH HERITAGE', 'HATS', 'Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');
+        return $this->categoryLanding($request, 'heritage', 'IRISH HERITAGE', 'HATS', 'Classic hats with timeless Irish character. Crafted with care in Limerick using premium materials and traditional techniques.');
     }
 
     private function categoryLanding(CatalogFilterRequest $request, string $slug, string $eyebrow, string $title, string $intro)
     {
-        $category = Category::where('slug', $slug)->where('is_active', true)->first() ?: new Category(['name' => trim($eyebrow.' '.$title)]);
-        $query = $category->exists ? $category->products()->with(['category', 'media'])->published() : Product::whereRaw('1 = 0');
-        if ($request->filled('q')) $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('sku', 'like', '%'.$request->q.'%'));
+        $categoryTree = Category::query()
+            ->websiteVisible()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $category = $categoryTree->firstWhere('slug', $slug)
+            ?: new Category(['name' => trim($eyebrow.' '.$title)]);
+
+        if ($category->exists) {
+            $childrenByParent = $categoryTree->groupBy(
+                fn (Category $node): int => (int) ($node->parent_id ?? 0)
+            );
+            $categoryIds = $this->catalogDescendantIds($category, $childrenByParent);
+            $rootCategoryId = (int) $category->id;
+
+            $query = Product::query()
+                ->with(['category', 'media'])
+                ->published()
+                ->where(function ($productQuery) use ($categoryIds, $rootCategoryId): void {
+                    $productQuery->whereIn('category_id', $categoryIds)
+                        ->orWhereJsonContains('product_metadata->shop_category_ids', $rootCategoryId);
+                });
+        } else {
+            $query = Product::query()->whereRaw('1 = 0');
+        }
+
+        if ($request->filled('q')) {
+            $needle = '%'.strtolower(trim((string) $request->q)).'%';
+            $query->where(function ($searchQuery) use ($needle): void {
+                $searchQuery->whereRaw('LOWER(name) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(sku) LIKE ?', [$needle]);
+            });
+        }
+
         match ($request->input('sort')) {
             'price_low' => $query->orderBy('price'),
             'price_high' => $query->orderByDesc('price'),
             default => $query->latest(),
         };
+
         $products = $query->paginate(12)->withQueryString();
+
         return view('site.category-landing', compact('category', 'eyebrow', 'title', 'intro', 'products'));
     }
 
