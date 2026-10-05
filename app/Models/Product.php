@@ -62,14 +62,18 @@ class Product extends Model
 
     public function syncPrimaryImageFromMedia(): void
     {
-        $primary = ProductMedia::query()
+        $candidates = ProductMedia::query()
             ->where('product_id', $this->getKey())
             ->whereIn('type', ['image', 'gallery'])
             ->where('active', true)
             ->where('approval_status', 'approved')
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->first();
+            ->get();
+
+        $primary = $candidates->first(
+            fn (ProductMedia $media): bool => data_get($media->metadata, 'image_role') === 'primary'
+        ) ?: $candidates->first();
 
         $path = $primary?->path;
         if (($this->getRawOriginal('image') ?: null) !== $path) {
