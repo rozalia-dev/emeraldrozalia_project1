@@ -92,9 +92,17 @@ class PublicMediaResolver
             return null;
         }
 
-        $media = $product->relationLoaded('media')
-            ? $product->media->firstWhere('type', $type)
-            : $product->media()->where('type', $type)->first();
+        $candidates = $product->relationLoaded('media')
+            ? $product->media
+            : $product->media()->get();
+
+        $typed = $candidates
+            ->filter(fn ($media): bool => $media instanceof ProductMedia && $media->type === $type)
+            ->values();
+
+        $media = $type === 'image'
+            ? ($typed->first(fn (ProductMedia $media): bool => data_get($media->metadata, 'image_role') === 'primary') ?: $typed->first())
+            : $typed->first();
 
         return $media instanceof ProductMedia
             ? $this->forProductMedia($media, $product->name)
