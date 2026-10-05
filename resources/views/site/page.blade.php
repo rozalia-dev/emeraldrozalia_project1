@@ -1,7 +1,7 @@
 @extends('layouts.site')
 
 @php
-    $titles = ['collections'=>'Our Collections','new-arrivals'=>'New Arrivals','corporate-orders'=>'Corporate Orders','bulk-orders'=>'Bulk Order Solutions','franchise'=>'Franchise Retail Store','careers'=>'Build Your Career With Emerald Rozalia','global-network'=>'Our Global Network','factory'=>'How We Work - Inside Our Factory','contact'=>'Contact Us','virtual-tryon'=>'Virtual Try-On Studio','irish-traditional'=>'Irish Traditional Flat Hats','irish-heritage'=>'Irish Heritage Hats'];
+    $titles = ['collections'=>'Our Collections','new-arrivals'=>'New Arrivals','corporate-orders'=>'Corporate Orders','bulk-orders'=>'Bulk Order Solutions','franchise'=>'Franchise Retail Store','careers'=>'Build Your Career With Emerald Rozalia','global-network'=>'Our Global Network','factory'=>'How We Work - Inside Our Factory','contact'=>'Contact Us','virtual-tryon'=>'Virtual Try-On Studio','irish-traditional'=>'Irish Traditional Flat Hats','irish-heritage'=>'Irish Heritage Hats','size-guide'=>'Size Guide','shipping-delivery'=>'Shipping & Delivery','privacy-policy'=>'Privacy Policy','terms-conditions'=>'Terms & Conditions'];
     $pageTitle = $managedPage?->title ?: ($titles[$page] ?? str($page)->headline());
     $hasManagedContent = $managedPage && ($managedPage->body || $managedPage->sections->isNotEmpty());
 @endphp
@@ -34,6 +34,34 @@
     <section class="process-grid">@foreach(['Design & Development','Pattern Making & Cutting','Shaping & Forming','Embroidery & Details','Programmable Sewing & Assembly','Digital Quality Inspection','Finishing','Packing & Traceability','Ready to Deliver'] as $i=>$step)<article><span>{{ $i + 1 }}</span><h3>{{ $step }}</h3><p>Managed with precision, quality control and traceability in our Limerick manufacturing workflow.</p></article>@endforeach</section><section class="factory-visit"><h2>WELCOME TO VISIT OUR FACTORY</h2><p>Partners, clients and friends are welcome to arrange a factory visit in Limerick.</p><a class="btn" href="/contact">BOOK A FACTORY VISIT</a></section>
 @elseif($page === 'global-network')
     <section class="globe"><div class="hologlobe"><span class="hq-dot">LIMERICK<br><small>GLOBAL HEADQUARTERS</small></span></div><div><h2>A GLOBAL PRESENCE, CONNECTED FROM LIMERICK.</h2><p>Use this page to present verified distributors, retail partners and territories. The system intentionally does not invent partner counts or countries.</p></div></section>
+@elseif($page === 'size-guide')
+    <section class="section managed-page-content">
+        <h2>Find the right fit</h2>
+        <p>Measure around the widest part of your head, approximately 1 cm above your eyebrows and just above your ears. Keep the tape comfortably level and do not pull it tight.</p>
+        <p>Use the size or adjustment information shown on the individual product page. If you are between sizes, choose the more comfortable larger option or contact our team before ordering.</p>
+        <p><a class="btn" href="{{ route('contact') }}">ASK ABOUT SIZING</a></p>
+    </section>
+@elseif($page === 'shipping-delivery')
+    <section class="section managed-page-content">
+        <h2>Delivery estimates</h2>
+        <p>Ireland: up to 5 working days. EU countries: 5–10 working days. USA and Canada: up to 10 working days. Rest of world: up to 30 days.</p>
+        <p>Delivery times are estimates and may be affected by carriers, customs, public holidays or remote destinations. Available delivery charges and options are shown during checkout.</p>
+        <p><a class="btn" href="{{ route('contact') }}">CONTACT DELIVERY SUPPORT</a></p>
+    </section>
+@elseif($page === 'privacy-policy')
+    <section class="section managed-page-content">
+        <h2>Your privacy</h2>
+        <p>Emerald Rozalia Limited uses personal information only where it is needed to provide the website, process enquiries and orders, support customers, maintain security and meet applicable business obligations.</p>
+        <p>Information submitted through forms, accounts or checkout should be used only for the purpose for which it was collected and handled with appropriate access controls. Contact our team if you have a question about your personal information or a privacy request.</p>
+        <p><a class="btn" href="{{ route('contact') }}">CONTACT US ABOUT PRIVACY</a></p>
+    </section>
+@elseif($page === 'terms-conditions')
+    <section class="section managed-page-content">
+        <h2>Website and ordering terms</h2>
+        <p>Product availability, pricing, delivery estimates and order acceptance are subject to the information shown at the time an order is placed. Product images and descriptions are provided to help customers make an informed choice and may be updated as the range changes.</p>
+        <p>Nothing on this page limits rights that customers have under applicable consumer law. For questions about an order, return, delivery or website use, contact the Emerald Rozalia team.</p>
+        <p><a class="btn" href="{{ route('contact') }}">CONTACT CUSTOMER CARE</a></p>
+    </section>
 @else
     <section class="section managed-page-empty" data-public-media-state="awaiting-approved-page-content"><div><p class="eyebrow">EMERALD ROZALIA</p><h2>This page has not been published yet.</h2><p>An administrator can add and publish this page from Page Manager. Public pages do not invent collection or product imagery while content is awaiting approval.</p><a class="btn" href="/collections">Return to Collections</a></div></section>
 @endif
