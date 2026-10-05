@@ -75,12 +75,14 @@ final class SeoMetadata
         }
 
         $canonical = $this->canonicalUrl();
+        $socialImage = $this->socialImageForProduct($product);
         $schema = $this->schemaForPage(
             $canonical,
             trim((string) $title),
             trim((string) $description),
             $product,
             $category,
+            $socialImage,
         );
 
         return [
@@ -88,6 +90,7 @@ final class SeoMetadata
             'description' => trim((string) $description),
             'canonical' => $canonical,
             'noindex' => $noindex,
+            'image' => $socialImage,
             'schema' => $schema,
         ];
     }
@@ -98,6 +101,7 @@ final class SeoMetadata
         string $description,
         ?Product $product,
         ?Category $category,
+        ?string $socialImage,
     ): array {
         $organization = $this->setting('organization_schema', self::DEFAULT_SCHEMA);
         if (! is_array($organization)) {
@@ -147,6 +151,10 @@ final class SeoMetadata
                     'itemCondition' => 'https://schema.org/NewCondition',
                 ],
             ];
+
+            if ($socialImage) {
+                $productSchema['image'] = [$socialImage];
+            }
 
             if ($product->category) {
                 $productSchema['category'] = $product->category->name;
@@ -212,6 +220,27 @@ final class SeoMetadata
             '@context' => 'https://schema.org',
             '@graph' => $graph,
         ];
+    }
+
+    private function socialImageForProduct(?Product $product): ?string
+    {
+        if (! $product || ! $product->relationLoaded('media')) {
+            return null;
+        }
+
+        $resolver = app(PublicMediaResolver::class);
+        foreach ($product->media as $media) {
+            if (! in_array((string) $media->type, ['image', 'gallery'], true)) {
+                continue;
+            }
+
+            $descriptor = $resolver->forProductMedia($media, $product->name);
+            if (filled($descriptor['url'] ?? null)) {
+                return (string) $descriptor['url'];
+            }
+        }
+
+        return null;
     }
 
     private function canonicalUrl(): string
