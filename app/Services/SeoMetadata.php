@@ -27,13 +27,20 @@ final class SeoMetadata
         ?Category $category = null,
         ?ContentPage $managedPage = null,
     ): array {
-        if (! $product && ! $category && ! $managedPage) {
+        $isProductCatalogue = request()->routeIs('catalogue.show');
+
+        if (! $product && ! $category && ! $managedPage && ! $isProductCatalogue) {
             $managedPage = $this->publishedPageForCurrentRequest();
         }
 
         $title = trim($fallbackTitle) ?: 'Emerald Rozalia';
         $description = self::DEFAULT_DESCRIPTION;
         $noindex = false;
+
+        if ($isProductCatalogue) {
+            $title = 'Emerald Rozalia Product Catalogue';
+            $description = 'Browse the current Emerald Rozalia product catalogue of published Irish-made hats and caps.';
+        }
 
         if ($product) {
             $seo = (array) $product->seo;
@@ -73,10 +80,18 @@ final class SeoMetadata
         return [
             'title' => trim((string) $title),
             'description' => trim((string) $description),
-            'canonical' => url()->current(),
+            'canonical' => $this->canonicalUrl(),
             'noindex' => $noindex,
             'schema' => is_array($schema) ? $schema : self::DEFAULT_SCHEMA,
         ];
+    }
+
+    private function canonicalUrl(): string
+    {
+        $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
+        $path = '/'.ltrim((string) request()->path(), '/');
+
+        return $path === '/' ? $base.'/' : $base.$path;
     }
 
     private function setting(string $key, mixed $default = null): mixed
@@ -87,7 +102,7 @@ final class SeoMetadata
     private function publishedPageForCurrentRequest(): ?ContentPage
     {
         $slug = (string) request()->segment(1);
-        if (blank($slug) || in_array($slug, ['admin', 'account', 'api', 'cart', 'category', 'checkout', 'login', 'product', 'register', 'shop', 'storage', 'up'], true)) {
+        if (blank($slug) || in_array($slug, ['admin', 'account', 'api', 'cart', 'category', 'checkout', 'login', 'product', 'product-catalogue', 'register', 'shop', 'storage', 'up'], true)) {
             return null;
         }
 
