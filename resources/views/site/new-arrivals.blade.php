@@ -29,7 +29,6 @@
     };
 @endphp
 <div class="arrival-page" data-public-media-register="new-arrivals" data-public-media-state="awaiting-approved-media">
-    <p class="sr-only">Approved new-arrivals editorial media is not configured.</p>
     <section class="arrival-hero" data-public-media-state="awaiting-approved-media">
         <div class="arrival-hero-inner">
             <div class="arrival-breadcrumb"><a href="/">Home</a><x-icon name="chevron-right" size="12" /><span>New Arrivals</span></div>
@@ -144,7 +143,7 @@
                                     @forelse($colours as $colour)
                                         <span class="arrival-swatch" title="{{ $colour }}" style="--shop-swatch:{{ $swatchColour($colour) }}"></span>
                                     @empty
-                                        <small class="arrival-no-swatches">Colour data not configured</small>
+                                        <small class="arrival-no-swatches">View product for colour details</small>
                                     @endforelse
                                 </div>
                             </div>
@@ -171,7 +170,7 @@
             <span class="arrival-camera" aria-hidden="true">◉</span>
             <div><h2>SEE IT ON YOU</h2><p>Use our Virtual Try-On Studio<br>to find your perfect fit.</p><a class="btn" href="{{ route('virtual-tryon') }}">TRY IT ON</a></div>
         </div>
-        <div class="arrival-tryon-photos" data-public-media-state="awaiting-approved-media" aria-label="Approved Try-On editorial media is not configured"><span class="arrival-tryon-photo"></span><span class="arrival-tryon-photo"></span><span class="arrival-tryon-photo"></span><span class="arrival-tryon-photo"></span></div>
+        <div class="arrival-tryon-photos" data-public-media-state="awaiting-approved-media" aria-label="Virtual try-on inspiration"><span class="arrival-tryon-photo"></span><span class="arrival-tryon-photo"></span><span class="arrival-tryon-photo"></span><span class="arrival-tryon-photo"></span></div>
         <div class="arrival-return"><div><h2>LOVE IT OR RETURN IT</h2><p>30-day easy returns<br>for complete peace of mind.</p></div><span class="arrival-return-mark"><x-icon name="clover" size="40" /></span></div>
     </section>
 
