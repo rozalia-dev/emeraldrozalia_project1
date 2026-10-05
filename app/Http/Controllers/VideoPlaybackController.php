@@ -29,11 +29,20 @@ class VideoPlaybackController extends Controller
         abort_unless(is_string($path) && !str_contains($path,'..') && !str_starts_with($path,'/') && in_array($disk,['local','public'],true),404);
         abort_unless(Storage::disk($disk)->exists($path),404);
         if ($request->boolean('download')) abort_unless($asset === 'video' && (auth()->user()?->is_admin || data_get($video->metadata,'allow_download',false)),403);
-        $headers = ['Cache-Control'=>'private, no-store','X-Content-Type-Options'=>'nosniff'];
+        $isPublicAsset = $video->isPubliclyPlayable() && ! $request->boolean('download');
+        $headers = [
+            'Cache-Control' => $isPublicAsset ? 'public, max-age=300' : 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
         if ($asset === 'captions') $headers['Content-Type'] = 'text/vtt; charset=UTF-8';
         $response = response()->file(Storage::disk($disk)->path($path),$headers);
-        $response->setPrivate();
-        $response->headers->addCacheControlDirective('no-store');
+        if ($isPublicAsset) {
+            $response->setPublic();
+            $response->setMaxAge(300);
+        } else {
+            $response->setPrivate();
+            $response->headers->addCacheControlDirective('no-store');
+        }
         $response->setContentDisposition($request->boolean('download') ? 'attachment' : 'inline');
         return $response;
     }
@@ -105,19 +114,18 @@ class VideoPlaybackController extends Controller
                     ? route('videos.asset', [$video->uuid, 'poster'])
                     : null;
 
+                // A Google video sitemap entry requires a thumbnail. Skip older
+                // posterless records instead of emitting generic URL entries that
+                // cannot qualify as video results.
+                if (!$thumbnailUrl) {
+                    continue;
+                }
+
                 $xml .= "    <url>\n";
                 $xml .= '        <loc>'.e($watchUrl)."</loc>\n";
                 $lastmod = $video->updated_at ?: $video->created_at;
                 if ($lastmod) {
                     $xml .= '        <lastmod>'.e(\Illuminate\Support\Carbon::parse($lastmod)->toAtomString())."</lastmod>\n";
-                }
-
-                // Keep every publicly playable video discoverable in the sitemap,
-                // even when an older record has no poster yet. Google video metadata
-                // is added only when a valid thumbnail is available.
-                if (!$thumbnailUrl) {
-                    $xml .= "    </url>\n";
-                    continue;
                 }
 
                 $xml .= "        <video:video>\n";
