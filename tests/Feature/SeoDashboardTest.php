@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\{ContentPage, Product, SeoRedirect, SeoSetting, User};
+use App\Models\{Category, ContentPage, Product, SeoRedirect, SeoSetting, User};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -101,6 +101,46 @@ class SeoDashboardTest extends TestCase
         $this->get(route('seo.robots'))
             ->assertOk()
             ->assertSee('Disallow: /private', false);
+    }
+
+    public function test_product_and_category_pages_publish_search_structured_data(): void
+    {
+        $category = Category::create([
+            'name' => 'FIFA',
+            'slug' => 'fifa',
+            'description' => null,
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Ireland Heritage Cap',
+            'slug' => 'ireland-heritage-cap',
+            'sku' => 'SEO-IRE-001',
+            'description' => null,
+            'price' => 75,
+            'stock' => 8,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('product', $product))
+            ->assertOk()
+            ->assertSee('<title>Ireland Heritage Cap | Emerald Rozalia</title>', false)
+            ->assertSee('name="robots" content="index,follow"', false)
+            ->assertSee('"@type":"Product"', false)
+            ->assertSee('"priceCurrency":"EUR"', false)
+            ->assertSee('"availability":"https://schema.org/InStock"', false)
+            ->assertSee('"@type":"BreadcrumbList"', false);
+
+        $this->get(route('category', $category))
+            ->assertOk()
+            ->assertSee('<title>FIFA Hats &amp; Caps | Emerald Rozalia</title>', false)
+            ->assertSee('name="robots" content="index,follow"', false)
+            ->assertSee('"@type":"CollectionPage"', false)
+            ->assertSee('"@type":"BreadcrumbList"', false);
     }
 
     public function test_redirect_manager_enforces_an_active_redirect(): void
