@@ -500,6 +500,43 @@ class SeoController extends Controller
             'updated_at' => now(),
         ]]);
 
+        $fixedPublicPages = collect([
+            ['/shop', 'Shop'],
+            ['/product-catalogue', 'Product Catalogue'],
+            ['/collections', 'Collections'],
+            ['/new-arrivals', 'New Arrivals'],
+            ['/irish-traditional', 'Irish Traditional'],
+            ['/irish-heritage', 'Irish Heritage'],
+            ['/factory', 'Factory'],
+            ['/quality', 'Quality'],
+            ['/corporate-orders', 'Corporate Orders'],
+            ['/bulk-orders', 'Bulk Orders'],
+            ['/franchise', 'Franchise'],
+            ['/careers', 'Careers'],
+            ['/global-network', 'Global Network'],
+            ['/contact', 'Contact'],
+            ['/returns-refunds', 'Returns & Refunds'],
+            ['/our-story', 'Our Story'],
+        ])->map(fn (array $page): array => [
+            'source_type' => 'fixed',
+            'source_id' => 0,
+            'path' => $page[0],
+            'title' => $page[1],
+            'kind' => 'Public page',
+            'meta_title' => null,
+            'meta_description' => null,
+            'focus_keyword' => null,
+            'noindex' => false,
+            'has_h1' => true,
+            'has_alt_text' => true,
+            'has_internal_links' => true,
+            'indexed' => true,
+            'word_count' => 0,
+            'updated_at' => now(),
+        ]);
+
+        $sources = $sources->concat($fixedPublicPages);
+
         $pages = ContentPage::query()
             ->whereNotIn('status', ['archived', 'unpublished'])
             ->latest('updated_at')
