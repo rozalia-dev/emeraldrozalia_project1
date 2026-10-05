@@ -19,6 +19,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="google-site-verification" content="SbbNSASQSrhT26NkbKd3pbF9cBEBqAAMgt9rbG1Q7Ss">
+    <meta name="google-site-verification" content="6swWwbqrWrkTEhOx6rrHwNoHdui2rKKafUgAEfi3h0k">
     @php($seoMetadata = app(\App\Services\SeoMetadata::class)->forView(trim($__env->yieldContent('title')) ?: 'Emerald Rozalia', $product ?? null, $category ?? $activeCategory ?? null, $managedPage ?? null))
     <title>{{ $seoMetadata['title'] }}</title>
     <meta name="description" content="{{ $seoMetadata['description'] }}">
