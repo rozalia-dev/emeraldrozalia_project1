@@ -981,7 +981,11 @@ class SeoController extends Controller
     private function sitemapXml(Collection $sources): string
     {
         $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
-        $urls = $sources->filter(fn (array $source): bool => $source['indexed'])->map(function (array $source) use ($base): string {
+        $urls = $sources
+            ->filter(fn (array $source): bool => $source['indexed'])
+            ->unique('path')
+            ->values()
+            ->map(function (array $source) use ($base): string {
             $loc = htmlspecialchars($base.$source['path'], ENT_XML1 | ENT_COMPAT, 'UTF-8');
             $lastmod = $source['updated_at']?->toAtomString() ?: now()->toAtomString();
 
