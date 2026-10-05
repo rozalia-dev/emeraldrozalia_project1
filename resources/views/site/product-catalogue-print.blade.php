@@ -31,16 +31,12 @@
                         @php($image = $productMedia[$product->id] ?? null)
                         <article class="catalogue-print-card">
                             <div class="catalogue-print-media">
-                                @if($image)<img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}">@else<span>Product image not configured</span>@endif
+                                @if($image)<img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}">@else<span>Product image coming soon</span>@endif
                             </div>
                             <div class="catalogue-print-info">
                                 <span class="cat">{{ $categoryName }}</span>
                                 <h3>{{ $product->name }}</h3>
                                 @if($product->description)<p>{{ \Illuminate\Support\Str::limit(strip_tags((string)$product->description),120) }}</p>@endif
-                                <div class="catalogue-print-identifiers">
-                                    <div><span>Product UUID</span> <code>{{ $product->public_uuid ?: 'Not assigned' }}</code></div>
-                                    <div><span>Barcode</span> Not assigned</div>
-                                </div>
                                 <div class="catalogue-print-foot"><span>SKU {{ $product->sku }}</span><strong>€{{ number_format((float)$product->price,2) }}</strong></div>
                             </div>
                         </article>
