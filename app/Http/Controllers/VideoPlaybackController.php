@@ -85,18 +85,57 @@ class VideoPlaybackController extends Controller
             ->get();
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
-            .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+            .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">'."\n";
 
         foreach ($videos as $video) {
             try {
                 if (!$video->isPubliclyPlayable()) continue;
 
-                $xml .= '    <url><loc>'.e(route('videos.watch',['video'=>$video->uuid])).'</loc>';
+                $watchUrl = route('videos.watch', ['video' => $video->uuid]);
+                $title = trim((string) (data_get($video->metadata, 'seo_title') ?: $video->title));
+                $description = trim((string) data_get($video->metadata, 'description', ''));
+                if ($description === '') {
+                    $description = $video->product?->name
+                        ? $video->product->name.' video by Emerald Rozalia.'
+                        : 'Emerald Rozalia product video.';
+                }
+
+                $posterPath = data_get($video->metadata, 'poster');
+                $thumbnailUrl = is_string($posterPath) && $posterPath !== ''
+                    ? route('videos.asset', [$video->uuid, 'poster'])
+                    : null;
+
+                if (!$thumbnailUrl) continue;
+
+                $xml .= "    <url>\n";
+                $xml .= '        <loc>'.e($watchUrl)."</loc>\n";
                 $lastmod = $video->updated_at ?: $video->created_at;
                 if ($lastmod) {
-                    $xml .= '<lastmod>'.e(\Illuminate\Support\Carbon::parse($lastmod)->toAtomString()).'</lastmod>';
+                    $xml .= '        <lastmod>'.e(\Illuminate\Support\Carbon::parse($lastmod)->toAtomString())."</lastmod>\n";
                 }
-                $xml .= "</url>\n";
+                $xml .= "        <video:video>\n";
+                $xml .= '            <video:thumbnail_loc>'.e($thumbnailUrl)."</video:thumbnail_loc>\n";
+                $xml .= '            <video:title>'.e($title)."</video:title>\n";
+                $xml .= '            <video:description>'.e($description)."</video:description>\n";
+
+                if ($video->platform === 'Website') {
+                    $xml .= '            <video:content_loc>'.e(route('videos.asset', [$video->uuid, 'video']))."</video:content_loc>\n";
+                } elseif ($video->embed_url) {
+                    $xml .= '            <video:player_loc>'.e($video->embed_url)."</video:player_loc>\n";
+                }
+
+                $duration = (int) round((float) data_get($video->metadata, 'duration', 0));
+                if ($duration > 0 && $duration <= 28800) {
+                    $xml .= '            <video:duration>'.$duration."</video:duration>\n";
+                }
+
+                $publicationDate = data_get($video->metadata, 'publish_at') ?: $video->created_at;
+                if ($publicationDate) {
+                    $xml .= '            <video:publication_date>'.e(\Illuminate\Support\Carbon::parse($publicationDate)->toAtomString())."</video:publication_date>\n";
+                }
+
+                $xml .= "        </video:video>\n";
+                $xml .= "    </url>\n";
             } catch (\Throwable $exception) {
                 report($exception);
             }
@@ -104,6 +143,9 @@ class VideoPlaybackController extends Controller
 
         $xml .= '</urlset>'."\n";
 
-        return response($xml,200,['Content-Type'=>'application/xml; charset=UTF-8']);
+        return response($xml,200,[
+            'Content-Type'=>'application/xml; charset=UTF-8',
+            'Cache-Control'=>'public, max-age=300',
+        ]);
     }
 }
