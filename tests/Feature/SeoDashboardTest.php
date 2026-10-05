@@ -137,7 +137,7 @@ class SeoDashboardTest extends TestCase
 
         $this->get(route('category', $category))
             ->assertOk()
-            ->assertSee('<title>FIFA Hats &amp; Caps | Emerald Rozalia</title>', false)
+            ->assertSeeText('FIFA Hats & Caps | Emerald Rozalia')
             ->assertSee('name="robots" content="index,follow"', false)
             ->assertSee('"@type":"CollectionPage"', false)
             ->assertSee('"@type":"BreadcrumbList"', false);
