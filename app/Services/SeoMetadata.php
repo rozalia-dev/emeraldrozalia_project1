@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\{Category, ContentPage, Product, SeoSetting};
+use App\Models\{Category, ContentPage, Product, ProductVideo, SeoSetting};
 use Illuminate\Support\Str;
 
 final class SeoMetadata
@@ -26,6 +26,7 @@ final class SeoMetadata
         ?Product $product = null,
         ?Category $category = null,
         ?ContentPage $managedPage = null,
+        ?ProductVideo $video = null,
     ): array {
         // Blade view variables can persist across multiple requests in the same
         // long-lived application/test process. Only treat a $product variable as
@@ -34,10 +35,13 @@ final class SeoMetadata
         if (! request()->routeIs('product')) {
             $product = null;
         }
+        if (! request()->routeIs('videos.watch')) {
+            $video = null;
+        }
 
         $isProductCatalogue = request()->routeIs('catalogue.show');
 
-        if (! $product && ! $category && ! $managedPage && ! $isProductCatalogue) {
+        if (! $product && ! $category && ! $managedPage && ! $video && ! $isProductCatalogue) {
             $managedPage = $this->publishedPageForCurrentRequest();
         }
 
@@ -50,7 +54,15 @@ final class SeoMetadata
             $description = 'Browse the current Emerald Rozalia product catalogue of published Irish-made hats and caps.';
         }
 
-        if ($product) {
+        if ($video) {
+            $title = data_get($video->metadata, 'seo_title') ?: $video->title.' | Emerald Rozalia';
+            $description = trim((string) data_get($video->metadata, 'description', ''));
+            if ($description === '') {
+                $description = $video->product?->name
+                    ? $video->product->name.' video by Emerald Rozalia.'
+                    : 'Emerald Rozalia product video.';
+            }
+        } elseif ($product) {
             $seo = (array) $product->seo;
             $title = $product->meta_title ?: $product->name.' | Emerald Rozalia';
             $description = $product->meta_description
@@ -75,13 +87,14 @@ final class SeoMetadata
         }
 
         $canonical = $this->canonicalUrl();
-        $socialImage = $this->socialImageForProduct($product);
+        $socialImage = $this->socialImageForVideo($video) ?: $this->socialImageForProduct($product);
         $schema = $this->schemaForPage(
             $canonical,
             trim((string) $title),
             trim((string) $description),
             $product,
             $category,
+            $video,
             $socialImage,
         );
 
@@ -101,6 +114,7 @@ final class SeoMetadata
         string $description,
         ?Product $product,
         ?Category $category,
+        ?ProductVideo $video,
         ?string $socialImage,
     ): array {
         $organization = $this->setting('organization_schema', self::DEFAULT_SCHEMA);
@@ -121,7 +135,63 @@ final class SeoMetadata
 
         $graph = [$organization];
 
-        if ($product) {
+        if ($video) {
+            $videoSchema = [
+                '@type' => 'VideoObject',
+                '@id' => $canonical.'#video',
+                'name' => $title,
+                'description' => $description,
+                'url' => $canonical,
+                'uploadDate' => optional($video->created_at)->toAtomString(),
+            ];
+
+            if ($socialImage) {
+                $videoSchema['thumbnailUrl'] = [$socialImage];
+            }
+
+            $duration = (int) round((float) data_get($video->metadata, 'duration', 0));
+            if ($duration > 0) {
+                $videoSchema['duration'] = 'PT'.$duration.'S';
+            }
+
+            if ($video->platform === 'Website') {
+                $videoSchema['contentUrl'] = route('videos.asset', [$video->uuid, 'video']);
+            } elseif ($video->embed_url) {
+                $videoSchema['embedUrl'] = $video->embed_url;
+            }
+
+            if ($video->product) {
+                $videoSchema['about'] = [
+                    '@type' => 'Product',
+                    'name' => $video->product->name,
+                    'url' => route('product', $video->product),
+                ];
+            }
+
+            $graph[] = array_filter($videoSchema, fn ($value) => $value !== null && $value !== '');
+
+            $breadcrumbItems = [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => rtrim((string) config('app.url'), '/').'/'],
+            ];
+            if ($video->product) {
+                $breadcrumbItems[] = [
+                    '@type' => 'ListItem',
+                    'position' => 2,
+                    'name' => $video->product->name,
+                    'item' => route('product', $video->product),
+                ];
+            }
+            $breadcrumbItems[] = [
+                '@type' => 'ListItem',
+                'position' => count($breadcrumbItems) + 1,
+                'name' => $title,
+                'item' => $canonical,
+            ];
+            $graph[] = [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => $breadcrumbItems,
+            ];
+        } elseif ($product) {
             $inStock = (int) $product->stock > 0;
             if ($product->relationLoaded('variants')) {
                 $inStock = $inStock || $product->variants
@@ -220,6 +290,15 @@ final class SeoMetadata
             '@context' => 'https://schema.org',
             '@graph' => $graph,
         ];
+    }
+
+    private function socialImageForVideo(?ProductVideo $video): ?string
+    {
+        if (! $video || blank(data_get($video->metadata, 'poster'))) {
+            return null;
+        }
+
+        return route('videos.asset', [$video->uuid, 'poster']);
     }
 
     private function socialImageForProduct(?Product $product): ?string
