@@ -105,14 +105,21 @@ class VideoPlaybackController extends Controller
                     ? route('videos.asset', [$video->uuid, 'poster'])
                     : null;
 
-                if (!$thumbnailUrl) continue;
-
                 $xml .= "    <url>\n";
                 $xml .= '        <loc>'.e($watchUrl)."</loc>\n";
                 $lastmod = $video->updated_at ?: $video->created_at;
                 if ($lastmod) {
                     $xml .= '        <lastmod>'.e(\Illuminate\Support\Carbon::parse($lastmod)->toAtomString())."</lastmod>\n";
                 }
+
+                // Keep every publicly playable video discoverable in the sitemap,
+                // even when an older record has no poster yet. Google video metadata
+                // is added only when a valid thumbnail is available.
+                if (!$thumbnailUrl) {
+                    $xml .= "    </url>\n";
+                    continue;
+                }
+
                 $xml .= "        <video:video>\n";
                 $xml .= '            <video:thumbnail_loc>'.e($thumbnailUrl)."</video:thumbnail_loc>\n";
                 $xml .= '            <video:title>'.e($title)."</video:title>\n";
