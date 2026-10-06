@@ -235,6 +235,10 @@ class VideoDashboardTest extends TestCase
 
         $this->get(route('videos.watch',$visible->uuid))
             ->assertOk()
+            ->assertSee('<title>Visible product video | Emerald Rozalia</title>', false)
+            ->assertSee('name="robots" content="index,follow"', false)
+            ->assertSee('rel="canonical"', false)
+            ->assertSee('property="og:image"', false)
             ->assertSee(['Visible product video','/js/video-playback.js'],false)
             ->assertSee('"@type":"VideoObject"', false)
             ->assertSee('"thumbnailUrl"', false)
