@@ -136,6 +136,49 @@ class SeoDashboardTest extends TestCase
         ]);
     }
 
+
+    public function test_existing_seo_issues_are_resolved_when_page_becomes_non_indexable(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $page = ContentPage::create([
+            'title' => 'Audit Transition Page',
+            'slug' => 'audit-transition-page',
+            'body' => '',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        $this->assertDatabaseHas('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'missing-h1',
+            'status' => 'open',
+        ]);
+
+        $page->update([
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        $this->assertDatabaseHas('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'missing-h1',
+            'status' => 'resolved',
+        ]);
+    }
+
     public function test_non_indexable_managed_pages_do_not_create_seo_audit_issues(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
