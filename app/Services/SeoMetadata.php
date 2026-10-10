@@ -65,14 +65,12 @@ final class SeoMetadata
         } elseif ($product) {
             $seo = (array) $product->seo;
             $title = $product->meta_title ?: $product->name.' | Emerald Rozalia';
-            $description = $product->meta_description
-                ?: Str::limit((string) ($product->description ?: 'Shop '.$product->name.' from Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.'), 160, '');
+            $description = $product->meta_description ?: $this->productDescription($product);
             $noindex = (bool) ($seo['noindex'] ?? false);
         } elseif ($category) {
             $seo = (array) $category->seo;
             $title = $category->meta_title ?: $category->name.' Hats & Caps | Emerald Rozalia';
-            $description = $category->meta_description
-                ?: Str::limit((string) ($category->description ?: 'Shop '.$category->name.' hats, caps and headwear from Emerald Rozalia, proudly manufacturing in Limerick, Ireland.'), 160, '');
+            $description = $category->meta_description ?: $this->categoryDescription($category);
             $noindex = (bool) ($seo['noindex'] ?? false);
         } elseif ($managedPage) {
             $meta = (array) $managedPage->meta;
@@ -290,6 +288,39 @@ final class SeoMetadata
             '@context' => 'https://schema.org',
             '@graph' => $graph,
         ];
+    }
+
+    private function productDescription(Product $product): string
+    {
+        $description = trim(strip_tags((string) $product->description));
+        if (Str::length($description) >= 80) {
+            return Str::limit($description, 160, '');
+        }
+
+        $details = collect([
+            $description,
+            filled($product->material) ? 'Made with '.$product->material.'.' : null,
+            $product->category?->name ? 'Explore '.$product->category->name.' by Emerald Rozalia.' : null,
+            'Irish headwear designed and manufactured in Limerick, Ireland.',
+        ])->filter()->implode(' ');
+
+        return Str::limit($details ?: 'Shop '.$product->name.' from Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.', 160, '');
+    }
+
+    private function categoryDescription(Category $category): string
+    {
+        $description = trim(strip_tags((string) $category->description));
+        if (Str::length($description) >= 80) {
+            return Str::limit($description, 160, '');
+        }
+
+        $details = collect([
+            $description,
+            'Shop '.$category->name.' hats, caps and headwear from Emerald Rozalia.',
+            'Designed and manufactured in Limerick, Ireland.',
+        ])->filter()->implode(' ');
+
+        return Str::limit($details, 160, '');
     }
 
     private function socialImageForVideo(?ProductVideo $video): ?string
