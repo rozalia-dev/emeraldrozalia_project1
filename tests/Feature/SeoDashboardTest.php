@@ -138,6 +138,27 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_top_content_overview_excludes_non_indexable_pages(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        ContentPage::create([
+            'title' => 'Private Top Content Page',
+            'slug' => 'private-top-content-page',
+            'body' => '<h1>Private Top Content Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.seo.dashboard'));
+        $response->assertOk();
+        $response->assertDontSee('Private Top Content Page');
+    }
+
     public function test_meta_status_cards_ignore_non_indexable_pages(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
