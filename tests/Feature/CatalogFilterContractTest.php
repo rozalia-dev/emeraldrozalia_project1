@@ -10,6 +10,17 @@ class CatalogFilterContractTest extends TestCase
 {
     use RefreshDatabase;
 
+
+    public function test_legacy_numeric_shop_filters_redirect_to_clean_shop_url(): void
+    {
+        $this->get('/shop?category=3&organization=1&country=82&club=490&product_type=8')
+            ->assertStatus(301)
+            ->assertRedirect('/shop');
+
+        $this->get('/shop?category=traditional&country=IE')
+            ->assertOk();
+    }
+
     public function test_public_catalogue_filters_use_decimal_contracts_and_reject_exponents(): void
     {
         $inside = Product::create([
