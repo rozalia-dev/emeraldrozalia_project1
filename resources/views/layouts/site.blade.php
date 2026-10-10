@@ -24,7 +24,7 @@
     <title>{{ $seoMetadata['title'] }}</title>
     <meta name="description" content="{{ $seoMetadata['description'] }}">
     <link rel="canonical" href="{{ $seoMetadata['canonical'] }}">
-    <meta name="robots" content="{{ $seoMetadata['noindex'] ? 'noindex,nofollow' : 'index,follow' }}">
+    <meta name="robots" content="{{ $seoMetadata['noindex'] ? 'noindex,follow' : 'index,follow' }}">
     <meta property="og:title" content="{{ $seoMetadata['title'] }}">
     <meta property="og:description" content="{{ $seoMetadata['description'] }}">
     <meta property="og:url" content="{{ $seoMetadata['canonical'] }}">
