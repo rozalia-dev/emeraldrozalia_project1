@@ -13,6 +13,7 @@ use App\Http\Middleware\InjectProductMoqField;
 use App\Http\Middleware\InjectPublicChatWidget;
 use App\Http\Middleware\InjectStorefrontLocalization;
 use App\Http\Middleware\ResolveTenantContext;
+use App\Http\Middleware\RedirectLegacyShopFilters;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'franchise.permission' => EnsureFranchisePermission::class,
             'communication.permission' => EnsureCommunicationPermission::class,
         ]);
+        $middleware->appendToGroup('web', RedirectLegacyShopFilters::class);
         $middleware->appendToGroup('web', ApplySeoRedirects::class);
         $middleware->appendToGroup('web', InjectProductMoqField::class);
         $middleware->appendToGroup('web', InjectPublicChatWidget::class);
