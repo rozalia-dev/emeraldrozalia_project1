@@ -51,6 +51,43 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_non_indexable_managed_pages_do_not_create_seo_audit_issues(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $draft = ContentPage::create([
+            'title' => 'Draft Audit Page',
+            'slug' => 'draft-audit-page',
+            'body' => '',
+            'status' => 'draft',
+            'locale' => 'en',
+            'template' => 'standard',
+        ]);
+
+        $private = ContentPage::create([
+            'title' => 'Private Audit Page',
+            'slug' => 'private-audit-page',
+            'body' => '',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        foreach ([$draft, $private] as $page) {
+            $this->assertDatabaseMissing('seo_issues', [
+                'source_type' => 'page',
+                'source_id' => $page->id,
+            ]);
+        }
+    }
+
     public function test_product_and_category_fallback_metadata_do_not_create_false_audit_issues(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
