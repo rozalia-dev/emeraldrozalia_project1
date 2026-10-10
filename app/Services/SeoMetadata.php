@@ -327,7 +327,7 @@ final class SeoMetadata
         };
     }
 
-    private function productDescription(Product $product): string
+    public function productDescription(Product $product): string
     {
         $description = trim(strip_tags((string) $product->description));
         if (Str::length($description) >= 80) {
@@ -344,7 +344,7 @@ final class SeoMetadata
         return Str::limit($details ?: 'Shop '.$product->name.' from Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.', 160, '');
     }
 
-    private function categoryDescription(Category $category): string
+    public function categoryDescription(Category $category): string
     {
         $description = trim(strip_tags((string) $category->description));
         if (Str::length($description) >= 80) {
