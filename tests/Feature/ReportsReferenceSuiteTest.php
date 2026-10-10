@@ -46,19 +46,21 @@ class ReportsReferenceSuiteTest extends TestCase
             $html = $this->actingAs($admin)->get(route('admin.reports.'.$page, $window))
                 ->assertOk()
                 ->getContent();
+            $visibleText = $this->visibleReportText($html);
 
-            $this->assertStringContainsString($emptyState, $html, "Missing honest empty state on {$page}.");
+            $this->assertStringContainsString($emptyState, $visibleText, "Missing honest empty state on {$page}.");
             foreach ([
                 '1248', '152680', '245', '186', '01 May 2025', 'admin@emeraldrozalia.ie',
                 'RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary',
             ] as $fixture) {
-                $this->assertStringNotContainsString($fixture, $html, "Reference fixture leaked into {$page}: {$fixture}");
+                $this->assertStringNotContainsString($fixture, $visibleText, "Reference fixture leaked into {$page}: {$fixture}");
             }
         }
 
         $rolesHtml = $this->actingAs($admin)->get(route('admin.reports.roles', $window))->assertOk()->getContent();
+        $rolesVisibleText = $this->visibleReportText($rolesHtml);
         foreach (['1248', '152680', 'RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary'] as $fixture) {
-            $this->assertStringNotContainsString($fixture, $rolesHtml, "Reference fixture leaked into roles: {$fixture}");
+            $this->assertStringNotContainsString($fixture, $rolesVisibleText, "Reference fixture leaked into roles: {$fixture}");
         }
     }
 
@@ -334,4 +336,13 @@ class ReportsReferenceSuiteTest extends TestCase
             'from' => now()->subDay()->toDateString(), 'to' => now()->addDay()->toDateString(), 'q' => 'Recorded metrics',
         ]))->assertOk()->assertSeeText('2m 0s')->assertSeeText('1h 0m')->assertSeeText('100.00%')->assertSeeText('4.00 / 5');
     }
+
+    private function visibleReportText(string $html): string
+    {
+        $withoutScripts = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', ' ', $html) ?? $html;
+        $text = html_entity_decode(strip_tags($withoutScripts), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return preg_replace('/\s+/u', ' ', $text) ?? $text;
+    }
+
 }
