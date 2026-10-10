@@ -166,6 +166,32 @@ class SeoDashboardTest extends TestCase
             ->assertSee('<loc>'.route('category', $category).'</loc>', false);
     }
 
+
+    public function test_search_console_legacy_404_urls_redirect_to_live_public_pages(): void
+    {
+        $redirects = [
+            '/category/sports-training-caps' => '/shop',
+            '/category/workwear-warehouse-team-caps' => '/shop',
+            '/category/limerick-heritage-collection' => '/irish-heritage',
+            '/category/heritage-baseball-caps' => '/irish-heritage',
+            '/category/winter-fleece-hats' => '/shop',
+            '/category/8-panel-caps' => '/shop',
+            '/category/snapbacks' => '/shop',
+            '/category/kids-beanies' => '/shop',
+            '/category/classic-6-panel-caps' => '/shop',
+            '/category/bucket-hats' => '/shop',
+            '/category/classic-fashion-caps' => '/shop',
+            '/product/baseball-cap' => '/shop',
+            '/category/costume-party-hats' => '/shop',
+        ];
+
+        foreach ($redirects as $from => $to) {
+            $this->get($from)
+                ->assertStatus(301)
+                ->assertRedirect($to);
+        }
+    }
+
     public function test_redirect_manager_enforces_an_active_redirect(): void
     {
         SeoRedirect::create([
