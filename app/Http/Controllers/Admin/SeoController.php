@@ -650,7 +650,11 @@ class SeoController extends Controller
 
     private function scanIssues(Collection $sources): Collection
     {
-        $issues = $sources->flatMap(function (array $source): Collection {
+        $indexableSources = $sources
+            ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+            ->values();
+
+        $issues = $indexableSources->flatMap(function (array $source): Collection {
             $items = collect();
             $add = function (string $type, string $title, string $severity, string $details) use (&$items, $source): void {
                 $items->push([
@@ -693,7 +697,7 @@ class SeoController extends Controller
             return $items;
         })->values();
 
-        $duplicates = $sources->filter(fn (array $source): bool => filled($source['meta_title']))
+        $duplicates = $indexableSources->filter(fn (array $source): bool => filled($source['meta_title']))
             ->groupBy(fn (array $source): string => Str::lower(trim((string) $source['meta_title'])));
         foreach ($duplicates as $sameTitle) {
             if ($sameTitle->count() < 2) {
