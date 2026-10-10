@@ -137,6 +137,30 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_meta_status_cards_ignore_non_indexable_pages(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        ContentPage::create([
+            'title' => 'Private Meta Status Page',
+            'slug' => 'private-meta-status-page',
+            'body' => '',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.seo.dashboard', ['tab' => 'meta']));
+        $response->assertOk();
+
+        $viewData = $response->viewData('metaStatus');
+        $this->assertIsArray($viewData);
+        $this->assertSame((int) data_get($viewData, 'total'), (int) data_get($viewData, 'optimized') + (int) data_get($viewData, 'missing') + (int) data_get($viewData, 'too_long'));
+    }
+
     public function test_existing_seo_issues_are_resolved_when_page_becomes_non_indexable(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
