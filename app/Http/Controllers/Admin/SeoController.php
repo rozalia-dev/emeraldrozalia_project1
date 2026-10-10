@@ -571,7 +571,11 @@ class SeoController extends Controller
                     'has_h1' => (bool) preg_match('/<h1\b/i', $body),
                     'has_alt_text' => $this->hasAltText($body),
                     'has_internal_links' => $this->hasInternalLinks($body),
-                    'indexed' => $page->status === 'published' && ! (bool) ($meta['noindex'] ?? false),
+                    'indexed' => $page->status === 'published'
+                        && ($page->scheduled_for === null || $page->scheduled_for->lte(now()))
+                        && $page->isPublic()
+                        && ! $page->requiresLogin()
+                        && ! (bool) ($meta['noindex'] ?? false),
                     'word_count' => str_word_count(strip_tags($body)),
                     'content' => $body,
                     'updated_at' => $page->updated_at,
