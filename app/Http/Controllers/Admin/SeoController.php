@@ -88,7 +88,7 @@ class SeoController extends Controller
 
             return str_contains(Str::lower($source['path'].' '.$source['title'].' '.$source['kind']), Str::lower($query));
         })->values();
-        $topContentRows = $metaRows
+        $topContentRows = $sources
             ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
             ->take(5)
             ->values();
