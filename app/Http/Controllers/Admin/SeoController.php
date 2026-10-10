@@ -385,7 +385,7 @@ class SeoController extends Controller
     {
         $data = $request->validate(['robots_txt' => ['required', 'string', 'max:10000']]);
         $before = $this->settingRecord('robots_txt')?->toArray();
-        $setting = $this->saveSetting('robots_txt', rtrim($data['robots_txt'])."\n");
+        $setting = $this->saveSetting('robots_txt', $this->withSitemapDirectives($data['robots_txt']));
         AuditTrail::record('seo.robots_updated', $setting, $before, $setting->fresh()->toArray());
 
         return back()->with('success', 'robots.txt rules saved.');
@@ -447,7 +447,11 @@ class SeoController extends Controller
 
     public function robots()
     {
-        return response((string) $this->settingValue('robots_txt', $this->defaultRobots()), 200, [
+        $robots = $this->withSitemapDirectives(
+            (string) $this->settingValue('robots_txt', $this->defaultRobots())
+        );
+
+        return response($robots, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',
             'Cache-Control' => 'public, max-age=300',
         ]);
@@ -970,7 +974,34 @@ class SeoController extends Controller
 
     private function defaultRobots(): string
     {
-        return self::DEFAULT_ROBOTS_PATHS.rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/')."/sitemap.xml\n";
+        return $this->withSitemapDirectives(self::DEFAULT_ROBOTS_PATHS);
+    }
+
+    private function withSitemapDirectives(string $robots): string
+    {
+        $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
+        $sitemaps = [
+            $base.'/sitemap.xml',
+            $base.'/video-sitemap.xml',
+            $base.'/360-sitemap.xml',
+        ];
+
+        $lines = preg_split('/\r\n|\r|\n/', trim($robots)) ?: [];
+        $lines = array_values(array_filter(
+            $lines,
+            fn (string $line): bool => ! str_starts_with(strtolower(trim($line)), 'sitemap:')
+        ));
+
+        while ($lines && trim((string) end($lines)) === '') {
+            array_pop($lines);
+        }
+
+        $lines[] = '';
+        foreach ($sitemaps as $sitemap) {
+            $lines[] = 'Sitemap: '.$sitemap;
+        }
+
+        return implode("\n", $lines)."\n";
     }
 
     private function saveSetting(string $key, mixed $value): SeoSetting
