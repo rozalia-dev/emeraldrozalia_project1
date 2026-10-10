@@ -575,7 +575,7 @@ class SeoController extends Controller
             });
 
         $products = Product::query()
-            ->where('is_active', true)
+            ->published()
             ->with('category')
             ->latest('updated_at')
             ->get()
@@ -603,7 +603,7 @@ class SeoController extends Controller
             });
 
         $categories = Category::query()
-            ->where('is_active', true)
+            ->websiteVisible()
             ->latest('updated_at')
             ->get()
             ->map(function (Category $category): array {
