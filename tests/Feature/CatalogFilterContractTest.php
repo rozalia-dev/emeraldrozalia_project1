@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -11,6 +12,36 @@ class CatalogFilterContractTest extends TestCase
     use RefreshDatabase;
 
 
+
+
+    public function test_category_and_new_arrivals_pagination_use_self_canonicals(): void
+    {
+        $category = Category::create([
+            'name' => 'Corporate Beanies',
+            'slug' => 'corporate-beanies',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $this->get('/category/corporate-beanies?page=1')
+            ->assertStatus(301)
+            ->assertRedirect('/category/corporate-beanies');
+
+        $this->get('/category/corporate-beanies?page=2')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="http://localhost/category/corporate-beanies?page=2">', false);
+
+        $this->get('/new-arrivals?page=1')
+            ->assertStatus(301)
+            ->assertRedirect('/new-arrivals');
+
+        $this->get('/new-arrivals?page=2')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="http://localhost/new-arrivals?page=2">', false);
+
+        $this->assertNotNull($category->id);
+    }
 
     public function test_shop_pagination_has_clean_page_one_redirect_and_self_canonical_later_pages(): void
     {
