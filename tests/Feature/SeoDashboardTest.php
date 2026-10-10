@@ -139,6 +139,20 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_top_content_overview_is_not_filtered_by_dashboard_search(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $response = $this->actingAs($admin)->get(route('admin.seo.dashboard', [
+            'q' => 'definitely-no-match-for-top-content',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Top Content');
+        $response->assertSee('Home');
+    }
+
     public function test_top_content_overview_excludes_non_indexable_pages(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
