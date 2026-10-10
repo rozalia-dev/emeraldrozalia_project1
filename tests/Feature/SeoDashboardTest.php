@@ -52,6 +52,33 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_broken_link_audit_ignores_non_indexable_managed_pages(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $page = ContentPage::create([
+            'title' => 'Private Broken Links',
+            'slug' => 'private-broken-links',
+            'body' => '<h1>Private</h1><a href="/missing-private-target">Broken</a>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.links'))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'broken-internal-link',
+        ]);
+    }
+
     public function test_non_indexable_managed_pages_do_not_create_seo_audit_issues(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
