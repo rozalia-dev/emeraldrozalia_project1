@@ -53,6 +53,35 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_seo_health_score_ignores_non_indexable_pages(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        ContentPage::create([
+            'title' => 'Private Thin Page',
+            'slug' => 'private-thin-page',
+            'body' => '',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        $audit = \App\Models\SeoAudit::query()->latest('completed_at')->firstOrFail();
+
+        $this->assertGreaterThan(0, $audit->score);
+        $this->assertSame(
+            data_get($audit->summary, 'indexed_pages'),
+            data_get($audit->summary, 'total_pages') - data_get($audit->summary, 'noindex_pages')
+        );
+    }
+
     public function test_broken_link_audit_ignores_non_indexable_managed_pages(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
