@@ -195,6 +195,17 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_public_help_and_legal_pages_are_in_main_sitemap(): void
+    {
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertSee('<loc>http://localhost/size-guide</loc>', false)
+            ->assertSee('<loc>http://localhost/shipping-delivery</loc>', false)
+            ->assertSee('<loc>http://localhost/privacy-policy</loc>', false)
+            ->assertSee('<loc>http://localhost/terms-conditions</loc>', false);
+    }
+
     public function test_public_sitemap_excludes_draft_products_and_hidden_categories(): void
     {
         $visibleCategory = Category::create([
