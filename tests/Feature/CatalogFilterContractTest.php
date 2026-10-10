@@ -17,7 +17,7 @@ class CatalogFilterContractTest extends TestCase
             ->assertStatus(301)
             ->assertRedirect('/shop');
 
-        $this->get('/shop?category=traditional&country=IE')
+        $this->get('/shop?sort=newest')
             ->assertOk();
     }
 
