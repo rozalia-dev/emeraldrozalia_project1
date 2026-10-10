@@ -155,9 +155,9 @@ class SeoDashboardTest extends TestCase
 
         $this->actingAs($admin);
 
-        $controller = app(\\App\\Http\\Controllers\\Admin\\SeoController::class);
-        $sourcesMethod = new \\ReflectionMethod($controller, 'sources');
-        $metaStatusMethod = new \\ReflectionMethod($controller, 'metaStatus');
+        $controller = app(\App\Http\Controllers\Admin\SeoController::class);
+        $sourcesMethod = new \ReflectionMethod($controller, 'sources');
+        $metaStatusMethod = new \ReflectionMethod($controller, 'metaStatus');
 
         $sources = $sourcesMethod->invoke($controller);
         $viewData = $metaStatusMethod->invoke($controller, $sources);
