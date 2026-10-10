@@ -167,6 +167,14 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_legacy_home_alias_redirects_to_canonical_homepage(): void
+    {
+        $this->get('/home')
+            ->assertStatus(301)
+            ->assertRedirect('/');
+    }
+
     public function test_search_console_legacy_404_urls_redirect_to_live_public_pages(): void
     {
         $redirects = [
