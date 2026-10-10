@@ -536,8 +536,12 @@ class SeoController extends Controller
             'path' => $page[0],
             'title' => $page[1],
             'kind' => 'Public page',
-            'meta_title' => null,
-            'meta_description' => null,
+            'meta_title' => $page[1].' | Emerald Rozalia',
+            'meta_description' => Str::limit(
+                'Explore '.$page[1].' at Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.',
+                155,
+                ''
+            ),
             'focus_keyword' => null,
             'noindex' => false,
             'has_h1' => true,
