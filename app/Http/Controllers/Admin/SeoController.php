@@ -872,13 +872,17 @@ class SeoController extends Controller
 
     private function healthScore(Collection $sources): int
     {
-        if ($sources->isEmpty()) {
+        $indexableSources = $sources
+            ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+            ->values();
+
+        if ($indexableSources->isEmpty()) {
             return 0;
         }
 
         $checks = 0;
         $passed = 0;
-        foreach ($sources as $source) {
+        foreach ($indexableSources as $source) {
             $checks += 3;
             $passed += filled($source['meta_title']) && mb_strlen((string) $source['meta_title']) <= 60 ? 1 : 0;
             $passed += filled($source['meta_description']) && mb_strlen((string) $source['meta_description']) <= 160 ? 1 : 0;
@@ -890,12 +894,16 @@ class SeoController extends Controller
 
     private function healthBreakdown(Collection $sources): array
     {
-        $percent = function (callable $test) use ($sources): int {
-            if ($sources->isEmpty()) {
+        $indexableSources = $sources
+            ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+            ->values();
+
+        $percent = function (callable $test) use ($indexableSources): int {
+            if ($indexableSources->isEmpty()) {
                 return 0;
             }
 
-            return (int) round(($sources->filter($test)->count() / $sources->count()) * 100);
+            return (int) round(($indexableSources->filter($test)->count() / $indexableSources->count()) * 100);
         };
 
         $schema = $this->settingValue('organization_schema', self::DEFAULT_SCHEMA);
