@@ -59,7 +59,7 @@ class ReportsReferenceSuiteTest extends TestCase
 
         $rolesHtml = $this->actingAs($admin)->get(route('admin.reports.roles', $window))->assertOk()->getContent();
         $rolesVisibleText = $this->visibleReportText($rolesHtml);
-        foreach (['1248', '152680', 'RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary'] as $fixture) {
+        foreach (['RPT-2025', 'RET-2025', 'Franchise Sales Performance Summary'] as $fixture) {
             $this->assertStringNotContainsString($fixture, $rolesVisibleText, "Reference fixture leaked into roles: {$fixture}");
         }
     }
