@@ -950,16 +950,20 @@ class SeoController extends Controller
 
     private function metaStatus(Collection $sources): array
     {
-        $optimized = $sources->filter(fn (array $source): bool => filled($source['meta_title']) && filled($source['meta_description']) && mb_strlen((string) $source['meta_title']) <= 60 && mb_strlen((string) $source['meta_description']) <= 160)->count();
-        $missing = $sources->filter(fn (array $source): bool => blank($source['meta_title']) || blank($source['meta_description']))->count();
-        $tooLong = $sources->filter(fn (array $source): bool => mb_strlen((string) $source['meta_title']) > 60 || mb_strlen((string) $source['meta_description']) > 160)->count();
-        $duplicates = $sources->filter(fn (array $source): bool => filled($source['meta_title']))
+        $indexableSources = $sources
+            ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+            ->values();
+
+        $optimized = $indexableSources->filter(fn (array $source): bool => filled($source['meta_title']) && filled($source['meta_description']) && mb_strlen((string) $source['meta_title']) <= 60 && mb_strlen((string) $source['meta_description']) <= 160)->count();
+        $missing = $indexableSources->filter(fn (array $source): bool => blank($source['meta_title']) || blank($source['meta_description']))->count();
+        $tooLong = $indexableSources->filter(fn (array $source): bool => mb_strlen((string) $source['meta_title']) > 60 || mb_strlen((string) $source['meta_description']) > 160)->count();
+        $duplicates = $indexableSources->filter(fn (array $source): bool => filled($source['meta_title']))
             ->groupBy(fn (array $source): string => Str::lower(trim((string) $source['meta_title'])))
             ->filter(fn (Collection $group): bool => $group->count() > 1)
             ->sum(fn (Collection $group): int => $group->count() - 1);
 
         return [
-            'total' => $sources->count(),
+            'total' => $indexableSources->count(),
             'optimized' => $optimized,
             'missing' => $missing,
             'duplicate' => $duplicates,
