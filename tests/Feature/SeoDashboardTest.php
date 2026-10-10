@@ -249,6 +249,15 @@ class SeoDashboardTest extends TestCase
             ->assertDontSee('/future-page', false);
     }
 
+
+    public function test_help_and_legal_sitemap_urls_resolve_on_canonical_routes(): void
+    {
+        $this->get('/size-guide')->assertOk();
+        $this->get('/shipping-delivery')->assertOk();
+        $this->get('/privacy-policy')->assertOk();
+        $this->get('/terms-conditions')->assertOk();
+    }
+
     public function test_public_help_and_legal_pages_are_in_main_sitemap(): void
     {
         $this->get(route('seo.sitemap'))
