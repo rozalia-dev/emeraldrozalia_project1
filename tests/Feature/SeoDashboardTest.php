@@ -196,6 +196,59 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_sitemap_excludes_private_login_required_and_future_managed_pages(): void
+    {
+        ContentPage::create([
+            'title' => 'Public Page',
+            'slug' => 'public-page',
+            'body' => '<h1>Public Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'published_at' => now(),
+        ]);
+
+        ContentPage::create([
+            'title' => 'Private Page',
+            'slug' => 'private-page',
+            'body' => '<h1>Private Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'private']],
+            'published_at' => now(),
+        ]);
+
+        ContentPage::create([
+            'title' => 'Members Page',
+            'slug' => 'members-page',
+            'body' => '<h1>Members Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['login_required' => true]],
+            'published_at' => now(),
+        ]);
+
+        ContentPage::create([
+            'title' => 'Future Page',
+            'slug' => 'future-page',
+            'body' => '<h1>Future Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'scheduled_for' => now()->addDay(),
+        ]);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertSee('/public-page', false)
+            ->assertDontSee('/private-page', false)
+            ->assertDontSee('/members-page', false)
+            ->assertDontSee('/future-page', false);
+    }
+
     public function test_public_help_and_legal_pages_are_in_main_sitemap(): void
     {
         $this->get(route('seo.sitemap'))
