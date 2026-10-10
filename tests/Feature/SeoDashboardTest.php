@@ -251,6 +251,25 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_generic_page_aliases_use_clean_public_canonicals(): void
+    {
+        $aliases = [
+            '/page/collections' => '/collections',
+            '/page/virtual-tryon' => '/virtual-tryon',
+            '/page/size-guide' => '/size-guide',
+            '/page/shipping-delivery' => '/shipping-delivery',
+            '/page/privacy-policy' => '/privacy-policy',
+            '/page/terms-conditions' => '/terms-conditions',
+        ];
+
+        foreach ($aliases as $from => $canonical) {
+            $this->get($from)
+                ->assertOk()
+                ->assertSee('<link rel="canonical" href="http://localhost'.$canonical.'">', false);
+        }
+    }
+
     public function test_store_owner_alias_uses_franchise_canonical_without_changing_route_contract(): void
     {
         $this->get('/be-a-store-owner')
