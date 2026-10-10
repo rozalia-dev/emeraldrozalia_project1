@@ -10,7 +10,7 @@ class RedirectLegacyShopFilters
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! in_array($request->method(), ['GET', 'HEAD'], true) || ! $request->is('shop')) {
+        if (! in_array($request->method(), ['GET', 'HEAD'], true)) {
             return $next($request);
         }
 
@@ -18,8 +18,13 @@ class RedirectLegacyShopFilters
 
         if (count($query) === 1
             && array_key_exists('page', $query)
-            && trim((string) $query['page']) === '1') {
-            return redirect()->to(route('shop'), 301);
+            && trim((string) $query['page']) === '1'
+            && $request->routeIs('shop', 'category', 'new.arrivals')) {
+            return redirect()->to($request->url(), 301);
+        }
+
+        if (! $request->is('shop')) {
+            return $next($request);
         }
 
         $legacy = array_key_exists('organization', $query)
