@@ -509,6 +509,7 @@ class SeoController extends Controller
             ['/product-catalogue', 'Product Catalogue'],
             ['/collections', 'Collections'],
             ['/new-arrivals', 'New Arrivals'],
+            ['/virtual-tryon', 'Virtual Try-On'],
             ['/irish-traditional', 'Irish Traditional'],
             ['/irish-heritage', 'Irish Heritage'],
             ['/factory', 'Factory'],
