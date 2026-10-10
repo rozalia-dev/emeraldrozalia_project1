@@ -50,6 +50,53 @@ class SeoDashboardTest extends TestCase
         ]);
     }
 
+
+    public function test_product_and_category_fallback_metadata_do_not_create_false_audit_issues(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $category = Category::create([
+            'name' => 'Audit Category',
+            'slug' => 'audit-category',
+            'description' => 'Short category copy.',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Audit Fallback Cap',
+            'slug' => 'audit-fallback-cap',
+            'sku' => 'AUDIT-FALLBACK-001',
+            'description' => 'Short product copy.',
+            'price' => 49.99,
+            'stock' => 5,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        foreach ([
+            ['product', $product->id],
+            ['category', $category->id],
+        ] as [$sourceType, $sourceId]) {
+            $this->assertDatabaseMissing('seo_issues', [
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+                'issue_type' => 'missing-meta-title',
+            ]);
+
+            $this->assertDatabaseMissing('seo_issues', [
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+                'issue_type' => 'missing-meta-description',
+            ]);
+        }
+    }
+
     public function test_admin_can_open_the_seo_dashboard_and_run_an_audit(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -73,11 +120,16 @@ class SeoDashboardTest extends TestCase
             ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
 
         $this->assertDatabaseHas('seo_audits', ['created_by' => $admin->id]);
-        $this->assertDatabaseHas('seo_issues', [
+        $this->assertDatabaseMissing('seo_issues', [
             'source_type' => 'product',
             'source_id' => $product->id,
             'issue_type' => 'missing-meta-title',
-            'status' => 'open',
+        ]);
+
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'product',
+            'source_id' => $product->id,
+            'issue_type' => 'missing-meta-description',
         ]);
     }
 
