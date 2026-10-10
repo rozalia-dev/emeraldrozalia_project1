@@ -16,6 +16,12 @@ class RedirectLegacyShopFilters
 
         $query = $request->query();
 
+        if (count($query) === 1
+            && array_key_exists('page', $query)
+            && trim((string) $query['page']) === '1') {
+            return redirect()->to(route('shop'), 301);
+        }
+
         $legacy = array_key_exists('organization', $query)
             || array_key_exists('product_type', $query)
             || $this->containsNumericLegacyValue($query['category'] ?? null)
