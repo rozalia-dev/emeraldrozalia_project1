@@ -88,6 +88,10 @@ class SeoController extends Controller
 
             return str_contains(Str::lower($source['path'].' '.$source['title'].' '.$source['kind']), Str::lower($query));
         })->values();
+        $topContentRows = $metaRows
+            ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+            ->take(5)
+            ->values();
         $redirects = SeoRedirect::query()->latest()->paginate(10)->withQueryString();
         $audits = SeoAudit::query()->latest('completed_at')->limit(6)->get();
 
@@ -104,6 +108,7 @@ class SeoController extends Controller
             'schemaJson',
             'summary',
             'tab',
+            'topContentRows',
         ));
     }
 
