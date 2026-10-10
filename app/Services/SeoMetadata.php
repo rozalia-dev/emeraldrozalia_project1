@@ -80,6 +80,9 @@ final class SeoMetadata
             $noindex = array_key_exists('indexable', $settings)
                 ? ! (bool) $settings['indexable']
                 : (bool) ($meta['noindex'] ?? false);
+        } elseif ($fixed = $this->fixedPageMetadata()) {
+            $title = $fixed['title'];
+            $description = $fixed['description'];
         } elseif (request()->routeIs('home')) {
             $homeMeta = (array) ($this->setting('home_meta') ?? []);
             $title = $homeMeta['title'] ?? $title;
@@ -291,6 +294,37 @@ final class SeoMetadata
             '@context' => 'https://schema.org',
             '@graph' => $graph,
         ];
+    }
+
+    private function fixedPageMetadata(): ?array
+    {
+        return match ('/'.trim((string) request()->path(), '/')) {
+            '/size-guide' => [
+                'title' => 'Hat & Cap Size Guide | Emerald Rozalia',
+                'description' => 'Use the Emerald Rozalia size guide to measure your head and choose the right hat or cap fit before ordering.',
+            ],
+            '/shipping-delivery' => [
+                'title' => 'Shipping & Delivery | Emerald Rozalia',
+                'description' => 'View Emerald Rozalia delivery estimates for Ireland, the EU, USA, Canada and worldwide orders.',
+            ],
+            '/privacy-policy' => [
+                'title' => 'Privacy Policy | Emerald Rozalia',
+                'description' => 'Read how Emerald Rozalia Limited handles personal information submitted through our website, accounts, enquiries and orders.',
+            ],
+            '/terms-conditions' => [
+                'title' => 'Terms & Conditions | Emerald Rozalia',
+                'description' => 'Read the Emerald Rozalia website and ordering terms covering products, availability, pricing, delivery and customer rights.',
+            ],
+            '/returns-refunds' => [
+                'title' => 'Returns & Refunds | Emerald Rozalia',
+                'description' => 'Read the Emerald Rozalia returns and refunds information for online purchases and customer support.',
+            ],
+            '/our-story' => [
+                'title' => 'Our Story | Emerald Rozalia',
+                'description' => 'Discover Emerald Rozalia, an Irish headwear brand focused on design, manufacturing and craftsmanship in Limerick, Ireland.',
+            ],
+            default => null,
+        };
     }
 
     private function productDescription(Product $product): string
