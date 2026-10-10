@@ -526,6 +526,10 @@ class SeoController extends Controller
             ['/contact', 'Contact'],
             ['/returns-refunds', 'Returns & Refunds'],
             ['/our-story', 'Our Story'],
+            ['/size-guide', 'Size Guide'],
+            ['/shipping-delivery', 'Shipping & Delivery'],
+            ['/privacy-policy', 'Privacy Policy'],
+            ['/terms-conditions', 'Terms & Conditions'],
         ])->map(fn (array $page): array => [
             'source_type' => 'fixed',
             'source_id' => 0,
