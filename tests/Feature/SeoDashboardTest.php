@@ -194,6 +194,55 @@ class SeoDashboardTest extends TestCase
             ->assertSee('Shop Corporate Beanies hats, caps and headwear from Emerald Rozalia.', false);
     }
 
+
+    public function test_public_sitemap_excludes_draft_products_and_hidden_categories(): void
+    {
+        $visibleCategory = Category::create([
+            'name' => 'Visible Category',
+            'slug' => 'visible-category',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        Category::create([
+            'name' => 'Hidden Category',
+            'slug' => 'hidden-category',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => false,
+        ]);
+
+        $published = Product::create([
+            'category_id' => $visibleCategory->id,
+            'name' => 'Published Cap',
+            'slug' => 'published-cap',
+            'sku' => 'PUB-001',
+            'price' => 75,
+            'stock' => 3,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        Product::create([
+            'category_id' => $visibleCategory->id,
+            'name' => 'Draft Cap',
+            'slug' => 'draft-cap',
+            'sku' => 'DRAFT-001',
+            'price' => 75,
+            'stock' => 3,
+            'status' => 'draft',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertSee('/category/visible-category', false)
+            ->assertSee('/product/'.$published->slug, false)
+            ->assertDontSee('/category/hidden-category', false)
+            ->assertDontSee('/product/draft-cap', false);
+    }
+
     public function test_public_sitemap_uses_current_categories_even_when_saved_snapshot_is_stale(): void
     {
         SeoSetting::create([
