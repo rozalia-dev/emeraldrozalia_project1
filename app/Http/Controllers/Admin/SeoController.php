@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Category, ContentPage, Product, SeoAudit, SeoIssue, SeoRedirect, SeoSetting};
-use App\Services\AuditTrail;
+use App\Services\{AuditTrail, SeoMetadata};
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Collection;
@@ -604,8 +604,8 @@ class SeoController extends Controller
                     'path' => '/product/'.$product->slug,
                     'title' => $product->name,
                     'kind' => 'Product',
-                    'meta_title' => $product->meta_title,
-                    'meta_description' => $product->meta_description,
+                    'meta_title' => $product->meta_title ?: $product->name.' | Emerald Rozalia',
+                    'meta_description' => $product->meta_description ?: app(SeoMetadata::class)->productDescription($product),
                     'focus_keyword' => $seo['focus_keyword'] ?? null,
                     'noindex' => (bool) ($seo['noindex'] ?? false),
                     'has_h1' => true,
@@ -631,8 +631,8 @@ class SeoController extends Controller
                     'path' => '/category/'.$category->slug,
                     'title' => $category->name,
                     'kind' => 'Category',
-                    'meta_title' => $category->meta_title,
-                    'meta_description' => $category->meta_description,
+                    'meta_title' => $category->meta_title ?: $category->name.' Hats & Caps | Emerald Rozalia',
+                    'meta_description' => $category->meta_description ?: app(SeoMetadata::class)->categoryDescription($category),
                     'focus_keyword' => $seo['focus_keyword'] ?? null,
                     'noindex' => (bool) ($seo['noindex'] ?? false),
                     'has_h1' => true,
