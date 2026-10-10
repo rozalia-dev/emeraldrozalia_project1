@@ -58,6 +58,21 @@ class SeoDashboardTest extends TestCase
             ->assertSee('application/ld+json', false);
     }
 
+
+    public function test_robots_txt_advertises_all_public_sitemaps_even_with_saved_legacy_rules(): void
+    {
+        SeoSetting::create([
+            'key' => 'robots_txt',
+            'value' => "User-agent: *\nAllow: /\nDisallow: /admin\n\nSitemap: http://localhost/sitemap.xml\n",
+        ]);
+
+        $this->get(route('seo.robots'))
+            ->assertOk()
+            ->assertSee('Sitemap: http://localhost/sitemap.xml', false)
+            ->assertSee('Sitemap: http://localhost/video-sitemap.xml', false)
+            ->assertSee('Sitemap: http://localhost/360-sitemap.xml', false);
+    }
+
     public function test_admin_can_save_product_metadata_and_publish_seo_files(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
