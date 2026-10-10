@@ -15,6 +15,7 @@ require __DIR__.'/tryons.php';
 require __DIR__.'/ai-fashion-model.php';
 require __DIR__.'/categories.php';
 Route::get('/',[SiteController::class,'home'])->name('home');
+Route::permanentRedirect('/home', '/');
 Route::get('/shop',[SiteController::class,'shop'])->name('shop');
 Route::get('/collections',[SiteController::class,'collections'])->name('collections');
 Route::get('/new-arrivals',[SiteController::class,'newArrivals'])->name('new.arrivals');
