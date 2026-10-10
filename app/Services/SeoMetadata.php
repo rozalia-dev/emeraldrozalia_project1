@@ -74,9 +74,12 @@ final class SeoMetadata
             $noindex = (bool) ($seo['noindex'] ?? false);
         } elseif ($managedPage) {
             $meta = (array) $managedPage->meta;
+            $settings = $managedPage->settings();
             $title = $meta['title'] ?? $title;
             $description = $meta['description'] ?? Str::limit((string) ($managedPage->intro ?: $managedPage->body ?: self::DEFAULT_DESCRIPTION), 160, '');
-            $noindex = (bool) ($meta['noindex'] ?? false);
+            $noindex = array_key_exists('indexable', $settings)
+                ? ! (bool) $settings['indexable']
+                : (bool) ($meta['noindex'] ?? false);
         } elseif (request()->routeIs('home')) {
             $homeMeta = (array) ($this->setting('home_meta') ?? []);
             $title = $homeMeta['title'] ?? $title;
