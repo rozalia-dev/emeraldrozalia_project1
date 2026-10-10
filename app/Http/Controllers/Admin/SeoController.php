@@ -455,12 +455,16 @@ class SeoController extends Controller
 
     public function sitemap()
     {
-        $xml = $this->settingValue('sitemap_xml');
-        if (! is_string($xml) || ! str_starts_with(trim($xml), '<?xml')) {
-            $xml = $this->sitemapXml($this->sources());
-        }
+        // Build the public sitemap from the current published catalogue on every
+        // request. The saved sitemap_xml value is kept only as an admin snapshot;
+        // serving it here can leave newly published categories/products missing
+        // until someone manually regenerates the sitemap in cPanel.
+        $xml = $this->sitemapXml($this->sources());
 
-        return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=300',
+        ]);
     }
 
     public function redirectFallback(Request $request)
