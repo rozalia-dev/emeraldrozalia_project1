@@ -358,6 +358,10 @@ final class SeoMetadata
         $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
         $path = '/'.ltrim((string) request()->path(), '/');
 
+        if (request()->routeIs('store.owner')) {
+            return $base.'/franchise';
+        }
+
         if (request()->routeIs('shop', 'category', 'new.arrivals')) {
             $page = (int) request()->query('page', 1);
             if ($page > 1) {
