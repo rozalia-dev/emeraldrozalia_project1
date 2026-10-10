@@ -291,6 +291,26 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_help_and_policy_pages_publish_tailored_search_metadata(): void
+    {
+        $expectations = [
+            '/size-guide' => 'Hat &amp; Cap Size Guide | Emerald Rozalia',
+            '/shipping-delivery' => 'Shipping &amp; Delivery | Emerald Rozalia',
+            '/privacy-policy' => 'Privacy Policy | Emerald Rozalia',
+            '/terms-conditions' => 'Terms &amp; Conditions | Emerald Rozalia',
+            '/returns-refunds' => 'Returns &amp; Refunds | Emerald Rozalia',
+            '/our-story' => 'Our Story | Emerald Rozalia',
+        ];
+
+        foreach ($expectations as $path => $title) {
+            $this->get($path)
+                ->assertOk()
+                ->assertSee('<title>'.$title.'</title>', false)
+                ->assertSee('name="description"', false);
+        }
+    }
+
     public function test_generic_page_aliases_use_clean_public_canonicals(): void
     {
         $aliases = [
