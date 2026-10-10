@@ -143,6 +143,29 @@ class SeoDashboardTest extends TestCase
             ->assertSee('"@type":"BreadcrumbList"', false);
     }
 
+
+    public function test_public_sitemap_uses_current_categories_even_when_saved_snapshot_is_stale(): void
+    {
+        SeoSetting::create([
+            'key' => 'sitemap_xml',
+            'value' => '<?xml version="1.0" encoding="UTF-8"?><urlset></urlset>',
+        ]);
+
+        $category = Category::create([
+            'name' => 'FIFA',
+            'slug' => 'fifa',
+            'description' => 'International football headwear.',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=300, public')
+            ->assertSee('<loc>'.route('category', $category).'</loc>', false);
+    }
+
     public function test_redirect_manager_enforces_an_active_redirect(): void
     {
         SeoRedirect::create([
