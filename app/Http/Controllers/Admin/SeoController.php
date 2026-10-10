@@ -556,7 +556,11 @@ class SeoController extends Controller
             ->get()
             ->map(function (ContentPage $page): array {
                 $meta = (array) $page->meta;
+                $settings = $page->settings();
                 $body = (string) $page->body;
+                $pageNoindex = array_key_exists('indexable', $settings)
+                    ? ! (bool) $settings['indexable']
+                    : (bool) ($meta['noindex'] ?? false);
 
                 return [
                     'source_type' => 'page',
@@ -567,7 +571,7 @@ class SeoController extends Controller
                     'meta_title' => $meta['title'] ?? null,
                     'meta_description' => $meta['description'] ?? null,
                     'focus_keyword' => $meta['focus_keyword'] ?? null,
-                    'noindex' => (bool) ($meta['noindex'] ?? false),
+                    'noindex' => $pageNoindex,
                     'has_h1' => (bool) preg_match('/<h1\b/i', $body),
                     'has_alt_text' => $this->hasAltText($body),
                     'has_internal_links' => $this->hasInternalLinks($body),
@@ -575,7 +579,7 @@ class SeoController extends Controller
                         && ($page->scheduled_for === null || $page->scheduled_for->lte(now()))
                         && $page->isPublic()
                         && ! $page->requiresLogin()
-                        && ! (bool) ($meta['noindex'] ?? false),
+                        && ! $pageNoindex,
                     'word_count' => str_word_count(strip_tags($body)),
                     'content' => $body,
                     'updated_at' => $page->updated_at,
