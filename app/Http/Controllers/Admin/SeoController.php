@@ -751,7 +751,9 @@ class SeoController extends Controller
             ->unique()
             ->flip();
 
-        return $sources->flatMap(function (array $source) use ($knownPaths): Collection {
+        return $sources
+            ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+            ->flatMap(function (array $source) use ($knownPaths): Collection {
             $content = (string) ($source['content'] ?? '');
             if ($content === '' || ! preg_match('/\bhref\s*=/i', $content)) {
                 return collect();
