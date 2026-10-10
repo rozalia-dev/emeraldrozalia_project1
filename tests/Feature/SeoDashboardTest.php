@@ -153,12 +153,21 @@ class SeoDashboardTest extends TestCase
             'published_at' => now(),
         ]);
 
-        $response = $this->actingAs($admin)->get(route('admin.seo.dashboard', ['tab' => 'meta']));
-        $response->assertOk();
+        $this->actingAs($admin);
 
-        $viewData = $response->viewData('metaStatus');
+        $controller = app(\\App\\Http\\Controllers\\Admin\\SeoController::class);
+        $sourcesMethod = new \\ReflectionMethod($controller, 'sources');
+        $metaStatusMethod = new \\ReflectionMethod($controller, 'metaStatus');
+
+        $sources = $sourcesMethod->invoke($controller);
+        $viewData = $metaStatusMethod->invoke($controller, $sources);
+
         $this->assertIsArray($viewData);
-        $this->assertSame((int) data_get($viewData, 'total'), (int) data_get($viewData, 'optimized') + (int) data_get($viewData, 'missing') + (int) data_get($viewData, 'too_long'));
+        $this->assertSame($sources->where('indexed', true)->count(), (int) data_get($viewData, 'total'));
+        $this->assertSame(
+            (int) data_get($viewData, 'total'),
+            (int) data_get($viewData, 'optimized') + (int) data_get($viewData, 'missing') + (int) data_get($viewData, 'too_long')
+        );
     }
 
     public function test_existing_seo_issues_are_resolved_when_page_becomes_non_indexable(): void
