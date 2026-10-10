@@ -250,6 +250,14 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_store_owner_alias_uses_franchise_canonical_without_changing_route_contract(): void
+    {
+        $this->get('/be-a-store-owner')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="http://localhost/franchise">', false);
+    }
+
     public function test_help_and_legal_sitemap_urls_resolve_on_canonical_routes(): void
     {
         $this->get('/size-guide')->assertOk();
