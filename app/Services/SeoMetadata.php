@@ -362,6 +362,30 @@ final class SeoMetadata
             return $base.'/franchise';
         }
 
+        if (request()->routeIs('page')) {
+            $page = trim((string) request()->route('page'), '/');
+            if (in_array($page, [
+                'collections',
+                'new-arrivals',
+                'corporate-orders',
+                'bulk-orders',
+                'franchise',
+                'careers',
+                'global-network',
+                'factory',
+                'contact',
+                'virtual-tryon',
+                'irish-traditional',
+                'irish-heritage',
+                'size-guide',
+                'shipping-delivery',
+                'privacy-policy',
+                'terms-conditions',
+            ], true)) {
+                return $base.'/'.$page;
+            }
+        }
+
         if (request()->routeIs('shop', 'category', 'new.arrivals')) {
             $page = (int) request()->query('page', 1);
             if ($page > 1) {
