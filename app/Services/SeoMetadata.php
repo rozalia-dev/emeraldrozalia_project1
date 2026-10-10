@@ -327,6 +327,13 @@ final class SeoMetadata
         $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
         $path = '/'.ltrim((string) request()->path(), '/');
 
+        if (request()->routeIs('shop')) {
+            $page = (int) request()->query('page', 1);
+            if ($page > 1) {
+                return $base.$path.'?page='.$page;
+            }
+        }
+
         return $path === '/' ? $base.'/' : $base.$path;
     }
 
