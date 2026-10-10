@@ -144,7 +144,7 @@
                     </section>
                     <section class="seo-card">
                         <div class="seo-card-heading"><h2>Top Content</h2><a class="seo-inline-action" href="{{ route('admin.seo.dashboard', ['tab' => 'meta']) }}">View all content <span>→</span></a></div>
-                        <div class="seo-mini-table"><div class="seo-mini-head"><span>Page</span><span>Indexed</span></div>@foreach($metaRows->take(5) as $row)<div><span><b>{{ $row['title'] }}</b><small>{{ $row['path'] }}</small></span><strong>{{ $row['indexed'] ? 'Yes' : 'No' }}</strong></div>@endforeach</div>
+                        <div class="seo-mini-table"><div class="seo-mini-head"><span>Page</span><span>Indexed</span></div>@forelse($topContentRows as $row)<div><span><b>{{ $row['title'] }}</b><small>{{ $row['path'] }}</small></span><strong>Yes</strong></div>@empty<div class="seo-empty">No indexable content available.</div>@endforelse</div>
                     </section>
                     <section class="seo-card">
                         <div class="seo-card-heading"><h2>Schema Usage</h2><a class="seo-inline-action" href="{{ route('admin.seo.dashboard', ['tab' => 'schema']) }}">Manage schema <span>→</span></a></div>
