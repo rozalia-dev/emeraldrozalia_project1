@@ -159,6 +159,41 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_thin_product_and_category_copy_gets_useful_meta_descriptions(): void
+    {
+        $category = Category::create([
+            'name' => 'Corporate Beanies',
+            'slug' => 'corporate-beanies',
+            'description' => 'Premium beanies.',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Ivory Feather Occasion Hat',
+            'slug' => 'ivory-feather-occasion-hat-er-gfh-016',
+            'sku' => 'ER-GFH-016',
+            'description' => '100% Irish wool',
+            'material' => 'Irish wool',
+            'price' => 75,
+            'stock' => 5,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('product', $product))
+            ->assertOk()
+            ->assertSee('Made with Irish wool.', false)
+            ->assertSee('Limerick, Ireland.', false);
+
+        $this->get(route('category', $category))
+            ->assertOk()
+            ->assertSee('Shop Corporate Beanies hats, caps and headwear from Emerald Rozalia.', false);
+    }
+
     public function test_public_sitemap_uses_current_categories_even_when_saved_snapshot_is_stale(): void
     {
         SeoSetting::create([
