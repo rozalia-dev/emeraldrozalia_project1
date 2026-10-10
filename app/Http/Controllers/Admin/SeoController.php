@@ -28,6 +28,17 @@ class SeoController extends Controller
 
     private const DEFAULT_ROBOTS_PATHS = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /account\nDisallow: /checkout\n\nSitemap: ";
 
+    private const AUDIT_ISSUE_TYPES = [
+        'missing-meta-title',
+        'meta-title-too-long',
+        'missing-meta-description',
+        'meta-description-too-long',
+        'missing-h1',
+        'missing-alt-text',
+        'missing-internal-links',
+        'duplicate-meta-title',
+    ];
+
     private const DEFAULT_KEYWORDS = [
         ['keyword' => 'emerald rozalia hats', 'position' => null, 'change' => null, 'target' => '/'],
         ['keyword' => 'luxury caps ireland', 'position' => null, 'change' => null, 'target' => '/shop'],
@@ -101,7 +112,7 @@ class SeoController extends Controller
         $sources = $this->sources();
         $definitions = $this->scanIssues($sources);
         $activeKeys = [];
-        $auditedIssueTypes = $definitions->pluck('issue_type')->unique()->all();
+        $auditedIssueTypes = self::AUDIT_ISSUE_TYPES;
         $audit = null;
 
         DB::transaction(function () use ($definitions, $sources, $auditedIssueTypes, &$activeKeys, &$audit): void {
