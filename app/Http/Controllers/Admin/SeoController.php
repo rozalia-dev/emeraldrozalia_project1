@@ -856,7 +856,7 @@ class SeoController extends Controller
             'health_score' => $this->healthScore($sources),
             'total_pages' => $sources->count(),
             'indexed_pages' => $sources->where('indexed', true)->count(),
-            'noindex_pages' => $sources->where('noindex', true)->count(),
+            'noindex_pages' => $sources->filter(fn (array $source): bool => ! (bool) ($source['indexed'] ?? false))->count(),
             'organic_traffic' => (int) $this->settingValue('organic_traffic', 0),
             'top_keywords' => count(is_array($keywords) ? $keywords : []),
             'backlinks' => (int) $this->settingValue('backlinks', 0),
