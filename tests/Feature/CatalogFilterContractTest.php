@@ -11,6 +11,18 @@ class CatalogFilterContractTest extends TestCase
     use RefreshDatabase;
 
 
+
+    public function test_shop_pagination_has_clean_page_one_redirect_and_self_canonical_later_pages(): void
+    {
+        $this->get('/shop?page=1')
+            ->assertStatus(301)
+            ->assertRedirect('/shop');
+
+        $this->get('/shop?page=2')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="http://localhost/shop?page=2">', false);
+    }
+
     public function test_legacy_numeric_shop_filters_redirect_to_clean_shop_url(): void
     {
         $this->get('/shop?category=3&organization=1&country=82&club=490&product_type=8')
