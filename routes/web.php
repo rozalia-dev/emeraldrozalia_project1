@@ -23,14 +23,14 @@ Route::get('/irish-traditional',[SiteController::class,'irishTraditional'])->nam
 Route::get('/irish-heritage',[SiteController::class,'irishHeritage'])->name('irish.heritage');
 Route::get('/factory',[SiteController::class,'factory'])->name('factory');
 Route::get('/quality',[SiteController::class,'quality'])->name('quality');
-Route::get('/be-a-store-owner',[SiteController::class,'franchise'])->name('store.owner');
+Route::permanentRedirect('/be-a-store-owner', '/franchise')->name('store.owner');
 Route::get('/corporate-orders',[SiteController::class,'corporateOrders'])->name('corporate.orders');
 Route::get('/bulk-orders',[SiteController::class,'bulkOrders'])->name('bulk.orders');
 Route::get('/franchise',[SiteController::class,'franchise'])->name('franchise');
 Route::get('/careers',[SiteController::class,'careers'])->name('careers');
 Route::get('/global-network',[SiteController::class,'globalNetwork'])->name('global.network');
 Route::get('/contact',[SiteController::class,'contact'])->name('contact');
-Route::get('/page/{page}',[SiteController::class,'page'])->name('page');
+Route::get('/page/{page}', fn (string $page) => redirect()->route('content.page', ['page' => $page], 301))->name('page');
 Route::view('/returns-refunds', 'site.returns-refunds')->name('returns-refunds');
 Route::view('/our-story', 'site.our-story')->name('our-story');
 Route::permanentRedirect('/product/flat-cap', '/product/emerald-flat-cap');
