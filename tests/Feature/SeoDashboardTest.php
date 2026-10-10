@@ -11,6 +11,26 @@ class SeoDashboardTest extends TestCase
     use RefreshDatabase;
 
 
+
+    public function test_homepage_defaults_do_not_create_false_missing_meta_issues(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'home',
+            'issue_type' => 'missing-meta-title',
+        ]);
+
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'home',
+            'issue_type' => 'missing-meta-description',
+        ]);
+    }
+
     public function test_fixed_public_pages_do_not_create_false_missing_meta_issues(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
