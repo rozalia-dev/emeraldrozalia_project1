@@ -197,6 +197,45 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_managed_page_indexable_setting_controls_meta_robots_and_sitemap(): void
+    {
+        ContentPage::create([
+            'title' => 'Indexable Managed Page',
+            'slug' => 'indexable-managed-page',
+            'body' => '<h1>Indexable Managed Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+            'published_at' => now(),
+        ]);
+
+        ContentPage::create([
+            'title' => 'Noindex Managed Page',
+            'slug' => 'noindex-managed-page',
+            'body' => '<h1>Noindex Managed Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $this->get('/indexable-managed-page')
+            ->assertOk()
+            ->assertSee('name="robots" content="index,follow"', false);
+
+        $this->get('/noindex-managed-page')
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertSee('/indexable-managed-page', false)
+            ->assertDontSee('/noindex-managed-page', false);
+    }
+
     public function test_sitemap_excludes_private_login_required_and_future_managed_pages(): void
     {
         ContentPage::create([
