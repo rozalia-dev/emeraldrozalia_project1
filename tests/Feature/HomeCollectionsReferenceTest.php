@@ -54,6 +54,36 @@ class HomeCollectionsReferenceTest extends TestCase
         $this->get('/')->assertDontSee('home-collections-reference', false)->assertDontSee('home-page-reference', false);
     }
 
+    public function test_homepage_inlines_critical_styles_and_defers_the_full_stylesheets(): void
+    {
+        $home = $this->get('/')->assertOk()->getContent();
+
+        foreach ([
+            '/css/app.css?v=20260919-functional-contact-faq',
+            '/css/theme-runtime.css?v=20260913-batch17-typography',
+            '/css/public-shell.css?v=20260919-empty-search-contact',
+            '/css/home-collections.css?v=20260922-category-products',
+            '/css/home-hero-layout.css?v=20261003-two-videos-v4',
+        ] as $stylesheet) {
+            $this->assertStringContainsString(
+                '<link rel="preload" as="style" href="'.$stylesheet.'" onload="this.onload=null;this.rel=\'stylesheet\'">',
+                $home,
+            );
+            $this->assertStringContainsString('<link rel="stylesheet" href="'.$stylesheet.'">', $home);
+        }
+
+        $this->assertStringContainsString('<style id="critical-home-styles">', $home);
+        $this->assertStringContainsString('.home-page .home-hero-structured-grid', $home);
+        $this->assertStringContainsString('@media(max-width:760px)', $home);
+
+        $contact = $this->get('/contact')->assertOk()->getContent();
+        $this->assertStringContainsString(
+            '<link rel="stylesheet" href="/css/app.css?v=20260919-functional-contact-faq">',
+            $contact,
+        );
+        $this->assertStringNotContainsString('rel="preload" as="style" href="/css/app.css?v=20260919-functional-contact-faq"', $contact);
+    }
+
     public function test_homepage_uses_two_latest_published_public_website_hero_videos_side_by_side(): void
     {
         Storage::fake('local');
