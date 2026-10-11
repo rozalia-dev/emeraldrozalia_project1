@@ -263,7 +263,7 @@ class SeoDashboardTest extends TestCase
         $this->assertDatabaseHas('seo_issues', [
             'source_type' => 'page',
             'source_id' => $page->id,
-            'issue_type' => 'missing-h1',
+            'issue_type' => 'missing-internal-links',
             'status' => 'open',
         ]);
 
@@ -278,7 +278,7 @@ class SeoDashboardTest extends TestCase
         $this->assertDatabaseHas('seo_issues', [
             'source_type' => 'page',
             'source_id' => $page->id,
-            'issue_type' => 'missing-h1',
+            'issue_type' => 'missing-internal-links',
             'status' => 'resolved',
         ]);
     }
@@ -651,6 +651,48 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+
+    public function test_managed_page_fallback_metadata_matches_public_render_and_strips_html(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Managed SEO Fallback',
+            'slug' => 'managed-seo-fallback',
+            'body' => '<p>Useful managed page copy with <strong>HTML</strong> that should become plain metadata.</p>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+            'published_at' => now(),
+        ]);
+
+        $this->get('/managed-seo-fallback')
+            ->assertOk()
+            ->assertSee('<title>Managed SEO Fallback - Emerald Rozalia</title>', false)
+            ->assertSee('content="Useful managed page copy with HTML that should become plain metadata."', false)
+            ->assertDontSee('&lt;p&gt;Useful managed page copy', false);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'missing-meta-title',
+        ]);
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'missing-meta-description',
+        ]);
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'missing-h1',
+        ]);
+    }
 
     public function test_help_and_policy_pages_publish_tailored_search_metadata(): void
     {
