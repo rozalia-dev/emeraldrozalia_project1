@@ -35,7 +35,19 @@ class ProductVideo extends ProductMedia
 
     public function getTitleAttribute(): string
     {
-        return data_get($this->metadata, 'title') ?: $this->alt_text ?: $this->product?->name.' video';
+        $title = trim((string) data_get($this->metadata, 'title', ''));
+        if ($title !== '') {
+            return $title;
+        }
+
+        $alt = trim((string) $this->alt_text);
+        if ($alt !== '') {
+            return $alt;
+        }
+
+        return $this->product?->name
+            ? $this->product->name.' video'
+            : 'Emerald Rozalia video';
     }
 
     public function getVideoStatusAttribute(): string
