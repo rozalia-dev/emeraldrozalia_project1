@@ -18,7 +18,21 @@ class SpinViewerController extends Controller
         $this->authorizeSpin($spin);
         $path=$spin->frames[$frame]??null;
         abort_unless(is_string($path)&&preg_match('~^spins/[a-f0-9-]+/[0-9]{3}\.jpg$~',$path)&&Storage::disk('local')->exists($path),404);
-        return response()->file(Storage::disk('local')->path($path),['Content-Type'=>'image/jpeg','Cache-Control'=>'private, no-store','X-Content-Type-Options'=>'nosniff']);
+        $isPublic = $spin->isPublic();
+        $response = response()->file(Storage::disk('local')->path($path),[
+            'Content-Type'=>'image/jpeg',
+            'Cache-Control'=>$isPublic ? 'public, max-age=3600' : 'private, no-store',
+            'X-Content-Type-Options'=>'nosniff',
+        ]);
+        if ($isPublic) {
+            $response->setPublic();
+            $response->setMaxAge(3600);
+        } else {
+            $response->setPrivate();
+            $response->headers->addCacheControlDirective('no-store');
+        }
+
+        return $response;
     }
     public function visit(Request $request,ProductSpin $spin)
     {
@@ -33,10 +47,28 @@ class SpinViewerController extends Controller
     }
     public function sitemap()
     {
-        $xml='<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-        foreach(ProductSpin::with('product')->where('status','published')->where('visibility','public')->cursor() as $spin){
-            if($spin->isPublic())$xml.='<url><loc>'.htmlspecialchars(route('spins.show',$spin->uuid),ENT_XML1|ENT_QUOTES,'UTF-8').'</loc></url>';
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
+            .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+
+        foreach (ProductSpin::with('product')->where('status','published')->where('visibility','public')->cursor() as $spin) {
+            if (! $spin->isPublic()) {
+                continue;
+            }
+
+            $xml .= "    <url>\n";
+            $xml .= '        <loc>'.htmlspecialchars(route('spins.show',$spin->uuid),ENT_XML1|ENT_QUOTES,'UTF-8')."</loc>\n";
+            $lastmod = $spin->updated_at ?: $spin->created_at;
+            if ($lastmod) {
+                $xml .= '        <lastmod>'.htmlspecialchars($lastmod->toAtomString(),ENT_XML1|ENT_QUOTES,'UTF-8')."</lastmod>\n";
+            }
+            $xml .= "    </url>\n";
         }
-        return response($xml.'</urlset>',200,['Content-Type'=>'application/xml; charset=UTF-8']);
+
+        $xml .= '</urlset>'."\n";
+
+        return response($xml,200,[
+            'Content-Type'=>'application/xml; charset=UTF-8',
+            'Cache-Control'=>'public, max-age=300',
+        ]);
     }
 }
