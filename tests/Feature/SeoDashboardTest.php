@@ -762,6 +762,23 @@ class SeoDashboardTest extends TestCase
             ->assertDontSee('/product/draft-cap', false);
     }
 
+
+    public function test_sitemap_does_not_claim_static_pages_changed_on_every_request(): void
+    {
+        $xml = $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '~<loc>http://localhost/</loc>\s*</url>~',
+            $xml
+        );
+        $this->assertMatchesRegularExpression(
+            '~<loc>http://localhost/shop</loc>\s*</url>~',
+            $xml
+        );
+    }
+
     public function test_public_sitemap_uses_current_categories_even_when_saved_snapshot_is_stale(): void
     {
         SeoSetting::create([
