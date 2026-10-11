@@ -294,6 +294,7 @@ class SeoController extends Controller
                     'description' => $meta['description'],
                     'focus_keyword' => $seo['focus_keyword'],
                     'noindex' => $seo['noindex'],
+                    'updated_at' => now()->toAtomString(),
                 ];
                 $subject = $this->saveSetting('fixed_page_meta', $all);
 
@@ -379,6 +380,7 @@ class SeoController extends Controller
                 if (in_array($issueType, ['missing-meta-description', 'meta-description-too-long'], true)) {
                     $current['description'] = Str::limit($currentDescription, 155, '');
                 }
+                $current['updated_at'] = now()->toAtomString();
                 $all[$fixedPage[0]] = $current;
                 $subject = $this->saveSetting('fixed_page_meta', $all);
             } elseif ($sourceType === 'page') {
@@ -634,7 +636,9 @@ class SeoController extends Controller
                 'has_internal_links' => true,
                 'indexed' => ! $noindex,
                 'word_count' => 0,
-                'updated_at' => isset($fixedMeta[$page[0]]) ? $fixedSetting?->updated_at : null,
+                'updated_at' => filled($saved['updated_at'] ?? null)
+                    ? \Illuminate\Support\Carbon::parse((string) $saved['updated_at'])
+                    : (isset($fixedMeta[$page[0]]) ? $fixedSetting?->updated_at : null),
             ];
         });
 
