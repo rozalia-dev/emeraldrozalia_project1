@@ -70,6 +70,7 @@ final class SeoMetadata
                     ? $video->product->name.' video by Emerald Rozalia.'
                     : 'Emerald Rozalia product video.';
             }
+            $noindex = ! $video->isPubliclyPlayable();
         } elseif ($spin) {
             $spinSeo = (array) $spin->seo;
             $title = trim((string) ($spinSeo['title'] ?? '')) ?: $spin->title.' | Emerald Rozalia';
@@ -79,6 +80,7 @@ final class SeoMetadata
                     ? 'Explore a 360° view of '.$spin->product->name.' by Emerald Rozalia.'
                     : 'Explore this Emerald Rozalia 360° product view.';
             }
+            $noindex = ! $spin->isPublic();
         } elseif ($product) {
             $seo = (array) $product->seo;
             $title = $product->meta_title ?: $product->name.' | Emerald Rozalia';
