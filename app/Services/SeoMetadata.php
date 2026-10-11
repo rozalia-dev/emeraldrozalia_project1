@@ -41,7 +41,8 @@ final class SeoMetadata
 
         $isProductCatalogue = request()->routeIs('catalogue.show');
 
-        if (! $product && ! $category && ! $managedPage && ! $video && ! $isProductCatalogue) {
+        if (! $product && ! $category && ! $managedPage && ! $video && ! $isProductCatalogue
+            && request()->routeIs('content.page', 'page', 'size-guide', 'shipping-delivery', 'privacy-policy', 'terms-conditions')) {
             $managedPage = $this->publishedPageForCurrentRequest();
         }
 
