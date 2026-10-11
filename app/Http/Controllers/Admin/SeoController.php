@@ -1183,11 +1183,16 @@ class SeoController extends Controller
         };
 
         $context = trim((string) $context);
-        $candidate = $context !== ''
-            ? $name.' · '.Str::headline($context).' | Emerald Rozalia'
-            : $name.' | Emerald Rozalia';
+        if ($context === '') {
+            return Str::limit($name.' | Emerald Rozalia', 60, '');
+        }
 
-        return Str::limit($candidate, 60, '');
+        $contextLabel = Str::limit(Str::headline($context), 22, '');
+        $suffix = ' · '.$contextLabel.' | Emerald Rozalia';
+        $available = max(1, 60 - mb_strlen($suffix));
+        $base = Str::limit($name, $available, '');
+
+        return $base.$suffix;
     }
 
     private function sourceName(string $sourceType, int $sourceId): string
