@@ -124,6 +124,37 @@ class VideoDashboardTest extends TestCase
         $this->assertSame('Website', $video->platform);
         $this->assertTrue($video->isPubliclyPlayable());
         $this->get(route('videos.asset', [$video->uuid, 'video']))->assertOk();
+        $this->get(route('videos.watch', $video->uuid))
+            ->assertOk()
+            ->assertSee('← Emerald Rozalia', false)
+            ->assertSee('<h1>Homepage Model Hero</h1>', false);
+    }
+
+    public function test_productless_video_has_clean_fallback_title_and_publication_schema_date(): void
+    {
+        $path = 'videos/files/productless-fallback.mp4';
+        Storage::disk('local')->put($path, 'video');
+        $publishedAt = now()->subDay()->startOfSecond();
+
+        $video = ProductVideo::create([
+            'product_id' => null,
+            'disk' => 'local',
+            'path' => $path,
+            'active' => true,
+            'metadata' => [
+                'category' => 'hero',
+                'platform' => 'Website',
+                'visibility' => 'public',
+                'publish_at' => $publishedAt->toIso8601String(),
+            ],
+        ]);
+
+        $this->assertSame('Emerald Rozalia video', $video->title);
+
+        $this->get(route('videos.watch', $video->uuid))
+            ->assertOk()
+            ->assertSee('<title>Emerald Rozalia video | Emerald Rozalia</title>', false)
+            ->assertSee('"uploadDate":"'.$publishedAt->toAtomString().'"', false);
     }
 
     public function test_product_video_still_requires_a_product(): void
