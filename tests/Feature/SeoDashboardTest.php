@@ -857,6 +857,66 @@ class SeoDashboardTest extends TestCase
         ]);
     }
 
+
+    public function test_fixed_public_page_metadata_can_be_edited_and_noindexed_from_seo_manager(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.seo.meta.update', ['fixed', 18]), [
+                'meta_title' => 'Custom Size Guide | Emerald Rozalia',
+                'meta_description' => 'Custom size guidance for Emerald Rozalia customers choosing hats and caps.',
+                'focus_keyword' => 'hat size guide ireland',
+                'noindex' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('seo_settings', ['key' => 'fixed_page_meta']);
+
+        $this->get('/size-guide')
+            ->assertOk()
+            ->assertSee('<title>Custom Size Guide | Emerald Rozalia</title>', false)
+            ->assertSee('name="robots" content="noindex,follow"', false);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertDontSee('/size-guide', false);
+    }
+
+    public function test_page_meta_manager_noindex_checkbox_updates_managed_page_indexability(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Editable Index Page',
+            'slug' => 'editable-index-page',
+            'body' => '<h1>Editable Index Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.seo.meta.update', ['page', $page->id]), [
+                'meta_title' => 'Editable Index Page | Emerald Rozalia',
+                'meta_description' => 'Managed page metadata edited from the Emerald Rozalia SEO dashboard.',
+                'noindex' => '1',
+            ])
+            ->assertRedirect();
+
+        $page->refresh();
+        $this->assertFalse((bool) data_get($page->meta, 'settings.indexable'));
+
+        $this->get('/editable-index-page')
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertDontSee('/editable-index-page', false);
+    }
+
     public function test_page_seo_fixes_can_add_alt_text_and_an_internal_link(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
