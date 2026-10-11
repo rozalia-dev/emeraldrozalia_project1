@@ -79,9 +79,11 @@ final class SeoMetadata
             $savedDescription = trim((string) ($meta['description'] ?? ''));
             $title = $savedTitle !== '' ? $savedTitle : $title;
             $description = $savedDescription !== '' ? $savedDescription : $this->managedPageDescription($managedPage);
-            $noindex = array_key_exists('indexable', $settings)
-                ? ! (bool) $settings['indexable']
-                : (bool) ($meta['noindex'] ?? false);
+            $noindex = (
+                array_key_exists('indexable', $settings)
+                    ? ! (bool) $settings['indexable']
+                    : (bool) ($meta['noindex'] ?? false)
+            ) || $managedPage->requiresLogin() || request()->routeIs('admin.pages.preview');
         } elseif ($fixed = $this->fixedPageMetadata()) {
             $title = $fixed['title'];
             $description = $fixed['description'];
@@ -461,6 +463,15 @@ final class SeoMetadata
     {
         $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
         $path = '/'.ltrim((string) request()->path(), '/');
+
+        if (request()->routeIs('admin.pages.preview')) {
+            $previewPage = request()->route('page');
+            if ($previewPage instanceof ContentPage) {
+                return $previewPage->isHomepage()
+                    ? $base.'/'
+                    : $base.'/'.trim((string) $previewPage->slug, '/');
+            }
+        }
 
         if (request()->routeIs('store.owner')) {
             return $base.'/franchise';
