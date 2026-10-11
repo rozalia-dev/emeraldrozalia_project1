@@ -151,7 +151,21 @@ final class SeoMetadata
             unset($organization['logo']);
         }
 
-        $graph = [$organization];
+        $base = rtrim((string) config('app.url', 'https://emeraldrozalia.com'), '/');
+        $organization['@id'] ??= $base.'/#organization';
+        $organizationId = (string) $organization['@id'];
+        $websiteId = $base.'/#website';
+
+        $graph = [
+            $organization,
+            [
+                '@type' => 'WebSite',
+                '@id' => $websiteId,
+                'url' => $base.'/',
+                'name' => 'Emerald Rozalia',
+                'publisher' => ['@id' => $organizationId],
+            ],
+        ];
 
         if ($video) {
             $videoSchema = [
@@ -302,6 +316,36 @@ final class SeoMetadata
                     ['@type' => 'ListItem', 'position' => 3, 'name' => $category->name, 'item' => $canonical],
                 ],
             ];
+        }
+
+        if (! $category) {
+            $webPage = [
+                '@type' => 'WebPage',
+                '@id' => $canonical.'#webpage',
+                'url' => $canonical,
+                'name' => $title,
+                'description' => $description,
+                'isPartOf' => ['@id' => $websiteId],
+                'publisher' => ['@id' => $organizationId],
+            ];
+
+            if ($product) {
+                $webPage['mainEntity'] = ['@id' => $canonical.'#product'];
+            } elseif ($video) {
+                $webPage['mainEntity'] = ['@id' => $canonical.'#video'];
+            }
+
+            $graph[] = $webPage;
+
+            if (! $product && ! $video && $canonical !== $base.'/') {
+                $graph[] = [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $base.'/'],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => $title, 'item' => $canonical],
+                    ],
+                ];
+            }
         }
 
         return [
