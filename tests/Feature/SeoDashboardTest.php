@@ -1012,8 +1012,33 @@ class SeoDashboardTest extends TestCase
             ->assertRedirect('/');
     }
 
-    public function test_search_console_legacy_404_urls_redirect_to_live_public_pages(): void
+    public function test_search_console_legacy_404_urls_redirect_when_no_live_catalogue_record_exists(): void
     {
+        $categorySlugs = [
+            'sports-training-caps',
+            'workwear-warehouse-team-caps',
+            'limerick-heritage-collection',
+            'heritage-baseball-caps',
+            'winter-fleece-hats',
+            '8-panel-caps',
+            'snapbacks',
+            'kids-beanies',
+            'classic-6-panel-caps',
+            'bucket-hats',
+            'classic-fashion-caps',
+            'costume-party-hats',
+        ];
+
+        Category::query()->whereIn('slug', $categorySlugs)->update([
+            'status' => 'inactive',
+            'is_active' => false,
+            'is_visible' => false,
+        ]);
+        Product::query()->where('slug', 'baseball-cap')->update([
+            'status' => 'draft',
+            'is_active' => false,
+        ]);
+
         $redirects = [
             '/category/sports-training-caps' => '/shop',
             '/category/workwear-warehouse-team-caps' => '/shop',
@@ -1037,7 +1062,41 @@ class SeoDashboardTest extends TestCase
         }
     }
 
+    public function test_legacy_catalogue_slug_renders_normally_when_a_live_record_now_exists(): void
+    {
+        $category = Category::create([
+            'name' => 'Sports Training Caps',
+            'slug' => 'sports-training-caps',
+            'description' => 'Live sports training cap collection.',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
 
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Baseball Cap',
+            'slug' => 'baseball-cap',
+            'sku' => 'LEGACY-LIVE-001',
+            'description' => 'Live public baseball cap.',
+            'price' => 45,
+            'stock' => 3,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->get('/category/sports-training-caps')
+            ->assertOk()
+            ->assertSee('SPORTS TRAINING CAPS');
+
+        $this->get('/product/baseball-cap')
+            ->assertOk()
+            ->assertSee('<h1>Baseball Cap</h1>', false);
+
+        $xml = $this->get(route('seo.sitemap'))->assertOk()->getContent();
+        $this->assertStringContainsString('<loc>http://localhost/category/sports-training-caps</loc>', $xml);
+        $this->assertStringContainsString('<loc>http://localhost/product/baseball-cap</loc>', $xml);
+    }
 
     public function test_redirect_manager_normalizes_source_paths_and_allows_external_same_path_targets(): void
     {
