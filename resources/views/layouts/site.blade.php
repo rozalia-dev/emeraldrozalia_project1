@@ -25,6 +25,7 @@
     <meta name="description" content="{{ $seoMetadata['description'] }}">
     <link rel="canonical" href="{{ $seoMetadata['canonical'] }}">
     <meta name="robots" content="{{ $seoMetadata['noindex'] ? 'noindex,follow' : 'index,follow' }}">
+    <meta property="og:type" content="{{ $seoMetadata['og_type'] }}">
     <meta property="og:title" content="{{ $seoMetadata['title'] }}">
     <meta property="og:description" content="{{ $seoMetadata['description'] }}">
     <meta property="og:url" content="{{ $seoMetadata['canonical'] }}">
@@ -33,7 +34,9 @@
     <meta name="twitter:description" content="{{ $seoMetadata['description'] }}">
     @if($seoMetadata['image'])
         <meta property="og:image" content="{{ $seoMetadata['image'] }}">
+        <meta property="og:image:alt" content="{{ $seoMetadata['title'] }}">
         <meta name="twitter:image" content="{{ $seoMetadata['image'] }}">
+        <meta name="twitter:image:alt" content="{{ $seoMetadata['title'] }}">
     @endif
     @if($seoMetadata['schema'])
         <script type="application/ld+json">{!! json_encode($seoMetadata['schema'], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
