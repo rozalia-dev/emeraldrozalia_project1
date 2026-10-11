@@ -1195,7 +1195,7 @@ class SeoController extends Controller
             return Str::limit($name.' | Emerald Rozalia', 60, '');
         }
 
-        $contextLabel = Str::limit(Str::headline($context), 22, '');
+        $contextLabel = Str::limit(Str::headline(str_replace(['-', '_'], ' ', Str::lower($context))), 22, '');
         $suffix = ' · '.$contextLabel.' | Emerald Rozalia';
         $available = max(1, 60 - mb_strlen($suffix));
         $base = Str::limit($name, $available, '');
