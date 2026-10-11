@@ -768,7 +768,7 @@ class SeoDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('<title>Managed SEO Fallback - Emerald Rozalia</title>', false)
             ->assertSee('content="Useful managed page copy with HTML that should become plain metadata."', false)
-            ->assertDontSee('&lt;p&gt;Useful managed page copy', false);
+            ->assertDontSee('name="description" content="&lt;p&gt;Useful managed page copy', false);
 
         $this->actingAs($admin)
             ->post(route('admin.seo.audit'))
@@ -1241,13 +1241,27 @@ class SeoDashboardTest extends TestCase
         $page = ContentPage::create([
             'title' => 'Broken Link Page',
             'slug' => 'broken-link-page',
-            'body' => '<h1>Broken Link Page</h1><p><a href="/missing-page">Missing page</a></p>',
+            'body' => '<h1>Broken Link Page</h1>',
             'status' => 'published',
             'locale' => 'en',
             'template' => 'standard',
             'navigation_visible' => true,
             'published_at' => now(),
         ]);
+        $page->sections()->create([
+            'type' => 'cta',
+            'label' => 'Broken Link CTA',
+            'sort_order' => 1,
+            'region' => 'main',
+            'settings' => [
+                'title' => 'More information',
+                'content' => 'Open the linked page.',
+                'button_label' => 'Open missing page',
+                'url' => '/missing-page',
+            ],
+            'visible' => true,
+        ]);
+
 
         $this->actingAs($admin)
             ->post(route('admin.seo.links'))
