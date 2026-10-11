@@ -1026,6 +1026,50 @@ class SeoDashboardTest extends TestCase
             ->assertDontSee('/editable-index-page', false);
     }
 
+
+    public function test_alt_text_fix_repairs_empty_alt_attributes_and_trailing_slash_links_are_valid(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Alt Repair Page',
+            'slug' => 'alt-repair-page',
+            'body' => '<img src="/storage/example.webp" alt=""><p><a href="/shop/">Shop</a></p>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'missing-alt-text',
+            'status' => 'open',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.issue.fix', ['page', $page->id, 'missing-alt-text']))
+            ->assertRedirect();
+
+        $this->assertStringContainsString('alt="Alt Repair Page"', (string) $page->fresh()->body);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.links'))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'issue_type' => 'broken-internal-link',
+            'status' => 'open',
+        ]);
+    }
+
     public function test_page_seo_fixes_can_add_alt_text_and_an_internal_link(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
