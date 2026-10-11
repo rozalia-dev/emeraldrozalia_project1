@@ -411,7 +411,10 @@ class SeoDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('name="twitter:card" content="summary"', false)
             ->assertSee('name="twitter:title"', false)
-            ->assertSee('name="twitter:description"', false);
+            ->assertSee('name="twitter:description"', false)
+            ->assertSee('property="og:type" content="website"', false)
+            ->assertSee('"@type":"WebSite"', false)
+            ->assertSee('"@type":"WebPage"', false);
     }
 
     public function test_saved_metadata_is_published_to_the_storefront(): void
@@ -1009,6 +1012,28 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+
+    public function test_revived_legacy_category_uses_catalogue_facet_and_pagination_rules(): void
+    {
+        Category::create([
+            'name' => 'Sports Training Caps',
+            'slug' => 'sports-training-caps',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $this->get('/category/sports-training-caps?material=Wool')
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/category/sports-training-caps">', false);
+
+        $this->get('/category/sports-training-caps?page=2')
+            ->assertOk()
+            ->assertSee('name="robots" content="index,follow"', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/category/sports-training-caps?page=2">', false);
+    }
 
     public function test_faceted_catalog_urls_are_noindex_but_pagination_remains_indexable(): void
     {
