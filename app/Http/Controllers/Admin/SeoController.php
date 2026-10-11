@@ -39,6 +39,30 @@ class SeoController extends Controller
         'duplicate-meta-title',
     ];
 
+    private const FIXED_PUBLIC_PAGES = [
+        1 => ['/shop', 'Shop'],
+        2 => ['/product-catalogue', 'Product Catalogue'],
+        3 => ['/collections', 'Collections'],
+        4 => ['/new-arrivals', 'New Arrivals'],
+        5 => ['/virtual-tryon', 'Virtual Try-On'],
+        6 => ['/irish-traditional', 'Irish Traditional'],
+        7 => ['/irish-heritage', 'Irish Heritage'],
+        8 => ['/factory', 'Factory'],
+        9 => ['/quality', 'Quality'],
+        10 => ['/corporate-orders', 'Corporate Orders'],
+        11 => ['/bulk-orders', 'Bulk Orders'],
+        12 => ['/franchise', 'Franchise'],
+        13 => ['/careers', 'Careers'],
+        14 => ['/global-network', 'Global Network'],
+        15 => ['/contact', 'Contact'],
+        16 => ['/returns-refunds', 'Returns & Refunds'],
+        17 => ['/our-story', 'Our Story'],
+        18 => ['/size-guide', 'Size Guide'],
+        19 => ['/shipping-delivery', 'Shipping & Delivery'],
+        20 => ['/privacy-policy', 'Privacy Policy'],
+        21 => ['/terms-conditions', 'Terms & Conditions'],
+    ];
+
     private const DEFAULT_KEYWORDS = [
         ['keyword' => 'emerald rozalia hats', 'position' => null, 'change' => null, 'target' => '/'],
         ['keyword' => 'luxury caps ireland', 'position' => null, 'change' => null, 'target' => '/shop'],
@@ -229,7 +253,7 @@ class SeoController extends Controller
 
     public function updateMeta(Request $request, string $sourceType, int $sourceId): RedirectResponse
     {
-        abort_unless(in_array($sourceType, ['home', 'page', 'product', 'category'], true), 404);
+        abort_unless(in_array($sourceType, ['home', 'fixed', 'page', 'product', 'category'], true), 404);
         $data = $request->validate([
             'meta_title' => ['nullable', 'string', 'max:180'],
             'meta_description' => ['nullable', 'string', 'max:500'],
@@ -258,13 +282,34 @@ class SeoController extends Controller
                 return;
             }
 
+            if ($sourceType === 'fixed') {
+                $fixedPage = self::FIXED_PUBLIC_PAGES[$sourceId] ?? null;
+                abort_unless($fixedPage, 404);
+                $setting = $this->settingRecord('fixed_page_meta');
+                $before = $setting?->toArray();
+                $all = (array) ($setting?->value ?? []);
+                $all[$fixedPage[0]] = [
+                    'title' => $meta['title'],
+                    'description' => $meta['description'],
+                    'focus_keyword' => $seo['focus_keyword'],
+                    'noindex' => $seo['noindex'],
+                ];
+                $subject = $this->saveSetting('fixed_page_meta', $all);
+
+                return;
+            }
+
             $record = $this->sourceModel($sourceType, $sourceId);
             abort_unless($record, 404);
             $before = $record->toArray();
             $subject = $record;
 
             if ($sourceType === 'page') {
-                $record->update(['meta' => array_merge((array) $record->meta, $meta, $seo)]);
+                $pageMeta = array_merge((array) $record->meta, $meta, $seo);
+                $settings = (array) ($pageMeta['settings'] ?? []);
+                $settings['indexable'] = ! $seo['noindex'];
+                $pageMeta['settings'] = $settings;
+                $record->update(['meta' => $pageMeta]);
             } else {
                 $existingSeo = (array) $record->seo;
                 $record->update([
@@ -524,49 +569,33 @@ class SeoController extends Controller
             'updated_at' => now(),
         ]]);
 
-        $fixedPublicPages = collect([
-            ['/shop', 'Shop'],
-            ['/product-catalogue', 'Product Catalogue'],
-            ['/collections', 'Collections'],
-            ['/new-arrivals', 'New Arrivals'],
-            ['/virtual-tryon', 'Virtual Try-On'],
-            ['/irish-traditional', 'Irish Traditional'],
-            ['/irish-heritage', 'Irish Heritage'],
-            ['/factory', 'Factory'],
-            ['/quality', 'Quality'],
-            ['/corporate-orders', 'Corporate Orders'],
-            ['/bulk-orders', 'Bulk Orders'],
-            ['/franchise', 'Franchise'],
-            ['/careers', 'Careers'],
-            ['/global-network', 'Global Network'],
-            ['/contact', 'Contact'],
-            ['/returns-refunds', 'Returns & Refunds'],
-            ['/our-story', 'Our Story'],
-            ['/size-guide', 'Size Guide'],
-            ['/shipping-delivery', 'Shipping & Delivery'],
-            ['/privacy-policy', 'Privacy Policy'],
-            ['/terms-conditions', 'Terms & Conditions'],
-        ])->map(fn (array $page): array => [
-            'source_type' => 'fixed',
-            'source_id' => 0,
-            'path' => $page[0],
-            'title' => $page[1],
-            'kind' => 'Public page',
-            'meta_title' => $page[1].' | Emerald Rozalia',
-            'meta_description' => Str::limit(
-                'Explore '.$page[1].' at Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.',
-                155,
-                ''
-            ),
-            'focus_keyword' => null,
-            'noindex' => false,
-            'has_h1' => true,
-            'has_alt_text' => true,
-            'has_internal_links' => true,
-            'indexed' => true,
-            'word_count' => 0,
-            'updated_at' => now(),
-        ]);
+        $fixedMeta = (array) $this->settingValue('fixed_page_meta', []);
+        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)->map(function (array $page, int $sourceId) use ($fixedMeta): array {
+            $saved = (array) ($fixedMeta[$page[0]] ?? []);
+            $noindex = (bool) ($saved['noindex'] ?? false);
+
+            return [
+                'source_type' => 'fixed',
+                'source_id' => $sourceId,
+                'path' => $page[0],
+                'title' => $page[1],
+                'kind' => 'Public page',
+                'meta_title' => $saved['title'] ?? $page[1].' | Emerald Rozalia',
+                'meta_description' => $saved['description'] ?? Str::limit(
+                    'Explore '.$page[1].' at Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.',
+                    155,
+                    ''
+                ),
+                'focus_keyword' => $saved['focus_keyword'] ?? null,
+                'noindex' => $noindex,
+                'has_h1' => true,
+                'has_alt_text' => true,
+                'has_internal_links' => true,
+                'indexed' => ! $noindex,
+                'word_count' => 0,
+                'updated_at' => now(),
+            ];
+        });
 
         $sources = $sources->concat($fixedPublicPages);
 
