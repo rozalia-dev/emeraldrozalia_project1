@@ -788,6 +788,24 @@ class SeoDashboardTest extends TestCase
         ]);
     }
 
+
+    public function test_dedicated_irish_landing_pages_use_fixed_metadata_not_category_context(): void
+    {
+        Category::create([
+            'name' => 'Traditional',
+            'slug' => 'traditional',
+            'description' => 'Category copy that must not replace the dedicated landing SEO metadata.',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $this->get('/irish-traditional')
+            ->assertOk()
+            ->assertSee('<title>Irish Traditional Headwear | Emerald Rozalia</title>', false)
+            ->assertDontSee('<title>Traditional Hats &amp; Caps | Emerald Rozalia</title>', false);
+    }
+
     public function test_help_and_policy_pages_publish_tailored_search_metadata(): void
     {
         $expectations = [
@@ -1087,11 +1105,15 @@ class SeoDashboardTest extends TestCase
 
         $this->get('/category/sports-training-caps')
             ->assertOk()
-            ->assertSee('SPORTS TRAINING CAPS');
+            ->assertSee('SPORTS TRAINING CAPS')
+            ->assertSee('<title>Sports Training Caps Hats &amp; Caps | Emerald Rozalia</title>', false)
+            ->assertSee('"@type":"CollectionPage"', false);
 
         $this->get('/product/baseball-cap')
             ->assertOk()
-            ->assertSee('<h1>Baseball Cap</h1>', false);
+            ->assertSee('<h1>Baseball Cap</h1>', false)
+            ->assertSee('<title>Baseball Cap | Emerald Rozalia</title>', false)
+            ->assertSee('"@type":"Product"', false);
 
         $xml = $this->get(route('seo.sitemap'))->assertOk()->getContent();
         $this->assertStringContainsString('<loc>http://localhost/category/sports-training-caps</loc>', $xml);
