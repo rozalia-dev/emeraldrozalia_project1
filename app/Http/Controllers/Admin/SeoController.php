@@ -1086,13 +1086,32 @@ class SeoController extends Controller
             ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
             ->values();
 
-        $optimized = $indexableSources->filter(fn (array $source): bool => filled($source['meta_title']) && filled($source['meta_description']) && mb_strlen((string) $source['meta_title']) <= 60 && mb_strlen((string) $source['meta_description']) <= 160)->count();
-        $missing = $indexableSources->filter(fn (array $source): bool => blank($source['meta_title']) || blank($source['meta_description']))->count();
-        $tooLong = $indexableSources->filter(fn (array $source): bool => mb_strlen((string) $source['meta_title']) > 60 || mb_strlen((string) $source['meta_description']) > 160)->count();
-        $duplicates = $indexableSources->filter(fn (array $source): bool => filled($source['meta_title']))
+        $missingKeys = $indexableSources
+            ->filter(fn (array $source): bool => blank($source['meta_title']) || blank($source['meta_description']))
+            ->mapWithKeys(fn (array $source): array => [$source['source_type'].'|'.$source['source_id'] => true]);
+
+        $tooLongKeys = $indexableSources
+            ->reject(fn (array $source): bool => $missingKeys->has($source['source_type'].'|'.$source['source_id']))
+            ->filter(fn (array $source): bool => mb_strlen((string) $source['meta_title']) > 60 || mb_strlen((string) $source['meta_description']) > 160)
+            ->mapWithKeys(fn (array $source): array => [$source['source_type'].'|'.$source['source_id'] => true]);
+
+        $duplicateKeys = collect();
+        $indexableSources
+            ->reject(fn (array $source): bool => $missingKeys->has($source['source_type'].'|'.$source['source_id'])
+                || $tooLongKeys->has($source['source_type'].'|'.$source['source_id']))
+            ->filter(fn (array $source): bool => filled($source['meta_title']))
             ->groupBy(fn (array $source): string => Str::lower(trim((string) $source['meta_title'])))
             ->filter(fn (Collection $group): bool => $group->count() > 1)
-            ->sum(fn (Collection $group): int => $group->count() - 1);
+            ->each(function (Collection $group) use (&$duplicateKeys): void {
+                foreach ($group->slice(1) as $source) {
+                    $duplicateKeys->put($source['source_type'].'|'.$source['source_id'], true);
+                }
+            });
+
+        $missing = $missingKeys->count();
+        $tooLong = $tooLongKeys->count();
+        $duplicates = $duplicateKeys->count();
+        $optimized = max(0, $indexableSources->count() - $missing - $tooLong - $duplicates);
 
         return [
             'total' => $indexableSources->count(),
