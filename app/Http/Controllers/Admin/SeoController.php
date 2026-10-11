@@ -840,10 +840,17 @@ class SeoController extends Controller
     private function currentIssues(Collection $sources): Collection
     {
         if (SeoIssue::query()->exists()) {
+            $indexableKeys = $sources
+                ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
+                ->mapWithKeys(fn (array $source): array => [
+                    $source['source_type'].'|'.$source['source_id'] => true,
+                ]);
+
             return SeoIssue::query()
                 ->where('status', 'open')
                 ->latest('last_seen_at')
                 ->get()
+                ->filter(fn (SeoIssue $issue): bool => $indexableKeys->has($issue->source_type.'|'.$issue->source_id))
                 ->map(fn (SeoIssue $issue): array => [
                     'source_type' => $issue->source_type,
                     'source_id' => (int) $issue->source_id,
