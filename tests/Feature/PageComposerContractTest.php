@@ -25,6 +25,25 @@ class PageComposerContractTest extends TestCase
         $this->assertDatabaseHas('content_pages', ['id' => $homepage->id, 'is_reserved' => true, 'route_path' => '/']);
     }
 
+
+    public function test_page_builder_rejects_slugs_shadowed_by_dedicated_public_routes(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.pages.store'), [
+                'title' => 'Shadow Shop Page',
+                'slug' => 'shop',
+                'status' => 'draft',
+                'locale' => 'en',
+                'template' => 'standard',
+                'visibility' => 'public',
+            ])
+            ->assertSessionHasErrors('slug');
+
+        $this->assertDatabaseMissing('content_pages', ['slug' => 'shop', 'title' => 'Shadow Shop Page']);
+    }
+
     public function test_page_sections_persist_typed_layout_metadata_and_preview_uses_the_public_shell(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
