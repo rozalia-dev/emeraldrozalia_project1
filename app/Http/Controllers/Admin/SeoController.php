@@ -521,7 +521,11 @@ class SeoController extends Controller
 
     public function storeRedirect(Request $request): RedirectResponse
     {
-        $request->merge(['from_path' => '/'.ltrim((string) $request->input('from_path'), '/')]);
+        $fromInput = trim((string) $request->input('from_path'));
+        $normalizedFrom = '/'.trim($fromInput, '/');
+        $normalizedFrom = $normalizedFrom === '/' ? '/' : rtrim($normalizedFrom, '/');
+        $request->merge(['from_path' => $normalizedFrom]);
+
         $data = $request->validate([
             'from_path' => [
                 'required',
@@ -536,14 +540,18 @@ class SeoController extends Controller
             'active' => ['nullable', 'boolean'],
         ]);
 
-        $fromPath = '/'.trim((string) $data['from_path'], '/');
-        $fromPath = $fromPath === '/' ? '/' : rtrim($fromPath, '/');
-        $targetPath = parse_url((string) $data['to_path'], PHP_URL_PATH);
+        $fromPath = (string) $data['from_path'];
+        $target = (string) $data['to_path'];
+        $targetPath = parse_url($target, PHP_URL_PATH);
+        $targetHost = strtolower((string) (parse_url($target, PHP_URL_HOST) ?? ''));
+        $appHost = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+        $localTarget = $targetHost === '' || ($appHost !== '' && $targetHost === $appHost);
+
         if (is_string($targetPath)) {
             $targetPath = '/'.trim($targetPath, '/');
             $targetPath = $targetPath === '/' ? '/' : rtrim($targetPath, '/');
         }
-        if ($targetPath === $fromPath) {
+        if ($localTarget && $targetPath === $fromPath) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'to_path' => 'The redirect target must be different from the source path.',
             ]);
