@@ -530,6 +530,42 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_thin_product_and_category_copy_is_enriched_on_public_pages(): void
+    {
+        $category = Category::create([
+            'name' => 'Corporate Beanies',
+            'slug' => 'corporate-beanies-visible',
+            'description' => 'Premium beanies.',
+            'status' => 'active',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Irish Wool Beanie',
+            'slug' => 'irish-wool-beanie-visible',
+            'sku' => 'VISIBLE-SEO-001',
+            'description' => '100% Irish wool',
+            'material' => 'Irish wool',
+            'price' => 75,
+            'stock' => 5,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('product', $product))
+            ->assertOk()
+            ->assertSee('Made with Irish wool.', false)
+            ->assertSee('Irish headwear designed and manufactured in Limerick, Ireland.', false);
+
+        $this->get(route('category', $category))
+            ->assertOk()
+            ->assertSee('Shop Corporate Beanies hats, caps and headwear from Emerald Rozalia.', false)
+            ->assertSee('Designed and manufactured in Limerick, Ireland.', false);
+    }
+
     public function test_thin_product_and_category_copy_gets_useful_meta_descriptions(): void
     {
         $category = Category::create([
