@@ -1159,8 +1159,9 @@ class SeoController extends Controller
         };
 
         $context = trim((string) $context);
+        $contextLabel = Str::headline(str_replace(['-', '_'], ' ', Str::lower($context)));
         $candidate = $context !== ''
-            ? $name.' · '.Str::headline($context).' | Emerald Rozalia'
+            ? $name.' · '.$contextLabel.' | Emerald Rozalia'
             : $name.' | Emerald Rozalia';
 
         return Str::limit($candidate, 60, '');
