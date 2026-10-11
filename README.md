@@ -2,6 +2,8 @@
 
 ## Current implementation status
 
+The 2026-10-11 browser-cache fix gives versioned CSS/JavaScript and current public video, poster, and caption assets one-year immutable caching. Unversioned CSS/JavaScript revalidate immediately; stale video URLs retain a short cache; private previews and downloads remain uncached. See [browser cache lifetime evidence](docs/CACHE-LIFETIME-EVIDENCE.md) for the policy and CI checks.
+
 The audited release baseline is c54e933e36c68f2951e5e05afb32119ea02ea467; GitHub Actions run #277 passed the PostgreSQL, container/release and Hetzner deployment jobs. The repository remains a partial foundation against the 519-page guide, not a completed 167-visual acceptance release. Batch 0 evidence is recorded in the PROJECT1-*.md matrices.
 
 The repository now contains the Laravel 13 Project 1 full-stack package, including the responsive Emerald Rozalia storefront, single admin cPanel, SEO & Content workspace, PostgreSQL Docker stack, persistent public media volume, CI validation and guarded production deployment scripts. The SEO reference screen is functional: metadata, audits, issue fixing, broken-link checks, keywords, redirects, sitemap, robots.txt, schema and UUID-backed audit logging are connected to Laravel routes and database tables. Runtime verification remains an environment check: this workspace does not include PHP, Composer or Docker, so the authoritative migration, route, PHPUnit and container checks run in GitHub Actions.
