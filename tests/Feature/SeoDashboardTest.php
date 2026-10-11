@@ -841,6 +841,34 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_shadowed_managed_pages_do_not_override_dedicated_route_metadata_or_sitemap_source(): void
+    {
+        ContentPage::create([
+            'title' => 'Shadow Contact Page',
+            'slug' => 'contact',
+            'body' => '<h1>Shadow Contact Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => [
+                'title' => 'Wrong Contact Metadata',
+                'description' => 'This metadata must not replace the dedicated contact page.',
+                'settings' => ['visibility' => 'public', 'indexable' => true],
+            ],
+            'published_at' => now(),
+        ]);
+
+        $this->get('/contact')
+            ->assertOk()
+            ->assertSee('<title>Contact Emerald Rozalia</title>', false)
+            ->assertDontSee('<title>Wrong Contact Metadata</title>', false);
+
+        $xml = $this->get(route('seo.sitemap'))->assertOk()->getContent();
+        $this->assertSame(1, substr_count($xml, '<loc>http://localhost/contact</loc>'));
+        $this->assertStringNotContainsString('<loc>http://localhost/home</loc>', $xml);
+    }
+
     public function test_live_managed_page_override_controls_fixed_route_sitemap_indexability(): void
     {
         ContentPage::create([
