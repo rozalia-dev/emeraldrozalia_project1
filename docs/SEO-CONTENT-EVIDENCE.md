@@ -13,6 +13,22 @@
 - The supplied Emerald Rozalia wordmark remains the only brand mark used in the cPanel header/footer.
 - The shared cPanel submenu typography rule keeps admin copy, forms, tables and status text at 13px or larger across desktop, tablet and mobile layouts.
 
+## Search Console coverage follow-up (2026-10-10)
+
+The five Google Search Console Coverage Drilldown exports contain 188 URLs. These changes address application-controlled routing, canonical, indexability and content signals; they do not guarantee that Google will index a URL.
+
+| Search Console status | URLs | Site-side handling |
+|---|---:|---|
+| Not found (404) | 13 | Known legacy category/product paths are mapped to reviewed live public destinations. The legacy route map is covered by `test_search_console_legacy_404_urls_redirect_when_no_live_catalogue_record_exists`. |
+| Crawled - currently not indexed | 19 | Product/category fallback copy and meta descriptions are enriched, and non-indexable pages are excluded from indexable status summaries. These quality signals cannot force Google to index a page. |
+| Page with redirect | 11 | Most examples are filtered `/shop` variants. Filter query URLs receive clean canonical/noindex signals; review the report again after Google recrawls. |
+| Alternative page with proper canonical tag | 25 | These are expected alternates. Virtual Try-On query state uses the clean page canonical; paginated catalogue pages retain page-specific canonicals. |
+| Duplicate without user-selected canonical | 120 | Faceted catalogue URLs publish a canonical to the clean listing and `noindex,follow`; pagination remains indexable with its own canonical. |
+
+Related feature coverage in `tests/Feature/SeoDashboardTest.php` includes `test_faceted_catalog_urls_are_noindex_but_pagination_remains_indexable`, `test_thin_product_and_category_copy_is_enriched_on_public_pages`, `test_thin_product_and_category_copy_gets_useful_meta_descriptions`, and `test_meta_status_cards_ignore_non_indexable_pages`.
+
+Search Console reports can remain unchanged until its next crawl. Verify the same URL groups after recrawl; canonical and redirect reports do not mean every variant should be indexed.
+
 ## Verification contract
 
 Added feature coverage in `tests/Feature/SeoDashboardTest.php` for:
@@ -29,7 +45,7 @@ Static checks passed in this workspace:
 - `node --check public/js/app.js`
 - CSS contract for the admin 13px readability floor and larger SEO headings/KPI values.
 
-Runtime checks remain blocked here because PHP and Composer are not installed. Run the following in Laravel Herd, Docker or CI before release:
+PHP and Composer are not installed in this workspace, so runtime validation is provided by GitHub Actions. Main commit `50ce1cf30dc1836f062ed05c8d0ab4df9badeb78` passed run #1359: 525 PostgreSQL tests, 5,997 assertions, migration rollback/re-run, media browser acceptance, Docker release rehearsal, and production health checks ([run #1359](https://github.com/rozalia-dev/emeraldrozalia_project1/actions/runs/38153893181)). Useful repeatable commands in a runtime-enabled checkout:
 
 ```bash
 composer validate --strict
