@@ -398,8 +398,18 @@ class SeoController extends Controller
                 if ($issueType === 'missing-alt-text') {
                     $alt = e(Str::limit($name, 80, ''));
                     $record->body = preg_replace_callback(
-                        '/<img\b(?![^>]*\balt\s*=)([^>]*)>/i',
-                        static fn (array $match): string => '<img alt="'.$alt.'"'.$match[1].'>',
+                        '/<img\b[^>]*>/i',
+                        static function (array $match) use ($alt): string {
+                            $tag = $match[0];
+                            if (preg_match('/\balt\s*=\s*["\']\s*[^"\']+\s*["\']/i', $tag)) {
+                                return $tag;
+                            }
+                            if (preg_match('/\balt\s*=\s*["\'][^"\']*["\']/i', $tag)) {
+                                return preg_replace('/\balt\s*=\s*["\'][^"\']*["\']/i', 'alt="'.$alt.'"', $tag, 1) ?: $tag;
+                            }
+
+                            return preg_replace('/<img\b/i', '<img alt="'.$alt.'"', $tag, 1) ?: $tag;
+                        },
                         (string) $record->body,
                     ) ?: $record->body;
                 }
@@ -927,7 +937,9 @@ class SeoController extends Controller
             return null;
         }
 
-        return '/'.ltrim($path, '/');
+        $normalized = '/'.trim($path, '/');
+
+        return $normalized === '/' ? '/' : rtrim($normalized, '/');
     }
 
     private function currentIssues(Collection $sources): Collection
