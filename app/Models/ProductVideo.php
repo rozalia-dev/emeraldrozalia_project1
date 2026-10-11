@@ -52,9 +52,20 @@ class ProductVideo extends ProductMedia
 
     public function getVideoStatusAttribute(): string
     {
-        if (!$this->active) return 'draft';
+        if (! $this->active) {
+            return 'draft';
+        }
+
         $publishAt = data_get($this->metadata, 'publish_at');
-        return $publishAt && \Carbon\Carbon::parse($publishAt)->isFuture() ? 'scheduled' : 'published';
+        if (! $publishAt) {
+            return 'published';
+        }
+
+        try {
+            return \Carbon\Carbon::parse((string) $publishAt)->isFuture() ? 'scheduled' : 'published';
+        } catch (\Throwable) {
+            return 'draft';
+        }
     }
 
     public function getPlatformAttribute(): string
