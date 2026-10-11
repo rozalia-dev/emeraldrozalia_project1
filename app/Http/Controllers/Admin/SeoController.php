@@ -328,7 +328,7 @@ class SeoController extends Controller
 
     public function fixIssue(string $sourceType, int $sourceId, string $issueType): RedirectResponse
     {
-        abort_unless(in_array($sourceType, ['home', 'page', 'product', 'category'], true), 404);
+        abort_unless(in_array($sourceType, ['home', 'fixed', 'page', 'product', 'category'], true), 404);
         abort_unless(in_array($issueType, [
             'missing-meta-title',
             'meta-title-too-long',
@@ -344,8 +344,12 @@ class SeoController extends Controller
         $subject = null;
 
         DB::transaction(function () use ($sourceType, $sourceId, $issueType, &$before, &$subject): void {
-            $record = $sourceType === 'home' ? $this->settingRecord('home_meta') : $this->sourceModel($sourceType, $sourceId);
-            abort_unless($record || $sourceType === 'home', 404);
+            $record = match ($sourceType) {
+                'home' => $this->settingRecord('home_meta'),
+                'fixed' => $this->settingRecord('fixed_page_meta'),
+                default => $this->sourceModel($sourceType, $sourceId),
+            };
+            abort_unless($record || in_array($sourceType, ['home', 'fixed'], true), 404);
             $before = $record?->toArray();
 
             $name = $sourceType === 'home' ? 'Emerald Rozalia | Irish Made Hats & Caps' : $this->sourceName($sourceType, $sourceId);
@@ -358,6 +362,25 @@ class SeoController extends Controller
                 $current['title'] = $issueType === 'duplicate-meta-title' ? $name : ($current['title'] ?? $name);
                 $current['description'] = $current['description'] ?? $description;
                 $subject = $this->saveSetting('home_meta', $current);
+            } elseif ($sourceType === 'fixed') {
+                $fixedPage = self::FIXED_PUBLIC_PAGES[$sourceId] ?? null;
+                abort_unless($fixedPage, 404);
+                $all = (array) ($record?->value ?? []);
+                $current = (array) ($all[$fixedPage[0]] ?? []);
+                $currentTitle = trim((string) ($current['title'] ?? '')) ?: $fixedPage[1].' | Emerald Rozalia';
+                $currentDescription = trim((string) ($current['description'] ?? '')) ?: $description;
+                if (in_array($issueType, ['missing-meta-title', 'meta-title-too-long', 'duplicate-meta-title'], true)) {
+                    $current['title'] = Str::limit(
+                        $issueType === 'duplicate-meta-title' ? $fixedPage[1].' | Emerald Rozalia' : $currentTitle,
+                        60,
+                        ''
+                    );
+                }
+                if (in_array($issueType, ['missing-meta-description', 'meta-description-too-long'], true)) {
+                    $current['description'] = Str::limit($currentDescription, 155, '');
+                }
+                $all[$fixedPage[0]] = $current;
+                $subject = $this->saveSetting('fixed_page_meta', $all);
             } elseif ($sourceType === 'page') {
                 /** @var ContentPage $record */
                 $meta = (array) $record->meta;
@@ -1026,6 +1049,10 @@ class SeoController extends Controller
     private function sourceName(string $sourceType, int $sourceId): string
     {
         $model = $this->sourceModel($sourceType, $sourceId);
+
+        if ($sourceType === 'fixed' && isset(self::FIXED_PUBLIC_PAGES[$sourceId])) {
+            return self::FIXED_PUBLIC_PAGES[$sourceId][1];
+        }
 
         return (string) ($model?->title ?: $model?->name ?: 'Emerald Rozalia page');
     }
