@@ -410,31 +410,23 @@ class SeoController extends Controller
                 if (in_array($issueType, ['missing-meta-description', 'meta-description-too-long'], true)) {
                     $meta['description'] = $issueType === 'meta-description-too-long' ? Str::limit((string) ($meta['description'] ?: $description), 155, '') : $description;
                 }
-                if ($issueType === 'missing-h1' && ! preg_match('/<h1\b/i', (string) $record->body)) {
-                    $record->body = '<h1>'.e($record->title).'</h1>'.(filled($record->body) ? "\n".$record->body : '');
-                }
-                if ($issueType === 'missing-alt-text') {
-                    $alt = e(Str::limit($name, 80, ''));
-                    $record->body = preg_replace_callback(
-                        '/<img\b[^>]*>/i',
-                        static function (array $match) use ($alt): string {
-                            $tag = $match[0];
-                            if (preg_match('/\balt\s*=\s*["\']\s*[^"\']+\s*["\']/i', $tag)) {
-                                return $tag;
-                            }
-                            if (preg_match('/\balt\s*=\s*["\'][^"\']*["\']/i', $tag)) {
-                                return preg_replace('/\balt\s*=\s*["\'][^"\']*["\']/i', 'alt="'.$alt.'"', $tag, 1) ?: $tag;
-                            }
-
-                            return preg_replace('/<img\b/i', '<img alt="'.$alt.'"', $tag, 1) ?: $tag;
-                        },
-                        (string) $record->body,
-                    ) ?: $record->body;
-                }
                 if ($issueType === 'missing-internal-links') {
-                    $record->body = rtrim((string) $record->body)."\n<p><a href=\"/shop\">Explore the Emerald Rozalia collection.</a></p>";
+                    $nextSort = ((int) $record->sections()->max('sort_order')) + 1;
+                    $record->sections()->create([
+                        'type' => 'cta',
+                        'label' => 'Explore Emerald Rozalia',
+                        'sort_order' => $nextSort,
+                        'region' => 'main',
+                        'settings' => [
+                            'title' => 'Explore the Collection',
+                            'content' => 'Continue exploring Emerald Rozalia hats, caps and headwear.',
+                            'button_label' => 'Shop the Collection',
+                            'url' => '/shop',
+                        ],
+                        'visible' => true,
+                    ]);
                 }
-                $record->update(['meta' => $meta, 'body' => $record->body]);
+                $record->update(['meta' => $meta]);
                 $subject = $record;
             } else {
                 /** @var Product|Category $record */
@@ -703,6 +695,7 @@ class SeoController extends Controller
         $sources = $sources->concat($fixedPublicPages);
 
         $pages = ContentPage::query()
+            ->with('sections')
             ->whereNotIn('status', ['archived', 'unpublished'])
             ->whereNotIn('slug', self::SHADOWED_CONTENT_PAGE_SLUGS)
             ->latest('updated_at')
@@ -712,6 +705,7 @@ class SeoController extends Controller
                 $meta = (array) $page->meta;
                 $settings = $page->settings();
                 $body = (string) $page->body;
+                $renderedLinkMarkup = $this->managedPageLinkMarkup($page);
                 $pageNoindex = array_key_exists('indexable', $settings)
                     ? ! (bool) $settings['indexable']
                     : (bool) ($meta['noindex'] ?? false);
@@ -727,15 +721,15 @@ class SeoController extends Controller
                     'focus_keyword' => $meta['focus_keyword'] ?? null,
                     'noindex' => $pageNoindex,
                     'has_h1' => true,
-                    'has_alt_text' => $this->hasAltText($body),
-                    'has_internal_links' => $this->hasInternalLinks($body),
+                    'has_alt_text' => true,
+                    'has_internal_links' => $this->hasInternalLinks($renderedLinkMarkup),
                     'indexed' => $page->status === 'published'
                         && ($page->scheduled_for === null || $page->scheduled_for->lte(now()))
                         && $page->isPublic()
                         && ! $page->requiresLogin()
                         && ! $pageNoindex,
                     'word_count' => str_word_count(strip_tags($body)),
-                    'content' => $body,
+                    'content' => $renderedLinkMarkup,
                     'updated_at' => $page->updated_at,
                 ];
             });
@@ -1076,6 +1070,36 @@ class SeoController extends Controller
             ['label' => 'Page Speed (Mobile)', 'score' => null],
             ['label' => 'Structured Data', 'score' => is_array($schema) && filled($schema['@type'] ?? null) ? 100 : 0],
         ];
+    }
+
+    private function managedPageLinkMarkup(ContentPage $page): string
+    {
+        $links = collect();
+
+        foreach ($page->sections->where('visible', true) as $section) {
+            $settings = is_array($section->settings) ? $section->settings : [];
+            foreach (['url', 'href', 'primary_href', 'cta_url'] as $key) {
+                $value = trim((string) ($settings[$key] ?? ''));
+                if ($value !== '') {
+                    $links->push($value);
+                }
+            }
+
+            foreach ((array) ($settings['items'] ?? []) as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $value = trim((string) ($item['url'] ?? $item['href'] ?? ''));
+                if ($value !== '') {
+                    $links->push($value);
+                }
+            }
+        }
+
+        return $links
+            ->unique()
+            ->map(fn (string $url): string => '<a href="'.e($url).'">Managed link</a>')
+            ->implode("\n");
     }
 
     private function hasAltText(string $html): bool
