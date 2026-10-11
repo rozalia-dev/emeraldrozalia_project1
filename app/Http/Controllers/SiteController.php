@@ -409,6 +409,42 @@ class SiteController extends Controller
         return $this->shopCatalog($request);
     }
 
+    public function legacyCategory(CatalogFilterRequest $request, string $legacyCategorySlug)
+    {
+        $category = Category::query()
+            ->websiteVisible()
+            ->where('slug', $legacyCategorySlug)
+            ->first();
+
+        if ($category) {
+            return $this->shopCatalog($request, $category);
+        }
+
+        $fallback = in_array($legacyCategorySlug, ['limerick-heritage-collection', 'heritage-baseball-caps'], true)
+            ? '/irish-heritage'
+            : '/shop';
+
+        return redirect($fallback, 301);
+    }
+
+    public function legacyProduct(string $legacyProductSlug)
+    {
+        $product = Product::query()
+            ->published()
+            ->where('slug', $legacyProductSlug)
+            ->first();
+
+        if ($product) {
+            return $this->product($product);
+        }
+
+        $fallback = $legacyProductSlug === 'flat-cap'
+            ? '/product/emerald-flat-cap'
+            : '/shop';
+
+        return redirect($fallback, 301);
+    }
+
     public function category(CatalogFilterRequest $request, Category $category)
     {
         return $this->shopCatalog($request, $category);
