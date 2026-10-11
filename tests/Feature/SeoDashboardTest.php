@@ -1080,6 +1080,59 @@ class SeoDashboardTest extends TestCase
         ]);
     }
 
+
+    public function test_duplicate_meta_title_autofix_generates_a_unique_product_title(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $first = Product::create([
+            'name' => 'Duplicate Cap',
+            'slug' => 'duplicate-cap-one',
+            'sku' => 'DUP-ONE',
+            'price' => 50,
+            'stock' => 2,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+        $second = Product::create([
+            'name' => 'Duplicate Cap',
+            'slug' => 'duplicate-cap-two',
+            'sku' => 'DUP-TWO',
+            'price' => 50,
+            'stock' => 2,
+            'status' => 'published',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect();
+
+        $issue = \App\Models\SeoIssue::query()
+            ->where('source_type', 'product')
+            ->where('source_id', $second->id)
+            ->where('issue_type', 'duplicate-meta-title')
+            ->where('status', 'open')
+            ->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.issue.fix', ['product', $second->id, 'duplicate-meta-title']))
+            ->assertRedirect();
+
+        $second->refresh();
+        $this->assertNotSame($first->name.' | Emerald Rozalia', $second->meta_title);
+        $this->assertStringContainsString('DUP TWO', strtoupper((string) $second->meta_title));
+        $this->assertSame('resolved', $issue->fresh()->status);
+
+        $this->actingAs($admin)->post(route('admin.seo.audit'))->assertRedirect();
+        $this->assertDatabaseMissing('seo_issues', [
+            'source_type' => 'product',
+            'source_id' => $second->id,
+            'issue_type' => 'duplicate-meta-title',
+            'status' => 'open',
+        ]);
+    }
+
     public function test_page_seo_fixes_can_add_alt_text_and_an_internal_link(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
