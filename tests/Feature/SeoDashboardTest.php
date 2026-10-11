@@ -1038,6 +1038,36 @@ class SeoDashboardTest extends TestCase
     }
 
 
+
+    public function test_redirect_manager_normalizes_source_paths_and_allows_external_same_path_targets(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.redirects.store'), [
+                'from_path' => 'legacy-path/',
+                'to_path' => '/shop',
+                'status_code' => 301,
+                'active' => '1',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('seo_redirects', [
+            'from_path' => '/legacy-path',
+            'to_path' => '/shop',
+            'status_code' => 301,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.redirects.store'), [
+                'from_path' => '/external-path',
+                'to_path' => 'https://example.com/external-path',
+                'status_code' => 302,
+                'active' => '1',
+            ])
+            ->assertSessionHasNoErrors();
+    }
+
     public function test_redirect_manager_rejects_self_redirects_and_query_sources(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
