@@ -85,9 +85,9 @@ class SiteController extends Controller
         $homeHeroVideos = $homeHeroVideoRecords
             ->map(fn (ProductVideo $video): array => [
                 'uuid' => $video->uuid,
-                'url' => route('videos.asset', [$video->uuid, 'video']),
+                'url' => $video->assetUrl('video'),
                 'poster' => data_get($video->metadata, 'poster')
-                    ? route('videos.asset', [$video->uuid, 'poster'])
+                    ? $video->assetUrl('poster')
                     : null,
                 'title' => $video->title,
             ])

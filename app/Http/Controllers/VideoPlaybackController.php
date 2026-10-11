@@ -30,15 +30,24 @@ class VideoPlaybackController extends Controller
         abort_unless(Storage::disk($disk)->exists($path),404);
         if ($request->boolean('download')) abort_unless($asset === 'video' && (auth()->user()?->is_admin || data_get($video->metadata,'allow_download',false)),403);
         $isPublicAsset = $video->isPubliclyPlayable() && ! $request->boolean('download');
+        $version = $video->assetVersion($asset);
+        $requestedVersion = $request->query('v');
+        $immutablePublicAsset = $isPublicAsset
+            && is_string($version)
+            && is_string($requestedVersion)
+            && hash_equals($version, $requestedVersion);
         $headers = [
-            'Cache-Control' => $isPublicAsset ? 'public, max-age=300' : 'private, no-store',
+            'Cache-Control' => $isPublicAsset
+                ? ($immutablePublicAsset ? 'public, max-age=31536000' : 'public, max-age=300')
+                : 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ];
         if ($asset === 'captions') $headers['Content-Type'] = 'text/vtt; charset=UTF-8';
         $response = response()->file(Storage::disk($disk)->path($path),$headers);
         if ($isPublicAsset) {
             $response->setPublic();
-            $response->setMaxAge(300);
+            $response->setMaxAge($immutablePublicAsset ? 31536000 : 300);
+            if ($immutablePublicAsset) $response->headers->addCacheControlDirective('immutable');
         } else {
             $response->setPrivate();
             $response->headers->addCacheControlDirective('no-store');
@@ -111,7 +120,7 @@ class VideoPlaybackController extends Controller
 
                 $posterPath = data_get($video->metadata, 'poster');
                 $thumbnailUrl = is_string($posterPath) && $posterPath !== ''
-                    ? route('videos.asset', [$video->uuid, 'poster'])
+                    ? $video->assetUrl('poster')
                     : null;
 
                 // A Google video sitemap entry requires a thumbnail. Skip older
@@ -134,7 +143,7 @@ class VideoPlaybackController extends Controller
                 $xml .= '            <video:description>'.e($description)."</video:description>\n";
 
                 if ($video->platform === 'Website') {
-                    $xml .= '            <video:content_loc>'.e(route('videos.asset', [$video->uuid, 'video']))."</video:content_loc>\n";
+                    $xml .= '            <video:content_loc>'.e($video->assetUrl('video'))."</video:content_loc>\n";
                 } elseif ($video->embed_url) {
                     $xml .= '            <video:player_loc>'.e($video->embed_url)."</video:player_loc>\n";
                 }

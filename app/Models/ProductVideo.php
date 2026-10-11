@@ -99,6 +99,38 @@ class ProductVideo extends ProductMedia
             && ($isHomepageHero || (bool) $this->product?->isPubliclyPublished());
     }
 
+    public function assetVersion(string $asset): ?string
+    {
+        if (! in_array($asset, ['video', 'poster', 'captions'], true)) {
+            return null;
+        }
+
+        $path = match ($asset) {
+            'video' => $this->platform === 'Website' ? $this->path : null,
+            default => data_get($this->metadata, $asset),
+        };
+
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        // Video uploads and sidecar assets are stored under unique paths. A path
+        // or storage change therefore creates a new cache key without invalidating unchanged files.
+        $disk = $asset === 'video' ? (string) $this->disk : 'local';
+
+        return substr(hash('sha256', implode('|', [(string) $this->uuid, $asset, $disk, $path])), 0, 24);
+    }
+
+    public function assetUrl(string $asset): ?string
+    {
+        $version = $this->assetVersion($asset);
+        if ($version === null) {
+            return null;
+        }
+
+        return route('videos.asset', [$this->uuid, $asset, 'v' => $version]);
+    }
+
     public function details(): array
     {
         $meta = $this->metadata ?? [];
@@ -113,9 +145,9 @@ class ProductVideo extends ProductMedia
             'gallery' => (bool) ($meta['gallery'] ?? true), 'allow_download' => (bool) ($meta['allow_download'] ?? false),
             'duration' => (float) ($meta['duration'] ?? 0), 'resolution' => $meta['resolution'] ?? '',
             'caption_language' => $meta['caption_language'] ?? 'en',
-            'poster' => !empty($meta['poster']) ? route('videos.asset', [$this->uuid, 'poster']) : null,
-            'captions' => !empty($meta['captions']) ? route('videos.asset', [$this->uuid, 'captions']) : null,
-            'playback' => $this->platform === 'Website' ? route('videos.asset', [$this->uuid, 'video']) : null,
+            'poster' => !empty($meta['poster']) ? $this->assetUrl('poster') : null,
+            'captions' => !empty($meta['captions']) ? $this->assetUrl('captions') : null,
+            'playback' => $this->platform === 'Website' ? $this->assetUrl('video') : null,
             'embed' => $this->embed_url,
             'update_url' => route('admin.videos.update', $this->id),
             'audit_url' => route('admin.videos.audit', $this->id),

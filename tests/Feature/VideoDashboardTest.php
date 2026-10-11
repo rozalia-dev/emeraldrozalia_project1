@@ -239,6 +239,64 @@ class VideoDashboardTest extends TestCase
     }
 
 
+    public function test_versioned_public_video_assets_are_immutable_and_replacements_get_new_cache_keys(): void
+    {
+        $product = $this->product();
+        $video = $this->video($product);
+
+        $oldVersion = $video->assetVersion('video');
+        $oldUrl = $video->assetUrl('video');
+        $this->assertNotNull($oldVersion);
+        $this->assertStringContainsString('v='.$oldVersion, $oldUrl);
+
+        $versionedResponse = $this->get($oldUrl)->assertOk();
+        $versionedCache = (string) $versionedResponse->headers->get('Cache-Control');
+        $this->assertStringContainsString('max-age=31536000', $versionedCache);
+        $this->assertStringContainsString('immutable', $versionedCache);
+
+        $posterPath = 'videos/posters/'.fake()->uuid().'.jpg';
+        $captionsPath = 'videos/captions/'.fake()->uuid().'.vtt';
+        Storage::disk('local')->put($posterPath, 'poster-content');
+        Storage::disk('local')->put($captionsPath, "WEBVTT\n\n");
+        $video->update([
+            'metadata' => array_replace($video->metadata ?? [], [
+                'poster' => $posterPath,
+                'captions' => $captionsPath,
+            ]),
+        ]);
+        $video = $video->fresh();
+
+        foreach (['video', 'poster', 'captions'] as $asset) {
+            $assetResponse = $this->get($video->assetUrl($asset))->assertOk();
+            $assetCache = (string) $assetResponse->headers->get('Cache-Control');
+            $this->assertStringContainsString('max-age=31536000', $assetCache);
+            $this->assertStringContainsString('immutable', $assetCache);
+        }
+
+        $this->get(route('videos.asset', [$video->uuid, 'video']))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=300, public');
+
+        $replacementPath = 'videos/files/'.fake()->uuid().'.mp4';
+        Storage::disk('local')->put($replacementPath, 'replacement-video-content');
+        $video->update(['path' => $replacementPath]);
+
+        $updatedVideo = $video->fresh();
+        $newUrl = $updatedVideo->assetUrl('video');
+        $this->assertNotSame($oldVersion, $updatedVideo->assetVersion('video'));
+        $this->assertNotSame($oldUrl, $newUrl);
+
+        $updatedResponse = $this->get($newUrl)->assertOk();
+        $updatedCache = (string) $updatedResponse->headers->get('Cache-Control');
+        $this->assertStringContainsString('max-age=31536000', $updatedCache);
+        $this->assertStringContainsString('immutable', $updatedCache);
+
+        $staleUrlResponse = $this->get($oldUrl)->assertOk();
+        $staleUrlCache = (string) $staleUrlResponse->headers->get('Cache-Control');
+        $this->assertStringContainsString('max-age=300', $staleUrlCache);
+        $this->assertStringNotContainsString('immutable', $staleUrlCache);
+    }
+
     public function test_invalid_legacy_publish_date_fails_closed_publicly_but_admin_preview_still_renders(): void
     {
         $product = $this->product();
