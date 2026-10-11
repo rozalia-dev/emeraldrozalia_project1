@@ -38,20 +38,12 @@ Route::get('/terms-conditions',[SiteController::class,'page'])->defaults('page',
 Route::get('/page/{page}',[SiteController::class,'page'])->name('page');
 Route::view('/returns-refunds', 'site.returns-refunds')->name('returns-refunds');
 Route::view('/our-story', 'site.our-story')->name('our-story');
-Route::permanentRedirect('/category/sports-training-caps', '/shop');
-Route::permanentRedirect('/category/workwear-warehouse-team-caps', '/shop');
-Route::permanentRedirect('/category/limerick-heritage-collection', '/irish-heritage');
-Route::permanentRedirect('/category/heritage-baseball-caps', '/irish-heritage');
-Route::permanentRedirect('/category/winter-fleece-hats', '/shop');
-Route::permanentRedirect('/category/8-panel-caps', '/shop');
-Route::permanentRedirect('/category/snapbacks', '/shop');
-Route::permanentRedirect('/category/kids-beanies', '/shop');
-Route::permanentRedirect('/category/classic-6-panel-caps', '/shop');
-Route::permanentRedirect('/category/bucket-hats', '/shop');
-Route::permanentRedirect('/category/classic-fashion-caps', '/shop');
-Route::permanentRedirect('/product/baseball-cap', '/shop');
-Route::permanentRedirect('/category/costume-party-hats', '/shop');
-Route::permanentRedirect('/product/flat-cap', '/product/emerald-flat-cap');
+Route::get('/product/{legacyProductSlug}',[SiteController::class,'legacyProduct'])
+    ->where('legacyProductSlug','baseball-cap|flat-cap')
+    ->name('legacy.product');
+Route::get('/category/{legacyCategorySlug}',[SiteController::class,'legacyCategory'])
+    ->where('legacyCategorySlug','sports-training-caps|workwear-warehouse-team-caps|limerick-heritage-collection|heritage-baseball-caps|winter-fleece-hats|8-panel-caps|snapbacks|kids-beanies|classic-6-panel-caps|bucket-hats|classic-fashion-caps|costume-party-hats')
+    ->name('legacy.category');
 Route::get('/product/{product:slug}',[SiteController::class,'product'])->name('product');
 Route::get('/category/{category:slug}',[SiteController::class,'category'])->name('category');
 Route::get('/media/{uuid}/{variant?}',[PublicMediaController::class,'show'])->whereUuid('uuid')->where('variant','[A-Za-z0-9_-]{1,40}')->name('media.public');
