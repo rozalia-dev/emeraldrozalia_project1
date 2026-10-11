@@ -254,6 +254,7 @@ class VideoDashboardTest extends TestCase
             ->get(route('videos.watch', $video->uuid))
             ->assertOk()
             ->assertSee('Legacy Invalid Date Video')
+            ->assertSee('name="robots" content="noindex,follow"', false)
             ->assertSee('"uploadDate"', false);
     }
 
