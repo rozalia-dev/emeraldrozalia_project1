@@ -485,7 +485,11 @@ class SeoController extends Controller
     {
         $data = $request->validate(['schema_json' => ['required', 'json', 'max:20000']]);
         $value = json_decode($data['schema_json'], true, 512, JSON_THROW_ON_ERROR);
-        abort_unless(is_array($value), 422, 'Schema must be a JSON object.');
+        if (! is_array($value) || array_is_list($value) || blank($value['@type'] ?? null)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'schema_json' => 'Schema must be a JSON object with a non-empty @type.',
+            ]);
+        }
         $before = $this->settingRecord('organization_schema')?->toArray();
         $setting = $this->saveSetting('organization_schema', $value);
         AuditTrail::record('seo.schema_updated', $setting, $before, $setting->fresh()->toArray());
@@ -502,12 +506,27 @@ class SeoController extends Controller
                 'string',
                 'max:255',
                 'regex:/^\//',
+                'not_regex:/[?#]/',
                 Rule::unique('seo_redirects', 'from_path')->where(fn ($query) => $query->where('company_id', $this->tenantId())),
             ],
             'to_path' => ['required', 'string', 'max:255', 'regex:/^(?:\/(?!\/)|https?:\/\/)/'],
             'status_code' => ['required', 'integer', 'in:301,302,307,308'],
             'active' => ['nullable', 'boolean'],
         ]);
+
+        $fromPath = '/'.trim((string) $data['from_path'], '/');
+        $fromPath = $fromPath === '/' ? '/' : rtrim($fromPath, '/');
+        $targetPath = parse_url((string) $data['to_path'], PHP_URL_PATH);
+        if (is_string($targetPath)) {
+            $targetPath = '/'.trim($targetPath, '/');
+            $targetPath = $targetPath === '/' ? '/' : rtrim($targetPath, '/');
+        }
+        if ($targetPath === $fromPath) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'to_path' => 'The redirect target must be different from the source path.',
+            ]);
+        }
+
         $attributes = $data + ['active' => (bool) ($data['active'] ?? true)];
         if ($this->tenantId()) {
             $attributes['company_id'] = $this->tenantId();
