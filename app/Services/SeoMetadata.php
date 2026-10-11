@@ -149,11 +149,7 @@ final class SeoMetadata
                 'name' => $title,
                 'description' => $description,
                 'url' => $canonical,
-                'uploadDate' => optional(
-                    filled(data_get($video->metadata, 'publish_at'))
-                        ? \Illuminate\Support\Carbon::parse((string) data_get($video->metadata, 'publish_at'))
-                        : $video->created_at
-                )->toAtomString(),
+                'uploadDate' => optional($this->videoPublicationDate($video))->toAtomString(),
             ];
 
             if ($socialImage) {
@@ -396,6 +392,20 @@ final class SeoMetadata
         ])->filter()->implode(' ');
 
         return Str::limit($details, 160, '');
+    }
+
+    private function videoPublicationDate(ProductVideo $video): mixed
+    {
+        $publishAt = data_get($video->metadata, 'publish_at');
+        if (filled($publishAt)) {
+            try {
+                return \Illuminate\Support\Carbon::parse((string) $publishAt);
+            } catch (\Throwable) {
+                // Legacy metadata may contain an invalid publication value.
+            }
+        }
+
+        return $video->created_at;
     }
 
     private function socialImageForVideo(?ProductVideo $video): ?string
