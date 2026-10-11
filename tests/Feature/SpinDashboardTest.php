@@ -79,8 +79,16 @@ class SpinDashboardTest extends TestCase
     public function test_public_access_requires_published_public_view_and_active_product():void
     {
         $p=$this->product();$spin=$this->spin($p);$url=route('spins.frame',[$spin->uuid,0]);
-        $this->get($url)->assertOk()->assertHeader('Content-Type','image/jpeg');
-        $this->get(route('spins.show',$spin->uuid))->assertOk()->assertSee('data-spin-widget',false);
+        $frameResponse = $this->get($url)->assertOk()->assertHeader('Content-Type','image/jpeg');
+        $this->assertStringContainsString('public', (string) $frameResponse->headers->get('Cache-Control'));
+        $this->assertStringContainsString('max-age=3600', (string) $frameResponse->headers->get('Cache-Control'));
+        $this->get(route('spins.show',$spin->uuid))
+            ->assertOk()
+            ->assertSee('data-spin-widget',false)
+            ->assertSee('<title>Spin Cap | Emerald Rozalia</title>', false)
+            ->assertSee('Explore a 360° view of Emerald Spin Cap by Emerald Rozalia.', false)
+            ->assertSee('property="og:image" content="'.$url.'"', false)
+            ->assertSee('"@type":"WebPage"', false);
         foreach(['draft','archived','in_progress','needs_attention'] as $state){$spin->update(['status'=>$state]);$this->get($url)->assertNotFound();}
         $spin->update(['status'=>'published','visibility'=>'private']);$this->get($url)->assertNotFound();
         $this->actingAs($this->admin())->get($url)->assertOk();Auth::logout();
@@ -93,7 +101,12 @@ class SpinDashboardTest extends TestCase
         $this->get('/product/'.$p->slug)->assertOk()
             ->assertSee(['data-product-viewer', 'data-spin-source="managed"', '/360/'.$public->uuid.'/frames/0'], false)
             ->assertDontSee('Private hidden spin');
-        $this->get('/360-sitemap.xml')->assertOk()->assertSee($public->uuid)->assertDontSee($private->uuid);
+        $this->get('/360-sitemap.xml')
+            ->assertOk()
+            ->assertHeader('Cache-Control')
+            ->assertSee($public->uuid)
+            ->assertSee('<lastmod>', false)
+            ->assertDontSee($private->uuid);
     }
     public function test_updates_preserve_uuid_and_replace_files():void
     {
