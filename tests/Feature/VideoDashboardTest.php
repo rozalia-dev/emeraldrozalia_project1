@@ -238,6 +238,25 @@ class VideoDashboardTest extends TestCase
         $this->get(route('videos.asset',[$published->uuid,'video']))->assertNotFound();
     }
 
+
+    public function test_invalid_legacy_publish_date_fails_closed_publicly_but_admin_preview_still_renders(): void
+    {
+        $product = $this->product();
+        $video = $this->video($product, [
+            'publish_at' => 'not-a-date',
+            'title' => 'Legacy Invalid Date Video',
+        ]);
+
+        $this->assertSame('draft', $video->video_status);
+        $this->get(route('videos.watch', $video->uuid))->assertNotFound();
+
+        $this->actingAs($this->admin())
+            ->get(route('videos.watch', $video->uuid))
+            ->assertOk()
+            ->assertSee('Legacy Invalid Date Video')
+            ->assertSee('"uploadDate"', false);
+    }
+
     public function test_published_gallery_and_sitemap_hide_private_draft_and_incomplete_entries(): void
     {
         $product=$this->product();
