@@ -115,8 +115,10 @@ class ProductVideo extends ProductMedia
         }
 
         // Video uploads and sidecar assets are stored under unique paths. A path
-        // change therefore creates a new cache key without invalidating unchanged files.
-        return substr(hash('sha256', implode('|', [(string) $this->uuid, $asset, $path])), 0, 24);
+        // or storage change therefore creates a new cache key without invalidating unchanged files.
+        $disk = $asset === 'video' ? (string) $this->disk : 'local';
+
+        return substr(hash('sha256', implode('|', [(string) $this->uuid, $asset, $disk, $path])), 0, 24);
     }
 
     public function assetUrl(string $asset): ?string
