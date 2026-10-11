@@ -792,6 +792,30 @@ class SeoDashboardTest extends TestCase
         $this->get('/terms-conditions')->assertOk();
     }
 
+
+    public function test_live_managed_page_override_controls_fixed_route_sitemap_indexability(): void
+    {
+        ContentPage::create([
+            'title' => 'Managed Size Guide Override',
+            'slug' => 'size-guide',
+            'body' => '<h1>Managed Size Guide Override</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => false]],
+            'published_at' => now(),
+        ]);
+
+        $this->get('/size-guide')
+            ->assertOk()
+            ->assertSee('Managed Size Guide Override')
+            ->assertSee('name="robots" content="noindex,follow"', false);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertDontSee('<loc>http://localhost/size-guide</loc>', false);
+    }
+
     public function test_public_help_and_legal_pages_are_in_main_sitemap(): void
     {
         $this->get(route('seo.sitemap'))
