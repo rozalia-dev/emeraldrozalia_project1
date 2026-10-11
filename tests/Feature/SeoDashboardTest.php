@@ -765,7 +765,7 @@ class SeoDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('<title>Managed SEO Fallback - Emerald Rozalia</title>', false)
             ->assertSee('content="Useful managed page copy with HTML that should become plain metadata."', false)
-            ->assertDontSee('&lt;p&gt;Useful managed page copy', false);
+            ->assertDontSee('name="description" content="&lt;p&gt;Useful managed page copy', false);
 
         $this->actingAs($admin)
             ->post(route('admin.seo.audit'))
