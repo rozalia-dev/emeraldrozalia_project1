@@ -118,7 +118,7 @@
             <h1>{{ $activeCategory?->name ? strtoupper($activeCategory->name) : 'SHOP ALL HATS & CAPS' }}</h1>
             <div class="shop-hero-rule" aria-hidden="true"><span>♣</span></div>
             <p class="shop-hero-lead">Irish made. Premium quality. Made in Limerick.</p>
-            <p class="shop-hero-copy">Discover premium caps, hats and heritage headwear designed for everyday wear and crafted with Emerald Rozalia quality.</p>
+            <p class="shop-hero-copy">{{ $activeCategory ? app(\App\Services\SeoMetadata::class)->categoryDescription($activeCategory) : 'Discover premium caps, hats and heritage headwear designed for everyday wear and crafted with Emerald Rozalia quality.' }}</p>
         </div>
     </section>
 
