@@ -205,6 +205,42 @@ class SeoDashboardTest extends TestCase
         );
     }
 
+
+    public function test_dashboard_hides_persisted_issues_for_non_indexable_pages(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $page = ContentPage::create([
+            'title' => 'Hidden Issue Page',
+            'slug' => 'hidden-issue-page',
+            'body' => '',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.audit'))
+            ->assertRedirect(route('admin.seo.dashboard', ['tab' => 'overview']));
+
+        $this->assertDatabaseHas('seo_issues', [
+            'source_type' => 'page',
+            'source_id' => $page->id,
+            'status' => 'open',
+        ]);
+
+        $page->update([
+            'meta' => ['settings' => ['visibility' => 'private', 'indexable' => false]],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.seo.dashboard', ['tab' => 'content']))
+            ->assertOk()
+            ->assertDontSee('hidden-issue-page');
+    }
+
     public function test_existing_seo_issues_are_resolved_when_page_becomes_non_indexable(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
