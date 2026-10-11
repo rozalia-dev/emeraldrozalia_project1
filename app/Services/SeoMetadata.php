@@ -147,7 +147,11 @@ final class SeoMetadata
                 'name' => $title,
                 'description' => $description,
                 'url' => $canonical,
-                'uploadDate' => optional($video->created_at)->toAtomString(),
+                'uploadDate' => optional(
+                    filled(data_get($video->metadata, 'publish_at'))
+                        ? \Illuminate\Support\Carbon::parse((string) data_get($video->metadata, 'publish_at'))
+                        : $video->created_at
+                )->toAtomString(),
             ];
 
             if ($socialImage) {
