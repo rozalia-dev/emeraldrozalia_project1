@@ -607,6 +607,51 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_admin_page_preview_is_noindex_and_uses_public_canonical(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $page = ContentPage::create([
+            'title' => 'Preview SEO Page',
+            'slug' => 'preview-seo-page',
+            'body' => '<h1>Preview SEO Page</h1>',
+            'status' => 'draft',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true]],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.pages.preview', $page))
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/preview-seo-page">', false);
+    }
+
+    public function test_login_required_managed_page_is_noindex_when_authenticated(): void
+    {
+        $user = User::factory()->create();
+        ContentPage::create([
+            'title' => 'Members SEO Page',
+            'slug' => 'members-seo-page',
+            'body' => '<h1>Members SEO Page</h1>',
+            'status' => 'published',
+            'locale' => 'en',
+            'template' => 'standard',
+            'meta' => ['settings' => ['visibility' => 'public', 'indexable' => true, 'login_required' => true]],
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/members-seo-page')
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false);
+
+        $this->get(route('seo.sitemap'))
+            ->assertOk()
+            ->assertDontSee('/members-seo-page', false);
+    }
+
     public function test_managed_page_indexable_setting_controls_meta_robots_and_sitemap(): void
     {
         ContentPage::create([
