@@ -387,7 +387,11 @@ class SeoController extends Controller
                 /** @var ContentPage $record */
                 $meta = (array) $record->meta;
                 if (in_array($issueType, ['missing-meta-title', 'meta-title-too-long', 'duplicate-meta-title'], true)) {
-                    $meta['title'] = $issueType === 'meta-title-too-long' ? Str::limit((string) ($meta['title'] ?: $name), 60, '') : $name.' | Emerald Rozalia';
+                    $meta['title'] = match ($issueType) {
+                        'meta-title-too-long' => Str::limit((string) ($meta['title'] ?: $name), 60, ''),
+                        'duplicate-meta-title' => $this->uniqueMetaTitle($sourceType, $sourceId, $name),
+                        default => $name.' | Emerald Rozalia',
+                    };
                 }
                 if (in_array($issueType, ['missing-meta-description', 'meta-description-too-long'], true)) {
                     $meta['description'] = $issueType === 'meta-description-too-long' ? Str::limit((string) ($meta['description'] ?: $description), 155, '') : $description;
@@ -422,7 +426,9 @@ class SeoController extends Controller
                 /** @var Product|Category $record */
                 $title = (string) ($record->meta_title ?: $name.' | Emerald Rozalia');
                 $desc = (string) ($record->meta_description ?: $description);
-                $replacementTitle = $issueType === 'duplicate-meta-title' ? $name.' | Emerald Rozalia' : $title;
+                $replacementTitle = $issueType === 'duplicate-meta-title'
+                    ? $this->uniqueMetaTitle($sourceType, $sourceId, $name)
+                    : $title;
                 $record->update([
                     'meta_title' => in_array($issueType, ['missing-meta-title', 'meta-title-too-long', 'duplicate-meta-title'], true) ? Str::limit($replacementTitle, 60, '') : $record->meta_title,
                     'meta_description' => in_array($issueType, ['missing-meta-description', 'meta-description-too-long'], true) ? Str::limit($desc, 155, '') : $record->meta_description,
@@ -1096,6 +1102,24 @@ class SeoController extends Controller
             'category' => Category::query()->find($sourceId),
             default => null,
         };
+    }
+
+    private function uniqueMetaTitle(string $sourceType, int $sourceId, string $name): string
+    {
+        $context = match ($sourceType) {
+            'page' => ContentPage::query()->find($sourceId)?->slug,
+            'product' => Product::query()->find($sourceId)?->sku ?: Product::query()->find($sourceId)?->slug,
+            'category' => Category::query()->find($sourceId)?->slug,
+            'fixed' => isset(self::FIXED_PUBLIC_PAGES[$sourceId]) ? trim(self::FIXED_PUBLIC_PAGES[$sourceId][0], '/') : null,
+            default => null,
+        };
+
+        $context = trim((string) $context);
+        $candidate = $context !== ''
+            ? $name.' · '.Str::headline($context).' | Emerald Rozalia'
+            : $name.' | Emerald Rozalia';
+
+        return Str::limit($candidate, 60, '');
     }
 
     private function sourceName(string $sourceType, int $sourceId): string
