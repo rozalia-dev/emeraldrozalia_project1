@@ -37,6 +37,9 @@ class VideoPlaybackController extends Controller
             && is_string($requestedVersion)
             && hash_equals($version, $requestedVersion);
         $headers = [
+            'Cache-Control' => $isPublicAsset
+                ? ($immutablePublicAsset ? 'public, max-age=31536000' : 'public, max-age=300')
+                : 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ];
         if ($asset === 'captions') $headers['Content-Type'] = 'text/vtt; charset=UTF-8';
