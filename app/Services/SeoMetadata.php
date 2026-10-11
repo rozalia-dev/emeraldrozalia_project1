@@ -83,6 +83,7 @@ final class SeoMetadata
         } elseif ($fixed = $this->fixedPageMetadata()) {
             $title = $fixed['title'];
             $description = $fixed['description'];
+            $noindex = (bool) ($fixed['noindex'] ?? false);
         } elseif (request()->routeIs('home')) {
             $homeMeta = (array) ($this->setting('home_meta') ?? []);
             $title = $homeMeta['title'] ?? $title;
@@ -298,33 +299,50 @@ final class SeoMetadata
 
     private function fixedPageMetadata(): ?array
     {
-        return match ('/'.trim((string) request()->path(), '/')) {
-            '/size-guide' => [
-                'title' => 'Hat & Cap Size Guide | Emerald Rozalia',
-                'description' => 'Use the Emerald Rozalia size guide to measure your head and choose the right hat or cap fit before ordering.',
-            ],
-            '/shipping-delivery' => [
-                'title' => 'Shipping & Delivery | Emerald Rozalia',
-                'description' => 'View Emerald Rozalia delivery estimates for Ireland, the EU, USA, Canada and worldwide orders.',
-            ],
-            '/privacy-policy' => [
-                'title' => 'Privacy Policy | Emerald Rozalia',
-                'description' => 'Read how Emerald Rozalia Limited handles personal information submitted through our website, accounts, enquiries and orders.',
-            ],
-            '/terms-conditions' => [
-                'title' => 'Terms & Conditions | Emerald Rozalia',
-                'description' => 'Read the Emerald Rozalia website and ordering terms covering products, availability, pricing, delivery and customer rights.',
-            ],
-            '/returns-refunds' => [
-                'title' => 'Returns & Refunds | Emerald Rozalia',
-                'description' => 'Read the Emerald Rozalia returns and refunds information for online purchases and customer support.',
-            ],
-            '/our-story' => [
-                'title' => 'Our Story | Emerald Rozalia',
-                'description' => 'Discover Emerald Rozalia, an Irish headwear brand focused on design, manufacturing and craftsmanship in Limerick, Ireland.',
-            ],
-            default => null,
-        };
+        $path = '/'.trim((string) request()->path(), '/');
+        if (request()->routeIs('page')) {
+            $page = trim((string) request()->route('page'), '/');
+            if ($page !== '') {
+                $path = '/'.$page;
+            }
+        }
+
+        $defaults = [
+            '/shop' => ['Shop | Emerald Rozalia', 'Shop Emerald Rozalia hats, caps and headwear designed and manufactured in Limerick, Ireland.'],
+            '/product-catalogue' => ['Product Catalogue | Emerald Rozalia', 'Browse the Emerald Rozalia product catalogue of Irish-designed hats, caps and headwear.'],
+            '/collections' => ['Collections | Emerald Rozalia', 'Explore Emerald Rozalia headwear collections, including Irish traditional, heritage and seasonal styles.'],
+            '/new-arrivals' => ['New Arrivals | Emerald Rozalia', 'Discover the latest Emerald Rozalia hats, caps and headwear added to our online collection.'],
+            '/virtual-tryon' => ['Virtual Try-On | Emerald Rozalia', 'Preview selected Emerald Rozalia hats and caps with our virtual try-on experience.'],
+            '/irish-traditional' => ['Irish Traditional Headwear | Emerald Rozalia', 'Explore Irish traditional caps and headwear by Emerald Rozalia, designed and manufactured in Limerick, Ireland.'],
+            '/irish-heritage' => ['Irish Heritage Headwear | Emerald Rozalia', 'Explore Irish heritage hats and caps by Emerald Rozalia, inspired by timeless Irish style and craftsmanship.'],
+            '/factory' => ['Factory | Emerald Rozalia', 'Learn about Emerald Rozalia headwear manufacturing, production and craftsmanship in Limerick, Ireland.'],
+            '/quality' => ['Quality | Emerald Rozalia', 'Learn about Emerald Rozalia quality standards, materials and craftsmanship for hats and caps.'],
+            '/corporate-orders' => ['Corporate Orders | Emerald Rozalia', 'Explore corporate headwear orders, branded hats and caps from Emerald Rozalia.'],
+            '/bulk-orders' => ['Bulk Orders | Emerald Rozalia', 'Order Emerald Rozalia hats and caps in bulk for teams, organizations, retailers and events.'],
+            '/franchise' => ['Franchise | Emerald Rozalia', 'Explore Emerald Rozalia franchise opportunities and retail partnership information.'],
+            '/careers' => ['Careers | Emerald Rozalia', 'Explore career opportunities with Emerald Rozalia across headwear, manufacturing, retail and operations.'],
+            '/global-network' => ['Global Network | Emerald Rozalia', 'Discover the Emerald Rozalia global network for headwear, retail, franchise and distribution partnerships.'],
+            '/contact' => ['Contact Emerald Rozalia', 'Contact Emerald Rozalia for product, order, wholesale, franchise and customer service enquiries.'],
+            '/size-guide' => ['Hat & Cap Size Guide | Emerald Rozalia', 'Use the Emerald Rozalia size guide to measure your head and choose the right hat or cap fit before ordering.'],
+            '/shipping-delivery' => ['Shipping & Delivery | Emerald Rozalia', 'View Emerald Rozalia delivery estimates for Ireland, the EU, USA, Canada and worldwide orders.'],
+            '/privacy-policy' => ['Privacy Policy | Emerald Rozalia', 'Read how Emerald Rozalia Limited handles personal information submitted through our website, accounts, enquiries and orders.'],
+            '/terms-conditions' => ['Terms & Conditions | Emerald Rozalia', 'Read the Emerald Rozalia website and ordering terms covering products, availability, pricing, delivery and customer rights.'],
+            '/returns-refunds' => ['Returns & Refunds | Emerald Rozalia', 'Read the Emerald Rozalia returns and refunds information for online purchases and customer support.'],
+            '/our-story' => ['Our Story | Emerald Rozalia', 'Discover Emerald Rozalia, an Irish headwear brand focused on design, manufacturing and craftsmanship in Limerick, Ireland.'],
+        ];
+
+        if (! isset($defaults[$path])) {
+            return null;
+        }
+
+        $saved = (array) data_get((array) $this->setting('fixed_page_meta', []), $path, []);
+        [$defaultTitle, $defaultDescription] = $defaults[$path];
+
+        return [
+            'title' => trim((string) ($saved['title'] ?? '')) ?: $defaultTitle,
+            'description' => trim((string) ($saved['description'] ?? '')) ?: $defaultDescription,
+            'noindex' => (bool) ($saved['noindex'] ?? false),
+        ];
     }
 
     public function productDescription(Product $product): string
