@@ -293,7 +293,13 @@
             <p class="product-price" data-product-price-display>€{{ number_format($basePrice, 2) }}</p>
             <span hidden data-variant-price-index>@foreach($activeVariants as $variant)€{{ number_format((float) ($variant->price ?? $basePrice), 2) }} @endforeach</span>
             <div class="product-meta"><span class="product-rating" aria-label="{{ $averageRating }} out of 5 stars">{{ $averageRating ? str_repeat('★', (int) round($averageRating)) : '☆' }}<span>({{ $reviewCount }})</span></span><span>|</span><span>SKU: {{ $product->sku }}</span></div>
-            <p class="product-description">{{ $product->description ?: 'A timeless Emerald Rozalia classic, made in Limerick, Ireland from premium materials. Built for comfort and made to last.' }}</p>
+            @php
+                $storedProductDescription = trim(strip_tags((string) $product->description));
+                $publicProductDescription = \Illuminate\Support\Str::length($storedProductDescription) >= 80
+                    ? $storedProductDescription
+                    : app(\App\Services\SeoMetadata::class)->productDescription($product);
+            @endphp
+            <p class="product-description">{{ $publicProductDescription }}</p>
 
             @if(count($colours))
                 <div class="option-group"><div class="option-heading"><span>COLOUR: <b data-selected-colour>{{ $colours[0] }}</b></span><span>Product Media Manager swatches</span></div><div class="swatch-list">@foreach($colours as $colour)<div class="colour-option"><input type="radio" id="colour-{{ $loop->index }}" name="colour-choice" value="{{ $colour }}" aria-label="Colour: {{ $colour }}" @checked($loop->first)><label for="colour-{{ $loop->index }}" title="{{ $colour }}"><span style="background:{{ $swatchColours[$loop->index % count($swatchColours)] }}"></span></label></div>@endforeach</div></div>
