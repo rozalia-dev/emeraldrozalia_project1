@@ -14,7 +14,7 @@
         <p>This video is unavailable. Please contact the administrator.</p>
     @endif
     @if($detail['allow_download'] && $detail['playback'])
-        <a href="{{ $detail['playback'] }}?download=1">Download video</a>
+        <a href="{{ $detail['playback'] }}&amp;download=1">Download video</a>
     @endif
 </div>
 @once
