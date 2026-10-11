@@ -63,6 +63,20 @@ class SeoController extends Controller
         21 => ['/terms-conditions', 'Terms & Conditions'],
     ];
 
+    private const MANAGED_FIXED_SLUGS = [
+        'size-guide',
+        'shipping-delivery',
+        'privacy-policy',
+        'terms-conditions',
+    ];
+
+    private const SHADOWED_CONTENT_PAGE_SLUGS = [
+        'shop', 'product-catalogue', 'collections', 'new-arrivals', 'virtual-tryon',
+        'irish-traditional', 'irish-heritage', 'factory', 'quality', 'corporate-orders',
+        'bulk-orders', 'franchise', 'careers', 'global-network', 'contact',
+        'returns-refunds', 'our-story',
+    ];
+
     private const DEFAULT_KEYWORDS = [
         ['keyword' => 'emerald rozalia hats', 'position' => null, 'change' => null, 'target' => '/'],
         ['keyword' => 'luxury caps ireland', 'position' => null, 'change' => null, 'target' => '/shop'],
@@ -642,7 +656,7 @@ class SeoController extends Controller
         ]]);
 
         $managedFixedSlugs = ContentPage::query()
-            ->whereIn('slug', collect(self::FIXED_PUBLIC_PAGES)->pluck(0)->map(fn (string $path): string => trim($path, '/'))->all())
+            ->whereIn('slug', self::MANAGED_FIXED_SLUGS)
             ->where('status', 'published')
             ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
             ->pluck('slug')
@@ -690,8 +704,10 @@ class SeoController extends Controller
 
         $pages = ContentPage::query()
             ->whereNotIn('status', ['archived', 'unpublished'])
+            ->whereNotIn('slug', self::SHADOWED_CONTENT_PAGE_SLUGS)
             ->latest('updated_at')
             ->get()
+            ->reject(fn (ContentPage $page): bool => $page->isHomepage())
             ->map(function (ContentPage $page): array {
                 $meta = (array) $page->meta;
                 $settings = $page->settings();
@@ -703,7 +719,7 @@ class SeoController extends Controller
                 return [
                     'source_type' => 'page',
                     'source_id' => (int) $page->id,
-                    'path' => '/'.$page->slug,
+                    'path' => $page->routePath(),
                     'title' => $page->title,
                     'kind' => 'Content page',
                     'meta_title' => trim((string) ($meta['title'] ?? '')) ?: $page->title.' - Emerald Rozalia',
