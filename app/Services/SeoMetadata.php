@@ -93,6 +93,10 @@ final class SeoMetadata
             $noindex = (bool) ($homeMeta['noindex'] ?? false);
         }
 
+        if ($this->hasCatalogFacetQuery()) {
+            $noindex = true;
+        }
+
         $canonical = $this->canonicalUrl();
         $socialImage = $this->socialImageForVideo($video) ?: $this->socialImageForProduct($product);
         $schema = $this->schemaForPage(
@@ -436,6 +440,21 @@ final class SeoMetadata
         }
 
         return null;
+    }
+
+    private function hasCatalogFacetQuery(): bool
+    {
+        if (! request()->routeIs('shop', 'category', 'new.arrivals')) {
+            return false;
+        }
+
+        foreach (array_keys(request()->query()) as $key) {
+            if ((string) $key !== 'page') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function canonicalUrl(): string
