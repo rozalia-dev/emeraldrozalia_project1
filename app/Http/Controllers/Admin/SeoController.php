@@ -641,10 +641,19 @@ class SeoController extends Controller
             'updated_at' => $homeSetting?->updated_at,
         ]]);
 
+        $managedFixedSlugs = ContentPage::query()
+            ->whereIn('slug', collect(self::FIXED_PUBLIC_PAGES)->pluck(0)->map(fn (string $path): string => trim($path, '/'))->all())
+            ->where('status', 'published')
+            ->where(fn ($query) => $query->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()))
+            ->pluck('slug')
+            ->all();
+
         $fixedSetting = $this->settingRecord('fixed_page_meta');
         $fixedMeta = (array) ($fixedSetting?->value ?? []);
         $seoMetadata = app(SeoMetadata::class);
-        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)->map(function (array $page, int $sourceId) use ($fixedMeta, $fixedSetting, $seoMetadata): array {
+        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)
+            ->reject(fn (array $page): bool => in_array(trim($page[0], '/'), $managedFixedSlugs, true))
+            ->map(function (array $page, int $sourceId) use ($fixedMeta, $fixedSetting, $seoMetadata): array {
             $saved = (array) ($fixedMeta[$page[0]] ?? []);
             $defaults = $seoMetadata->fixedPageDefaults($page[0]) ?? [
                 'title' => $page[1].' | Emerald Rozalia',
