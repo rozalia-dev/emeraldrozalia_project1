@@ -90,7 +90,8 @@ class SeoController extends Controller
         abort_unless(in_array($tab, self::TABS, true), 404);
 
         $sources = $this->sources();
-        $issues = $this->currentIssues($sources);
+        $allIssues = $this->currentIssues($sources);
+        $issues = $allIssues;
         $query = trim($request->string('q')->toString());
 
         if ($query !== '') {
@@ -98,7 +99,7 @@ class SeoController extends Controller
             $issues = $issues->filter(fn (array $issue): bool => str_contains(Str::lower($issue['path'].' '.$issue['title'].' '.$issue['details']), $needle))->values();
         }
 
-        $summary = $this->summary($sources, $issues);
+        $summary = $this->summary($sources, $allIssues);
         $healthBreakdown = $this->healthBreakdown($sources);
         $metaStatus = $this->metaStatus($sources);
         $keywords = $this->settingValue('keywords', self::DEFAULT_KEYWORDS);
