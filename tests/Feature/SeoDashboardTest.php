@@ -201,7 +201,10 @@ class SeoDashboardTest extends TestCase
         $this->assertSame($sources->where('indexed', true)->count(), (int) data_get($viewData, 'total'));
         $this->assertSame(
             (int) data_get($viewData, 'total'),
-            (int) data_get($viewData, 'optimized') + (int) data_get($viewData, 'missing') + (int) data_get($viewData, 'too_long')
+            (int) data_get($viewData, 'optimized')
+                + (int) data_get($viewData, 'missing')
+                + (int) data_get($viewData, 'duplicate')
+                + (int) data_get($viewData, 'too_long')
         );
     }
 
