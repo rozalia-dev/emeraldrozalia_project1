@@ -596,8 +596,17 @@ class SeoController extends Controller
 
         $fixedSetting = $this->settingRecord('fixed_page_meta');
         $fixedMeta = (array) ($fixedSetting?->value ?? []);
-        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)->map(function (array $page, int $sourceId) use ($fixedMeta, $fixedSetting): array {
+        $seoMetadata = app(SeoMetadata::class);
+        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)->map(function (array $page, int $sourceId) use ($fixedMeta, $fixedSetting, $seoMetadata): array {
             $saved = (array) ($fixedMeta[$page[0]] ?? []);
+            $defaults = $seoMetadata->fixedPageDefaults($page[0]) ?? [
+                'title' => $page[1].' | Emerald Rozalia',
+                'description' => Str::limit(
+                    'Explore '.$page[1].' at Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.',
+                    155,
+                    ''
+                ),
+            ];
             $noindex = (bool) ($saved['noindex'] ?? false);
 
             return [
@@ -606,12 +615,8 @@ class SeoController extends Controller
                 'path' => $page[0],
                 'title' => $page[1],
                 'kind' => 'Public page',
-                'meta_title' => $saved['title'] ?? $page[1].' | Emerald Rozalia',
-                'meta_description' => $saved['description'] ?? Str::limit(
-                    'Explore '.$page[1].' at Emerald Rozalia, Irish headwear designed and manufactured in Limerick, Ireland.',
-                    155,
-                    ''
-                ),
+                'meta_title' => trim((string) ($saved['title'] ?? '')) ?: $defaults['title'],
+                'meta_description' => trim((string) ($saved['description'] ?? '')) ?: $defaults['description'],
                 'focus_keyword' => $saved['focus_keyword'] ?? null,
                 'noindex' => $noindex,
                 'has_h1' => true,
