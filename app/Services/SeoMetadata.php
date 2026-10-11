@@ -121,6 +121,7 @@ final class SeoMetadata
             'canonical' => $canonical,
             'noindex' => $noindex,
             'image' => $socialImage,
+            'og_type' => $product ? 'product' : ($video ? 'video.other' : 'website'),
             'schema' => $schema,
         ];
     }
