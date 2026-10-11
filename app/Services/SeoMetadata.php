@@ -32,11 +32,14 @@ final class SeoMetadata
         // long-lived application/test process. Only treat a $product variable as
         // SEO context on the actual public product route so category pages cannot
         // inherit stale Product metadata/schema from a previous render.
-        if (! request()->routeIs('product')) {
+        if (! request()->routeIs('product', 'legacy.product')) {
             $product = null;
         }
         if (! request()->routeIs('videos.watch')) {
             $video = null;
+        }
+        if (! request()->routeIs('category', 'legacy.category')) {
+            $category = null;
         }
 
         $isProductCatalogue = request()->routeIs('catalogue.show');
