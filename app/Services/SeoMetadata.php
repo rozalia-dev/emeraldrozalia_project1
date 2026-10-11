@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\{Category, ContentPage, Product, ProductVideo, SeoSetting};
+use App\Models\{Category, ContentPage, Product, ProductSpin, ProductVideo, SeoSetting};
 use Illuminate\Support\Str;
 
 final class SeoMetadata
@@ -27,6 +27,7 @@ final class SeoMetadata
         ?Category $category = null,
         ?ContentPage $managedPage = null,
         ?ProductVideo $video = null,
+        ?ProductSpin $spin = null,
     ): array {
         // Blade view variables can persist across multiple requests in the same
         // long-lived application/test process. Only treat a $product variable as
@@ -38,13 +39,16 @@ final class SeoMetadata
         if (! request()->routeIs('videos.watch')) {
             $video = null;
         }
+        if (! request()->routeIs('spins.show')) {
+            $spin = null;
+        }
         if (! request()->routeIs('category', 'legacy.category')) {
             $category = null;
         }
 
         $isProductCatalogue = request()->routeIs('catalogue.show');
 
-        if (! $product && ! $category && ! $managedPage && ! $video && ! $isProductCatalogue
+        if (! $product && ! $category && ! $managedPage && ! $video && ! $spin && ! $isProductCatalogue
             && request()->routeIs('content.page', 'page', 'size-guide', 'shipping-delivery', 'privacy-policy', 'terms-conditions')) {
             $managedPage = $this->publishedPageForCurrentRequest();
         }
@@ -65,6 +69,15 @@ final class SeoMetadata
                 $description = $video->product?->name
                     ? $video->product->name.' video by Emerald Rozalia.'
                     : 'Emerald Rozalia product video.';
+            }
+        } elseif ($spin) {
+            $spinSeo = (array) $spin->seo;
+            $title = trim((string) ($spinSeo['title'] ?? '')) ?: $spin->title.' | Emerald Rozalia';
+            $description = trim((string) ($spinSeo['description'] ?? ''));
+            if ($description === '') {
+                $description = $spin->product?->name
+                    ? 'Explore a 360° view of '.$spin->product->name.' by Emerald Rozalia.'
+                    : 'Explore this Emerald Rozalia 360° product view.';
             }
         } elseif ($product) {
             $seo = (array) $product->seo;
@@ -104,7 +117,9 @@ final class SeoMetadata
         }
 
         $canonical = $this->canonicalUrl();
-        $socialImage = $this->socialImageForVideo($video) ?: $this->socialImageForProduct($product);
+        $socialImage = $this->socialImageForVideo($video)
+            ?: $this->socialImageForSpin($spin)
+            ?: $this->socialImageForProduct($product);
         $schema = $this->schemaForPage(
             $canonical,
             trim((string) $title),
@@ -112,6 +127,7 @@ final class SeoMetadata
             $product,
             $category,
             $video,
+            $spin,
             $socialImage,
         );
 
@@ -133,6 +149,7 @@ final class SeoMetadata
         ?Product $product,
         ?Category $category,
         ?ProductVideo $video,
+        ?ProductSpin $spin,
         ?string $socialImage,
     ): array {
         $organization = $this->setting('organization_schema', self::DEFAULT_SCHEMA);
@@ -333,11 +350,32 @@ final class SeoMetadata
                 $webPage['mainEntity'] = ['@id' => $canonical.'#product'];
             } elseif ($video) {
                 $webPage['mainEntity'] = ['@id' => $canonical.'#video'];
+            } elseif ($spin && $spin->product) {
+                $webPage['about'] = [
+                    '@type' => 'Product',
+                    'name' => $spin->product->name,
+                    'url' => route('product', $spin->product),
+                ];
+                if ($socialImage) {
+                    $webPage['primaryImageOfPage'] = [
+                        '@type' => 'ImageObject',
+                        'contentUrl' => $socialImage,
+                    ];
+                }
             }
 
             $graph[] = $webPage;
 
-            if (! $product && ! $video && $canonical !== $base.'/') {
+            if ($spin && $spin->product) {
+                $graph[] = [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $base.'/'],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => $spin->product->name, 'item' => route('product', $spin->product)],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $title, 'item' => $canonical],
+                    ],
+                ];
+            } elseif (! $product && ! $video && $canonical !== $base.'/') {
                 $graph[] = [
                     '@type' => 'BreadcrumbList',
                     'itemListElement' => [
@@ -461,6 +499,20 @@ final class SeoMetadata
         }
 
         return $video->created_at;
+    }
+
+    private function socialImageForSpin(?ProductSpin $spin): ?string
+    {
+        if (! $spin || ! $spin->isPublic()) {
+            return null;
+        }
+
+        $frames = $spin->frames ?? [];
+        if (count($frames) < 1) {
+            return null;
+        }
+
+        return route('spins.frame', [$spin->uuid, array_key_first($frames)]);
     }
 
     private function socialImageForVideo(?ProductVideo $video): ?string
