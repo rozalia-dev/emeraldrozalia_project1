@@ -915,6 +915,20 @@ class SeoDashboardTest extends TestCase
 
 
 
+
+    public function test_faceted_catalog_urls_are_noindex_but_pagination_remains_indexable(): void
+    {
+        $this->get('/shop?material=Wool')
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/shop">', false);
+
+        $this->get('/shop?page=2')
+            ->assertOk()
+            ->assertSee('name="robots" content="index,follow"', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/shop?page=2">', false);
+    }
+
     public function test_legacy_home_alias_redirects_to_canonical_homepage(): void
     {
         $this->get('/home')
