@@ -401,6 +401,16 @@ class SeoDashboardTest extends TestCase
         ]);
     }
 
+
+    public function test_public_pages_publish_complete_twitter_metadata(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('name="twitter:card" content="summary"', false)
+            ->assertSee('name="twitter:title"', false)
+            ->assertSee('name="twitter:description"', false);
+    }
+
     public function test_saved_metadata_is_published_to_the_storefront(): void
     {
         SeoSetting::create([
