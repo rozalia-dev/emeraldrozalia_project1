@@ -574,7 +574,8 @@ class SeoController extends Controller
 
     private function sources(): Collection
     {
-        $homeMeta = (array) $this->settingValue('home_meta', []);
+        $homeSetting = $this->settingRecord('home_meta');
+        $homeMeta = (array) ($homeSetting?->value ?? []);
         $sources = collect([[
             'source_type' => 'home',
             'source_id' => 0,
@@ -590,11 +591,12 @@ class SeoController extends Controller
             'has_internal_links' => true,
             'indexed' => ! (bool) ($homeMeta['noindex'] ?? false),
             'word_count' => 0,
-            'updated_at' => now(),
+            'updated_at' => $homeSetting?->updated_at,
         ]]);
 
-        $fixedMeta = (array) $this->settingValue('fixed_page_meta', []);
-        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)->map(function (array $page, int $sourceId) use ($fixedMeta): array {
+        $fixedSetting = $this->settingRecord('fixed_page_meta');
+        $fixedMeta = (array) ($fixedSetting?->value ?? []);
+        $fixedPublicPages = collect(self::FIXED_PUBLIC_PAGES)->map(function (array $page, int $sourceId) use ($fixedMeta, $fixedSetting): array {
             $saved = (array) ($fixedMeta[$page[0]] ?? []);
             $noindex = (bool) ($saved['noindex'] ?? false);
 
@@ -617,7 +619,7 @@ class SeoController extends Controller
                 'has_internal_links' => true,
                 'indexed' => ! $noindex,
                 'word_count' => 0,
-                'updated_at' => now(),
+                'updated_at' => isset($fixedMeta[$page[0]]) ? $fixedSetting?->updated_at : null,
             ];
         });
 
@@ -1137,9 +1139,12 @@ class SeoController extends Controller
             ->values()
             ->map(function (array $source) use ($base): string {
             $loc = htmlspecialchars($base.$source['path'], ENT_XML1 | ENT_COMPAT, 'UTF-8');
-            $lastmod = $source['updated_at']?->toAtomString() ?: now()->toAtomString();
+            $xml = "    <url>\n        <loc>{$loc}</loc>";
+            if ($source['updated_at']) {
+                $xml .= "\n        <lastmod>".$source['updated_at']->toAtomString()."</lastmod>";
+            }
 
-            return "    <url>\n        <loc>{$loc}</loc>\n        <lastmod>{$lastmod}</lastmod>\n    </url>";
+            return $xml."\n    </url>";
         })->implode("\n");
 
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n{$urls}\n</urlset>\n";
