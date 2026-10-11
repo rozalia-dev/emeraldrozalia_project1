@@ -117,8 +117,8 @@ class SeoController extends Controller
             ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
             ->take(5)
             ->values();
-        $redirects = SeoRedirect::query()->latest()->paginate(10)->withQueryString();
-        $audits = SeoAudit::query()->latest('completed_at')->limit(6)->get();
+        $redirects = $this->tenantQuery(SeoRedirect::query())->latest()->paginate(10)->withQueryString();
+        $audits = $this->tenantQuery(SeoAudit::query())->latest('completed_at')->limit(6)->get();
 
         return view('admin.seo.index', compact(
             'audits',
@@ -169,7 +169,7 @@ class SeoController extends Controller
                 );
             }
 
-            $existing = SeoIssue::query()->where('status', 'open')->get();
+            $existing = $this->tenantQuery(SeoIssue::query())->where('status', 'open')->get();
             foreach ($existing as $issue) {
                 if (in_array($issue->issue_type, $auditedIssueTypes, true)
                     && ! in_array($issue->source_type.'|'.$issue->source_id.'|'.$issue->issue_type, $activeKeys, true)) {
@@ -228,7 +228,7 @@ class SeoController extends Controller
                 );
             }
 
-            SeoIssue::query()
+            $this->tenantQuery(SeoIssue::query())
                 ->where('issue_type', 'broken-internal-link')
                 ->where('status', 'open')
                 ->get()
@@ -419,7 +419,7 @@ class SeoController extends Controller
             }
         });
 
-        $issue = SeoIssue::query()
+        $issue = $this->tenantQuery(SeoIssue::query())
             ->where('source_type', $sourceType)
             ->where('source_id', $sourceId)
             ->where('issue_type', $issueType)
@@ -436,6 +436,9 @@ class SeoController extends Controller
 
     public function resolveIssue(SeoIssue $issue): RedirectResponse
     {
+        if ($this->tenantId()) {
+            abort_unless((int) $issue->company_id === $this->tenantId(), 404);
+        }
         $before = $issue->toArray();
         $issue->update(['status' => 'resolved', 'resolved_at' => now(), 'resolved_by' => auth()->id()]);
         AuditTrail::record('seo.issue_resolved', $issue, $before, $issue->fresh()->toArray());
@@ -503,7 +506,11 @@ class SeoController extends Controller
             'status_code' => ['required', 'integer', 'in:301,302,307,308'],
             'active' => ['nullable', 'boolean'],
         ]);
-        $redirect = SeoRedirect::create($data + ['active' => (bool) ($data['active'] ?? true)]);
+        $attributes = $data + ['active' => (bool) ($data['active'] ?? true)];
+        if ($this->tenantId()) {
+            $attributes['company_id'] = $this->tenantId();
+        }
+        $redirect = SeoRedirect::create($attributes);
         AuditTrail::record('seo.redirect_created', $redirect, null, $redirect->toArray());
 
         return back()->with('success', 'Redirect added to the 301 manager.');
@@ -511,6 +518,9 @@ class SeoController extends Controller
 
     public function destroyRedirect(SeoRedirect $redirect): RedirectResponse
     {
+        if ($this->tenantId()) {
+            abort_unless((int) $redirect->company_id === $this->tenantId(), 404);
+        }
         $before = $redirect->toArray();
         AuditTrail::record('seo.redirect_deleted', $redirect, $before, null);
         $redirect->delete();
@@ -822,7 +832,7 @@ class SeoController extends Controller
             '/robots.txt',
             '/sitemap.xml',
         ])->merge($sources->pluck('path'))
-            ->merge(SeoRedirect::query()->where('active', true)->pluck('from_path'))
+            ->merge($this->tenantQuery(SeoRedirect::query())->where('active', true)->pluck('from_path'))
             ->map(fn ($path): string => '/'.ltrim((string) $path, '/'))
             ->unique()
             ->flip();
@@ -899,14 +909,14 @@ class SeoController extends Controller
 
     private function currentIssues(Collection $sources): Collection
     {
-        if (SeoIssue::query()->exists()) {
+        if ($this->tenantQuery(SeoIssue::query())->exists()) {
             $indexableKeys = $sources
                 ->filter(fn (array $source): bool => (bool) ($source['indexed'] ?? false))
                 ->mapWithKeys(fn (array $source): array => [
                     $source['source_type'].'|'.$source['source_id'] => true,
                 ]);
 
-            return SeoIssue::query()
+            return $this->tenantQuery(SeoIssue::query())
                 ->where('status', 'open')
                 ->latest('last_seen_at')
                 ->get()
@@ -931,7 +941,7 @@ class SeoController extends Controller
 
     private function summary(Collection $sources, Collection $issues): array
     {
-        $audit = SeoAudit::query()->latest('completed_at')->first();
+        $audit = $this->tenantQuery(SeoAudit::query())->latest('completed_at')->first();
         $keywords = $this->settingValue('keywords', self::DEFAULT_KEYWORDS);
         $sitemapGenerated = $this->settingValue('sitemap_generated_at');
 
@@ -946,7 +956,7 @@ class SeoController extends Controller
             'pages_with_issues' => $issues->map(fn (array $issue): string => $issue['source_type'].'|'.$issue['source_id'])->unique()->count(),
             'pages_crawled' => data_get($audit?->summary, 'total_pages', 0),
             'last_crawl' => $audit?->completed_at,
-            'redirects' => SeoRedirect::query()->where('status_code', 301)->count(),
+            'redirects' => $this->tenantQuery(SeoRedirect::query())->where('status_code', 301)->count(),
             'broken_links' => $issues->where('issue_type', 'broken-internal-link')->count()
                 ?: (int) $this->settingValue('broken_links', 0),
             'sitemap_generated_at' => $sitemapGenerated,
@@ -1067,6 +1077,13 @@ class SeoController extends Controller
     private function issueKey(array $issue): string
     {
         return $issue['source_type'].'|'.$issue['source_id'].'|'.$issue['issue_type'];
+    }
+
+    private function tenantQuery($query)
+    {
+        $tenantId = $this->tenantId();
+
+        return $tenantId ? $query->where('company_id', $tenantId) : $query;
     }
 
     private function tenantId(): ?int
