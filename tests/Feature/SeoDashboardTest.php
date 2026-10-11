@@ -835,6 +835,56 @@ class SeoDashboardTest extends TestCase
         }
     }
 
+
+    public function test_redirect_manager_rejects_self_redirects_and_query_sources(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.redirects.store'), [
+                'from_path' => '/shop',
+                'to_path' => '/shop',
+                'status_code' => 301,
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('to_path');
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.redirects.store'), [
+                'from_path' => '/shop?legacy=1',
+                'to_path' => '/shop',
+                'status_code' => 301,
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('from_path');
+    }
+
+    public function test_schema_manager_requires_a_json_object_with_type(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.schema.update'), [
+                'schema_json' => '[]',
+            ])
+            ->assertSessionHasErrors('schema_json');
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.schema.update'), [
+                'schema_json' => json_encode(['name' => 'Emerald Rozalia Limited']),
+            ])
+            ->assertSessionHasErrors('schema_json');
+
+        $this->actingAs($admin)
+            ->post(route('admin.seo.schema.update'), [
+                'schema_json' => json_encode([
+                    '@type' => 'Organization',
+                    'name' => 'Emerald Rozalia Limited',
+                ]),
+            ])
+            ->assertSessionHasNoErrors();
+    }
+
     public function test_redirect_manager_enforces_an_active_redirect(): void
     {
         SeoRedirect::create([
