@@ -257,7 +257,7 @@ class VideoDashboardTest extends TestCase
         $posterPath = 'videos/posters/'.fake()->uuid().'.jpg';
         $captionsPath = 'videos/captions/'.fake()->uuid().'.vtt';
         Storage::disk('local')->put($posterPath, 'poster-content');
-        Storage::disk('local')->put($captionsPath, "WEBVTT\\n\\n");
+        Storage::disk('local')->put($captionsPath, "WEBVTT\n\n");
         $video->update([
             'metadata' => array_replace($video->metadata ?? [], [
                 'poster' => $posterPath,
