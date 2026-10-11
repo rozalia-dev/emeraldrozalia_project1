@@ -495,7 +495,7 @@ final class SeoMetadata
 
     private function hasCatalogFacetQuery(): bool
     {
-        if (! request()->routeIs('shop', 'category', 'new.arrivals')) {
+        if (! request()->routeIs('shop', 'category', 'legacy.category', 'new.arrivals')) {
             return false;
         }
 
@@ -550,7 +550,7 @@ final class SeoMetadata
             }
         }
 
-        if (request()->routeIs('shop', 'category', 'new.arrivals')) {
+        if (request()->routeIs('shop', 'category', 'legacy.category', 'new.arrivals')) {
             $page = (int) request()->query('page', 1);
             if ($page > 1) {
                 return $base.$path.'?page='.$page;
