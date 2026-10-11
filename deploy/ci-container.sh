@@ -33,7 +33,7 @@ docker compose up -d --no-build --wait --wait-timeout 180 nginx
 versioned_asset_headers="$(curl --silent --show-error --head 'http://127.0.0.1:8080/css/app.css?v=ci-cache-check')"
 grep -Fqi 'Cache-Control: public, max-age=31536000, immutable' <<<"$versioned_asset_headers"
 unversioned_asset_headers="$(curl --silent --show-error --head 'http://127.0.0.1:8080/css/app.css')"
-grep -Fqi 'Cache-Control: public, max-age=3600, must-revalidate' <<<"$unversioned_asset_headers"
+grep -Fqi 'Cache-Control: public, max-age=0, must-revalidate' <<<"$unversioned_asset_headers"
 nginx_config="$(docker compose exec -T nginx nginx -T 2>&1)"
 grep -Fq 'client_max_body_size 1100M;' <<<"$nginx_config"
 grep -Fq 'fastcgi_read_timeout 900s;' <<<"$nginx_config"
