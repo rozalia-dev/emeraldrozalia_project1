@@ -1,9 +1,12 @@
 @extends('layouts.site')
 @section('body-class', 'home-body')
+@section('render-home-css-asynchronously', 'true')
 @section('title', 'Emerald Rozalia — Irish Made Hats & Caps')
 @push('styles')
-    <link rel="stylesheet" href="/css/home-collections.css?v=20260922-category-products">
-    <link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-two-videos-v4">
+    <link rel="preload" as="style" href="/css/home-collections.css?v=20260922-category-products" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/home-collections.css?v=20260922-category-products"></noscript>
+    <link rel="preload" as="style" href="/css/home-hero-layout.css?v=20261003-two-videos-v4" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/css/home-hero-layout.css?v=20261003-two-videos-v4"></noscript>
 @endpush
 @section('content')
     @php
