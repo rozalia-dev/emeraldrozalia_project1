@@ -74,7 +74,7 @@ class HomeCollectionsReferenceTest extends TestCase
 
         $this->assertStringContainsString('<style id="critical-home-styles">', $home);
         $this->assertStringContainsString('.home-page .home-hero-structured-grid', $home);
-        $this->assertStringContainsString('@media(max-width:760px)', $home);
+        $this->assertStringContainsString('@media (max-width:760px)', $home);
 
         $contact = $this->get('/contact')->assertOk()->getContent();
         $this->assertStringContainsString(
