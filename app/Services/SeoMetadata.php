@@ -75,8 +75,10 @@ final class SeoMetadata
         } elseif ($managedPage) {
             $meta = (array) $managedPage->meta;
             $settings = $managedPage->settings();
-            $title = $meta['title'] ?? $title;
-            $description = $meta['description'] ?? Str::limit((string) ($managedPage->intro ?: $managedPage->body ?: self::DEFAULT_DESCRIPTION), 160, '');
+            $savedTitle = trim((string) ($meta['title'] ?? ''));
+            $savedDescription = trim((string) ($meta['description'] ?? ''));
+            $title = $savedTitle !== '' ? $savedTitle : $title;
+            $description = $savedDescription !== '' ? $savedDescription : $this->managedPageDescription($managedPage);
             $noindex = array_key_exists('indexable', $settings)
                 ? ! (bool) $settings['indexable']
                 : (bool) ($meta['noindex'] ?? false);
@@ -353,6 +355,14 @@ final class SeoMetadata
             '/our-story' => ['title' => 'Our Story | Emerald Rozalia', 'description' => 'Discover Emerald Rozalia, an Irish headwear brand focused on design, manufacturing and craftsmanship in Limerick, Ireland.'],
             default => null,
         };
+    }
+
+    public function managedPageDescription(ContentPage $page): string
+    {
+        $source = trim((string) ($page->intro ?: $page->body ?: self::DEFAULT_DESCRIPTION));
+        $plain = trim((string) preg_replace('/\s+/u', ' ', strip_tags($source)));
+
+        return Str::limit($plain !== '' ? $plain : self::DEFAULT_DESCRIPTION, 160, '');
     }
 
     public function productDescription(Product $product): string
