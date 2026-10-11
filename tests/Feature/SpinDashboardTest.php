@@ -91,6 +91,9 @@ class SpinDashboardTest extends TestCase
             ->assertSee('"@type":"WebPage"', false);
         foreach(['draft','archived','in_progress','needs_attention'] as $state){$spin->update(['status'=>$state]);$this->get($url)->assertNotFound();}
         $spin->update(['status'=>'published','visibility'=>'private']);$this->get($url)->assertNotFound();
+        $this->actingAs($this->admin())->get(route('spins.show',$spin->uuid))
+            ->assertOk()
+            ->assertSee('name="robots" content="noindex,follow"', false);
         $this->actingAs($this->admin())->get($url)->assertOk();Auth::logout();
         $spin->update(['visibility'=>'public']);$p->update(['is_active'=>false]);$this->get($url)->assertNotFound();
         $this->get(route('spins.frame',[$spin->uuid,99]))->assertNotFound();
