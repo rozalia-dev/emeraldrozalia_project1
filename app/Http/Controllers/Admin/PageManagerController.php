@@ -15,15 +15,29 @@ class PageManagerController extends Controller
     private const STATUSES = ['draft', 'review', 'scheduled', 'published', 'unpublished', 'archived'];
     private const HOMEPAGE_SECTION_TYPES = ['hero', 'banners', 'benefits', 'collections', 'heritage', 'products', 'quality', 'franchise', 'content'];
 
+    private const RESERVED_PUBLIC_SLUGS = [
+        'home', 'shop', 'product-catalogue', 'collections', 'new-arrivals', 'virtual-tryon',
+        'irish-traditional', 'irish-heritage', 'factory', 'quality', 'be-a-store-owner',
+        'corporate-orders', 'bulk-orders', 'franchise', 'careers', 'global-network', 'contact',
+        'returns-refunds', 'our-story', 'product', 'category', 'media', 'videos', 'login',
+        'register', 'forgot-password', 'reset-password', 'logout', 'account', 'cart', 'checkout',
+        'wishlist', 'reviews', 'try-on', 'storage', 'up', 'admin', 'email', 'context', 'enquiry',
+    ];
+
     public function __construct(private readonly PageSectionBlueprints $sectionBlueprints)
     {
     }
 
     private function validated(Request $request, ?ContentPage $page = null): array
     {
+        $slugRules = ['required', 'alpha_dash', 'max:180', 'unique:content_pages,slug,' . ($page?->id ?? 'NULL')];
+        if (! $page?->isHomepage()) {
+            $slugRules[] = 'not_in:'.implode(',', self::RESERVED_PUBLIC_SLUGS);
+        }
+
         return $request->validate([
             'title' => ['required', 'string', 'max:180'],
-            'slug' => ['required', 'alpha_dash', 'max:180', 'unique:content_pages,slug,' . ($page?->id ?? 'NULL')],
+            'slug' => $slugRules,
             'intro' => ['nullable', 'string', 'max:1000'],
             'body' => ['nullable', 'string', 'max:100000'],
             'status' => ['required', 'in:' . implode(',', self::STATUSES)],
